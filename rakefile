@@ -1,0 +1,251 @@
+require 'rubygems'
+require 'rake'
+require 'rake/testtask'
+require 'rake/rdoctask'
+require 'rake/packagetask'
+require 'rake/gempackagetask'
+require 'rake/contrib/rubyforgepublisher'
+require 'spec/rake/spectask'
+
+require File.join(File.dirname(__FILE__), 'lib/addressable', 'version')
+
+PKG_DISPLAY_NAME   = 'Addressable'
+PKG_NAME           = PKG_DISPLAY_NAME.downcase
+PKG_VERSION        = Addressable::ADDRESSABLE_VERSION::STRING
+PKG_FILE_NAME      = "#{PKG_NAME}-#{PKG_VERSION}"
+
+RELEASE_NAME       = "REL #{PKG_VERSION}"
+
+RUBY_FORGE_PROJECT = PKG_NAME
+RUBY_FORGE_USER    = "sporkmonger"
+RUBY_FORGE_PATH    = "/var/www/gforge-projects/#{RUBY_FORGE_PROJECT}"
+
+PKG_SUMMARY        = "URI Implementation"
+PKG_DESCRIPTION    = <<-TEXT
+Addressable is a replacement for the URI implementation that is part of
+Ruby's standard library. It more closely conforms to the relevant RFCs and
+adds support for IRIs and URI templates.
+TEXT
+
+PKG_FILES = FileList[
+    "lib/**/*", "spec/**/*", "vendor/**/*",
+    "doc/**/*", "specdoc/**/*", "coverage/**/*",
+    "[A-Z]*", "rakefile"
+].exclude(/\bCVS\b|~$/).exclude(/database\.yml/).exclude(/[_\.]svn$/)
+
+module Rake
+  def self.browse(filepath)
+    if RUBY_PLATFORM =~ /mswin/
+      system(filepath)
+    else
+      try_browsers = lambda do
+        result = true
+        if !(`which firefox 2>&1` =~ /no firefox/)
+          system("firefox #{filepath}")
+        elsif !(`which mozilla 2>&1` =~ /no mozilla/)
+          system("mozilla #{filepath}")
+        elsif !(`which netscape 2>&1` =~ /no netscape/)
+          system("netscape #{filepath}")
+        elsif !(`which links 2>&1` =~ /no links/)
+          system("links #{filepath}")
+        elsif !(`which lynx 2>&1` =~ /no lynx/)
+          system("lynx #{filepath}")
+        else
+          result = false
+        end
+        result
+      end
+      opened = false
+      if RUBY_PLATFORM =~ /darwin/
+        opened = true
+        system("open #{filepath}")
+      elsif !(`which gnome-open 2>&1` =~ /no gnome-open/)
+        success =
+          !(`gnome-open #{filepath} 2>&1` =~ /There is no default action/)
+        if !success
+          opened = try_browsers.call() 
+        else
+          opened = true
+        end
+      else
+        opened = try_browsers.call() 
+      end
+      if !opened
+        puts "Don't know how to browse to location."
+      end
+    end
+  end
+end
+
+task :default => [ "spec:run" ]
+
+gem_spec = Gem::Specification.new do |s|
+  s.name = PKG_NAME
+  s.version = PKG_VERSION
+  s.summary = PKG_SUMMARY
+  s.description = PKG_DESCRIPTION
+
+  s.files = PKG_FILES.to_a
+
+  s.has_rdoc = true
+  s.extra_rdoc_files = %w( README )
+  s.rdoc_options.concat ['--main',  'README']
+  
+  s.add_dependency('rake', '>= 0.7.2')
+  s.add_dependency('rspec', '>= 0.7.1')
+
+  s.require_path = 'lib'
+
+  s.author = "Bob Aman"
+  s.email = "bob@sporkmonger.com"
+  s.homepage = "http://sporkmonger.com/"
+  s.rubyforge_project = "addressable"
+end
+  
+Rake::GemPackageTask.new(gem_spec) do |p|
+  p.gem_spec = gem_spec
+  p.need_tar = true
+  p.need_zip = true
+end
+
+Rake::RDocTask.new do |rdoc|
+  rdoc.rdoc_dir = 'doc'
+  rdoc.title    = "Addressable -- URI Implementation"
+  rdoc.options << '--line-numbers' << '--inline-source' <<
+    '--accessor' << 'cattr_accessor=object'
+  rdoc.template = "#{ENV['template']}.rb" if ENV['template']
+  rdoc.rdoc_files.include('README', 'CHANGELOG', 'LICENSE')
+  rdoc.rdoc_files.include('lib/**/*.rb')
+end
+
+namespace :rcov do
+  desc 'Open the RCov code coverage report in a browser.'
+  task :browse do
+    if !File.exists?(File.expand_path(
+        File.dirname(__FILE__) + '/coverage/index.html'))
+      Rake::Task["spec:run"].invoke
+    end
+    Rake.browse(File.expand_path(
+      File.dirname(__FILE__) + '/coverage/index.html'))
+  end
+end
+
+namespace :spec do
+  desc "Run all the specs"
+  Spec::Rake::SpecTask.new(:run) do |t|
+    t.spec_files = FileList['spec/**/*_spec.rb']
+    t.spec_opts = ['--color']
+    t.rcov = true
+    t.rcov_opts = [
+      # Don't include the actual spec files in the coverage report
+      '--exclude', '"spec\/.*"'
+    ]
+  end
+
+  desc "Run all the specs"
+  Spec::Rake::SpecTask.new(:run_without_rcov) do |t|
+    t.spec_files = FileList['spec/**/*_spec.rb']
+    t.spec_opts = ['--color']
+  end
+
+  namespace :heckle do
+    desc "Heckle the URI class"
+    Spec::Rake::SpecTask.new(:uri) do |t|
+      t.spec_files = FileList['spec/addressable/uri_spec.rb']
+      t.spec_opts = ['--heckle', 'Addressable::URI']
+    end
+  end
+  
+  # desc "Start up autotest for RSpec"
+  # task :autospec do
+  #   require 'autotest'
+  #   require 'autotest/growl'
+  #   require 'autotest/redgreen'
+  #   require 'vendor/autospec/lib/autospec'
+  #   Autospec.run
+  # end
+
+  desc "Print Specdoc for all specs"
+  Spec::Rake::SpecTask.new(:doc) do |t|
+    t.spec_files = FileList[
+      'spec/**/*_spec.rb'
+    ]
+    t.spec_opts = ["--format", "specdoc"]
+  end
+  
+  desc "Generate HTML Specdocs for all specs"
+  Spec::Rake::SpecTask.new(:html) do |t|
+    if !File.exists?(
+        File.expand_path(File.dirname(__FILE__) + '/specdoc/'))
+      puts "Creating specdoc folder..."
+      Dir.mkdir(File.expand_path(File.dirname(__FILE__) + '/specdoc/'))
+    end
+    
+    t.spec_files = FileList['spec/**/*_spec.rb']
+    t.spec_opts = ["--format", "html"]
+    t.out = File.expand_path(
+      File.dirname(__FILE__) + '/specdoc/index.html')
+  end
+
+  desc 'Open the RSpec HTML specifications in a browser.'
+  task :browse => [ "spec:html" ] do
+    Rake.browse(File.expand_path(
+      File.dirname(__FILE__) + '/specdoc/index.html'))
+  end
+end
+
+namespace :publish do
+  desc "Publish the coverage report"
+  task :coverage => [ "spec:run" ] do
+    Rake::SshDirPublisher.new(
+      "#{RUBY_FORGE_USER}@rubyforge.org",
+      "#{RUBY_FORGE_PATH}/coverage/",
+      "coverage"
+    ).upload
+  end
+
+  desc "Publish the specifications"
+  task :specs => [ "spec:html" ] do 
+    Rake::SshDirPublisher.new(
+      "#{RUBY_FORGE_USER}@rubyforge.org",
+      "#{RUBY_FORGE_PATH}/specdoc/",
+      "specdoc"
+    ).upload
+  end
+
+  desc "Publish the API documentation"
+  task :api => [ "rdoc" ] do 
+    Rake::SshDirPublisher.new(
+      "#{RUBY_FORGE_USER}@rubyforge.org",
+      "#{RUBY_FORGE_PATH}/api/",
+      "doc"
+    ).upload
+  end
+
+  desc "Runs all of the publishing tasks"
+  task :all => ["publish:coverage", "publish:api", "publish:specs"] do
+  end
+end
+
+task :lines do
+  lines, codelines, total_lines, total_codelines = 0, 0, 0, 0
+
+  for file_name in FileList["lib/**/*.rb"]
+    f = File.open(file_name)
+
+    while line = f.gets
+      lines += 1
+      next if line =~ /^\s*$/
+      next if line =~ /^\s*#/
+      codelines += 1
+    end
+    puts "L: #{sprintf("%4d", lines)}, LOC #{sprintf("%4d", codelines)} | #{file_name}"
+    
+    total_lines     += lines
+    total_codelines += codelines
+    
+    lines, codelines = 0, 0
+  end
+
+  puts "Total: Lines #{total_lines}, LOC #{total_codelines}"
+end

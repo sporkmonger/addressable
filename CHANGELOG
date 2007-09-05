@@ -1,0 +1,5 @@
+=== Addressable 0.1.0
+  * initial release
+  * implementation based on RFC 3986, 3987
+  * support for IRIs via libidn
+  * support for the URI Template draft spec
