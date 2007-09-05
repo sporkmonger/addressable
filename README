@@ -1,3 +1,24 @@
 Addressable is a replacement for the URI implementation that is part of
 Ruby's standard library. It more closely conforms to the relevant RFCs and
 adds support for IRIs and URI templates.
+
+Example usage:
+ 
+ require 'addressable/uri'
+ 
+ uri = Addressable::URI.parse("http://example.com/path/to/resource/")
+ uri.scheme
+ => "http"
+ uri.host
+ => "example.com"
+ uri.path
+ => "/path/to/resource/"
+ 
+ Addressable::URI.expand_template("http://example.com/{query}/", {
+   "query" => "an+example+query"
+ })
+ => #<Addressable::URI:0x123456 URI:http://example.com/an+example+query/>
+ 
+ uri = Addressable::URI.parse("http://www.詹姆斯.com/")
+ uri.normalize
+ => #<Addressable::URI:0x654321 URI:http://www.xn--8ws00zhy3a.com/>

@@ -36,6 +36,16 @@ class ExampleProcessor
     return value.gsub(/ /, "+") if name == "query"
     return value
   end
+  
+  def self.restore(name, value)
+    return value.gsub(/\+/, " ") if name == "query"
+    return value
+  end
+ 
+  def self.match(name)
+    return ".*?" if name == "first"
+    return ".*"
+  end
 end
 
 context "A completely nil URI" do
@@ -2274,5 +2284,62 @@ context "A mapping that contains values that are already percent-encoded" do
     Addressable::URI.expand_template(
       "http://example.com/{a}/",
       @mapping).to_s.should == "http://example.com/%257Bb%257D/"
+  end
+end
+
+context "http://example.com/search/an+example+search+query/" do
+  setup do
+    @uri = Addressable::URI.parse(
+      "http://example.com/search/an+example+search+query/")
+  end
+  
+  specify "when extracting using the pattern " +
+      "'http://example.com/search/{query}/' with the " +
+      "ExampleProcessor to extract values should have the correct mapping" do
+    @uri.extract_mapping(
+      "http://example.com/search/{query}/", ExampleProcessor
+    ).should == {
+      "query" => "an example search query"
+    }
+  end
+  
+  specify "when extracting using a non-matching pattern should return nil" do
+    @uri.extract_mapping(
+      "http://bogus.com/{thingy}/"
+    ).should == nil
+  end
+end
+
+context "http://example.com/a/b/c/" do
+  setup do
+    @uri = Addressable::URI.parse(
+      "http://example.com/a/b/c/")
+  end
+  
+  specify "when extracting using the pattern " +
+      "'http://example.com/{first}/{second}/' with the " +
+      "ExampleProcessor to extract values should have the correct mapping" do
+    @uri.extract_mapping(
+      "http://example.com/{first}/{second}/", ExampleProcessor
+    ).should == {
+      "first" => "a",
+      "second" => "b/c"
+    }
+  end
+end
+
+context "http://example.com/one/spacer/two/" do
+  setup do
+    @uri = Addressable::URI.parse("http://example.com/one/spacer/two/")
+  end
+  
+  specify "when extracting using the pattern " +
+      "'http://example.com/{first}/spacer/{second}/' to extract values " +
+      "should have the correct mapping" do
+    @uri.extract_mapping(
+      "http://example.com/{first}/spacer/{second}/").should == {
+        "first" => "one",
+        "second" => "two"
+      }
   end
 end
