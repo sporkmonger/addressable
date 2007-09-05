@@ -914,6 +914,9 @@ module Addressable
         rescue Exception
           nil
         end
+        if normalized_host[-1..-1] == "."
+          normalized_host = normalized_host[0...-1]
+        end
       end
       
       normalized_port = self.port
