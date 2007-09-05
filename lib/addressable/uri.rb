@@ -27,7 +27,7 @@ $:.uniq!
 require 'addressable/version'
 
 module Addressable
-  # This is an implementation of a URI parser based on RFC 3986.
+  # This is an implementation of a URI parser based on RFC 3986, 3987.
   class URI
     # Raised if something other than a uri is supplied.
     class InvalidURIError < StandardError
