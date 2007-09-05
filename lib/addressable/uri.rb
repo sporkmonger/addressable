@@ -906,6 +906,13 @@ module Addressable
       normalized_user = self.user.strip if self.user != nil
       normalized_password = nil
       normalized_password = self.password.strip if self.password != nil
+      
+      if normalized_scheme =~ /https?/ && normalized_user == "" &&
+          (normalized_password == nil || normalized_password == "")
+        normalized_user = nil
+        normalized_password = nil
+      end
+      
       normalized_host = nil
       normalized_host = self.host.strip.downcase if self.host != nil
       if normalized_host != nil

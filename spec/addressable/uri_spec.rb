@@ -558,6 +558,52 @@ context "http://example.com/" do
   end
 end
 
+context "http://@example.com/" do
+  setup do
+    @uri = Addressable::URI.parse("http://@example.com/")
+  end
+  
+  specify "should be equivalent to http://example.com" do
+    @uri.should == Addressable::URI.parse("http://example.com")
+  end
+  
+  specify "should correctly convert to a hash" do
+    @uri.to_h.should == {
+      :scheme => "http",
+      :user => "",
+      :password => nil,
+      :host => "example.com",
+      :port => nil,
+      :path => "/",
+      :query => nil,
+      :fragment => nil
+    }
+  end
+end
+
+context "http://:@example.com/" do
+  setup do
+    @uri = Addressable::URI.parse("http://:@example.com/")
+  end
+  
+  specify "should be equivalent to http://example.com" do
+    @uri.should == Addressable::URI.parse("http://example.com")
+  end
+  
+  specify "should correctly convert to a hash" do
+    @uri.to_h.should == {
+      :scheme => "http",
+      :user => "",
+      :password => "",
+      :host => "example.com",
+      :port => nil,
+      :path => "/",
+      :query => nil,
+      :fragment => nil
+    }
+  end
+end
+
 context "http://example.com/~smith/" do
   setup do
     @uri = Addressable::URI.parse("http://example.com/~smith/")

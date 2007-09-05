@@ -1,3 +1,6 @@
+=== Addressable 0.1.2
+  * improved normalization
+  
 === Addressable 0.1.1
   * updated documentation
   * added URI Template variable extraction
