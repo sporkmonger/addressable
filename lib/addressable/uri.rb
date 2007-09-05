@@ -202,8 +202,86 @@ module Addressable
         
         result.gsub!(/\{#{Regexp.escape(name)}\}/, transformed_value)
       end
-      result.gsub!(/\{[#{CharacterClasses::UNRESERVED}]+\}/, "")
+      result.gsub!(
+        /\{[#{Addressable::URI::CharacterClasses::UNRESERVED}]+\}/, "")
       return Addressable::URI.parse(result)
+    end
+    
+    # Extracts a mapping from the URI using a URI Template pattern.
+    # Returns nil if the pattern doesn't match the URI.
+    #
+    # An optional processor object may be supplied.  The object should
+    # respond to either the :restore or :match messages or both.
+    # The :restore method should take two parameters: :name and :value.
+    # The :restore method should reverse any transformations that have been
+    # performed on the value to ensure a valid URI.  The :match method
+    # should take a single parameter: :name.  The :match method should
+    # return a String containing a regular expression capture group for
+    # matching on that particular variable.  The default value is ".*".
+    #
+    # An example:
+    #    
+    #  class ExampleProcessor
+    #    def self.restore(name, value)
+    #      return value.gsub(/\+/, " ") if name == "query"
+    #      return value
+    #    end
+    #
+    #    def self.match(name)
+    #      return ".*?" if name == "first"
+    #      return ".*"
+    #    end
+    #  end
+    #  
+    #  uri = Addressable::URI.parse(
+    #    "http://example.com/search/an+example+search+query/")
+    #  uri.extract_mapping("http://example.com/search/{query}/",
+    #    ExampleProcessor)
+    #  => {"query" => "an example search query"}
+    #  
+    #  uri = Addressable::URI.parse(
+    #    "http://example.com/a/b/c/")
+    #  uri.extract_mapping("http://example.com/{first}/{second}/",
+    #    ExampleProcessor)
+    #  => {"first" => "a", "second" => "b/c"}
+    def extract_mapping(pattern, processor=nil)
+      mapping = {}
+      variable_regexp =
+        /\{([#{Addressable::URI::CharacterClasses::UNRESERVED}]+)\}/
+      variables = pattern.scan(variable_regexp).flatten
+      variables.each { |v| mapping[v] = "" }
+      escaped_pattern =
+        Regexp.escape(pattern).gsub(/\\\{/, "{").gsub(/\\\}/, "}")
+      regexp = Regexp.new(escaped_pattern.gsub(variable_regexp) do |v|
+        capture_group = "(.*)"
+        
+        if processor != nil
+          if processor.respond_to?(:match)
+            name = v.scan(variable_regexp).flatten[0]
+            capture_group = "(#{processor.match(name)})"
+          end
+        end
+        
+        capture_group
+      end)
+      values = self.to_s.scan(regexp).flatten
+      if variables.size == values.size
+        for i in 0...variables.size
+          name = variables[i]
+          value = values[i]
+          
+          if processor != nil
+            if processor.respond_to?(:restore)
+              value = processor.restore(name, value)
+            end
+          end
+          
+          mapping[name] = value
+        end
+        return mapping
+      else
+        return nil
+      end
     end
     
     # Joins several uris together.
