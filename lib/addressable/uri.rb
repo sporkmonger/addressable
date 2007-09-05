@@ -280,6 +280,7 @@ module Addressable
         end
         return mapping
       else
+        # Pattern failed to match URI.
         return nil
       end
     end
