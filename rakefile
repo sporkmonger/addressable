@@ -91,8 +91,8 @@ gem_spec = Gem::Specification.new do |s|
   s.extra_rdoc_files = %w( README )
   s.rdoc_options.concat ['--main',  'README']
   
-  s.add_dependency('rake', '>= 0.7.2')
-  s.add_dependency('rspec', '>= 0.7.1')
+  s.add_dependency('rake', '>= 0.7.3')
+  s.add_dependency('rspec', '>= 1.0.8')
 
   s.require_path = 'lib'
 
@@ -181,10 +181,10 @@ namespace :spec do
       Dir.mkdir(File.expand_path(File.dirname(__FILE__) + '/specdoc/'))
     end
     
-    t.spec_files = FileList['spec/**/*_spec.rb']
-    t.spec_opts = ["--format", "html"]
-    t.out = File.expand_path(
+    output_file = File.expand_path(
       File.dirname(__FILE__) + '/specdoc/index.html')
+    t.spec_files = FileList['spec/**/*_spec.rb']
+    t.spec_opts = ["--format", "html:#{output_file}"]
   end
 
   desc 'Open the RSpec HTML specifications in a browser.'
