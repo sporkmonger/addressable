@@ -791,9 +791,21 @@ module Addressable
             if uri.path[0..0] == "/"
               joined_path = self.class.normalize_path(uri.path)
             else
-              base_path = self.path.nil? ? "" : self.path.dup
+              base_path = self.path.dup
+              base_path = "" if base_path == nil
               base_path = self.class.normalize_path(base_path)
+
+              # Section 5.2.3 of RFC 3986
+              #
+              # Removes the right-most path segment from the base path.
               base_path.gsub!(/\/[^\/]+$/, "/")
+              
+              # If the base path is empty and an authority segment has been
+              # defined, use a base path of "/"
+              if base_path == "" && self.authority != nil
+                base_path = "/"
+              end
+              
               joined_path = self.class.normalize_path(base_path + uri.path)
             end
             joined_query = uri.query
@@ -823,11 +835,13 @@ module Addressable
     def merge(uri)
       return self + uri
     end
+    alias_method :join, :merge
     
     # Destructive form of merge.
     def merge!(uri)
       replace_self(self.merge(uri))
     end
+    alias_method :join!, :merge!
     
     # Returns the shortest normalized relative form of this URI that uses the
     # supplied URI as a base for resolution.  Returns an absolute URI if
@@ -925,7 +939,7 @@ module Addressable
           normalized_host = normalized_host[0...-1]
         end
       end
-      
+            
       normalized_port = self.port
       if self.class.scheme_mapping[normalized_scheme] == normalized_port
         normalized_port = nil
@@ -1128,6 +1142,8 @@ module Addressable
   private
     # Resolves paths to their simplest form.
     def self.normalize_path(path)
+      # Section 5.2.4 of RFC 3986
+      
       return nil if path.nil?
       normalized_path = path.dup
       previous_state = normalized_path.dup
