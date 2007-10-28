@@ -1,5 +1,7 @@
 === Addressable 0.1.2
   * improved normalization
+  * fixed bug in joining algorithm
+  * updated specifications
   
 === Addressable 0.1.1
   * updated documentation
