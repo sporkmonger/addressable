@@ -897,6 +897,67 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+describe Addressable::URI, "when parsed from " +
+    "'relative_path_with_no_slashes'" do
+  before do
+    @uri = Addressable::URI.parse("relative_path_with_no_slashes")
+  end
+
+  it "should not have a scheme" do
+    @uri.scheme.should == nil
+  end
+
+  it "should not be considered ip-based" do
+    @uri.should_not be_ip_based
+  end
+
+  it "should not have an authority segment" do
+    @uri.authority.should == nil
+  end
+
+  it "should not have a host" do
+    @uri.host.should == nil
+  end
+
+  it "should have no username" do
+    @uri.user.should == nil
+  end
+
+  it "should have no password" do
+    @uri.password.should == nil
+  end
+  
+  it "should not have a port" do
+    @uri.port.should == nil
+  end
+
+  it "should have a path of 'relative_path_with_no_slashes'" do
+    @uri.path.should == "relative_path_with_no_slashes"
+  end
+
+  it "should have no query string" do
+    @uri.query.should == nil
+  end
+
+  it "should have no fragment" do
+    @uri.fragment.should == nil
+  end
+
+  it "should not be considered absolute" do
+    @uri.should_not be_absolute
+  end
+
+  it "should be considered relative" do
+    @uri.should be_relative
+  end
+
+  it "when joined with 'another_relative_path' should be " +
+      "'another_relative_path'" do
+    @uri.join('another_relative_path').should ==
+      Addressable::URI.parse("another_relative_path")    
+  end
+end
+
 describe Addressable::URI, " when parsed from " +
     "'http://example.com/file.txt'" do
   before do

@@ -798,7 +798,11 @@ module Addressable
               # Section 5.2.3 of RFC 3986
               #
               # Removes the right-most path segment from the base path.
-              base_path.gsub!(/\/[^\/]+$/, "/")
+              if base_path =~ /\//
+                base_path.gsub!(/\/[^\/]+$/, "/")
+              else
+                base_path = ""
+              end
               
               # If the base path is empty and an authority segment has been
               # defined, use a base path of "/"
