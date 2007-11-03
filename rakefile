@@ -148,12 +148,12 @@ namespace :spec do
     t.spec_opts = ['--color']
   end
 
-  namespace :heckle do
-    desc "Heckle the URI class"
-    Spec::Rake::SpecTask.new(:uri) do |t|
-      t.spec_files = FileList['spec/addressable/uri_spec.rb']
-      t.spec_opts = ['--heckle', 'Addressable::URI']
-    end
+  desc "Heckle the URI class"
+  Spec::Rake::SpecTask.new(:heckle) do |t|
+    heckle_param = 'Addressable::URI'
+    heckle_param = ENV['TARGET'] if ENV['TARGET']
+    t.spec_files = FileList['spec/addressable/uri_spec.rb']
+    t.spec_opts = ['--heckle', heckle_param]
   end
   
   # desc "Start up autotest for RSpec"
