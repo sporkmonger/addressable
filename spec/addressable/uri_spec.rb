@@ -312,6 +312,14 @@ describe Addressable::URI, " when parsed from " +
     @uri.inspect.should include("http://example.com")
   end
 
+  it "when inspected, should have the correct class name" do
+    @uri.inspect.should include("Addressable::URI")
+  end
+
+  it "when inspected, should have the correct object id" do
+    @uri.inspect.should include("%#0x" % @uri.object_id)
+  end
+
   it "should use the 'http' scheme" do
     @uri.scheme.should == "http"
   end
@@ -503,7 +511,7 @@ describe Addressable::URI, " when parsed from " +
   end
   
   it "should correctly convert to a hash" do
-    @uri.to_h.should == {
+    @uri.to_hash.should == {
       :scheme => "http",
       :user => nil,
       :password => nil,
@@ -513,6 +521,10 @@ describe Addressable::URI, " when parsed from " +
       :query => nil,
       :fragment => nil
     }
+  end
+
+  it "should be identical to its duplicate" do
+    @uri.should == @uri.dup
   end
 end
 
@@ -562,7 +574,7 @@ describe Addressable::URI, " when parsed from " +
   end
   
   it "should correctly convert to a hash" do
-    @uri.to_h.should == {
+    @uri.to_hash.should == {
       :scheme => "http",
       :user => nil,
       :password => nil,
@@ -572,6 +584,10 @@ describe Addressable::URI, " when parsed from " +
       :query => nil,
       :fragment => nil
     }
+  end
+
+  it "should be identical to its duplicate" do
+    @uri.should == @uri.dup
   end
 end
 
@@ -586,7 +602,7 @@ describe Addressable::URI, " when parsed from " +
   end
   
   it "should correctly convert to a hash" do
-    @uri.to_h.should == {
+    @uri.to_hash.should == {
       :scheme => "http",
       :user => "",
       :password => nil,
@@ -596,6 +612,10 @@ describe Addressable::URI, " when parsed from " +
       :query => nil,
       :fragment => nil
     }
+  end
+
+  it "should be identical to its duplicate" do
+    @uri.should == @uri.dup
   end
 end
 
@@ -612,6 +632,10 @@ describe Addressable::URI, " when parsed from " +
   it "should not be considered to be in normal form" do
     @uri.normalize.should_not be_eql(@uri)
   end
+
+  it "should be identical to its duplicate" do
+    @uri.should == @uri.dup
+  end
 end
 
 describe Addressable::URI, " when parsed from " +
@@ -625,7 +649,7 @@ describe Addressable::URI, " when parsed from " +
   end
   
   it "should correctly convert to a hash" do
-    @uri.to_h.should == {
+    @uri.to_hash.should == {
       :scheme => "http",
       :user => "",
       :password => "",
@@ -635,6 +659,10 @@ describe Addressable::URI, " when parsed from " +
       :query => nil,
       :fragment => nil
     }
+  end
+
+  it "should be identical to its duplicate" do
+    @uri.should == @uri.dup
   end
 end
 
@@ -652,6 +680,10 @@ describe Addressable::URI, " when parsed from " +
   # Based on http://intertwingly.net/blog/2004/07/31/URI-Equivalence
   it "should be equivalent to http://example.com/%7esmith/" do
     @uri.should == Addressable::URI.parse("http://example.com/%7esmith/")
+  end
+
+  it "should be identical to its duplicate" do
+    @uri.should == @uri.dup
   end
 end
 
@@ -674,6 +706,10 @@ describe Addressable::URI, " when parsed from " +
   it "if percent encoded should be 'http://example.com/C%25CC%25A7'" do
     Addressable::URI.encode(@uri).to_s.should ==
       "http://example.com/%25C3%2587"
+  end
+
+  it "should be identical to its duplicate" do
+    @uri.should == @uri.dup
   end
 end
 
@@ -729,6 +765,10 @@ describe Addressable::URI, " when parsed from " +
   
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
+  end
+
+  it "should be identical to its duplicate" do
+    @uri.should == @uri.dup
   end
 end
 
@@ -801,9 +841,9 @@ describe Addressable::URI, " when parsed from " +
     end).should_not raise_error
   end
 
-  it "should result in itself when merged with itself" do
-    @uri.merge(@uri).to_s.should == "http://example.com:80/"
-    @uri.merge!(@uri).to_s.should == "http://example.com:80/"
+  it "should result in itself when joined with itself" do
+    @uri.join(@uri).to_s.should == "http://example.com:80/"
+    @uri.join!(@uri).to_s.should == "http://example.com:80/"
   end
 
   # Section 6.2.3 of RFC 3986
@@ -824,6 +864,217 @@ describe Addressable::URI, " when parsed from " +
   # Section 6.2.2.1 of RFC 3986
   it "should be equal to http://EXAMPLE.COM/" do
     @uri.should == Addressable::URI.parse("http://EXAMPLE.COM/")
+  end
+  
+  it "should correctly convert to a hash" do
+    @uri.to_hash.should == {
+      :scheme => "http",
+      :user => nil,
+      :password => nil,
+      :host => "example.com",
+      :port => 80,
+      :path => "/",
+      :query => nil,
+      :fragment => nil
+    }
+  end
+
+  it "should be identical to its duplicate" do
+    @uri.should == @uri.dup
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
+    "'http://example.com:8080/'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com:8080/")
+  end
+
+  it "should use the 'http' scheme" do
+    @uri.scheme.should == "http"
+  end
+
+  it "should have an authority segment of 'example.com:8080'" do
+    @uri.authority.should == "example.com:8080"
+  end
+
+  it "should have a host of 'example.com'" do
+    @uri.host.should == "example.com"
+  end
+
+  it "should have no username" do
+    @uri.user.should == nil
+  end
+
+  it "should have no password" do
+    @uri.password.should == nil
+  end
+  
+  it "should use port 8080" do
+    @uri.port.should == 8080
+  end
+
+  it "should have a path of '/'" do
+    @uri.path.should == "/"
+  end
+
+  it "should have no query string" do
+    @uri.query.should == nil
+  end
+
+  it "should have no fragment" do
+    @uri.fragment.should == nil
+  end
+
+  it "should be considered absolute" do
+    @uri.should be_absolute
+  end
+
+  it "should not be considered relative" do
+    @uri.should_not be_relative
+  end
+
+  it "should be exactly equal to http://example.com:8080/" do
+    @uri.eql?(Addressable::URI.parse(
+      "http://example.com:8080/")).should == true
+  end
+  
+  it "should have a route of 'http://example.com:8080/' from " +
+      "'http://example.com/path/to/'" do
+    @uri.route_from("http://example.com/path/to/").should ==
+      Addressable::URI.parse("http://example.com:8080/")
+  end
+  
+  it "should have a route of 'http://example.com:8080/' from " +
+      "'http://example.com:80/path/to/'" do
+    @uri.route_from("http://example.com:80/path/to/").should ==
+      Addressable::URI.parse("http://example.com:8080/")
+  end
+  
+  it "should have a route of '/' from " +
+      "'http://example.com:8080/path/to/'" do
+    @uri.route_from("http://example.com:8080/path/to/").should ==
+      Addressable::URI.parse("/")
+  end
+  
+  it "should have a route of 'http://example.com:8080/' from " +
+      "'http://user:pass@example.com/path/to/'" do
+    @uri.route_from("http://user:pass@example.com/path/to/").should ==
+      Addressable::URI.parse("http://example.com:8080/")
+  end
+
+  it "should correctly convert to a hash" do
+    @uri.to_hash.should == {
+      :scheme => "http",
+      :user => nil,
+      :password => nil,
+      :host => "example.com",
+      :port => 8080,
+      :path => "/",
+      :query => nil,
+      :fragment => nil
+    }
+  end
+
+  it "should be identical to its duplicate" do
+    @uri.should == @uri.dup
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
+    "'http://example.com/path/to/resource/'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/path/to/resource/")
+  end
+
+  it "should use the 'http' scheme" do
+    @uri.scheme.should == "http"
+  end
+
+  it "should have an authority segment of 'example.com'" do
+    @uri.authority.should == "example.com"
+  end
+
+  it "should have a host of 'example.com'" do
+    @uri.host.should == "example.com"
+  end
+
+  it "should have no username" do
+    @uri.user.should == nil
+  end
+
+  it "should have no password" do
+    @uri.password.should == nil
+  end
+  
+  it "should use port 80" do
+    @uri.port.should == 80
+  end
+
+  it "should have a path of '/path/to/resource/'" do
+    @uri.path.should == "/path/to/resource/"
+  end
+
+  it "should have no query string" do
+    @uri.query.should == nil
+  end
+
+  it "should have no fragment" do
+    @uri.fragment.should == nil
+  end
+
+  it "should be considered absolute" do
+    @uri.should be_absolute
+  end
+
+  it "should not be considered relative" do
+    @uri.should_not be_relative
+  end
+
+  it "should be exactly equal to http://example.com:8080/" do
+    @uri.eql?(Addressable::URI.parse(
+      "http://example.com/path/to/resource/")).should == true
+  end
+  
+  it "should have a route of 'resource/' from " +
+      "'http://example.com/path/to/'" do
+    @uri.route_from("http://example.com/path/to/").should ==
+      Addressable::URI.parse("resource/")
+  end
+  
+  it "should have a route of 'resource/' from " +
+      "'http://example.com:80/path/to/'" do
+    @uri.route_from("http://example.com:80/path/to/").should ==
+      Addressable::URI.parse("resource/")
+  end
+  
+  it "should have a route of 'http://example.com/path/to/' from " +
+      "'http://example.com:8080/path/to/'" do
+    @uri.route_from("http://example.com:8080/path/to/").should ==
+      Addressable::URI.parse("http://example.com/path/to/resource/")
+  end
+  
+  it "should have a route of 'http://example.com/path/to/' from " +
+      "'http://user:pass@example.com/path/to/'" do
+    @uri.route_from("http://user:pass@example.com/path/to/").should ==
+      Addressable::URI.parse("http://example.com/path/to/resource/")
+  end
+
+  it "should correctly convert to a hash" do
+    @uri.to_hash.should == {
+      :scheme => "http",
+      :user => nil,
+      :password => nil,
+      :host => "example.com",
+      :port => nil,
+      :path => "/path/to/resource/",
+      :query => nil,
+      :fragment => nil
+    }
+  end
+
+  it "should be identical to its duplicate" do
+    @uri.should == @uri.dup
   end
 end
 
@@ -884,16 +1135,20 @@ describe Addressable::URI, "when parsed from " +
   it "should raise an error if routing is attempted" do
     (lambda do
       @uri.route_to("http://example.com/")
-    end).should raise_error
+    end).should raise_error(ArgumentError, /relative\/path\/to\/resource/)
     (lambda do
       @uri.route_from("http://example.com/")
-    end).should raise_error
+    end).should raise_error(ArgumentError, /relative\/path\/to\/resource/)
   end
   
   it "when joined with 'another/relative/path' should be " +
       "'relative/path/to/another/relative/path'" do
     @uri.join('another/relative/path').should ==
       Addressable::URI.parse("relative/path/to/another/relative/path")    
+  end
+
+  it "should be identical to its duplicate" do
+    @uri.should == @uri.dup
   end
 end
 
@@ -990,6 +1245,61 @@ describe Addressable::URI, " when parsed from " +
 
   it "should have a path of '/file.txt'" do
     @uri.path.should == "/file.txt"
+  end
+
+  it "should have a basename of 'file.txt'" do
+    @uri.basename.should == "file.txt"
+  end
+
+  it "should have an extname of '.txt'" do
+    @uri.extname.should == ".txt"
+  end
+
+  it "should have no query string" do
+    @uri.query.should == nil
+  end
+
+  it "should have no fragment" do
+    @uri.fragment.should == nil
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
+    "'http://example.com/file.txt;parameter'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/file.txt;parameter")
+  end
+
+  it "should have a scheme of 'http'" do
+    @uri.scheme.should == "http"
+  end
+  
+  it "should have an authority segment of 'example.com'" do
+    @uri.authority.should == "example.com"
+  end
+
+  it "should have a host of 'example.com'" do
+    @uri.host.should == "example.com"
+  end
+
+  it "should have no username" do
+    @uri.user.should == nil
+  end
+
+  it "should have no password" do
+    @uri.password.should == nil
+  end
+  
+  it "should use port 80" do
+    @uri.port.should == 80
+  end
+
+  it "should have a path of '/file.txt;parameter'" do
+    @uri.path.should == "/file.txt;parameter"
+  end
+
+  it "should have a basename of 'file.txt'" do
+    @uri.basename.should == "file.txt"
   end
 
   it "should have an extname of '.txt'" do
@@ -1213,7 +1523,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have a route of '/path/to/resource?query=x#fragment' " +
       "from 'http://user:pass@example.com/path/'" do
     @uri.route_from("http://user:pass@example.com/path/").should ==
-      Addressable::URI.parse("/path/to/resource?query=x#fragment")
+      Addressable::URI.parse("to/resource?query=x#fragment")
   end
   
   it "should have a route of '?query=x#fragment' " +
@@ -1240,6 +1550,14 @@ describe Addressable::URI, " when parsed from " +
       "'http://elsewhere.com/'" do
     @uri.route_to("http://elsewhere.com/").should ==
       Addressable::URI.parse("http://elsewhere.com/")
+  end
+
+  it "should have a route of " +
+      "'http://user:pass@example.com/path/to/resource?query=x#fragment' " +
+      "from 'http://example.com/path/to/'" do
+    @uri.route_from("http://elsewhere.com/path/to/").should ==
+      Addressable::URI.parse(
+        "http://user:pass@example.com/path/to/resource?query=x#fragment")
   end
 
   it "should have the correct scheme after assignment" do
@@ -1319,6 +1637,10 @@ describe Addressable::URI, " when parsed from " +
     @uri.fragment.should == "newfragment"
     @uri.to_s.should ==
       "http://user:pass@example.com/path/to/resource?query=x#newfragment"
+  end
+
+  it "should be identical to its duplicate" do
+    @uri.should == @uri.dup
   end
 end
 
@@ -1604,6 +1926,15 @@ describe Addressable::URI, " when parsed from " +
 
   it "should have a path of '/'" do
     @uri.path.should == "/"
+  end
+  
+  it "should raise an error if routing is attempted" do
+    (lambda do
+      @uri.route_to("http://example.com/")
+    end).should raise_error(ArgumentError, /\/\/example.com\//)
+    (lambda do
+      @uri.route_from("http://example.com/")
+    end).should raise_error(ArgumentError, /\/\/example.com\//)    
   end
 end
 

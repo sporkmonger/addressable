@@ -458,8 +458,7 @@ module Addressable
       @password = password
       @host = host
       @specified_port = port.to_s
-      @port = port
-      @port = @port.to_s if @port.kind_of?(Fixnum)
+      @port = port.kind_of?(Fixnum) ? port.to_s : port
       if @port != nil && !(@port =~ /^\d+$/)
         raise InvalidURIError,
           "Invalid port number: #{@port.inspect}"
@@ -529,15 +528,15 @@ module Addressable
     
     # Returns the username and password segment of this URI.
     def userinfo
-      if !defined?(@userinfo) || @userinfo.nil?
+      if !defined?(@userinfo) || @userinfo == nil
         current_user = self.user
         current_password = self.password
-        if current_user == nil && current_password == nil
+        if !current_user && !current_password
           @userinfo = nil
-        elsif current_user != nil && current_password == nil
-          @userinfo = "#{current_user}"
-        elsif current_user != nil && current_password != nil
+        elsif current_user && current_password
           @userinfo = "#{current_user}:#{current_password}"
+        elsif current_user && !current_password
+          @userinfo = "#{current_user}"
         end
       end
       return @userinfo
@@ -593,9 +592,9 @@ module Addressable
     
     # Sets the authority segment of this URI.
     def authority=(new_authority)
-      if new_authority != nil
+      if new_authority
         new_userinfo = new_authority.scan(/^([^\[\]]*)@/).flatten[0]
-        if new_userinfo != nil
+        if new_userinfo
           new_user = new_userinfo.strip.scan(/^([^:]*):?/).flatten[0]
           new_password = new_userinfo.strip.scan(/:(.*)$/).flatten[0]
         end
@@ -604,7 +603,6 @@ module Addressable
         new_port =
           new_authority.scan(/:([^:@\[\]]*?)$/).flatten[0]
       end
-      new_port = nil if new_port == ""
       
       # Password assigned first to ensure validity in case of nil
       self.password = new_password
@@ -654,10 +652,10 @@ module Addressable
     # in the URI.
     def port
       if @port.to_i == 0
-        if self.scheme.nil?
-          @port = nil
-        else
+        if self.scheme
           @port = self.class.scheme_mapping[self.scheme.strip.downcase]
+        else
+          @port = nil
         end
         return @port
       else
@@ -696,16 +694,19 @@ module Addressable
     # Returns the basename, if any, of the file at the path being referenced.
     # Returns nil if there is no path component.
     def basename
-      return nil if self.path == nil
-      return File.basename(self.path).gsub(/;[^\/]*$/, "")
+      if self.path
+        return File.basename(self.path).gsub(/;[^\/]*$/, "")
+      else
+        return nil
+      end
     end
         
     # Returns the extension, if any, of the file at the path being referenced.
     # Returns "" if there is no extension or nil if there is no path
     # component.
     def extname
-      return nil if self.path == nil
-      return File.extname(self.basename.gsub(/;[^\/]*$/, ""))
+      return nil unless self.path
+      return File.extname(self.basename)
     end
     
     # Returns the query string for this URI.
@@ -730,8 +731,11 @@ module Addressable
     
     # Returns true if the URI uses an IP-based protocol.
     def ip_based?
-      return false if self.scheme.nil?
-      return self.class.ip_based_schemes.include?(self.scheme.strip.downcase)
+      if self.scheme
+        return self.class.ip_based_schemes.include?(
+          self.scheme.strip.downcase)
+      end
+      return false
     end
     
     # Returns true if this URI is known to be relative.
@@ -851,19 +855,18 @@ module Addressable
     # supplied URI as a base for resolution.  Returns an absolute URI if
     # necessary.
     def route_from(uri)
-      uri = uri.kind_of?(self.class) ? uri : self.class.parse(uri.to_s)
-      uri = uri.normalize
+      uri = self.class.parse(uri).normalize
       normalized_self = self.normalize
       if normalized_self.relative?
         raise ArgumentError, "Expected absolute URI, got: #{self.to_s}"
       end
       if uri.relative?
-        raise ArgumentError, "Expected absolute URI, got: #{self.to_s}"
+        raise ArgumentError, "Expected absolute URI, got: #{uri.to_s}"
       end
       if normalized_self == uri
         return Addressable::URI.parse("##{normalized_self.fragment}")
       end
-      segments = normalized_self.to_h
+      segments = normalized_self.to_hash
       if normalized_self.scheme == uri.scheme
         segments[:scheme] = nil
         if normalized_self.authority == uri.authority
@@ -876,11 +879,16 @@ module Addressable
             if normalized_self.query == uri.query
               segments[:query] = nil
             end
+          else
+            if uri.path != "/"
+              segments[:path].gsub!(
+                Regexp.new("^" + Regexp.escape(uri.path)), "")
+            end
           end
         end
       end
       # Avoid network-path references.
-      if segments[:scheme] == nil && segments[:host] != nil
+      if segments[:host] != nil
         segments[:scheme] = normalized_self.scheme
       end
       return Addressable::URI.new(
@@ -899,8 +907,7 @@ module Addressable
     # uses this URI as a base for resolution.  Returns an absolute URI if
     # necessary.
     def route_to(uri)
-      uri = uri.kind_of?(self.class) ? uri : self.class.parse(uri.to_s)
-      return uri.route_from(self)
+      return self.class.parse(uri).route_from(self)
     end
     
     # Returns a normalized URI object.
@@ -925,8 +932,10 @@ module Addressable
       normalized_password = nil
       normalized_password = self.password.strip if self.password != nil
       
+      # If we are using http or https and user/password are blank,
+      # then we remove them
       if normalized_scheme =~ /https?/ && normalized_user == "" &&
-          (normalized_password == nil || normalized_password == "")
+          (!normalized_password || normalized_password == "")
         normalized_user = nil
         normalized_password = nil
       end
@@ -943,7 +952,7 @@ module Addressable
           normalized_host = normalized_host[0...-1]
         end
       end
-            
+      
       normalized_port = self.port
       if self.class.scheme_mapping[normalized_scheme] == normalized_port
         normalized_port = nil
@@ -1005,13 +1014,12 @@ module Addressable
     # both URIs before doing the comparison, and allows comparison against
     # strings.
     def ===(uri)
-      uri_string = nil
       if uri.respond_to?(:normalize)
         uri_string = uri.normalize.to_s
       else
         begin
           uri_string = URI.parse(uri.to_s).normalize.to_s
-        rescue Exception
+        rescue InvalidURIError
           return false
         end
       end
@@ -1034,21 +1042,14 @@ module Addressable
     
     # Clones the URI object.
     def dup
-      duplicated_scheme = nil
-      duplicated_scheme = self.scheme.dup if self.scheme != nil
-      duplicated_user = nil
-      duplicated_user = self.user.dup if self.user != nil
-      duplicated_password = nil
-      duplicated_password = self.password.dup if self.password != nil
-      duplicated_host = nil
-      duplicated_host = self.host.dup if self.host != nil
-      duplicated_port = self.port
-      duplicated_path = nil
-      duplicated_path = self.path.dup if self.path != nil
-      duplicated_query = nil
-      duplicated_query = self.query.dup if self.query != nil
-      duplicated_fragment = nil
-      duplicated_fragment = self.fragment.dup if self.fragment != nil
+      duplicated_scheme = self.scheme ? self.scheme.dup : nil
+      duplicated_user = self.user ? self.user.dup : nil
+      duplicated_password = self.password ? self.password.dup : nil
+      duplicated_host = self.host ? self.host.dup : nil
+      duplicated_port = self.specified_port
+      duplicated_path = self.path ? self.path.dup : nil
+      duplicated_query = self.query ? self.query.dup : nil
+      duplicated_fragment = self.fragment ? self.fragment.dup : nil
       duplicated_uri = Addressable::URI.new(
         duplicated_scheme,
         duplicated_user,
@@ -1059,8 +1060,6 @@ module Addressable
         duplicated_query,
         duplicated_fragment
       )
-      @specified_port = nil if !defined?(@specified_port)
-      duplicated_uri.instance_variable_set("@specified_port", @specified_port)
       return duplicated_uri
     end
     
@@ -1076,7 +1075,7 @@ module Addressable
     end
     
     # Returns a Hash of the URI segments.
-    def to_h
+    def to_hash
       return {
         :scheme => self.scheme,
         :user => self.user,
@@ -1181,6 +1180,13 @@ module Addressable
           (self.path == nil || self.path == "")
         raise InvalidURIError,
           "Absolute URI missing hierarchical segment."
+      end
+      if self.host == nil
+        if self.specified_port != nil ||
+            self.user != nil ||
+            self.password != nil
+          raise InvalidURIError, "Hostname not supplied."
+        end
       end
     end
     

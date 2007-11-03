@@ -1,3 +1,10 @@
+=== Addressable 1.0.0
+  * replaced to_h with to_hash
+  * fixed routing methods
+  * improved specifications
+  * improved heckle rake task
+  * no surviving heckle mutations
+
 === Addressable 0.1.2
   * improved normalization
   * fixed bug in joining algorithm
