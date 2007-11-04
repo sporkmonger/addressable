@@ -48,14 +48,6 @@ class ExampleProcessor
   end
 end
 
-describe Addressable::URI, "when created from nil components" do
-  it "should raise an error" do
-    (lambda do
-      Addressable::URI.new(nil, nil, nil, nil, nil, nil, nil, nil)
-    end).should raise_error(Addressable::URI::InvalidURIError)
-  end
-end
-
 describe Addressable::URI, "when created with a non-numeric port number" do
   it "should raise an error" do
     (lambda do
@@ -73,6 +65,20 @@ describe Addressable::URI, "when created with a scheme but no hierarchical " +
   end
 end
 
+describe Addressable::URI, "when created from nil components" do
+  before do
+    @uri = Addressable::URI.new(nil, nil, nil, nil, nil, nil, nil, nil)
+  end
+  
+  it "should have an empty path" do
+    @uri.path.should == ""
+  end
+
+  it "should be an empty uri" do
+    @uri.to_s.should == ""
+  end
+end
+
 describe Addressable::URI, "when created from string components" do
   before do
     @uri = Addressable::URI.new(
@@ -81,6 +87,15 @@ describe Addressable::URI, "when created from string components" do
 
   it "should be equal to the equivalent parsed URI" do
     @uri.should == Addressable::URI.parse("http://example.com")
+  end
+end
+
+describe Addressable::URI, "when created with a nil host but " +
+    "non-nil authority components" do
+  it "should raise an error" do
+    (lambda do
+      Addressable::URI.new(nil, "user", "pass", nil, 80, nil, nil, nil)
+    end).should raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
@@ -1629,6 +1644,13 @@ describe Addressable::URI, " when parsed from " +
     @uri.path.should == "/newpath/to/resource"
     @uri.to_s.should ==
       "http://user:pass@example.com/newpath/to/resource?query=x#fragment"
+  end
+
+  it "should have the correct path after nil assignment" do
+    @uri.path = nil
+    @uri.path.should == ""
+    @uri.to_s.should ==
+      "http://user:pass@example.com?query=x#fragment"
   end
 
   it "should have the correct query string after assignment" do

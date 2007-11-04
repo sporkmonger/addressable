@@ -485,7 +485,7 @@ module Addressable
       end
       @port = @port.to_i
       @port = nil if @port == 0
-      @path = path
+      @path = (path || "")
       @query = query
       @fragment = fragment
 
@@ -708,17 +708,14 @@ module Addressable
     
     # Sets the path for this URI.
     def path=(new_path)
-      @path = new_path
+      @path = (new_path || "")
     end
 
     # Returns the basename, if any, of the file at the path being referenced.
     # Returns nil if there is no path component.
     def basename
-      if self.path
-        return File.basename(self.path).gsub(/;[^\/]*$/, "")
-      else
-        return nil
-      end
+      # Path cannot be nil
+      return File.basename(self.path).gsub(/;[^\/]*$/, "")
     end
         
     # Returns the extension, if any, of the file at the path being referenced.
@@ -979,11 +976,6 @@ module Addressable
       end
       normalized_path = nil
       normalized_path = self.path.strip if self.path != nil
-      if normalized_path == nil &&
-          normalized_scheme != nil &&
-          normalized_host != nil
-        normalized_path = "/"
-      end
       if normalized_path != nil
         normalized_path = self.class.normalize_path(normalized_path)
       end
@@ -1190,11 +1182,6 @@ module Addressable
 
     # Ensures that the URI is valid.
     def validate
-      if self.scheme == nil && self.user == nil && self.password == nil &&
-          self.host == nil && self.port == nil && self.path == nil &&
-          self.query == nil && self.fragment == nil
-        raise InvalidURIError, "All segments were nil."
-      end
       if self.scheme != nil &&
           (self.host == nil || self.host == "") &&
           (self.path == nil || self.path == "")
