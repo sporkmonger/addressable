@@ -1,4 +1,6 @@
 === Addressable 1.0.0
+  * heuristic parse method added
+  * parsing is slightly more strict
   * replaced to_h with to_hash
   * fixed routing methods
   * improved specifications

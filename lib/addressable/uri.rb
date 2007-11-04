@@ -93,29 +93,49 @@ module Addressable
         host = authority.gsub(/^([^\[\]]*)@/, "").gsub(/:([^:@\[\]]*?)$/, "")
         port = authority.scan(/:([^:@\[\]]*?)$/).flatten[0]
       end
-      if port.nil? || port == ""
+      if port == nil || port == ""
         port = nil
-      end
-      
-      # WARNING: Not standards-compliant, but follows the theme
-      # of Postel's law:
-      #
-      # Special exception for dealing with the retarded idea of the
-      # feed pseudo-protocol.  Without this exception, the parser will read
-      # the URI as having a blank port number, instead of as having a second
-      # URI embedded within.  This exception translates these broken URIs
-      # and instead treats the inner URI as opaque.
-      if scheme == "feed" && host == "http"
-        userinfo = nil
-        user = nil
-        password = nil
-        host = nil
-        port = nil
-        path = authority + path
       end
       
       return Addressable::URI.new(
         scheme, user, password, host, port, path, query, fragment)
+    end
+    
+    # Converts an input to a URI.  The input does not have to be a valid
+    # URI -- the method will use heuristics to guess what URI was intended.
+    # This is not standards compliant, merely user-friendly.
+    def self.heuristic_parse(input, hints={})
+      input = input.dup
+      hints = {
+        :scheme => "http"
+      }.merge(hints)
+      case input
+      when /^http:\/+/
+        input.gsub!(/^http:\/+/, "http://")
+      when /^feed:\/+http:\/+/
+        input.gsub!(/^feed:\/+http:\/+/, "feed:http://")
+      when /^feed:\/+/
+        input.gsub!(/^feed:\/+/, "feed://")
+      when /^file:\/+/
+        input.gsub!(/^file:\/+/, "file:///")
+      end
+      parsed = self.parse(input)
+      if parsed.scheme =~ /^[^\/?#\.]+\.[^\/?#]+$/
+        parsed = self.parse(hints[:scheme] + "://" + input)
+      end
+      if parsed.authority == nil
+        if parsed.path =~ /^[^\/]+\./
+          new_host = parsed.path.scan(/^([^\/]+\.[^\/]*)/).flatten[0]
+          if new_host
+            new_path = parsed.path.gsub(
+              Regexp.new("^" + Regexp.escape(new_host)), "")
+            parsed.host = new_host
+            parsed.path = new_path
+            parsed.scheme = hints[:scheme]
+          end
+        end
+      end
+      return parsed
     end
     
     # Converts a path to a file protocol URI.  If the path supplied is

@@ -1059,6 +1059,12 @@ describe Addressable::URI, " when parsed from " +
     @uri.route_from("http://user:pass@example.com/path/to/").should ==
       Addressable::URI.parse("http://example.com/path/to/resource/")
   end
+  
+  it "should have a route of '/path/to/resource/' from " +
+      "'http://example.com/to/resource/'" do
+    @uri.route_from("http://example.com/to/resource/").should ==
+      Addressable::URI.parse("/path/to/resource/")
+  end
 
   it "should correctly convert to a hash" do
     @uri.to_hash.should == {
@@ -1944,13 +1950,12 @@ describe Addressable::URI, " when parsed from " +
     @uri = Addressable::URI.parse("feed://http://example.com/")
   end
 
-  it "should have a path of 'http://example.com/'" do
-    @uri.path.should == "http://example.com/"
+  it "should have a host of 'http'" do
+    @uri.host.should == "http"
   end
 
-  it "should normalize to 'http://example.com/'" do
-    @uri.normalize.to_s.should == "http://example.com/"
-    @uri.normalize!.to_s.should == "http://example.com/"
+  it "should have a path of '//example.com/'" do
+    @uri.path.should == "//example.com/"
   end
 end
 
@@ -2849,5 +2854,127 @@ describe Addressable::URI, " when parsed from " +
         "first" => "one",
         "second" => "two"
       }
+  end
+end
+
+describe Addressable::URI, " when given the input " +
+    "'/path/to/resource'" do
+  before do
+    @input = "/path/to/resource"
+  end
+
+  it "should heuristically parse to '/path/to/resource'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    @uri.to_s.should == "/path/to/resource"
+  end
+end
+
+describe Addressable::URI, " when given the input " +
+    "'relative/path/to/resource'" do
+  before do
+    @input = "relative/path/to/resource"
+  end
+
+  it "should heuristically parse to 'relative/path/to/resource'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    @uri.to_s.should == "relative/path/to/resource"
+  end
+end
+
+describe Addressable::URI, " when given the input " +
+    "'example.com'" do
+  before do
+    @input = "example.com"
+  end
+
+  it "should heuristically parse to 'http://example.com'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    @uri.to_s.should == "http://example.com"
+  end
+end
+
+describe Addressable::URI, " when given the input " +
+    "'example.com' and a scheme hint of 'ftp'" do
+  before do
+    @input = "example.com"
+    @hints = {:scheme => 'ftp'}
+  end
+
+  it "should heuristically parse to 'http://example.com'" do
+    @uri = Addressable::URI.heuristic_parse(@input, @hints)
+    @uri.to_s.should == "ftp://example.com"
+  end
+end
+
+describe Addressable::URI, " when given the input " +
+    "'example.com:21' and a scheme hint of 'ftp'" do
+  before do
+    @input = "example.com:21"
+    @hints = {:scheme => 'ftp'}
+  end
+
+  it "should heuristically parse to 'http://example.com:21'" do
+    @uri = Addressable::URI.heuristic_parse(@input, @hints)
+    @uri.to_s.should == "ftp://example.com:21"
+  end
+end
+
+describe Addressable::URI, " when given the input " +
+    "'example.com/path/to/resource'" do
+  before do
+    @input = "example.com/path/to/resource"
+  end
+
+  it "should heuristically parse to 'http://example.com/path/to/resource'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    @uri.to_s.should == "http://example.com/path/to/resource"
+  end
+end
+
+describe Addressable::URI, " when given the input " +
+    "'http:///example.com'" do
+  before do
+    @input = "http:///example.com"
+  end
+
+  it "should heuristically parse to 'http://example.com'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    @uri.to_s.should == "http://example.com"
+  end
+end
+
+describe Addressable::URI, " when given the input " +
+    "'feed:///example.com'" do
+  before do
+    @input = "feed:///example.com"
+  end
+
+  it "should heuristically parse to 'feed://example.com'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    @uri.to_s.should == "feed://example.com"
+  end
+end
+
+describe Addressable::URI, " when given the input " +
+    "'file://path/to/resource/'" do
+  before do
+    @input = "file://path/to/resource/"
+  end
+
+  it "should heuristically parse to 'file:///path/to/resource/'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    @uri.to_s.should == "file:///path/to/resource/"
+  end
+end
+
+describe Addressable::URI, " when given the input " +
+    "'feed://http://example.com'" do
+  before do
+    @input = "feed://http://example.com"
+  end
+
+  it "should heuristically parse to 'feed:http://example.com'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    @uri.to_s.should == "feed:http://example.com"
   end
 end

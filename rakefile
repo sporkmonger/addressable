@@ -155,15 +155,6 @@ namespace :spec do
     t.spec_files = FileList['spec/addressable/uri_spec.rb']
     t.spec_opts = ['--heckle', heckle_param]
   end
-  
-  # desc "Start up autotest for RSpec"
-  # task :autospec do
-  #   require 'autotest'
-  #   require 'autotest/growl'
-  #   require 'autotest/redgreen'
-  #   require 'vendor/autospec/lib/autospec'
-  #   Autospec.run
-  # end
 
   desc "Print Specdoc for all specs"
   Spec::Rake::SpecTask.new(:doc) do |t|
