@@ -285,7 +285,8 @@ module Addressable
         capture_group
       end)
       values = self.to_s.scan(regexp).flatten
-      if variables.size == values.size
+      
+      if variables.size == values.size && variables.size > 0
         for i in 0...variables.size
           name = variables[i]
           value = values[i]
@@ -299,6 +300,8 @@ module Addressable
           mapping[name] = value
         end
         return mapping
+      elsif self.to_s == pattern
+        return {}
       else
         # Pattern failed to match URI.
         return nil

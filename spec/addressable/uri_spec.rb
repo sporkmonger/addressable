@@ -2819,6 +2819,33 @@ describe Addressable::URI, "when given a mapping that contains values " +
 end
 
 describe Addressable::URI, " when parsed from " +
+    "'/'" do
+  before do
+    @uri = Addressable::URI.parse("/")
+  end
+  
+  it "should have the correct mapping when extracting values " +
+      "using the pattern '/'" do
+    @uri.extract_mapping("/").should == {}
+  end
+end
+
+describe Addressable::URI, " when parsed from '/one/'" do
+  before do
+    @uri = Addressable::URI.parse("/one/")
+  end
+  
+  it "should not match the pattern '/two/'" do
+    @uri.extract_mapping("/two/").should == nil
+  end
+  
+  it "should have the correct mapping when extracting values " +
+      "using the pattern '/{number}/'" do
+    @uri.extract_mapping("/{number}/").should == {"number" => "one"}
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
     "'http://example.com/search/an+example+search+query/'" do
   before do
     @uri = Addressable::URI.parse(
