@@ -93,7 +93,7 @@ module Addressable
         host = authority.gsub(/^([^\[\]]*)@/, "").gsub(/:([^:@\[\]]*?)$/, "")
         port = authority.scan(/:([^:@\[\]]*?)$/).flatten[0]
       end
-      if port == nil || port == ""
+      if port == ""
         port = nil
       end
       
@@ -268,11 +268,20 @@ module Addressable
       mapping = {}
       variable_regexp =
         /\{([#{Addressable::URI::CharacterClasses::UNRESERVED}]+)\}/
+      
+      # Get all the variables in the pattern
       variables = pattern.scan(variable_regexp).flatten
+      
+      # Initialize all result values to the empty string
       variables.each { |v| mapping[v] = "" }
+      
+      # Escape the pattern
       escaped_pattern =
         Regexp.escape(pattern).gsub(/\\\{/, "{").gsub(/\\\}/, "}")
-      regexp = Regexp.new(escaped_pattern.gsub(variable_regexp) do |v|
+        
+      # Create a regular expression that captures the values of the
+      # variables in the URI.
+      regexp_string = escaped_pattern.gsub(variable_regexp) do |v|
         capture_group = "(.*)"
         
         if processor != nil
@@ -283,10 +292,16 @@ module Addressable
         end
         
         capture_group
-      end)
+      end
+      
+      # Ensure that the regular expression matches the whole URI.
+      regexp_string = "^#{regexp_string}$"
+      
+      regexp = Regexp.new(regexp_string)
       values = self.to_s.scan(regexp).flatten
       
       if variables.size == values.size && variables.size > 0
+        # We have a match.
         for i in 0...variables.size
           name = variables[i]
           value = values[i]
@@ -301,7 +316,8 @@ module Addressable
         end
         return mapping
       elsif self.to_s == pattern
-        return {}
+        # The pattern contained no variables but still matched.
+        return mapping
       else
         # Pattern failed to match URI.
         return nil

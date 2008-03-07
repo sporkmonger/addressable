@@ -1,5 +1,5 @@
 #--
-# Addressable, Copyright (c) 2006-2007 Bob Aman
+# Addressable, Copyright (c) 2006-2008 Bob Aman
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -25,7 +25,7 @@ module Addressable
   module ADDRESSABLE_VERSION #:nodoc:
     MAJOR = 1
     MINOR = 0
-    TINY  = 1
+    TINY  = 2
 
     STRING = [MAJOR, MINOR, TINY].join('.')
   end

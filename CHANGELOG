@@ -1,3 +1,6 @@
+=== Addressable 1.0.2
+  * fixed minor bug with the extract_mapping method
+
 === Addressable 1.0.1
   * fixed minor bug with the extract_mapping method
 

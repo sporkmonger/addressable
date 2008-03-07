@@ -48,6 +48,12 @@ class ExampleProcessor
   end
 end
 
+class SlashlessProcessor
+  def self.match(name)
+    return "[^/\\n]*"
+  end
+end
+
 describe Addressable::URI, "when created with a non-numeric port number" do
   it "should raise an error" do
     (lambda do
@@ -2842,6 +2848,32 @@ describe Addressable::URI, " when parsed from '/one/'" do
   it "should have the correct mapping when extracting values " +
       "using the pattern '/{number}/'" do
     @uri.extract_mapping("/{number}/").should == {"number" => "one"}
+  end
+end
+
+describe Addressable::URI, " when parsed from '/one/two/'" do
+  before do
+    @uri = Addressable::URI.parse("/one/two/")
+  end
+  
+  it "should not match the pattern '/{number}/' " +
+      "with the SlashlessProcessor" do
+    @uri.extract_mapping("/{number}/", SlashlessProcessor).should == nil
+  end
+  
+  it "should have the correct mapping when extracting values " +
+      "using the pattern '/{number}/' without a processor" do
+    @uri.extract_mapping("/{number}/").should == {
+      "number" => "one/two"
+    }
+  end
+  
+  it "should have the correct mapping when extracting values " +
+      "using the pattern '/{first}/{second}/' with the SlashlessProcessor" do
+    @uri.extract_mapping("/{first}/{second}/", SlashlessProcessor).should == {
+      "first" => "one",
+      "second" => "two"
+    }
   end
 end
 
