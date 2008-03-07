@@ -1070,6 +1070,12 @@ module Addressable
       return false unless uri.kind_of?(self.class) 
       return self.to_s == uri.to_s
     end
+
+    # Returns a hash value that will make a URI equivalent to its normalized
+    # form.
+    def hash
+      return (self.normalize.to_s.hash * -1)
+    end
     
     # Clones the URI object.
     def dup

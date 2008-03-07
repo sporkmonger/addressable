@@ -610,6 +610,18 @@ describe Addressable::URI, " when parsed from " +
   it "should be identical to its duplicate" do
     @uri.should == @uri.dup
   end
+
+  it "should have the same hash as its duplicate" do
+    @uri.hash.should == @uri.dup.hash
+  end
+
+  it "should have a different hash from its equivalent String value" do
+    @uri.hash.should_not == @uri.to_s.hash
+  end
+
+  it "should have the same hash as an equivalent URI" do
+    @uri.hash.should == Addressable::URI.parse("http://example.com:80/").hash
+  end
 end
 
 describe Addressable::URI, " when parsed from " +
