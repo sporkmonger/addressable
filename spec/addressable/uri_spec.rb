@@ -105,6 +105,24 @@ describe Addressable::URI, "when created with a nil host but " +
   end
 end
 
+describe Addressable::URI, "when created with a path that hasn't been " +
+    "prefixed with a '/' but a host specified" do
+  it "should prefix a '/' to the path" do
+    Addressable::URI.new(
+      "http", nil, nil, "example.com", nil, "path", nil, nil
+    ).should == Addressable::URI.parse("http://example.com/path")
+  end
+end
+
+describe Addressable::URI, "when created with a path that hasn't been " +
+    "prefixed with a '/' but no host specified" do
+  it "should prefix a '/' to the path" do
+    Addressable::URI.new(
+      "http", nil, nil, nil, nil, "path", nil, nil
+    ).should == Addressable::URI.parse("http:path")
+  end
+end
+
 # Section 1.1.2 of RFC 3986
 describe Addressable::URI, " when parsed from " +
     "'ftp://ftp.is.co.za/rfc/rfc1808.txt'" do
@@ -728,7 +746,11 @@ describe Addressable::URI, " when parsed from " +
 
   # Based on http://intertwingly.net/blog/2004/07/31/URI-Equivalence
   it "should be equivalent to 'http://example.com/C%CC%A7'" do
-    @uri.should == Addressable::URI.parse("http://example.com/C%CC%A7")
+    if Addressable::URI::IDNA.send(:use_libidn?)
+      @uri.should == Addressable::URI.parse("http://example.com/C%CC%A7")
+    else
+      pending("Skipping IDN specification because GNU libidn is unavailable.")
+    end
   end
   
   it "should not change if encoded with the normalizing algorithm" do
@@ -2108,7 +2130,7 @@ describe Addressable::URI, " when parsed from " +
       @uri.should ==
         Addressable::URI.parse("http://www.xn--8ws00zhy3a.com/")
     else
-      puts "\nSkipping IDN specification because GNU libidn is unavailable."
+      pending("Skipping IDN specification because GNU libidn is unavailable.")
     end
   end
 
@@ -2131,7 +2153,7 @@ describe Addressable::URI, " when parsed from " +
         Addressable::URI.parse(
           "http://www.xn--8ws00zhy3a.com/%20some%20spaces%20/")
     else
-      puts "\nSkipping IDN specification because GNU libidn is unavailable."
+      pending("Skipping IDN specification because GNU libidn is unavailable.")
     end
   end
 
@@ -2151,7 +2173,7 @@ describe Addressable::URI, " when parsed from " +
     if Addressable::URI::IDNA.send(:use_libidn?)
       @uri.display_uri.to_s.should == "http://www.詹姆斯.com/"
     else
-      puts "\nSkipping IDN specification because GNU libidn is unavailable."
+      pending("Skipping IDN specification because GNU libidn is unavailable.")
     end
   end
 end
@@ -2170,7 +2192,7 @@ describe Addressable::URI, " when parsed from " +
       @uri.normalize!.to_s.should ==
         "http://www.xn--8ws00zhy3a.com/atomtests/iri/%E8%A9%B9.html"
     else
-      puts "\nSkipping IDN specification because GNU libidn is unavailable."
+      pending("Skipping IDN specification because GNU libidn is unavailable.")
     end
   end
 end

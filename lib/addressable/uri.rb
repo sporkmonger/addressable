@@ -505,6 +505,9 @@ module Addressable
       @port = @port.to_i
       @port = nil if @port == 0
       @path = (path || "")
+      if @path != "" && @path[0..0] != "/" && @host != nil
+        @path = "/#{@path}"
+      end
       @query = query
       @fragment = fragment
 
