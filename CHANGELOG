@@ -1,4 +1,5 @@
 === Addressable 1.1.0
+  * added query_values method to URI class
   * renamed Addressable::ADDRESSABLE_VERSION to Addressable::VERSION
   * completely reworked the Rakefile
 

@@ -764,6 +764,9 @@ module Addressable
         pair.split("=")
       end).inject({}) do |accumulator, pair|
         key, value = pair
+        value = true if value.nil?
+        key = self.class.unencode_segment(key)
+        value = self.class.unencode_segment(value) if value != true
         accumulator[key] = value
         accumulator
       end
@@ -773,7 +776,14 @@ module Addressable
     def query_values=(new_query_hash)
       @query = (new_query_hash.inject([]) do |accumulator, pair|
         key, value = pair
-        accumulator << "#{key}=#{value}"
+        key = self.class.encode_segment(key, CharacterClasses::UNRESERVED)
+        if value == true
+          accumulator << "#{key}"
+        else
+          value = self.class.encode_segment(
+            value, CharacterClasses::UNRESERVED) 
+          accumulator << "#{key}=#{value}"
+        end
       end).join("&")
     end
 

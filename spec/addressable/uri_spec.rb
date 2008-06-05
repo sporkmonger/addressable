@@ -1700,6 +1700,23 @@ describe Addressable::URI, " when parsed from " +
       "http://user:pass@example.com/path/to/resource?newquery=x#fragment"
   end
 
+  it "should have the correct query string after hash assignment" do
+    @uri.query_values = {"?uestion mark"=>"=sign", "hello"=>"günther"}
+    @uri.query.split("&").should include("%3Fuestion%20mark=%3Dsign")
+    @uri.query.split("&").should include("hello=g%C3%BCnther")
+    @uri.query_values.should == {"?uestion mark"=>"=sign", "hello"=>"günther"}
+  end
+
+  it "should have the correct query string after flag hash assignment" do
+    @uri.query_values = {'flag?1' => true, 'fl=ag2' => true, 'flag3' => true}
+    @uri.query.split("&").should include("flag%3F1")
+    @uri.query.split("&").should include("fl%3Dag2")
+    @uri.query.split("&").should include("flag3")
+    @uri.query_values.should == {
+      'flag?1' => true, 'fl=ag2' => true, 'flag3' => true
+    }
+  end
+
   it "should have the correct fragment after assignment" do
     @uri.fragment = "newfragment"
     @uri.fragment.should == "newfragment"
