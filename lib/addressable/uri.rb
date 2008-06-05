@@ -752,12 +752,31 @@ module Addressable
     def query
       return @query
     end
-    
+
     # Sets the query string for this URI.
     def query=(new_query)
       @query = new_query
     end
-    
+
+    # Returns the query string as a Hash object.
+    def query_values
+      return (self.query.split("&").map do |pair|
+        pair.split("=")
+      end).inject({}) do |accumulator, pair|
+        key, value = pair
+        accumulator[key] = value
+        accumulator
+      end
+    end
+
+    # Sets the query string for this URI from a Hash object.
+    def query_values=(new_query_hash)
+      @query = (new_query_hash.inject([]) do |accumulator, pair|
+        key, value = pair
+        accumulator << "#{key}=#{value}"
+      end).join("&")
+    end
+
     # Returns the fragment for this URI.
     def fragment
       return @fragment
