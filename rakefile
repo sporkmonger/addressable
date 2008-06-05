@@ -99,9 +99,9 @@ gem_spec = Gem::Specification.new do |s|
   s.author = "Bob Aman"
   s.email = "bob@sporkmonger.com"
   s.homepage = "http://sporkmonger.com/"
-  s.rubyforge_project = "addressable"
+  s.rubyforge_project = RUBY_FORGE_PROJECT
 end
-  
+
 Rake::GemPackageTask.new(gem_spec) do |p|
   p.gem_spec = gem_spec
   p.need_tar = true
