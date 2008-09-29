@@ -21,12 +21,15 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
-module Addressable
-  module VERSION #:nodoc:
-    MAJOR = 1
-    MINOR = 1
-    TINY  = 0
+# Used to prevent the class/module from being loaded more than once
+if !defined?(Addressable::VERSION)
+  module Addressable
+    module VERSION #:nodoc:
+      MAJOR = 1
+      MINOR = 1
+      TINY  = 0
 
-    STRING = [MAJOR, MINOR, TINY].join('.')
+      STRING = [MAJOR, MINOR, TINY].join('.')
+    end
   end
 end
