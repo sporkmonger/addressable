@@ -16,7 +16,7 @@ namespace :doc do
   task :ri do
     sh "rdoc --ri -o ri ."
   end
-  
+
   desc "Remove ri products"
   task :clobber_ri do
     rm_r "ri" rescue nil

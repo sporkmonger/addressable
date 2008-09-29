@@ -26,12 +26,12 @@ namespace :git do
       if existing_tags.include?(tag)
         warn("Tag already exists, deleting...")
         unless system "git tag -d #{tag}"
-          abort "Tag deletion failed." 
+          abort "Tag deletion failed."
         end
       end
       puts "Creating git tag '#{tag}'..."
       unless system "git tag -a -m \"#{msg}\" #{tag}"
-        abort "Tag creation failed." 
+        abort "Tag creation failed."
       end
     end
   end

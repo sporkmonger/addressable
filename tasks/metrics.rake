@@ -13,7 +13,7 @@ namespace :metrics do
         "LOC #{sprintf("%4d", codelines)} | #{file_name}"
       total_lines     += lines
       total_codelines += codelines
-    
+
       lines, codelines = 0, 0
     end
 
