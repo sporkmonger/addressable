@@ -4,7 +4,11 @@ namespace :spec do
   Spec::Rake::SpecTask.new(:rcov) do |t|
     t.spec_files = FileList['spec/**/*_spec.rb']
     t.spec_opts = ['--color', '--format', 'specdoc']
-    t.rcov = true
+    if RUBY_PLATFORM != "java"
+      t.rcov = true
+    else
+      t.rcov = false
+    end
     t.rcov_opts = [
       '--exclude', 'spec',
       '--exclude', '1\\.8\\/gems',
