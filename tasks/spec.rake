@@ -4,7 +4,7 @@ namespace :spec do
   Spec::Rake::SpecTask.new(:rcov) do |t|
     t.spec_files = FileList['spec/**/*_spec.rb']
     t.spec_opts = ['--color', '--format', 'specdoc']
-    if RUBY_PLATFORM != "java"
+    if RCOV_ENABLED
       t.rcov = true
     else
       t.rcov = false
@@ -22,7 +22,7 @@ namespace :spec do
     t.rcov = false
   end
 
-  if RUBY_PLATFORM != "java"
+  if RCOV_ENABLED
     RCov::VerifyTask.new(:verify) do |t|
       t.threshold = 100.0
       t.index_html = 'coverage/index.html'
@@ -51,10 +51,11 @@ namespace :spec do
   end
 end
 
-if RUBY_PLATFORM != "java"
+if RCOV_ENABLED
   desc "Alias to spec:verify"
   task "spec" => "spec:verify"
 else
+  desc "Alias to spec:normal"
   task "spec" => "spec:normal"
 end
 
