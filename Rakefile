@@ -38,7 +38,11 @@ PKG_FILES = FileList[
     "[A-Z]*", "Rakefile"
 ].exclude(/database\.yml/).exclude(/[_\.]git$/)
 
-task :default => "spec:verify"
+if RUBY_PLATFORM != "java"
+  task :default => "spec:verify"
+else
+  task :default => "spec"
+end
 
 WINDOWS = (RUBY_PLATFORM =~ /mswin|win32|mingw|bccwin|cygwin/) rescue false
 SUDO = WINDOWS ? '' : ('sudo' unless ENV['SUDOLESS'])
