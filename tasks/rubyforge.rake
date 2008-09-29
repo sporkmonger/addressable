@@ -1,9 +1,8 @@
-require 'rubyforge'
-require 'rake/contrib/sshpublisher'
-
 namespace :gem do
   desc 'Package and upload to RubyForge'
   task :release => ["gem:package"] do |t|
+    require 'rubyforge'
+
     v = ENV['VERSION'] or abort 'Must supply VERSION=x.y.z'
     abort "Versions don't match #{v} vs #{PROJ.version}" if v != PKG_VERSION
     pkg = "pkg/#{GEM_SPEC.full_name}"
@@ -28,6 +27,8 @@ end
 namespace :doc do
   desc "Publish RDoc to RubyForge"
   task :release => ["doc:rdoc"] do
+    require 'rake/contrib/sshpublisher'
+
     config = YAML.load(
       File.read(File.expand_path('~/.rubyforge/user-config.yml'))
     )
@@ -41,6 +42,8 @@ end
 namespace :spec do
   desc "Publish specdoc to RubyForge"
   task :release => ["spec:specdoc"] do
+    require 'rake/contrib/sshpublisher'
+
     config = YAML.load(
       File.read(File.expand_path('~/.rubyforge/user-config.yml'))
     )
@@ -49,10 +52,12 @@ namespace :spec do
     local_dir = "specdoc"
     Rake::SshDirPublisher.new(host, remote_dir, local_dir).upload
   end
-  
+
   namespace :rcov do
     desc "Publish coverage report to RubyForge"
     task :release => ["spec:rcov"] do
+      require 'rake/contrib/sshpublisher'
+
       config = YAML.load(
         File.read(File.expand_path('~/.rubyforge/user-config.yml'))
       )
@@ -67,6 +72,8 @@ end
 namespace :website do
   desc "Publish website to RubyForge"
   task :release => ["doc:release", "spec:release", "spec:rcov:release"] do
+    require 'rake/contrib/sshpublisher'
+
     config = YAML.load(
       File.read(File.expand_path('~/.rubyforge/user-config.yml'))
     )
