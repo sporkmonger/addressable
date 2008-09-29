@@ -12,7 +12,7 @@ namespace :spec do
     ]
   end
 
-  RCov::VerifyTask.new(:verify) do |t| 
+  RCov::VerifyTask.new(:verify) do |t|
     t.threshold = 100.0
     t.index_html = 'coverage/index.html'
   end
@@ -24,12 +24,12 @@ namespace :spec do
     specdoc_path = File.expand_path(
       File.join(File.dirname(__FILE__), '../specdoc/'))
     Dir.mkdir(specdoc_path) if !File.exist?(specdoc_path)
-    
+
     output_file = File.join(specdoc_path, 'index.html')
     t.spec_files = FileList['spec/**/*_spec.rb']
     t.spec_opts = ["--format", "\"html:#{output_file}\"", "--diff"]
     t.fail_on_error = false
-  end  
+  end
 
   namespace :rcov do
     desc "Browse the code coverage report."
@@ -74,12 +74,12 @@ module Rake
         success =
           !(`gnome-open #{filepath} 2>&1` =~ /There is no default action/)
         if !success
-          opened = try_browsers.call() 
+          opened = try_browsers.call()
         else
           opened = true
         end
       else
-        opened = try_browsers.call() 
+        opened = try_browsers.call()
       end
       if !opened
         puts "Don't know how to browse to location."
