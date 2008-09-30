@@ -1,3 +1,4 @@
+# coding:utf-8
 #--
 # Addressable, Copyright (c) 2006-2008 Bob Aman
 #
@@ -32,11 +33,11 @@ module Addressable
     # Raised if something other than a uri is supplied.
     class InvalidURIError < StandardError
     end
-    
+
     # Raised if an invalid method option is supplied.
     class InvalidOptionError < StandardError
     end
-    
+
     # Raised if an invalid method option is supplied.
     class InvalidTemplateValue < StandardError
     end
@@ -54,21 +55,21 @@ module Addressable
       PATH = PCHAR + "\\/"
       QUERY = PCHAR + "\\/\\?"
       FRAGMENT = PCHAR + "\\/\\?"
-    end    
-    
+    end
+
     # Returns a URI object based on the parsed string.
     def self.parse(uri_string)
       return nil if uri_string.nil?
-      
+
       # If a URI object is passed, just return itself.
       return uri_string if uri_string.kind_of?(self)
-      
+
       # If a URI object of the Ruby standard library variety is passed,
       # convert it to a string, then parse the string.
       if uri_string.class.name =~ /^URI::/
         uri_string = uri_string.to_s
       end
-      
+
       uri_regex =
         /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/
       scan = uri_string.scan(uri_regex)
@@ -96,11 +97,11 @@ module Addressable
       if port == ""
         port = nil
       end
-      
+
       return Addressable::URI.new(
         scheme, user, password, host, port, path, query, fragment)
     end
-    
+
     # Converts an input to a URI.  The input does not have to be a valid
     # URI -- the method will use heuristics to guess what URI was intended.
     # This is not standards compliant, merely user-friendly.
@@ -137,13 +138,13 @@ module Addressable
       end
       return parsed
     end
-    
+
     # Converts a path to a file protocol URI.  If the path supplied is
     # relative, it will be returned as a relative URI.  If the path supplied
     # is actually a URI, it will return the parsed URI.
     def self.convert_path(path)
       return nil if path.nil?
-      
+
       converted_uri = path.strip
       if converted_uri.length > 0 && converted_uri[0..0] == "/"
         converted_uri = "file://" + converted_uri
@@ -166,10 +167,10 @@ module Addressable
       else
         converted_uri = self.parse(converted_uri)
       end
-      
+
       return converted_uri
     end
-    
+
     # Expands a URI template into a full URI.
     #
     # An optional processor object may be supplied.  The object should
@@ -181,19 +182,19 @@ module Addressable
     # string.
     #
     # An example:
-    #    
+    #
     #  class ExampleProcessor
     #    def self.validate(name, value)
     #      return !!(value =~ /^[\w ]+$/) if name == "query"
     #      return true
     #    end
-    #    
+    #
     #    def self.transform(name, value)
     #      return value.gsub(/ /, "+") if name == "query"
     #      return value
     #    end
     #  end
-    # 
+    #
     #  Addressable::URI.expand_template(
     #    "http://example.com/search/{query}/",
     #    {"query" => "an example search query"},
@@ -219,14 +220,14 @@ module Addressable
         transformed_value = self.encode_segment(transformed_value,
           Addressable::URI::CharacterClasses::RESERVED +
           Addressable::URI::CharacterClasses::UNRESERVED)
-        
+
         result.gsub!(/\{#{Regexp.escape(name)}\}/, transformed_value)
       end
       result.gsub!(
         /\{[#{Addressable::URI::CharacterClasses::UNRESERVED}]+\}/, "")
       return Addressable::URI.parse(result)
     end
-    
+
     # Extracts a mapping from the URI using a URI Template pattern.
     # Returns nil if the pattern doesn't match the URI.
     #
@@ -240,7 +241,7 @@ module Addressable
     # matching on that particular variable.  The default value is ".*".
     #
     # An example:
-    #    
+    #
     #  class ExampleProcessor
     #    def self.restore(name, value)
     #      return value.gsub(/\+/, " ") if name == "query"
@@ -252,13 +253,13 @@ module Addressable
     #      return ".*"
     #    end
     #  end
-    #  
+    #
     #  uri = Addressable::URI.parse(
     #    "http://example.com/search/an+example+search+query/")
     #  uri.extract_mapping("http://example.com/search/{query}/",
     #    ExampleProcessor)
     #  => {"query" => "an example search query"}
-    #  
+    #
     #  uri = Addressable::URI.parse(
     #    "http://example.com/a/b/c/")
     #  uri.extract_mapping("http://example.com/{first}/{second}/",
@@ -268,50 +269,50 @@ module Addressable
       mapping = {}
       variable_regexp =
         /\{([#{Addressable::URI::CharacterClasses::UNRESERVED}]+)\}/
-      
+
       # Get all the variables in the pattern
       variables = pattern.scan(variable_regexp).flatten
-      
+
       # Initialize all result values to the empty string
       variables.each { |v| mapping[v] = "" }
-      
+
       # Escape the pattern
       escaped_pattern =
         Regexp.escape(pattern).gsub(/\\\{/, "{").gsub(/\\\}/, "}")
-        
+
       # Create a regular expression that captures the values of the
       # variables in the URI.
       regexp_string = escaped_pattern.gsub(variable_regexp) do |v|
         capture_group = "(.*)"
-        
+
         if processor != nil
           if processor.respond_to?(:match)
             name = v.scan(variable_regexp).flatten[0]
             capture_group = "(#{processor.match(name)})"
           end
         end
-        
+
         capture_group
       end
-      
+
       # Ensure that the regular expression matches the whole URI.
       regexp_string = "^#{regexp_string}$"
-      
+
       regexp = Regexp.new(regexp_string)
       values = self.to_s.scan(regexp).flatten
-      
+
       if variables.size == values.size && variables.size > 0
         # We have a match.
         for i in 0...variables.size
           name = variables[i]
           value = values[i]
-          
+
           if processor != nil
             if processor.respond_to?(:restore)
               value = processor.restore(name, value)
             end
           end
-          
+
           mapping[name] = value
         end
         return mapping
@@ -323,7 +324,7 @@ module Addressable
         return nil
       end
     end
-    
+
     # Joins several uris together.
     def self.join(*uris)
       uri_objects = uris.collect do |uri|
@@ -335,7 +336,7 @@ module Addressable
       end
       return result
     end
-    
+
     # Percent encodes a URI segment.  Returns a string.  Takes an optional
     # character class parameter, which should be specified as a string
     # containing a regular expression character class (not including the
@@ -352,22 +353,22 @@ module Addressable
         Addressable::URI::CharacterClasses::RESERVED +
         Addressable::URI::CharacterClasses::UNRESERVED)
       return nil if segment.nil?
-      return segment.gsub(
-        /[^#{character_class}]/
-      ) do |sequence|
-        ("%" + sequence.unpack('C')[0].to_s(16).upcase)
-      end      
+      return segment.gsub(/[^#{character_class}]/) do |sequence|
+        (sequence.unpack('C*').map { |c| "%#{c.to_s(16).upcase}" }).join("")
+      end
     end
-    
+
     # Unencodes any percent encoded characters within a URI segment.
     # Returns a string.
     def self.unencode_segment(segment)
       return nil if segment.nil?
-      return segment.to_s.gsub(/%[0-9a-f]{2}/i) do |sequence|
+      result = segment.to_s.gsub(/%[0-9a-f]{2}/i) do |sequence|
         sequence[1..3].to_i(16).chr
       end
+      result.force_encoding("utf-8") if result.respond_to?(:force_encoding)
+      return result
     end
-    
+
     # Percent encodes any special characters in the URI.  This method does
     # not take IRIs or IDNs into account.
     def self.encode(uri)
@@ -391,11 +392,11 @@ module Addressable
           Addressable::URI::CharacterClasses::FRAGMENT)
       ).to_s
     end
-    
+
     class << self
       alias_method :escape, :encode
     end
-    
+
     # Normalizes the encoding of a URI.  Characters within a hostname are
     # not percent encoded to allow for internationalized domain names.
     def self.normalized_encode(uri)
@@ -437,7 +438,7 @@ module Addressable
 
     # Extracts uris from an arbitrary body of text.
     def self.extract(text, options={})
-      defaults = {:base => nil, :parse => false} 
+      defaults = {:base => nil, :parse => false}
       options = defaults.merge(options)
       raise InvalidOptionError unless (options.keys - defaults.keys).empty?
       # This regular expression needs to be less forgiving or else it would
@@ -487,7 +488,7 @@ module Addressable
         return parsed_uris.collect { |uri| uri.to_s }
       end
     end
-    
+
     # Creates a new uri object from component parts.  Passing nil for
     # any of these parameters is acceptable.
     def initialize(scheme, user, password, host, port, path, query, fragment)
@@ -513,22 +514,22 @@ module Addressable
 
       validate()
     end
-    
+
     # Returns the scheme (protocol) for this URI.
     def scheme
       return @scheme
     end
-    
+
     # Sets the scheme (protocol for this URI.)
     def scheme=(new_scheme)
       @scheme = new_scheme
     end
-    
+
     # Returns the user for this URI.
     def user
       return @user
     end
-    
+
     # Sets the user for this URI.
     def user=(new_user)
       @user = new_user
@@ -545,7 +546,7 @@ module Addressable
       # Ensure we haven't created an invalid URI
       validate()
     end
-    
+
     # Returns the password for this URI.
     def password
       return @password
@@ -567,7 +568,7 @@ module Addressable
       # Ensure we haven't created an invalid URI
       validate()
     end
-    
+
     # Returns the username and password segment of this URI.
     def userinfo
       if !defined?(@userinfo) || @userinfo == nil
@@ -583,12 +584,12 @@ module Addressable
       end
       return @userinfo
     end
-    
+
     # Sets the username and password segment of this URI.
     def userinfo=(new_userinfo)
       new_user = new_userinfo.to_s.strip.scan(/^(.*):/).flatten[0]
       new_password = new_userinfo.to_s.strip.scan(/:(.*)$/).flatten[0]
-      
+
       # Password assigned first to ensure validity in case of nil
       self.password = new_password
       self.user = new_user
@@ -599,12 +600,12 @@ module Addressable
       # Ensure we haven't created an invalid URI
       validate()
     end
-    
+
     # Returns the host for this URI.
     def host
       return @host
     end
-    
+
     # Sets the host for this URI.
     def host=(new_host)
       @host = new_host
@@ -615,7 +616,7 @@ module Addressable
       # Ensure we haven't created an invalid URI
       validate()
     end
-    
+
     # Returns the authority segment of this URI.
     def authority
       if !defined?(@authority) || @authority.nil?
@@ -631,7 +632,7 @@ module Addressable
       end
       return @authority
     end
-    
+
     # Sets the authority segment of this URI.
     def authority=(new_authority)
       if new_authority
@@ -645,16 +646,16 @@ module Addressable
         new_port =
           new_authority.scan(/:([^:@\[\]]*?)$/).flatten[0]
       end
-      
+
       # Password assigned first to ensure validity in case of nil
       self.password = new_password
       self.user = new_user
       self.host = new_host
-      
+
       # Port reset to allow port normalization
       @port = nil
       @specified_port = new_port
-      
+
       # Ensure we haven't created an invalid URI
       validate()
     end
@@ -688,7 +689,7 @@ module Addressable
       end
       return @protocol_mapping
     end
-    
+
     # Returns the port number for this URI.  This method will normalize to the
     # default port for the URI's scheme if the port isn't explicitly specified
     # in the URI.
@@ -705,14 +706,14 @@ module Addressable
         return @port
       end
     end
-    
+
     # Sets the port for this URI.
     def port=(new_port)
       @port = new_port.to_s.to_i
       @specified_port = @port
       @authority = nil
     end
-    
+
     # Returns the port number that was actually specified in the URI string.
     def specified_port
       port = @specified_port.to_s.to_i
@@ -722,12 +723,12 @@ module Addressable
         return port
       end
     end
-    
+
     # Returns the path for this URI.
     def path
       return @path
     end
-    
+
     # Sets the path for this URI.
     def path=(new_path)
       @path = (new_path || "")
@@ -739,7 +740,7 @@ module Addressable
       # Path cannot be nil
       return File.basename(self.path).gsub(/;[^\/]*$/, "")
     end
-        
+
     # Returns the extension, if any, of the file at the path being referenced.
     # Returns "" if there is no extension or nil if there is no path
     # component.
@@ -747,7 +748,7 @@ module Addressable
       return nil unless self.path
       return File.extname(self.basename)
     end
-    
+
     # Returns the query string for this URI.
     def query
       return @query
@@ -760,13 +761,16 @@ module Addressable
 
     # Returns the query string as a Hash object.
     def query_values
+      return nil if self.query == nil
       return (self.query.split("&").map do |pair|
         pair.split("=")
       end).inject({}) do |accumulator, pair|
         key, value = pair
         value = true if value.nil?
         key = self.class.unencode_segment(key)
-        value = self.class.unencode_segment(value) if value != true
+        if value != true
+          value = self.class.unencode_segment(value).gsub(/\+/, " ")
+        end
         accumulator[key] = value
         accumulator
       end
@@ -781,7 +785,7 @@ module Addressable
           accumulator << "#{key}"
         else
           value = self.class.encode_segment(
-            value, CharacterClasses::UNRESERVED) 
+            value, CharacterClasses::UNRESERVED)
           accumulator << "#{key}=#{value}"
         end
       end).join("&")
@@ -791,12 +795,12 @@ module Addressable
     def fragment
       return @fragment
     end
-    
+
     # Sets the fragment for this URI.
     def fragment=(new_fragment)
       @fragment = new_fragment
     end
-    
+
     # Returns true if the URI uses an IP-based protocol.
     def ip_based?
       if self.scheme
@@ -805,17 +809,17 @@ module Addressable
       end
       return false
     end
-    
+
     # Returns true if this URI is known to be relative.
     def relative?
       return self.scheme.nil?
     end
-    
+
     # Returns true if this URI is known to be absolute.
     def absolute?
       return !relative?
     end
-    
+
     # Joins two URIs together.
     def +(uri)
       if !uri.kind_of?(self.class)
@@ -824,7 +828,7 @@ module Addressable
       if uri.to_s == ""
         return self.dup
       end
-      
+
       joined_scheme = nil
       joined_user = nil
       joined_password = nil
@@ -833,7 +837,7 @@ module Addressable
       joined_path = nil
       joined_query = nil
       joined_fragment = nil
-      
+
       # Section 5.2.2 of RFC 3986
       if uri.scheme != nil
         joined_scheme = uri.scheme
@@ -875,13 +879,13 @@ module Addressable
               else
                 base_path = ""
               end
-              
+
               # If the base path is empty and an authority segment has been
               # defined, use a base path of "/"
               if base_path == "" && self.authority != nil
                 base_path = "/"
               end
-              
+
               joined_path = self.class.normalize_path(base_path + uri.path)
             end
             joined_query = uri.query
@@ -894,7 +898,7 @@ module Addressable
         joined_scheme = self.scheme
       end
       joined_fragment = uri.fragment
-      
+
       return Addressable::URI.new(
         joined_scheme,
         joined_user,
@@ -906,19 +910,19 @@ module Addressable
         joined_fragment
       )
     end
-    
+
     # Merges two URIs together.
     def merge(uri)
       return self + uri
     end
     alias_method :join, :merge
-    
+
     # Destructive form of merge.
     def merge!(uri)
       replace_self(self.merge(uri))
     end
     alias_method :join!, :merge!
-    
+
     # Returns the shortest normalized relative form of this URI that uses the
     # supplied URI as a base for resolution.  Returns an absolute URI if
     # necessary.
@@ -970,14 +974,14 @@ module Addressable
         segments[:fragment]
       )
     end
-    
+
     # Returns the shortest normalized relative form of the supplied URI that
     # uses this URI as a base for resolution.  Returns an absolute URI if
     # necessary.
     def route_to(uri)
       return self.class.parse(uri).route_from(self)
     end
-    
+
     # Returns a normalized URI object.
     #
     # NOTE: This method does not attempt to fully conform to specifications.
@@ -999,7 +1003,7 @@ module Addressable
       normalized_user = self.user.strip if self.user != nil
       normalized_password = nil
       normalized_password = self.password.strip if self.password != nil
-      
+
       # If we are using http or https and user/password are blank,
       # then we remove them
       if normalized_scheme =~ /https?/ && normalized_user == "" &&
@@ -1007,7 +1011,7 @@ module Addressable
         normalized_user = nil
         normalized_password = nil
       end
-      
+
       normalized_host = nil
       normalized_host = self.host.strip.downcase if self.host != nil
       if normalized_host != nil
@@ -1020,7 +1024,7 @@ module Addressable
           normalized_host = normalized_host[0...-1]
         end
       end
-      
+
       normalized_port = self.port
       if self.class.scheme_mapping[normalized_scheme] == normalized_port
         normalized_port = nil
@@ -1058,7 +1062,7 @@ module Addressable
     def normalize!
       replace_self(self.normalize)
     end
-    
+
     # Creates a URI suitable for display to users.  If semantic attacks are
     # likely, the application should try to detect these and warn the user.
     # See RFC 3986 section 7.6 for more information.
@@ -1072,7 +1076,7 @@ module Addressable
       end
       return display_uri
     end
-    
+
     # Returns true if the URI objects are equal.  This method normalizes
     # both URIs before doing the comparison, and allows comparison against
     # strings.
@@ -1088,18 +1092,18 @@ module Addressable
       end
       return self.normalize.to_s == uri_string
     end
-    
+
     # Returns true if the URI objects are equal.  This method normalizes
     # both URIs before doing the comparison.
     def ==(uri)
-      return false unless uri.kind_of?(self.class) 
+      return false unless uri.kind_of?(self.class)
       return self.normalize.to_s == uri.normalize.to_s
     end
 
     # Returns true if the URI objects are equal.  This method does NOT
     # normalize either URI before doing the comparison.
     def eql?(uri)
-      return false unless uri.kind_of?(self.class) 
+      return false unless uri.kind_of?(self.class)
       return self.to_s == uri.to_s
     end
 
@@ -1108,7 +1112,7 @@ module Addressable
     def hash
       return (self.normalize.to_s.hash * -1)
     end
-    
+
     # Clones the URI object.
     def dup
       duplicated_scheme = self.scheme ? self.scheme.dup : nil
@@ -1131,7 +1135,7 @@ module Addressable
       )
       return duplicated_uri
     end
-    
+
     # Returns the assembled URI as a string.
     def to_s
       uri_string = ""
@@ -1142,7 +1146,7 @@ module Addressable
       uri_string << "##{self.fragment}" if self.fragment != nil
       return uri_string
     end
-    
+
     # Returns a Hash of the URI segments.
     def to_hash
       return {
@@ -1156,12 +1160,12 @@ module Addressable
         :fragment => self.fragment
       }
     end
-    
+
     # Returns a string representation of the URI object's state.
     def inspect
       sprintf("#<%s:%#0x URI:%s>", self.class.to_s, self.object_id, self.to_s)
     end
-    
+
     # This module handles internationalized domain names.  When Ruby has an
     # implementation of nameprep, stringprep, punycode, etc, this
     # module should contain an actual implementation of IDNA instead of
@@ -1178,7 +1182,7 @@ module Addressable
             "Install libidn bindings."
         end
       end
-      
+
       # Returns the unicode representation of the label.
       def self.to_unicode(label)
         return nil if label.nil?
@@ -1190,7 +1194,7 @@ module Addressable
             "Install libidn bindings."
         end
       end
-      
+
     private
       # Determines if the libidn bindings are available and able to be used.
       def self.use_libidn?
@@ -1210,12 +1214,12 @@ module Addressable
         return @use_libidn
       end
     end
-    
+
   private
     # Resolves paths to their simplest form.
     def self.normalize_path(path)
       # Section 5.2.4 of RFC 3986
-      
+
       return nil if path.nil?
       normalized_path = path.dup
       previous_state = normalized_path.dup
@@ -1253,14 +1257,14 @@ module Addressable
         end
       end
     end
-    
+
     # Replaces the internal state of self with the specified URI's state.
     # Used in destructive operations to avoid massive code repetition.
     def replace_self(uri)
       # Reset dependant values
       @userinfo = nil
       @authority = nil
-      
+
       @scheme = uri.scheme
       @user = uri.user
       @password = uri.password
