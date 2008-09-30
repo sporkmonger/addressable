@@ -58,7 +58,7 @@ end
 describe Addressable::URI, "when created with a non-numeric port number" do
   it "should raise an error" do
     (lambda do
-      Addressable::URI.new(nil, nil, nil, nil, "bogus", nil, nil, nil)
+      Addressable::URI.new(:port => "bogus")
     end).should raise_error(Addressable::URI::InvalidURIError)
   end
 end
@@ -74,7 +74,7 @@ end
 
 describe Addressable::URI, "when created from nil components" do
   before do
-    @uri = Addressable::URI.new(nil, nil, nil, nil, nil, nil, nil, nil)
+    @uri = Addressable::URI.new
   end
 
   it "should have an empty path" do
@@ -89,7 +89,8 @@ end
 describe Addressable::URI, "when created from string components" do
   before do
     @uri = Addressable::URI.new(
-      "http", nil, nil, "example.com", nil, nil, nil, nil)
+      :scheme => "http", :host => "example.com"
+    )
   end
 
   it "should be equal to the equivalent parsed URI" do
@@ -101,8 +102,35 @@ describe Addressable::URI, "when created with a nil host but " +
     "non-nil authority components" do
   it "should raise an error" do
     (lambda do
-      Addressable::URI.new(nil, "user", "pass", nil, 80, nil, nil, nil)
+      Addressable::URI.new(:user => "user", :password => "pass", :port => 80)
     end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+end
+
+describe Addressable::URI, "when created with both an authority and a user" do
+  it "should raise an error" do
+    (lambda do
+      Addressable::URI.new(:user => "user", :authority => "user@example.com:80")
+    end).should raise_error(ArgumentError)
+  end
+end
+
+describe Addressable::URI, "when created with an authority and no port" do
+  before do
+    @uri = Addressable::URI.new(:authority => "user@example.com")
+  end
+
+  it "should not infer a port" do
+    @uri.port.should == nil
+    @uri.inferred_port.should == nil
+  end
+end
+
+describe Addressable::URI, "when created with both a userinfo and a user" do
+  it "should raise an error" do
+    (lambda do
+      Addressable::URI.new(:user => "user", :userinfo => "user:pass")
+    end).should raise_error(ArgumentError)
   end
 end
 
@@ -110,7 +138,7 @@ describe Addressable::URI, "when created with a path that hasn't been " +
     "prefixed with a '/' but a host specified" do
   it "should prefix a '/' to the path" do
     Addressable::URI.new(
-      "http", nil, nil, "example.com", nil, "path", nil, nil
+      :scheme => "http", :host => "example.com", :path => "path"
     ).should == Addressable::URI.parse("http://example.com/path")
   end
 end
@@ -119,7 +147,7 @@ describe Addressable::URI, "when created with a path that hasn't been " +
     "prefixed with a '/' but no host specified" do
   it "should prefix a '/' to the path" do
     Addressable::URI.new(
-      "http", nil, nil, nil, nil, "path", nil, nil
+      :scheme => "http", :path => "path"
     ).should == Addressable::URI.parse("http:path")
   end
 end
@@ -389,11 +417,11 @@ describe Addressable::URI, " when parsed from " +
   end
 
   it "should use port 80" do
-    @uri.port.should == 80
+    @uri.inferred_port.should == 80
   end
 
   it "should not have a specified port" do
-    @uri.specified_port.should == nil
+    @uri.port.should == nil
   end
 
   it "should have an empty path" do
@@ -797,7 +825,7 @@ describe Addressable::URI, " when parsed from " +
   end
 
   it "should use port 80" do
-    @uri.port.should == 80
+    @uri.inferred_port.should == 80
   end
 
   it "should have a path of '/'" do
@@ -1065,7 +1093,7 @@ describe Addressable::URI, " when parsed from " +
   end
 
   it "should use port 80" do
-    @uri.port.should == 80
+    @uri.inferred_port.should == 80
   end
 
   it "should have a path of '/path/to/resource/'" do
@@ -1303,7 +1331,7 @@ describe Addressable::URI, " when parsed from " +
   end
 
   it "should use port 80" do
-    @uri.port.should == 80
+    @uri.inferred_port.should == 80
   end
 
   it "should have a path of '/file.txt'" do
@@ -1354,7 +1382,7 @@ describe Addressable::URI, " when parsed from " +
   end
 
   it "should use port 80" do
-    @uri.port.should == 80
+    @uri.inferred_port.should == 80
   end
 
   it "should have a path of '/file.txt;parameter'" do
@@ -1409,7 +1437,7 @@ describe Addressable::URI, " when parsed from " +
   end
 
   it "should use port 80" do
-    @uri.port.should == 80
+    @uri.inferred_port.should == 80
   end
 
   it "should have a path of '/file.txt;x=y'" do
@@ -1558,7 +1586,7 @@ describe Addressable::URI, " when parsed from " +
   end
 
   it "should use port 80" do
-    @uri.port.should == 80
+    @uri.inferred_port.should == 80
   end
 
   it "should have a path of '/path/to/resource'" do
@@ -1637,7 +1665,7 @@ describe Addressable::URI, " when parsed from " +
     @uri.password.should == "newpass"
     @uri.host.should == "example.com"
     @uri.port.should == 80
-    @uri.specified_port.should == 80
+    @uri.inferred_port.should == 80
     @uri.to_s.should ==
       "http://newuser:newpass@example.com:80" +
       "/path/to/resource?query=x#fragment"
@@ -1650,8 +1678,8 @@ describe Addressable::URI, " when parsed from " +
     @uri.user.should == "newuser"
     @uri.password.should == "newpass"
     @uri.host.should == "example.com"
-    @uri.port.should == 80
-    @uri.specified_port.should == nil
+    @uri.port.should == nil
+    @uri.inferred_port.should == 80
     @uri.to_s.should ==
       "http://newuser:newpass@example.com" +
       "/path/to/resource?query=x#fragment"
@@ -1754,7 +1782,7 @@ describe Addressable::URI, " when parsed from " +
   end
 
   it "should use port 80" do
-    @uri.port.should == 80
+    @uri.inferred_port.should == 80
   end
 
   it "should have the correct username after assignment" do
@@ -1776,8 +1804,8 @@ describe Addressable::URI, " when parsed from " +
     @uri.user.should == "newuser"
     @uri.password.should == "newpass"
     @uri.host.should == "example.com"
-    @uri.port.should == 80
-    @uri.specified_port.should == nil
+    @uri.port.should == nil
+    @uri.inferred_port.should == 80
     @uri.to_s.should == "http://newuser:newpass@example.com"
   end
 
@@ -1787,8 +1815,8 @@ describe Addressable::URI, " when parsed from " +
     @uri.user.should == nil
     @uri.password.should == nil
     @uri.host.should == "example.com"
-    @uri.port.should == 80
-    @uri.specified_port.should == nil
+    @uri.port.should == nil
+    @uri.inferred_port.should == 80
     @uri.to_s.should == "http://example.com"
   end
 
@@ -1798,8 +1826,8 @@ describe Addressable::URI, " when parsed from " +
     @uri.user.should == "newuser"
     @uri.password.should == nil
     @uri.host.should == "example.com"
-    @uri.port.should == 80
-    @uri.specified_port.should == nil
+    @uri.port.should == nil
+    @uri.inferred_port.should == 80
     @uri.to_s.should == "http://newuser@example.com"
   end
 
@@ -1834,7 +1862,7 @@ describe Addressable::URI, " when parsed from " +
   end
 
   it "should use port 80" do
-    @uri.port.should == 80
+    @uri.inferred_port.should == 80
   end
 
   it "should have the correct username after assignment" do
@@ -1856,8 +1884,8 @@ describe Addressable::URI, " when parsed from " +
     @uri.user.should == "newuser"
     @uri.password.should == ""
     @uri.host.should == "example.com"
-    @uri.port.should == 80
-    @uri.specified_port.should == nil
+    @uri.port.should == nil
+    @uri.inferred_port.should == 80
     @uri.to_s.should == "http://newuser:@example.com"
   end
 end
@@ -1889,7 +1917,7 @@ describe Addressable::URI, " when parsed from " +
   end
 
   it "should use port 80" do
-    @uri.port.should == 80
+    @uri.inferred_port.should == 80
   end
 
   it "should have the correct username after assignment" do
@@ -1912,8 +1940,8 @@ describe Addressable::URI, " when parsed from " +
     @uri.user.should == ""
     @uri.password.should == "newpass"
     @uri.host.should == "example.com"
-    @uri.port.should == 80
-    @uri.specified_port.should == nil
+    @uri.port.should == nil
+    @uri.inferred_port.should == 80
     @uri.to_s.should == "http://:newpass@example.com"
   end
 end
@@ -1941,7 +1969,7 @@ describe Addressable::URI, " when parsed from " +
   end
 
   it "should use port 80" do
-    @uri.port.should == 80
+    @uri.inferred_port.should == 80
   end
 
   it "should have the correct username after assignment" do
@@ -1964,8 +1992,8 @@ describe Addressable::URI, " when parsed from " +
     @uri.user.should == ""
     @uri.password.should == ""
     @uri.host.should == "newexample.com"
-    @uri.port.should == 80
-    @uri.specified_port.should == nil
+    @uri.port.should == nil
+    @uri.inferred_port.should == 80
     @uri.to_s.should == "http://:@newexample.com"
   end
 end
@@ -2085,7 +2113,7 @@ describe Addressable::URI, " when parsed from " +
   end
 
   it "should use port 80" do
-    @uri.port.should == 80
+    @uri.inferred_port.should == 80
   end
 
   it "should have a path of '/indirect/path/./to/../resource/'" do

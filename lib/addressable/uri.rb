@@ -99,7 +99,15 @@ module Addressable
       end
 
       return Addressable::URI.new(
-        scheme, user, password, host, port, path, query, fragment)
+        :scheme => scheme,
+        :user => user,
+        :password => password,
+        :host => host,
+        :port => port,
+        :path => path,
+        :query => query,
+        :fragment => fragment
+      )
     end
 
     # Converts an input to a URI.  The input does not have to be a valid
@@ -374,21 +382,15 @@ module Addressable
     def self.encode(uri)
       uri_object = uri.kind_of?(self) ? uri : self.parse(uri.to_s)
       return Addressable::URI.new(
-        self.encode_segment(uri_object.scheme,
+        :scheme => self.encode_segment(uri_object.scheme,
           Addressable::URI::CharacterClasses::SCHEME),
-        self.encode_segment(uri_object.user,
+        :authority => self.encode_segment(uri_object.authority,
           Addressable::URI::CharacterClasses::AUTHORITY),
-        self.encode_segment(uri_object.password,
-          Addressable::URI::CharacterClasses::AUTHORITY),
-        self.encode_segment(uri_object.host,
-          Addressable::URI::CharacterClasses::AUTHORITY),
-        self.encode_segment(uri_object.specified_port,
-          Addressable::URI::CharacterClasses::AUTHORITY),
-        self.encode_segment(uri_object.path,
+        :path => self.encode_segment(uri_object.path,
           Addressable::URI::CharacterClasses::PATH),
-        self.encode_segment(uri_object.query,
+        :query => self.encode_segment(uri_object.query,
           Addressable::URI::CharacterClasses::QUERY),
-        self.encode_segment(uri_object.fragment,
+        :fragment => self.encode_segment(uri_object.fragment,
           Addressable::URI::CharacterClasses::FRAGMENT)
       ).to_s
     end
@@ -406,7 +408,7 @@ module Addressable
         :user => self.unencode_segment(uri_object.user),
         :password => self.unencode_segment(uri_object.password),
         :host => self.unencode_segment(uri_object.host),
-        :port => self.unencode_segment(uri_object.specified_port),
+        :port => self.unencode_segment(uri_object.port),
         :path => self.unencode_segment(uri_object.path),
         :query => self.unencode_segment(uri_object.query),
         :fragment => self.unencode_segment(uri_object.fragment)
@@ -419,19 +421,19 @@ module Addressable
         end
       end
       return Addressable::URI.new(
-        self.encode_segment(segments[:scheme],
+        :scheme => self.encode_segment(segments[:scheme],
           Addressable::URI::CharacterClasses::SCHEME),
-        self.encode_segment(segments[:user],
+        :user => self.encode_segment(segments[:user],
           Addressable::URI::CharacterClasses::AUTHORITY),
-        self.encode_segment(segments[:password],
+        :password => self.encode_segment(segments[:password],
           Addressable::URI::CharacterClasses::AUTHORITY),
-        segments[:host],
-        segments[:port],
-        self.encode_segment(segments[:path],
+        :host => segments[:host],
+        :port => segments[:port],
+        :path => self.encode_segment(segments[:path],
           Addressable::URI::CharacterClasses::PATH),
-        self.encode_segment(segments[:query],
+        :query => self.encode_segment(segments[:query],
           Addressable::URI::CharacterClasses::QUERY),
-        self.encode_segment(segments[:fragment],
+        :fragment => self.encode_segment(segments[:fragment],
           Addressable::URI::CharacterClasses::FRAGMENT)
       ).to_s
     end
@@ -491,28 +493,35 @@ module Addressable
 
     # Creates a new uri object from component parts.  Passing nil for
     # any of these parameters is acceptable.
-    def initialize(scheme, user, password, host, port, path, query, fragment)
-      @scheme = scheme
-      @scheme = nil if @scheme.to_s.strip == ""
-      @user = user
-      @password = password
-      @host = host
-      @specified_port = port.to_s
-      @port = port.kind_of?(Fixnum) ? port.to_s : port
-      if @port != nil && !(@port =~ /^\d+$/)
-        raise InvalidURIError,
-          "Invalid port number: #{@port.inspect}"
+    def initialize(options={})
+      if options[:authority]
+        if (options.keys & [:userinfo, :user, :password, :host, :port]).any?
+          raise ArgumentError,
+            "Cannot specify both an authority and any of the segments " +
+            "within the authority."
+        end
       end
-      @port = @port.to_i
-      @port = nil if @port == 0
-      @path = (path || "")
-      if @path != "" && @path[0..0] != "/" && @host != nil
-        @path = "/#{@path}"
+      if options[:userinfo]
+        if (options.keys & [:user, :password]).any?
+          raise ArgumentError,
+            "Cannot specify both a userinfo and either the user or password."
+        end
       end
-      @query = query
-      @fragment = fragment
 
-      validate()
+      @validation_deferred = true
+      self.scheme = options[:scheme] if options[:scheme]
+      self.user = options[:user] if options[:user]
+      self.password = options[:password] if options[:password]
+      self.userinfo = options[:userinfo] if options[:userinfo]
+      self.host = options[:host] if options[:host]
+      self.port = options[:port] if options[:port]
+      self.authority = options[:authority] if options[:authority]
+      self.path = options[:path] if options[:path]
+      self.query = options[:query] if options[:query]
+      self.fragment = options[:fragment] if options[:fragment]
+      @validation_deferred = false
+
+      validate
     end
 
     # Returns the scheme (protocol) for this URI.
@@ -523,6 +532,7 @@ module Addressable
     # Sets the scheme (protocol for this URI.)
     def scheme=(new_scheme)
       @scheme = new_scheme
+      @scheme = nil if new_scheme.to_s.strip == ""
     end
 
     # Returns the user for this URI.
@@ -571,18 +581,17 @@ module Addressable
 
     # Returns the username and password segment of this URI.
     def userinfo
-      if !defined?(@userinfo) || @userinfo == nil
+      @userinfo ||= (begin
         current_user = self.user
         current_password = self.password
         if !current_user && !current_password
-          @userinfo = nil
+          nil
         elsif current_user && current_password
-          @userinfo = "#{current_user}:#{current_password}"
+          "#{current_user}:#{current_password}"
         elsif current_user && !current_password
-          @userinfo = "#{current_user}"
+          "#{current_user}"
         end
-      end
-      return @userinfo
+      end)
     end
 
     # Sets the username and password segment of this URI.
@@ -619,18 +628,21 @@ module Addressable
 
     # Returns the authority segment of this URI.
     def authority
-      if !defined?(@authority) || @authority.nil?
-        return nil if self.host.nil?
-        @authority = ""
-        if self.userinfo != nil
-          @authority << "#{self.userinfo}@"
+      @authority ||= (begin
+        if self.host.nil?
+          nil
+        else
+          authority = ""
+          if self.userinfo != nil
+            authority << "#{self.userinfo}@"
+          end
+          authority << self.host
+          if self.port != nil
+            authority << ":#{self.port}"
+          end
+          authority
         end
-        @authority << self.host
-        if self.specified_port != nil
-          @authority << ":#{self.specified_port}"
-        end
-      end
-      return @authority
+      end)
     end
 
     # Sets the authority segment of this URI.
@@ -651,10 +663,10 @@ module Addressable
       self.password = new_password
       self.user = new_user
       self.host = new_host
+      self.port = new_port
 
-      # Port reset to allow port normalization
-      @port = nil
-      @specified_port = new_port
+      # Reset the memoized values
+      @inferred_port = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -664,74 +676,80 @@ module Addressable
     # use a similar URI form:
     # //<user>:<password>@<host>:<port>/<url-path>
     def self.ip_based_schemes
-      return self.scheme_mapping.keys
+      return self.port_mapping.keys
     end
 
     # Returns a hash of common IP-based schemes and their default port
     # numbers.  Adding new schemes to this hash, as necessary, will allow
     # for better URI normalization.
-    def self.scheme_mapping
-      if !defined?(@protocol_mapping) || @protocol_mapping.nil?
-        @protocol_mapping = {
-          "http" => 80,
-          "https" => 443,
-          "ftp" => 21,
-          "tftp" => 69,
-          "ssh" => 22,
-          "svn+ssh" => 22,
-          "telnet" => 23,
-          "nntp" => 119,
-          "gopher" => 70,
-          "wais" => 210,
-          "ldap" => 389,
-          "prospero" => 1525
-        }
+    def self.port_mapping
+      @port_mapping ||= {
+        "http" => 80,
+        "https" => 443,
+        "ftp" => 21,
+        "tftp" => 69,
+        "ssh" => 22,
+        "svn+ssh" => 22,
+        "telnet" => 23,
+        "nntp" => 119,
+        "gopher" => 70,
+        "wais" => 210,
+        "ldap" => 389,
+        "prospero" => 1525
+      }
+    end
+
+    # Returns the port number that was actually specified in the URI string.
+    def port
+      return @port
+    end
+
+    # Sets the port for this URI.
+    def port=(new_port)
+      if new_port != nil && !(new_port.to_s =~ /^\d+$/)
+        raise InvalidURIError,
+          "Invalid port number: #{new_port.inspect}"
       end
-      return @protocol_mapping
+
+      @port = new_port.to_s.to_i
+      @port = nil if @port == 0
+
+      # Reset the memoized values
+      @authority = nil
+      @inferred_port = nil
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     # Returns the port number for this URI.  This method will normalize to the
     # default port for the URI's scheme if the port isn't explicitly specified
     # in the URI.
-    def port
-      if @port.to_i == 0
-        if self.scheme
-          @port = self.class.scheme_mapping[self.scheme.strip.downcase]
+    def inferred_port
+      @inferred_port ||= (begin
+        if port.to_i == 0
+          if scheme
+            self.class.port_mapping[scheme.strip.downcase]
+          else
+            nil
+          end
         else
-          @port = nil
+          port.to_i
         end
-        return @port
-      else
-        @port = @port.to_i
-        return @port
-      end
-    end
-
-    # Sets the port for this URI.
-    def port=(new_port)
-      @port = new_port.to_s.to_i
-      @specified_port = @port
-      @authority = nil
-    end
-
-    # Returns the port number that was actually specified in the URI string.
-    def specified_port
-      port = @specified_port.to_s.to_i
-      if port == 0
-        return nil
-      else
-        return port
-      end
+      end)
     end
 
     # Returns the path for this URI.
     def path
-      return @path
+      return (@path || "")
     end
 
     # Sets the path for this URI.
     def path=(new_path)
       @path = (new_path || "")
+      if @path != "" && @path[0..0] != "/" && host != nil
+        @path = "/#{@path}"
+      end
     end
 
     # Returns the basename, if any, of the file at the path being referenced.
@@ -844,7 +862,7 @@ module Addressable
         joined_user = uri.user
         joined_password = uri.password
         joined_host = uri.host
-        joined_port = uri.specified_port
+        joined_port = uri.port
         joined_path = self.class.normalize_path(uri.path)
         joined_query = uri.query
       else
@@ -852,7 +870,7 @@ module Addressable
           joined_user = uri.user
           joined_password = uri.password
           joined_host = uri.host
-          joined_port = uri.specified_port
+          joined_port = uri.port
           joined_path = self.class.normalize_path(uri.path)
           joined_query = uri.query
         else
@@ -893,21 +911,21 @@ module Addressable
           joined_user = self.user
           joined_password = self.password
           joined_host = self.host
-          joined_port = self.specified_port
+          joined_port = self.port
         end
         joined_scheme = self.scheme
       end
       joined_fragment = uri.fragment
 
       return Addressable::URI.new(
-        joined_scheme,
-        joined_user,
-        joined_password,
-        joined_host,
-        joined_port,
-        joined_path,
-        joined_query,
-        joined_fragment
+        :scheme => joined_scheme,
+        :user => joined_user,
+        :password => joined_password,
+        :host => joined_host,
+        :port => joined_port,
+        :path => joined_path,
+        :query => joined_query,
+        :fragment => joined_fragment
       )
     end
 
@@ -964,14 +982,14 @@ module Addressable
         segments[:scheme] = normalized_self.scheme
       end
       return Addressable::URI.new(
-        segments[:scheme],
-        segments[:user],
-        segments[:password],
-        segments[:host],
-        segments[:port],
-        segments[:path],
-        segments[:query],
-        segments[:fragment]
+        :scheme => segments[:scheme],
+        :user => segments[:user],
+        :password => segments[:password],
+        :host => segments[:host],
+        :port => segments[:port],
+        :path => segments[:path],
+        :query => segments[:query],
+        :fragment => segments[:fragment]
       )
     end
 
@@ -1026,7 +1044,7 @@ module Addressable
       end
 
       normalized_port = self.port
-      if self.class.scheme_mapping[normalized_scheme] == normalized_port
+      if self.class.port_mapping[normalized_scheme] == normalized_port
         normalized_port = nil
       end
       normalized_path = nil
@@ -1047,14 +1065,14 @@ module Addressable
       normalized_fragment = self.fragment.strip if self.fragment != nil
       return Addressable::URI.parse(
         Addressable::URI.normalized_encode(Addressable::URI.new(
-          normalized_scheme,
-          normalized_user,
-          normalized_password,
-          normalized_host,
-          normalized_port,
-          normalized_path,
-          normalized_query,
-          normalized_fragment
+          :scheme => normalized_scheme,
+          :user => normalized_user,
+          :password => normalized_password,
+          :host => normalized_host,
+          :port => normalized_port,
+          :path => normalized_path,
+          :query => normalized_query,
+          :fragment => normalized_fragment
         )))
     end
 
@@ -1115,23 +1133,15 @@ module Addressable
 
     # Clones the URI object.
     def dup
-      duplicated_scheme = self.scheme ? self.scheme.dup : nil
-      duplicated_user = self.user ? self.user.dup : nil
-      duplicated_password = self.password ? self.password.dup : nil
-      duplicated_host = self.host ? self.host.dup : nil
-      duplicated_port = self.specified_port
-      duplicated_path = self.path ? self.path.dup : nil
-      duplicated_query = self.query ? self.query.dup : nil
-      duplicated_fragment = self.fragment ? self.fragment.dup : nil
       duplicated_uri = Addressable::URI.new(
-        duplicated_scheme,
-        duplicated_user,
-        duplicated_password,
-        duplicated_host,
-        duplicated_port,
-        duplicated_path,
-        duplicated_query,
-        duplicated_fragment
+        :scheme => self.scheme ? self.scheme.dup : nil,
+        :user => self.user ? self.user.dup : nil,
+        :password => self.password ? self.password.dup : nil,
+        :host => self.host ? self.host.dup : nil,
+        :port => self.port,
+        :path => self.path ? self.path.dup : nil,
+        :query => self.query ? self.query.dup : nil,
+        :fragment => self.fragment ? self.fragment.dup : nil
       )
       return duplicated_uri
     end
@@ -1154,7 +1164,7 @@ module Addressable
         :user => self.user,
         :password => self.password,
         :host => self.host,
-        :port => self.specified_port,
+        :port => self.port,
         :path => self.path,
         :query => self.query,
         :fragment => self.fragment
@@ -1243,6 +1253,7 @@ module Addressable
 
     # Ensures that the URI is valid.
     def validate
+      return if @validation_deferred
       if self.scheme != nil &&
           (self.host == nil || self.host == "") &&
           (self.path == nil || self.path == "")
@@ -1250,7 +1261,7 @@ module Addressable
           "Absolute URI missing hierarchical segment."
       end
       if self.host == nil
-        if self.specified_port != nil ||
+        if self.port != nil ||
             self.user != nil ||
             self.password != nil
           raise InvalidURIError, "Hostname not supplied."
@@ -1261,16 +1272,16 @@ module Addressable
     # Replaces the internal state of self with the specified URI's state.
     # Used in destructive operations to avoid massive code repetition.
     def replace_self(uri)
-      # Reset dependant values
+      # Reset the memoized values
       @userinfo = nil
       @authority = nil
+      @inferred_port = nil
 
       @scheme = uri.scheme
       @user = uri.user
       @password = uri.password
       @host = uri.host
-      @specified_port = uri.instance_variable_get("@specified_port")
-      @port = @specified_port.to_s.to_i
+      @port = uri.port
       @path = uri.path
       @query = uri.query
       @fragment = uri.fragment

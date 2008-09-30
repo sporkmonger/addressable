@@ -1,7 +1,9 @@
 === Addressable 1.1.0
+  * the initialize method now takes an options hash as a single parameter
   * added query_values method to URI class
   * renamed Addressable::ADDRESSABLE_VERSION to Addressable::VERSION
   * completely reworked the Rakefile
+  * changed the behavior of the port method significantly
 
 === Addressable 1.0.4
   * switched to using RSpec's pending system for specs that rely on IDN
