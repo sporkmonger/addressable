@@ -1,3 +1,4 @@
+# coding:utf-8
 #--
 # Addressable, Copyright (c) 2006-2007 Bob Aman
 #
@@ -31,17 +32,17 @@ class ExampleProcessor
     return !!(value =~ /^[\w ]+$/) if name == "query"
     return true
   end
-  
+
   def self.transform(name, value)
     return value.gsub(/ /, "+") if name == "query"
     return value
   end
-  
+
   def self.restore(name, value)
     return value.gsub(/\+/, " ") if name == "query"
     return value
   end
- 
+
   def self.match(name)
     return ".*?" if name == "first"
     return ".*"
@@ -75,7 +76,7 @@ describe Addressable::URI, "when created from nil components" do
   before do
     @uri = Addressable::URI.new(nil, nil, nil, nil, nil, nil, nil, nil)
   end
-  
+
   it "should have an empty path" do
     @uri.path.should == ""
   end
@@ -386,11 +387,11 @@ describe Addressable::URI, " when parsed from " +
   it "should have no password" do
     @uri.password.should == nil
   end
-  
+
   it "should use port 80" do
     @uri.port.should == 80
   end
-  
+
   it "should not have a specified port" do
     @uri.specified_port.should == nil
   end
@@ -401,6 +402,7 @@ describe Addressable::URI, " when parsed from " +
 
   it "should have no query string" do
     @uri.query.should == nil
+    @uri.query_values.should == nil
   end
 
   it "should have no fragment" do
@@ -422,7 +424,7 @@ describe Addressable::URI, " when parsed from " +
   it "should not be equal to 42" do
     (@uri == 42).should == false
   end
-  
+
   it "should not be roughly equal to 42" do
     (@uri === 42).should == false
   end
@@ -470,22 +472,22 @@ describe Addressable::URI, " when parsed from " +
   it "should be equivalent to http://EXAMPLE.COM/" do
     @uri.should == Addressable::URI.parse("http://EXAMPLE.COM/")
   end
-  
+
   it "should have a route of '/path/' to 'http://example.com/path/'" do
     @uri.route_to("http://example.com/path/").should ==
       Addressable::URI.parse("/path/")
   end
-  
+
   it "should have a route of '/' from 'http://example.com/path/'" do
     @uri.route_from("http://example.com/path/").should ==
       Addressable::URI.parse("/")
   end
-  
+
   it "should have a route of '#' to 'http://example.com/'" do
     @uri.route_to("http://example.com/").should ==
       Addressable::URI.parse("#")
   end
-  
+
   it "should have a route of 'http://elsewhere.com/' to " +
       "'http://elsewhere.com/'" do
     @uri.route_to("http://elsewhere.com/").should ==
@@ -511,7 +513,7 @@ describe Addressable::URI, " when parsed from " +
     @uri.user.should == ""
     @uri.to_s.should == "http://:newpass@example.com"
   end
-  
+
   it "should have the correct user/pass after repeated assignment" do
     @uri.user = nil
     @uri.user.should == nil
@@ -537,7 +539,7 @@ describe Addressable::URI, " when parsed from " +
     @uri.user.should == ""
     @uri.to_s.should == "http://:newpass@example.com"
   end
-  
+
   it "should have the correct user/pass after userinfo assignment" do
     @uri.user = "newuser"
     @uri.user.should == "newuser"
@@ -548,7 +550,7 @@ describe Addressable::URI, " when parsed from " +
     @uri.user.should == nil
     @uri.password.should == nil
   end
-  
+
   it "should correctly convert to a hash" do
     @uri.to_hash.should == {
       :scheme => "http",
@@ -572,7 +574,7 @@ describe Addressable::URI, " when parsed from " +
   before do
     @uri = Addressable::URI.parse("http://example.com/")
   end
-  
+
   # Based on http://intertwingly.net/blog/2004/07/31/URI-Equivalence
   it "should be equivalent to http://example.com" do
     @uri.should == Addressable::URI.parse("http://example.com")
@@ -611,7 +613,7 @@ describe Addressable::URI, " when parsed from " +
     @uri.user.should == nil
     @uri.to_s.should == "http://example.com/"
   end
-  
+
   it "should correctly convert to a hash" do
     @uri.to_hash.should == {
       :scheme => "http",
@@ -647,11 +649,11 @@ describe Addressable::URI, " when parsed from " +
   before do
     @uri = Addressable::URI.parse("http://@example.com/")
   end
-  
+
   it "should be equivalent to http://example.com" do
     @uri.should == Addressable::URI.parse("http://example.com")
   end
-  
+
   it "should correctly convert to a hash" do
     @uri.to_hash.should == {
       :scheme => "http",
@@ -675,7 +677,7 @@ describe Addressable::URI, " when parsed from " +
   before do
     @uri = Addressable::URI.parse("http://example.com./")
   end
-  
+
   it "should be equivalent to http://example.com" do
     @uri.should == Addressable::URI.parse("http://example.com")
   end
@@ -694,11 +696,11 @@ describe Addressable::URI, " when parsed from " +
   before do
     @uri = Addressable::URI.parse("http://:@example.com/")
   end
-  
+
   it "should be equivalent to http://example.com" do
     @uri.should == Addressable::URI.parse("http://example.com")
   end
-  
+
   it "should correctly convert to a hash" do
     @uri.to_hash.should == {
       :scheme => "http",
@@ -752,12 +754,12 @@ describe Addressable::URI, " when parsed from " +
       pending("Skipping IDN specification because GNU libidn is unavailable.")
     end
   end
-  
+
   it "should not change if encoded with the normalizing algorithm" do
-    Addressable::URI.normalized_encode(@uri).to_s.should == 
+    Addressable::URI.normalized_encode(@uri).to_s.should ==
       "http://example.com/%C3%87"
   end
-  
+
   it "if percent encoded should be 'http://example.com/C%25CC%25A7'" do
     Addressable::URI.encode(@uri).to_s.should ==
       "http://example.com/%25C3%2587"
@@ -793,7 +795,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have no password" do
     @uri.password.should == nil
   end
-  
+
   it "should use port 80" do
     @uri.port.should == 80
   end
@@ -817,7 +819,7 @@ describe Addressable::URI, " when parsed from " +
   it "should not be considered relative" do
     @uri.should_not be_relative
   end
-  
+
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
@@ -852,7 +854,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have no password" do
     @uri.password.should == nil
   end
-  
+
   it "should use port 80" do
     @uri.port.should == 80
   end
@@ -920,7 +922,7 @@ describe Addressable::URI, " when parsed from " +
   it "should be equal to http://EXAMPLE.COM/" do
     @uri.should == Addressable::URI.parse("http://EXAMPLE.COM/")
   end
-  
+
   it "should correctly convert to a hash" do
     @uri.to_hash.should == {
       :scheme => "http",
@@ -964,7 +966,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have no password" do
     @uri.password.should == nil
   end
-  
+
   it "should use port 8080" do
     @uri.port.should == 8080
   end
@@ -993,25 +995,25 @@ describe Addressable::URI, " when parsed from " +
     @uri.eql?(Addressable::URI.parse(
       "http://example.com:8080/")).should == true
   end
-  
+
   it "should have a route of 'http://example.com:8080/' from " +
       "'http://example.com/path/to/'" do
     @uri.route_from("http://example.com/path/to/").should ==
       Addressable::URI.parse("http://example.com:8080/")
   end
-  
+
   it "should have a route of 'http://example.com:8080/' from " +
       "'http://example.com:80/path/to/'" do
     @uri.route_from("http://example.com:80/path/to/").should ==
       Addressable::URI.parse("http://example.com:8080/")
   end
-  
+
   it "should have a route of '/' from " +
       "'http://example.com:8080/path/to/'" do
     @uri.route_from("http://example.com:8080/path/to/").should ==
       Addressable::URI.parse("/")
   end
-  
+
   it "should have a route of 'http://example.com:8080/' from " +
       "'http://user:pass@example.com/path/to/'" do
     @uri.route_from("http://user:pass@example.com/path/to/").should ==
@@ -1061,7 +1063,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have no password" do
     @uri.password.should == nil
   end
-  
+
   it "should use port 80" do
     @uri.port.should == 80
   end
@@ -1090,31 +1092,31 @@ describe Addressable::URI, " when parsed from " +
     @uri.eql?(Addressable::URI.parse(
       "http://example.com/path/to/resource/")).should == true
   end
-  
+
   it "should have a route of 'resource/' from " +
       "'http://example.com/path/to/'" do
     @uri.route_from("http://example.com/path/to/").should ==
       Addressable::URI.parse("resource/")
   end
-  
+
   it "should have a route of 'resource/' from " +
       "'http://example.com:80/path/to/'" do
     @uri.route_from("http://example.com:80/path/to/").should ==
       Addressable::URI.parse("resource/")
   end
-  
+
   it "should have a route of 'http://example.com/path/to/' from " +
       "'http://example.com:8080/path/to/'" do
     @uri.route_from("http://example.com:8080/path/to/").should ==
       Addressable::URI.parse("http://example.com/path/to/resource/")
   end
-  
+
   it "should have a route of 'http://example.com/path/to/' from " +
       "'http://user:pass@example.com/path/to/'" do
     @uri.route_from("http://user:pass@example.com/path/to/").should ==
       Addressable::URI.parse("http://example.com/path/to/resource/")
   end
-  
+
   it "should have a route of '/path/to/resource/' from " +
       "'http://example.com/to/resource/'" do
     @uri.route_from("http://example.com/to/resource/").should ==
@@ -1168,7 +1170,7 @@ describe Addressable::URI, "when parsed from " +
   it "should have no password" do
     @uri.password.should == nil
   end
-  
+
   it "should not have a port" do
     @uri.port.should == nil
   end
@@ -1201,11 +1203,11 @@ describe Addressable::URI, "when parsed from " +
       @uri.route_from("http://example.com/")
     end).should raise_error(ArgumentError, /relative\/path\/to\/resource/)
   end
-  
+
   it "when joined with 'another/relative/path' should be " +
       "'relative/path/to/another/relative/path'" do
     @uri.join('another/relative/path').should ==
-      Addressable::URI.parse("relative/path/to/another/relative/path")    
+      Addressable::URI.parse("relative/path/to/another/relative/path")
   end
 
   it "should be identical to its duplicate" do
@@ -1242,7 +1244,7 @@ describe Addressable::URI, "when parsed from " +
   it "should have no password" do
     @uri.password.should == nil
   end
-  
+
   it "should not have a port" do
     @uri.port.should == nil
   end
@@ -1270,7 +1272,7 @@ describe Addressable::URI, "when parsed from " +
   it "when joined with 'another_relative_path' should be " +
       "'another_relative_path'" do
     @uri.join('another_relative_path').should ==
-      Addressable::URI.parse("another_relative_path")    
+      Addressable::URI.parse("another_relative_path")
   end
 end
 
@@ -1283,7 +1285,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have a scheme of 'http'" do
     @uri.scheme.should == "http"
   end
-  
+
   it "should have an authority segment of 'example.com'" do
     @uri.authority.should == "example.com"
   end
@@ -1299,7 +1301,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have no password" do
     @uri.password.should == nil
   end
-  
+
   it "should use port 80" do
     @uri.port.should == 80
   end
@@ -1334,7 +1336,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have a scheme of 'http'" do
     @uri.scheme.should == "http"
   end
-  
+
   it "should have an authority segment of 'example.com'" do
     @uri.authority.should == "example.com"
   end
@@ -1350,7 +1352,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have no password" do
     @uri.password.should == nil
   end
-  
+
   it "should use port 80" do
     @uri.port.should == 80
   end
@@ -1389,7 +1391,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have a scheme of 'http'" do
     @uri.scheme.should == "http"
   end
-  
+
   it "should have an authority segment of 'example.com'" do
     @uri.authority.should == "example.com"
   end
@@ -1405,7 +1407,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have no password" do
     @uri.password.should == nil
   end
-  
+
   it "should use port 80" do
     @uri.port.should == 80
   end
@@ -1425,7 +1427,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have no fragment" do
     @uri.fragment.should == nil
   end
-  
+
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
@@ -1452,7 +1454,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have no user" do
     @uri.user.should == nil
   end
-  
+
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
@@ -1481,7 +1483,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have no user" do
     @uri.user.should == nil
   end
-  
+
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
@@ -1492,7 +1494,7 @@ describe Addressable::URI, " when parsed from " +
   before do
     @uri = Addressable::URI.parse("http://example.com/x;y/")
   end
-  
+
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
@@ -1503,7 +1505,7 @@ describe Addressable::URI, " when parsed from " +
   before do
     @uri = Addressable::URI.parse("http://example.com/?x=1&y=2")
   end
-  
+
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
@@ -1522,7 +1524,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have a path of 'http://example.com/'" do
     @uri.path.should == "http://example.com/"
   end
-  
+
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
@@ -1538,7 +1540,7 @@ describe Addressable::URI, " when parsed from " +
   it "should use the 'http' scheme" do
     @uri.scheme.should == "http"
   end
-  
+
   it "should have an authority segment of 'user:pass@example.com'" do
     @uri.authority.should == "user:pass@example.com"
   end
@@ -1550,7 +1552,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have a password of 'pass'" do
     @uri.password.should == "pass"
   end
-  
+
   it "should have a host of 'example.com'" do
     @uri.host.should == "example.com"
   end
@@ -1570,7 +1572,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have a fragment of 'fragment'" do
     @uri.fragment.should == "fragment"
   end
-  
+
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
@@ -1580,33 +1582,33 @@ describe Addressable::URI, " when parsed from " +
     @uri.route_to("http://user:pass@example.com/path/").should ==
       Addressable::URI.parse("/path/")
   end
-  
+
   it "should have a route of '/path/to/resource?query=x#fragment' " +
       "from 'http://user:pass@example.com/path/'" do
     @uri.route_from("http://user:pass@example.com/path/").should ==
       Addressable::URI.parse("to/resource?query=x#fragment")
   end
-  
+
   it "should have a route of '?query=x#fragment' " +
       "from 'http://user:pass@example.com/path/to/resource'" do
     @uri.route_from("http://user:pass@example.com/path/to/resource").should ==
       Addressable::URI.parse("?query=x#fragment")
   end
-  
+
   it "should have a route of '#fragment' " +
       "from 'http://user:pass@example.com/path/to/resource?query=x'" do
     @uri.route_from(
       "http://user:pass@example.com/path/to/resource?query=x").should ==
         Addressable::URI.parse("#fragment")
   end
-  
+
   it "should have a route of '#fragment' from " +
       "'http://user:pass@example.com/path/to/resource?query=x#fragment'" do
     @uri.route_from(
       "http://user:pass@example.com/path/to/resource?query=x#fragment"
     ).should == Addressable::URI.parse("#fragment")
   end
-  
+
   it "should have a route of 'http://elsewhere.com/' to " +
       "'http://elsewhere.com/'" do
     @uri.route_to("http://elsewhere.com/").should ==
@@ -1627,7 +1629,7 @@ describe Addressable::URI, " when parsed from " +
     @uri.to_s.should ==
       "ftp://user:pass@example.com/path/to/resource?query=x#fragment"
   end
-  
+
   it "should have the correct authority segment after assignment" do
     @uri.authority = "newuser:newpass@example.com:80"
     @uri.authority.should == "newuser:newpass@example.com:80"
@@ -1636,7 +1638,7 @@ describe Addressable::URI, " when parsed from " +
     @uri.host.should == "example.com"
     @uri.port.should == 80
     @uri.specified_port.should == 80
-    @uri.to_s.should == 
+    @uri.to_s.should ==
       "http://newuser:newpass@example.com:80" +
       "/path/to/resource?query=x#fragment"
   end
@@ -1696,7 +1698,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have the correct query string after assignment" do
     @uri.query = "newquery=x"
     @uri.query.should == "newquery=x"
-    @uri.to_s.should == 
+    @uri.to_s.should ==
       "http://user:pass@example.com/path/to/resource?newquery=x#fragment"
   end
 
@@ -1746,7 +1748,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have no password" do
     @uri.password.should == nil
   end
-  
+
   it "should have a host of 'example.com'" do
     @uri.host.should == "example.com"
   end
@@ -1754,7 +1756,7 @@ describe Addressable::URI, " when parsed from " +
   it "should use port 80" do
     @uri.port.should == 80
   end
-  
+
   it "should have the correct username after assignment" do
     @uri.user = "newuser"
     @uri.user.should == "newuser"
@@ -1789,7 +1791,7 @@ describe Addressable::URI, " when parsed from " +
     @uri.specified_port.should == nil
     @uri.to_s.should == "http://example.com"
   end
-  
+
   it "should have the correct authority segment after assignment" do
     @uri.authority = "newuser@example.com"
     @uri.authority.should == "newuser@example.com"
@@ -1800,7 +1802,7 @@ describe Addressable::URI, " when parsed from " +
     @uri.specified_port.should == nil
     @uri.to_s.should == "http://newuser@example.com"
   end
-  
+
   it "should raise an error after nil assignment of authority segment" do
     (lambda do
       # This would create an invalid URI
@@ -1826,7 +1828,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have a password of ''" do
     @uri.password.should == ""
   end
-  
+
   it "should have a host of 'example.com'" do
     @uri.host.should == "example.com"
   end
@@ -1881,7 +1883,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have a userinfo of ':pass'" do
     @uri.userinfo.should == ":pass"
   end
-  
+
   it "should have a host of 'example.com'" do
     @uri.host.should == "example.com"
   end
@@ -1933,7 +1935,7 @@ describe Addressable::URI, " when parsed from " +
   it "should have a password of ''" do
     @uri.password.should == ""
   end
-  
+
   it "should have a host of 'example.com'" do
     @uri.host.should == "example.com"
   end
@@ -2012,14 +2014,14 @@ describe Addressable::URI, " when parsed from " +
   it "should have a path of '/'" do
     @uri.path.should == "/"
   end
-  
+
   it "should raise an error if routing is attempted" do
     (lambda do
       @uri.route_to("http://example.com/")
     end).should raise_error(ArgumentError, /\/\/example.com\//)
     (lambda do
       @uri.route_from("http://example.com/")
-    end).should raise_error(ArgumentError, /\/\/example.com\//)    
+    end).should raise_error(ArgumentError, /\/\/example.com\//)
   end
 end
 
@@ -2254,19 +2256,19 @@ describe Addressable::URI, "with a base uri of 'http://a/b/c/d;p?q'" do
     (@uri + "//g").to_s.should == "http://g"
     Addressable::URI.join(@uri.to_s, "//g").to_s.should == "http://g"
   end
-  
+
   # Section 5.4.1 of RFC 3986
   it "when joined with '?y' should resolve to http://a/b/c/d;p?y" do
     (@uri + "?y").to_s.should == "http://a/b/c/d;p?y"
     Addressable::URI.join(@uri.to_s, "?y").to_s.should == "http://a/b/c/d;p?y"
   end
-  
+
   # Section 5.4.1 of RFC 3986
   it "when joined with 'g?y' should resolve to http://a/b/c/g?y" do
     (@uri + "g?y").to_s.should == "http://a/b/c/g?y"
     Addressable::URI.join(@uri.to_s, "g?y").to_s.should == "http://a/b/c/g?y"
   end
-  
+
   # Section 5.4.1 of RFC 3986
   it "when joined with '#s' should resolve to http://a/b/c/d;p?q#s" do
     (@uri + "#s").to_s.should == "http://a/b/c/d;p?q#s"
@@ -2503,7 +2505,7 @@ describe Addressable::URI::IDNA, "without libidn bindings" do
   before do
     Addressable::URI::IDNA.instance_variable_set("@use_libidn", false)
   end
-  
+
   it "should raise an exception when an operation is attempted" do
     (lambda do
       Addressable::URI::IDNA.to_ascii("www.詹姆斯.com")
@@ -2528,7 +2530,7 @@ describe Addressable::URI::IDNA, "without libidn bindings" do
       uri.display_uri
     end).should_not raise_error
   end
-  
+
   after do
     Addressable::URI::IDNA.instance_variable_set("@use_libidn", nil)
     Addressable::URI::IDNA.send(:use_libidn?)
@@ -2546,7 +2548,7 @@ describe Addressable::URI::IDNA, "with rubygems and idn missing" do
     end
     Addressable::URI::IDNA.instance_variable_set("@use_libidn", nil)
   end
-  
+
   it "should not raise an exception while checking " +
       "if libidn is available" do
     (lambda do
@@ -2569,7 +2571,7 @@ describe Addressable::URI::IDNA, "with rubygems and idn missing" do
       uri.display_uri
     end).should_not raise_error
   end
-  
+
   after do
     module Kernel
       def require(path)
@@ -2765,28 +2767,28 @@ describe Addressable::URI, " when given the mapping supplied in " +
       "q" => "hullo#world"
     }
   end
-  
+
   it "should result in 'http://example.org/page1#fred' " +
       "when used to expand 'http://example.org/page1\#{a}'" do
     Addressable::URI.expand_template(
       "http://example.org/page1\#{a}",
       @mapping).to_s.should == "http://example.org/page1#fred"
   end
-  
+
   it "should result in 'http://example.org/fred/barney/' " +
       "when used to expand 'http://example.org/{a}/{b}/'" do
     Addressable::URI.expand_template(
       "http://example.org/{a}/{b}/",
       @mapping).to_s.should == "http://example.org/fred/barney/"
   end
-  
+
   it "should result in 'http://example.org/fredbarney/' " +
       "when used to expand 'http://example.org/{a}{b}/'" do
     Addressable::URI.expand_template(
       "http://example.org/{a}{b}/",
       @mapping).to_s.should == "http://example.org/fredbarney/"
   end
-  
+
   it "should result in " +
       "'http://example.com/order/cheeseburger/cheeseburger/cheeseburger/' " +
       "when used to expand 'http://example.com/order/{c}/{c}/{c}/'" do
@@ -2795,28 +2797,28 @@ describe Addressable::URI, " when given the mapping supplied in " +
       @mapping).to_s.should ==
         "http://example.com/order/cheeseburger/cheeseburger/cheeseburger/"
   end
-  
+
   it "should result in 'http://example.org/one%20two%20three' " +
       "when used to expand 'http://example.org/{d}'" do
     Addressable::URI.expand_template(
       "http://example.org/{d}",
       @mapping).to_s.should == "http://example.org/one%20two%20three"
   end
-  
+
   it "should result in 'http://example.org/20%25%20tricky' " +
       "when used to expand 'http://example.org/{e}'" do
     Addressable::URI.expand_template(
       "http://example.org/{e}",
       @mapping).to_s.should == "http://example.org/20%25%20tricky"
   end
-  
+
   it "should result in 'http://example.com//' " +
       "when used to expand 'http://example.com/{f}/'" do
     Addressable::URI.expand_template(
       "http://example.com/{f}/",
       @mapping).to_s.should == "http://example.com//"
   end
-  
+
   it "should result in " +
       "'https://this-is-spinal-tap.example.org?date=&option=fred' " +
       "when used to expand " +
@@ -2826,14 +2828,14 @@ describe Addressable::URI, " when given the mapping supplied in " +
       @mapping).to_s.should ==
         "https://this-is-spinal-tap.example.org?date=&option=fred"
   end
-  
+
   it "should result in 'http://example.org?quote=to+be+or+not+to+be' " +
       "when used to expand 'http://example.org?{p}'" do
     Addressable::URI.expand_template(
       "http://example.org?{p}",
       @mapping).to_s.should == "http://example.org?quote=to+be+or+not+to+be"
   end
-  
+
   it "should result in 'http://example.com/hullo#world' " +
       "when used to expand 'http://example.com/{q}'" do
     Addressable::URI.expand_template(
@@ -2850,7 +2852,7 @@ describe Addressable::URI, "when given a mapping that contains a " +
       "b" => "barney",
     }
   end
-  
+
   it "should result in 'http://example.com/%7Bb%7D/barney/' " +
       "when used to expand 'http://example.com/{a}/{b}/'" do
     Addressable::URI.expand_template(
@@ -2866,7 +2868,7 @@ describe Addressable::URI, "when given a mapping that contains values " +
       "a" => "%7Bb%7D"
     }
   end
-  
+
   it "should result in 'http://example.com/%257Bb%257D/' " +
       "when used to expand 'http://example.com/{a}/'" do
     Addressable::URI.expand_template(
@@ -2875,12 +2877,24 @@ describe Addressable::URI, "when given a mapping that contains values " +
   end
 end
 
+describe Addressable::URI, "when encoding a multibyte string" do
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.encode_segment("günther").should == "g%C3%BCnther"
+  end
+end
+
+describe Addressable::URI, "when unencoding a multibyte string" do
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.unencode_segment("g%C3%BCnther").should == "günther"
+  end
+end
+
 describe Addressable::URI, " when parsed from " +
     "'/'" do
   before do
     @uri = Addressable::URI.parse("/")
   end
-  
+
   it "should have the correct mapping when extracting values " +
       "using the pattern '/'" do
     @uri.extract_mapping("/").should == {}
@@ -2891,11 +2905,11 @@ describe Addressable::URI, " when parsed from '/one/'" do
   before do
     @uri = Addressable::URI.parse("/one/")
   end
-  
+
   it "should not match the pattern '/two/'" do
     @uri.extract_mapping("/two/").should == nil
   end
-  
+
   it "should have the correct mapping when extracting values " +
       "using the pattern '/{number}/'" do
     @uri.extract_mapping("/{number}/").should == {"number" => "one"}
@@ -2906,19 +2920,19 @@ describe Addressable::URI, " when parsed from '/one/two/'" do
   before do
     @uri = Addressable::URI.parse("/one/two/")
   end
-  
+
   it "should not match the pattern '/{number}/' " +
       "with the SlashlessProcessor" do
     @uri.extract_mapping("/{number}/", SlashlessProcessor).should == nil
   end
-  
+
   it "should have the correct mapping when extracting values " +
       "using the pattern '/{number}/' without a processor" do
     @uri.extract_mapping("/{number}/").should == {
       "number" => "one/two"
     }
   end
-  
+
   it "should have the correct mapping when extracting values " +
       "using the pattern '/{first}/{second}/' with the SlashlessProcessor" do
     @uri.extract_mapping("/{first}/{second}/", SlashlessProcessor).should == {
@@ -2934,7 +2948,7 @@ describe Addressable::URI, " when parsed from " +
     @uri = Addressable::URI.parse(
       "http://example.com/search/an+example+search+query/")
   end
-  
+
   it "should have the correct mapping when extracting values using " +
       "the pattern 'http://example.com/search/{query}/' with the " +
       "ExampleProcessor" do
@@ -2944,7 +2958,7 @@ describe Addressable::URI, " when parsed from " +
       "query" => "an example search query"
     }
   end
-  
+
   it "should return nil when extracting values using " +
       "a non-matching pattern" do
     @uri.extract_mapping(
@@ -2959,7 +2973,7 @@ describe Addressable::URI, " when parsed from " +
     @uri = Addressable::URI.parse(
       "http://example.com/a/b/c/")
   end
-  
+
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/{first}/{second}/' with the ExampleProcessor" do
@@ -2977,7 +2991,7 @@ describe Addressable::URI, " when parsed from " +
   before do
     @uri = Addressable::URI.parse("http://example.com/one/spacer/two/")
   end
-  
+
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/{first}/spacer/{second}/'" do
