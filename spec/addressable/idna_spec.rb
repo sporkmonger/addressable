@@ -92,6 +92,33 @@ describe Addressable::IDNA, "when converting from unicode to ASCII" do
       "点心和烤鸭.w3.mag.keio.ac.jp"
     ).should == "xn--0trv4xfvn8el34t.w3.mag.keio.ac.jp"
   end
+
+  it "should convert '가각갂갃간갅갆갇갈갉힢힣.com' correctly" do
+    Addressable::IDNA.to_ascii(
+      "가각갂갃간갅갆갇갈갉힢힣.com"
+    ).should == "xn--o39acdefghijk5883jma.com"
+  end
+
+  it "should convert " +
+      "'\347\242\274\346\250\231\346\272\226\350" +
+      "\220\254\345\234\213\347\242\274.com' correctly" do
+    Addressable::IDNA.to_ascii(
+      "\347\242\274\346\250\231\346\272\226\350" +
+      "\220\254\345\234\213\347\242\274.com"
+    ).should == "xn--9cs565brid46mda086o.com"
+  end
+
+  it "should convert 'ﾘ宠퐱〹.com' correctly" do
+    Addressable::IDNA.to_ascii(
+      "\357\276\230\345\256\240\355\220\261\343\200\271.com"
+    ).should == "xn--eek174hoxfpr4k.com"
+  end
+
+  it "should convert 'リ宠퐱卄.com' correctly" do
+    Addressable::IDNA.to_ascii(
+      "\343\203\252\345\256\240\355\220\261\345\215\204.com"
+    ).should == "xn--eek174hoxfpr4k.com"
+  end
 end
 
 describe Addressable::IDNA, "when converting from ASCII to unicode" do
@@ -125,5 +152,27 @@ describe Addressable::IDNA, "when converting from ASCII to unicode" do
     Addressable::IDNA.to_unicode(
       "xn--0trv4xfvn8el34t.w3.mag.keio.ac.jp"
     ).should == "点心和烤鸭.w3.mag.keio.ac.jp"
+  end
+
+  it "should convert '가각갂갃간갅갆갇갈갉힢힣.com' correctly" do
+    Addressable::IDNA.to_unicode(
+      "xn--o39acdefghijk5883jma.com"
+    ).should == "가각갂갃간갅갆갇갈갉힢힣.com"
+  end
+
+  it "should convert " +
+      "'\347\242\274\346\250\231\346\272\226\350" +
+      "\220\254\345\234\213\347\242\274.com' correctly" do
+    Addressable::IDNA.to_unicode(
+      "xn--9cs565brid46mda086o.com"
+    ).should ==
+      "\347\242\274\346\250\231\346\272\226\350" +
+      "\220\254\345\234\213\347\242\274.com"
+  end
+
+  it "should convert 'リ宠퐱卄.com' correctly" do
+    Addressable::IDNA.to_unicode(
+      "xn--eek174hoxfpr4k.com"
+    ).should == "\343\203\252\345\256\240\355\220\261\345\215\204.com"
   end
 end
