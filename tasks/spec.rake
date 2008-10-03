@@ -12,7 +12,8 @@ namespace :spec do
     t.rcov_opts = [
       '--exclude', 'spec',
       '--exclude', '1\\.8\\/gems',
-      '--exclude', '1\\.9\\/gems'
+      '--exclude', '1\\.9\\/gems',
+      '--exclude', 'addressable\\/idna\\.rb', # unicode tables too big
     ]
   end
 

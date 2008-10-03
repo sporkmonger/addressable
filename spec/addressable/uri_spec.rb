@@ -2244,6 +2244,32 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
+describe Addressable::URI, " when parsed from a percent-encoded IRI" do
+  before do
+    @uri = Addressable::URI.parse(
+      "http://www.%E3%81%BB%E3%82%93%E3%81%A8%E3%81%86%E3%81%AB%E3%81%AA" +
+      "%E3%81%8C%E3%81%84%E3%82%8F%E3%81%91%E3%81%AE%E3%82%8F%E3%81%8B%E3" +
+      "%82%89%E3%81%AA%E3%81%84%E3%81%A9%E3%82%81%E3%81%84%E3%82%93%E3%82" +
+      "%81%E3%81%84%E3%81%AE%E3%82%89%E3%81%B9%E3%82%8B%E3%81%BE%E3%81%A0" +
+      "%E3%81%AA%E3%81%8C%E3%81%8F%E3%81%97%E3%81%AA%E3%81%84%E3%81%A8%E3" +
+      "%81%9F%E3%82%8A%E3%81%AA%E3%81%84.w3.mag.keio.ac.jp"
+    )
+  end
+
+  it "should normalize to something sane" do
+    if Addressable::URI::IDNA.send(:use_libidn?)
+      @uri.normalize.to_s.should ==
+        "http://www.xn--n8jaaaaai5bhf7as8fsfk3jnknefdde3f" +
+        "g11amb5gzdb4wi9bya3kc6lra.w3.mag.keio.ac.jp/"
+      @uri.normalize!.to_s.should ==
+        "http://www.xn--n8jaaaaai5bhf7as8fsfk3jnknefdde3f" +
+        "g11amb5gzdb4wi9bya3kc6lra.w3.mag.keio.ac.jp/"
+    else
+      pending("Skipping IDN specification because GNU libidn is unavailable.")
+    end
+  end
+end
+
 describe Addressable::URI, "with a base uri of 'http://a/b/c/d;p?q'" do
   before do
     @uri = Addressable::URI.parse("http://a/b/c/d;p?q")

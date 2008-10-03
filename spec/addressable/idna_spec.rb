@@ -28,6 +28,10 @@ $:.uniq!
 require 'addressable/idna'
 
 describe Addressable::IDNA, "when converting from unicode to ASCII" do
+  it "should convert 'www.google.com' correctly" do
+    Addressable::IDNA.to_ascii("www.google.com").should == "www.google.com"
+  end
+
   it "should convert 'www.詹姆斯.com' correctly" do
     Addressable::IDNA.to_ascii(
       "www.詹姆斯.com"
@@ -47,9 +51,48 @@ describe Addressable::IDNA, "when converting from unicode to ASCII" do
       "a\314\200liz\303\246ti\303\270n.com"
     ).should == "www.xn--itrntinliztin-vdb0a5exd8ewcye.com"
   end
+
+  it "should convert " +
+      "'www.ほんとうにながいわけのわからないどめいんめいのらべるまだながくしないとたりない.w3.mag.keio.ac.jp' " +
+      "correctly" do
+    Addressable::IDNA.to_ascii(
+      "www.\343\201\273\343\202\223\343\201\250\343\201\206\343\201\253\343" +
+      "\201\252\343\201\214\343\201\204\343\202\217\343\201\221\343\201\256" +
+      "\343\202\217\343\201\213\343\202\211\343\201\252\343\201\204\343\201" +
+      "\251\343\202\201\343\201\204\343\202\223\343\202\201\343\201\204\343" +
+      "\201\256\343\202\211\343\201\271\343\202\213\343\201\276\343\201\240" +
+      "\343\201\252\343\201\214\343\201\217\343\201\227\343\201\252\343\201" +
+      "\204\343\201\250\343\201\237\343\202\212\343\201\252\343\201\204." +
+      "w3.mag.keio.ac.jp"
+    ).should ==
+      "www.xn--n8jaaaaai5bhf7as8fsfk3jnknefdde3" +
+      "fg11amb5gzdb4wi9bya3kc6lra.w3.mag.keio.ac.jp"
+  end
+
+  it "should convert " +
+      "'www.ほんとうにながいわけのわからないどめいんめいのらべるまだながくしないとたりない.w3.mag.keio.ac.jp' " +
+      "correctly" do
+    Addressable::IDNA.to_ascii(
+      "www.\343\201\273\343\202\223\343\201\250\343\201\206\343\201\253\343" +
+      "\201\252\343\201\213\343\202\231\343\201\204\343\202\217\343\201\221" +
+      "\343\201\256\343\202\217\343\201\213\343\202\211\343\201\252\343\201" +
+      "\204\343\201\250\343\202\231\343\202\201\343\201\204\343\202\223\343" +
+      "\202\201\343\201\204\343\201\256\343\202\211\343\201\270\343\202\231" +
+      "\343\202\213\343\201\276\343\201\237\343\202\231\343\201\252\343\201" +
+      "\213\343\202\231\343\201\217\343\201\227\343\201\252\343\201\204\343" +
+      "\201\250\343\201\237\343\202\212\343\201\252\343\201\204." +
+      "w3.mag.keio.ac.jp"
+    ).should ==
+      "www.xn--n8jaaaaai5bhf7as8fsfk3jnknefdde3" +
+      "fg11amb5gzdb4wi9bya3kc6lra.w3.mag.keio.ac.jp"
+  end
 end
 
 describe Addressable::IDNA, "when converting from ASCII to unicode" do
+  it "should convert 'www.google.com' correctly" do
+    Addressable::IDNA.to_unicode("www.google.com").should == "www.google.com"
+  end
+
   it "should convert 'www.詹姆斯.com' correctly" do
     Addressable::IDNA.to_unicode(
       "www.xn--8ws00zhy3a.com"
@@ -60,5 +103,15 @@ describe Addressable::IDNA, "when converting from ASCII to unicode" do
     Addressable::IDNA.to_unicode(
       "www.xn--itrntinliztin-vdb0a5exd8ewcye.com"
     ).should == "www.iñtërnâtiônàlizætiøn.com"
+  end
+
+  it "should convert " +
+      "'www.ほんとうにながいわけのわからないどめいんめいのらべるまだながくしないとたりない.w3.mag.keio.ac.jp' " +
+      "correctly" do
+    Addressable::IDNA.to_unicode(
+      "www.xn--n8jaaaaai5bhf7as8fsfk3jnknefdde3" +
+      "fg11amb5gzdb4wi9bya3kc6lra.w3.mag.keio.ac.jp"
+    ).should ==
+      "www.ほんとうにながいわけのわからないどめいんめいのらべるまだながくしないとたりない.w3.mag.keio.ac.jp"
   end
 end

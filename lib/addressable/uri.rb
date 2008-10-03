@@ -1032,7 +1032,8 @@ module Addressable
 
       normalized_host = nil
       normalized_host = self.host.strip.downcase if self.host != nil
-      if normalized_host != nil
+      if normalized_host != nil && normalized_host != ""
+        normalized_host = self.class.unencode_segment(normalized_host)
         begin
           normalized_host = URI::IDNA.to_ascii(normalized_host)
         rescue Exception
