@@ -1,14 +1,21 @@
-require "rubygems"
-require "punycode"
-
 module Addressable
+  # A pure Ruby implementation of IDNA.  C was eschewed for the sake of JRuby,
+  # and because performance is largely irrelevant here.
   module IDNA
     # This module is loosely based on idn_actionmailer by Mick Staugaard,
     # the unicode library by Yoshida Masato, and the punycode implementation
-    # was by Kazuhiro Nishiyama.
+    # by Kazuhiro Nishiyama.  Most of the code was copied verbatim, but
+    # some reformatting was done, and some translation from C was done.
+    #
     # Without their code to work from as a base, we'd all still be relying
     # on the presence of libidn.  Which nobody ever seems to have installed.
+    #
+    # Original sources:
+    # http://github.com/staugaard/idn_actionmailer
+    # http://www.yoshidam.net/Ruby.html#unicode
+    # http://rubyforge.org/frs/?group_id=2550
 
+    # :stopdoc:
     ACE_PREFIX = "xn--"
 
     UTF8_REGEX = /\A(?:
@@ -31,13 +38,16 @@ module Addressable
       | [\xF1-\xF3][\x80-\xBF]{3}           # planes 4nil5
       | \xF4[\x80-\x8F][\x80-\xBF]{2}       # plane 16
       )/mnx
+    # :startdoc:
 
+    # Converts from a Unicode internationalized domain name to an ASCII
+    # domain name as described in RFC 3490.
     def self.to_ascii(input)
       if input =~ UTF8_REGEX && input =~ UTF8_REGEX_MULTIBYTE
         parts = unicode_downcase(input).split('.')
         parts.map! do |part|
           if part =~ UTF8_REGEX && part =~ UTF8_REGEX_MULTIBYTE
-            ACE_PREFIX + Punycode.encode(unicode_normalize_kc(part))
+            ACE_PREFIX + punycode_encode(unicode_normalize_kc(part))
           else
             part
           end
@@ -48,11 +58,13 @@ module Addressable
       end
     end
 
+    # Converts from an ASCII domain name to a Unicode internationalized
+    # domain name as described in RFC 3490.
     def self.to_unicode(input)
       parts = input.split('.')
       parts.map! do |part|
         if part =~ /^#{ACE_PREFIX}/
-          Punycode.decode(part[/^#{ACE_PREFIX}(.+)/, 1])
+          punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
         else
           part
         end
@@ -61,21 +73,22 @@ module Addressable
     end
 
     # :stopdoc:
-    # class <<self
-    # private
-      def self.unicode_downcase(input)
+    class <<self
+    private
+      def unicode_downcase(input)
         unpacked = input.unpack("U*")
         unpacked.map! { |codepoint| lookup_unicode_lowercase(codepoint) }
         return unpacked.pack("U*")
       end
 
-      def self.unicode_normalize_kc(input)
+      def unicode_normalize_kc(input)
         unpacked = input.unpack("U*")
-        unpacked = compose(sort_canonical(decompose(unpacked)))
+        unpacked =
+          unicode_compose(unicode_sort_canonical(unicode_decompose(unpacked)))
         return unpacked.pack("U*")
       end
 
-      def self.compose(unpacked)
+      def unicode_compose(unpacked)
         unpacked_result = []
         length = unpacked.length
 
@@ -89,7 +102,7 @@ module Addressable
           cc = lookup_unicode_combining_class(ch)
 
           if (starter_cc == 0 &&
-              (composite = compose_pair(starter, ch)) != nil)
+              (composite = unicode_compose_pair(starter, ch)) != nil)
             starter = composite
             startercc = lookup_unicode_combining_class(composite)
           else
@@ -102,7 +115,7 @@ module Addressable
         return unpacked_result
       end
 
-      def self.compose_pair(ch_one, ch_two)
+      def unicode_compose_pair(ch_one, ch_two)
         if ch_one >= HANGUL_LBASE && ch_one < HANGUL_LBASE + HANGUL_LCOUNT &&
             ch_two >= HANGUL_VBASE && ch_two < HANGUL_VBASE + HANGUL_VCOUNT
           # Hangul L + V
@@ -155,7 +168,7 @@ module Addressable
         return lookup_unicode_composition(p)
       end
 
-      def self.sort_canonical(unpacked)
+      def unicode_sort_canonical(unpacked)
         unpacked = unpacked.dup
         i = 1
         length = unpacked.length
@@ -178,11 +191,11 @@ module Addressable
         return unpacked
       end
 
-      def self.decompose(unpacked)
+      def unicode_decompose(unpacked)
         unpacked_result = []
         for cp in unpacked
           if cp >= HANGUL_SBASE && cp < HANGUL_SBASE + HANGUL_SCOUNT
-            l, v, t = decompose_hangul(cp)
+            l, v, t = unicode_decompose_hangul(cp)
             unpacked_result << l
             unpacked_result << v if v
             unpacked_result << t if t
@@ -191,14 +204,14 @@ module Addressable
             unless dc
               unpacked_result << cp
             else
-              unpacked_result.concat(decompose(dc.unpack("U*")))
+              unpacked_result.concat(unicode_decompose(dc.unpack("U*")))
             end
           end
         end
         return unpacked_result
       end
 
-      def self.decompose_hangul(codepoint)
+      def unicode_decompose_hangul(codepoint)
         sindex = codepoint - HANGUL_SBASE;
         if sindex < 0 || sindex >= HANGUL_SCOUNT
           l = codepoint
@@ -214,30 +227,27 @@ module Addressable
         return l, v, t
       end
 
-      def self.lookup_unicode_combining_class(codepoint)
+      def lookup_unicode_combining_class(codepoint)
         codepoint_data = UNICODE_DATA[codepoint]
         (codepoint_data ?
           (codepoint_data[UNICODE_DATA_COMBINING_CLASS] || 0) :
           0)
       end
 
-      def self.lookup_unicode_compatibility(codepoint)
+      def lookup_unicode_compatibility(codepoint)
         codepoint_data = UNICODE_DATA[codepoint]
         (codepoint_data ?
           codepoint_data[UNICODE_DATA_COMPATIBILITY] : nil)
       end
 
-      def self.lookup_unicode_lowercase(codepoint)
+      def lookup_unicode_lowercase(codepoint)
         codepoint_data = UNICODE_DATA[codepoint]
         (codepoint_data ?
           (codepoint_data[UNICODE_DATA_LOWERCASE] || codepoint) :
           codepoint)
       end
 
-      def self.lookup_unicode_composition(unpacked)
-        if COMPOSITION_TABLE[unpacked.pack("C*")]
-          puts unpacked.inspect + " --> " + COMPOSITION_TABLE[unpacked.pack("C*")].inspect
-        end
+      def lookup_unicode_composition(unpacked)
         return COMPOSITION_TABLE[unpacked.pack("C*")]
       end
 
@@ -4506,7 +4516,321 @@ module Addressable
           COMPOSITION_TABLE[canonical] = codepoint
         end
       end
-    # end
+
+      UNICODE_MAX_LENGTH = 256
+      ACE_MAX_LENGTH = 256
+
+      PUNYCODE_BASE = 36
+      PUNYCODE_TMIN = 1
+      PUNYCODE_TMAX = 26
+      PUNYCODE_SKEW = 38
+      PUNYCODE_DAMP = 700
+      PUNYCODE_INITIAL_BIAS = 72
+      PUNYCODE_INITIAL_N = 0x80
+      PUNYCODE_DELIMITER = 0x2D
+
+      PUNYCODE_MAXINT = 1 << 64
+
+      PUNYCODE_PRINT_ASCII =
+        "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" +
+        "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" +
+        " !\"\#$%&'()*+,-./" +
+        "0123456789:;<=>?" +
+        "@ABCDEFGHIJKLMNO" +
+        "PQRSTUVWXYZ[\\]^_" +
+        "`abcdefghijklmno" +
+        "pqrstuvwxyz{|}~\n"
+
+      # Input is invalid.
+      class PunycodeBadInput < StandardError; end
+      # Output would exceed the space provided.
+      class PunycodeBigOutput < StandardError; end
+      # Input needs wider integers to process.
+      class PunycodeOverflow < StandardError; end
+
+      def punycode_encode(unicode)
+        input = unicode.unpack("U*")
+        output = [0] * (ACE_MAX_LENGTH + 1)
+        input_length = input.size
+        output_length = [ACE_MAX_LENGTH]
+
+        # Initialize the state
+        n = PUNYCODE_INITIAL_N
+        delta = out = 0
+        max_out = output_length[0]
+        bias = PUNYCODE_INITIAL_BIAS
+
+        # Handle the basic code points:
+        input_length.times do |j|
+          if punycode_basic?(input[j])
+            if max_out - out < 2
+              raise PunycodeBigOutput,
+                "Output would exceed the space provided."
+            end
+            output[out] = input[j]
+            out += 1
+          end
+        end
+
+        h = b = out
+
+        # h is the number of code points that have been handled, b is the
+        # number of basic code points, and out is the number of characters
+        # that have been output.
+
+        if b > 0
+          output[out] = PUNYCODE_DELIMITER
+          out += 1
+        end
+
+        # Main encoding loop:
+
+        while h < input_length
+          # All non-basic code points < n have been
+          # handled already.  Find the next larger one:
+
+          m = PUNYCODE_MAXINT
+          input_length.times do |j|
+            m = input[j] if (n...m) === input[j]
+          end
+
+          # Increase delta enough to advance the decoder's
+          # <n,i> state to <m,0>, but guard against overflow:
+
+          if m - n > (PUNYCODE_MAXINT - delta) / (h + 1)
+            raise PunycodeOverflow, "Input needs wider integers to process."
+          end
+          delta += (m - n) * (h + 1)
+          n = m
+
+          input_length.times do |j|
+            # Punycode does not need to check whether input[j] is basic:
+            if input[j] < n
+              delta += 1
+              if delta == 0
+                raise PunycodeOverflow,
+                  "Input needs wider integers to process."
+              end
+            end
+
+            if input[j] == n
+              # Represent delta as a generalized variable-length integer:
+
+              q = delta; k = PUNYCODE_BASE
+              while true
+                if out >= max_out
+                  raise PunycodeBigOutput,
+                    "Output would exceed the space provided."
+                end
+                t = (
+                  if k <= bias
+                    PUNYCODE_TMIN
+                  elsif k >= bias + PUNYCODE_TMAX
+                    PUNYCODE_TMAX
+                  else
+                    k - bias
+                  end
+                )
+                break if q < t
+                output[out] =
+                  punycode_encode_digit(t + (q - t) % (PUNYCODE_BASE - t))
+                out += 1
+                q = (q - t) / (PUNYCODE_BASE - t)
+                k += PUNYCODE_BASE
+              end
+
+              output[out] = punycode_encode_digit(q)
+              out += 1
+              bias = punycode_adapt(delta, h + 1, h == b)
+              delta = 0
+              h += 1
+            end
+          end
+
+          delta += 1
+          n += 1
+        end
+
+        output_length[0] = out
+
+        outlen = out
+        outlen.times do |j|
+          c = output[j]
+          unless c >= 0 && c <= 127
+            raise Exception, "Invalid output char."
+          end
+          unless PUNYCODE_PRINT_ASCII[c]
+            raise PunycodeBadInput, "Input is invalid."
+          end
+        end
+
+        output[0..outlen].map { |x| x.chr }.join("").sub(/\0+\z/, "")
+      end
+
+      def punycode_decode(punycode)
+        input = []
+        output = []
+
+        if ACE_MAX_LENGTH * 2 < punycode.size
+          raise PunycodeBigOutput, "Output would exceed the space provided."
+        end
+        punycode.each_byte do |c|
+          unless c >= 0 && c <= 127
+            raise PunycodeBadInput, "Input is invalid."
+          end
+          input.push(c)
+        end
+
+        input_length = input.length
+        output_length = [UNICODE_MAX_LENGTH]
+
+        # Initialize the state
+        n = PUNYCODE_INITIAL_N
+
+        out = i = 0
+        max_out = output_length[0]
+        bias = PUNYCODE_INITIAL_BIAS
+
+        # Handle the basic code points:  Let b be the number of input code
+        # points before the last delimiter, or 0 if there is none, then
+        # copy the first b code points to the output.
+
+        b = 0
+        input_length.times do |j|
+          b = j if punycode_delimiter?(input[j])
+        end
+        if b > max_out
+          raise PunycodeBigOutput, "Output would exceed the space provided."
+        end
+
+        b.times do |j|
+          unless punycode_basic?(input[j])
+            raise PunycodeBadInput, "Input is invalid."
+          end
+          output[out] = input[j]
+          out+=1
+        end
+
+        # Main decoding loop:  Start just after the last delimiter if any
+        # basic code points were copied; start at the beginning otherwise.
+
+        in_ = b > 0 ? b + 1 : 0
+        while in_ < input_length
+
+          # in_ is the index of the next character to be consumed, and
+          # out is the number of code points in the output array.
+
+          # Decode a generalized variable-length integer into delta,
+          # which gets added to i.  The overflow checking is easier
+          # if we increase i as we go, then subtract off its starting
+          # value at the end to obtain delta.
+
+          oldi = i; w = 1; k = PUNYCODE_BASE
+          while true
+            if in_ >= input_length
+              raise PunycodeBadInput, "Input is invalid."
+            end
+            digit = punycode_decode_digit(input[in_])
+            in_+=1
+            if digit >= PUNYCODE_BASE
+              raise PunycodeBadInput, "Input is invalid."
+            end
+            if digit > (PUNYCODE_MAXINT - i) / w
+              raise PunycodeOverflow, "Input needs wider integers to process."
+            end
+            i += digit * w
+            t = (
+              if k <= bias
+                PUNYCODE_TMIN
+              elsif k >= bias + PUNYCODE_TMAX
+                PUNYCODE_TMAX
+              else
+                k - bias
+              end
+            )
+            break if digit < t
+            if w > PUNYCODE_MAXINT / (PUNYCODE_BASE - t)
+              raise PunycodeOverflow, "Input needs wider integers to process."
+            end
+            w *= PUNYCODE_BASE - t
+            k += PUNYCODE_BASE
+          end
+
+          bias = punycode_adapt(i - oldi, out + 1, oldi == 0)
+
+          # I was supposed to wrap around from out + 1 to 0,
+          # incrementing n each time, so we'll fix that now:
+
+          if i / (out + 1) > PUNYCODE_MAXINT - n
+            raise PunycodeOverflow, "Input needs wider integers to process."
+          end
+          n += i / (out + 1)
+          i %= out + 1
+
+          # Insert n at position i of the output:
+
+          # not needed for Punycode:
+          # raise PUNYCODE_INVALID_INPUT if decode_digit(n) <= base
+          if out >= max_out
+            raise PunycodeBigOutput, "Output would exceed the space provided."
+          end
+
+          #memmove(output + i + 1, output + i, (out - i) * sizeof *output)
+          output[i + 1, out - i] = output[i, out - i]
+          output[i] = n
+          i += 1
+
+          out += 1
+        end
+
+        output_length[0] = out
+
+        output.pack("U*")
+      end
+
+      def punycode_basic?(codepoint)
+        codepoint < 0x80
+      end
+
+      def punycode_delimiter?(codepoint)
+        codepoint == PUNYCODE_DELIMITER
+      end
+
+      def punycode_encode_digit(d)
+        d + 22 + 75 * ((d < 26) ? 1 : 0)
+      end
+
+      # Returns the numeric value of a basic codepoint
+      # (for use in representing integers) in the range 0 to
+      # base - 1, or PUNYCODE_BASE if codepoint does not represent a value.
+      def punycode_decode_digit(codepoint)
+        if codepoint - 48 < 10
+          codepoint - 22
+        elsif codepoint - 65 < 26
+          codepoint - 65
+        elsif codepoint - 97 < 26
+          codepoint - 97
+        else
+          PUNYCODE_BASE
+        end
+      end
+
+      # Bias adaptation method
+      def punycode_adapt(delta, numpoints, firsttime)
+        delta = firsttime ? delta / PUNYCODE_DAMP : delta >> 1
+        # delta >> 1 is a faster way of doing delta / 2
+        delta += delta / numpoints
+
+        k = 0
+        while delta > ((PUNYCODE_BASE - PUNYCODE_TMIN) * PUNYCODE_TMAX) / 2
+          delta /= PUNYCODE_BASE - PUNYCODE_TMIN
+          k += PUNYCODE_BASE
+        end
+
+        k + (PUNYCODE_BASE - PUNYCODE_TMIN + 1) *
+          delta / (delta + PUNYCODE_SKEW)
+      end
+    end
     # :startdoc:
   end
 end
