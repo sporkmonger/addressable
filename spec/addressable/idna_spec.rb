@@ -86,6 +86,12 @@ describe Addressable::IDNA, "when converting from unicode to ASCII" do
       "www.xn--n8jaaaaai5bhf7as8fsfk3jnknefdde3" +
       "fg11amb5gzdb4wi9bya3kc6lra.w3.mag.keio.ac.jp"
   end
+
+  it "should convert '点心和烤鸭.w3.mag.keio.ac.jp' correctly" do
+    Addressable::IDNA.to_ascii(
+      "点心和烤鸭.w3.mag.keio.ac.jp"
+    ).should == "xn--0trv4xfvn8el34t.w3.mag.keio.ac.jp"
+  end
 end
 
 describe Addressable::IDNA, "when converting from ASCII to unicode" do
@@ -113,5 +119,11 @@ describe Addressable::IDNA, "when converting from ASCII to unicode" do
       "fg11amb5gzdb4wi9bya3kc6lra.w3.mag.keio.ac.jp"
     ).should ==
       "www.ほんとうにながいわけのわからないどめいんめいのらべるまだながくしないとたりない.w3.mag.keio.ac.jp"
+  end
+
+  it "should convert '点心和烤鸭.w3.mag.keio.ac.jp' correctly" do
+    Addressable::IDNA.to_unicode(
+      "xn--0trv4xfvn8el34t.w3.mag.keio.ac.jp"
+    ).should == "点心和烤鸭.w3.mag.keio.ac.jp"
   end
 end
