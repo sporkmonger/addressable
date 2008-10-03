@@ -119,6 +119,18 @@ describe Addressable::IDNA, "when converting from unicode to ASCII" do
       "\343\203\252\345\256\240\355\220\261\345\215\204.com"
     ).should == "xn--eek174hoxfpr4k.com"
   end
+
+  it "should convert 'ᆵ' correctly" do
+    Addressable::IDNA.to_ascii(
+      "\341\206\265"
+    ).should == "xn--4ud"
+  end
+
+  it "should convert 'ﾯ' correctly" do
+    Addressable::IDNA.to_ascii(
+      "\357\276\257"
+    ).should == "xn--4ud"
+  end
 end
 
 describe Addressable::IDNA, "when converting from ASCII to unicode" do
@@ -174,5 +186,11 @@ describe Addressable::IDNA, "when converting from ASCII to unicode" do
     Addressable::IDNA.to_unicode(
       "xn--eek174hoxfpr4k.com"
     ).should == "\343\203\252\345\256\240\355\220\261\345\215\204.com"
+  end
+
+  it "should convert 'ﾯ' correctly" do
+    Addressable::IDNA.to_unicode(
+      "xn--4ud"
+    ).should == "\341\206\265"
   end
 end
