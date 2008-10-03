@@ -72,19 +72,20 @@ module Addressable
       parts.join('.')
     end
 
+    # Unicode normalization form KC.
+    def self.unicode_normalize_kc(input)
+      unpacked = input.unpack("U*")
+      unpacked =
+        unicode_compose(unicode_sort_canonical(unicode_decompose(unpacked)))
+      return unpacked.pack("U*")
+    end
+
     # :stopdoc:
     class <<self
     private
       def unicode_downcase(input)
         unpacked = input.unpack("U*")
         unpacked.map! { |codepoint| lookup_unicode_lowercase(codepoint) }
-        return unpacked.pack("U*")
-      end
-
-      def unicode_normalize_kc(input)
-        unpacked = input.unpack("U*")
-        unpacked =
-          unicode_compose(unicode_sort_canonical(unicode_decompose(unpacked)))
         return unpacked.pack("U*")
       end
 
@@ -173,7 +174,7 @@ module Addressable
         i = 1
         length = unpacked.length
 
-        return input if length < 2
+        return unpacked if length < 2
 
         while i < length
           last = unpacked[i-1]

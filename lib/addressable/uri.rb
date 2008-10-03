@@ -25,7 +25,8 @@
 $:.unshift(File.expand_path(File.join(File.dirname(__FILE__), '/..')))
 $:.uniq!
 
-require 'addressable/version'
+require "addressable/version"
+require "addressable/idna"
 
 module Addressable
   # This is an implementation of a URI parser based on RFC 3986, 3987.
@@ -413,11 +414,9 @@ module Addressable
         :query => self.unencode_segment(uri_object.query),
         :fragment => self.unencode_segment(uri_object.fragment)
       }
-      if URI::IDNA.send(:use_libidn?)
-        segments.each do |key, value|
-          if value != nil
-            segments[key] = IDN::Stringprep.nfkc_normalize(value.to_s)
-          end
+      segments.each do |key, value|
+        if value != nil
+          segments[key] = Addressable::IDNA.unicode_normalize_kc(value.to_s)
         end
       end
       return Addressable::URI.new(
@@ -1034,11 +1033,7 @@ module Addressable
       normalized_host = self.host.strip.downcase if self.host != nil
       if normalized_host != nil && normalized_host != ""
         normalized_host = self.class.unencode_segment(normalized_host)
-        begin
-          normalized_host = URI::IDNA.to_ascii(normalized_host)
-        rescue Exception
-          nil
-        end
+        normalized_host = ::Addressable::IDNA.to_ascii(normalized_host)
         if normalized_host[-1..-1] == "."
           normalized_host = normalized_host[0...-1]
         end
@@ -1087,12 +1082,8 @@ module Addressable
     # See RFC 3986 section 7.6 for more information.
     def display_uri
       display_uri = self.normalize
-      begin
-        display_uri.instance_variable_set("@host",
-          URI::IDNA.to_unicode(display_uri.host))
-      rescue Exception
-        nil
-      end
+      display_uri.instance_variable_set("@host",
+        ::Addressable::IDNA.to_unicode(display_uri.host))
       return display_uri
     end
 
@@ -1175,55 +1166,6 @@ module Addressable
     # Returns a string representation of the URI object's state.
     def inspect
       sprintf("#<%s:%#0x URI:%s>", self.class.to_s, self.object_id, self.to_s)
-    end
-
-    # This module handles internationalized domain names.  When Ruby has an
-    # implementation of nameprep, stringprep, punycode, etc, this
-    # module should contain an actual implementation of IDNA instead of
-    # returning nil if libidn can't be used.
-    module IDNA
-      # Returns the ascii representation of the label.
-      def self.to_ascii(label)
-        return nil if label.nil?
-        if self.use_libidn?
-          return IDN::Idna.toASCII(label)
-        else
-          raise NotImplementedError,
-            "There is no available pure-ruby implementation.  " +
-            "Install libidn bindings."
-        end
-      end
-
-      # Returns the unicode representation of the label.
-      def self.to_unicode(label)
-        return nil if label.nil?
-        if self.use_libidn?
-          return IDN::Idna.toUnicode(label)
-        else
-          raise NotImplementedError,
-            "There is no available pure-ruby implementation.  " +
-            "Install libidn bindings."
-        end
-      end
-
-    private
-      # Determines if the libidn bindings are available and able to be used.
-      def self.use_libidn?
-        if !defined?(@use_libidn) || @use_libidn.nil?
-          begin
-            require 'rubygems'
-          rescue LoadError
-            nil
-          end
-          begin
-            require 'idn'
-          rescue LoadError
-            nil
-          end
-          @use_libidn = !!(defined?(IDN::Idna))
-        end
-        return @use_libidn
-      end
     end
 
   private

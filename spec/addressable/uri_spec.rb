@@ -776,11 +776,7 @@ describe Addressable::URI, " when parsed from " +
 
   # Based on http://intertwingly.net/blog/2004/07/31/URI-Equivalence
   it "should be equivalent to 'http://example.com/C%CC%A7'" do
-    if Addressable::URI::IDNA.send(:use_libidn?)
-      @uri.should == Addressable::URI.parse("http://example.com/C%CC%A7")
-    else
-      pending("Skipping IDN specification because GNU libidn is unavailable.")
-    end
+    @uri.should == Addressable::URI.parse("http://example.com/C%CC%A7")
   end
 
   it "should not change if encoded with the normalizing algorithm" do
@@ -2173,12 +2169,8 @@ describe Addressable::URI, " when parsed from " +
   end
 
   it "should be equivalent to 'http://www.xn--8ws00zhy3a.com/'" do
-    if Addressable::URI::IDNA.send(:use_libidn?)
-      @uri.should ==
-        Addressable::URI.parse("http://www.xn--8ws00zhy3a.com/")
-    else
-      pending("Skipping IDN specification because GNU libidn is unavailable.")
-    end
+    @uri.should ==
+      Addressable::URI.parse("http://www.xn--8ws00zhy3a.com/")
   end
 
   it "should not have domain name encoded during normalization" do
@@ -2195,13 +2187,9 @@ describe Addressable::URI, " when parsed from " +
 
   it "should be equivalent to " +
       "'http://www.xn--8ws00zhy3a.com/%20some%20spaces%20/'" do
-    if Addressable::URI::IDNA.send(:use_libidn?)
-      @uri.should ==
-        Addressable::URI.parse(
-          "http://www.xn--8ws00zhy3a.com/%20some%20spaces%20/")
-    else
-      pending("Skipping IDN specification because GNU libidn is unavailable.")
-    end
+    @uri.should ==
+      Addressable::URI.parse(
+        "http://www.xn--8ws00zhy3a.com/%20some%20spaces%20/")
   end
 
   it "should not have domain name encoded during normalization" do
@@ -2217,11 +2205,7 @@ describe Addressable::URI, " when parsed from " +
   end
 
   it "should be displayed as http://www.詹姆斯.com/" do
-    if Addressable::URI::IDNA.send(:use_libidn?)
-      @uri.display_uri.to_s.should == "http://www.詹姆斯.com/"
-    else
-      pending("Skipping IDN specification because GNU libidn is unavailable.")
-    end
+    @uri.display_uri.to_s.should == "http://www.詹姆斯.com/"
   end
 end
 
@@ -2233,14 +2217,10 @@ describe Addressable::URI, " when parsed from " +
 
   it "should normalize to " +
       "http://www.xn--8ws00zhy3a.com/atomtests/iri/%E8%A9%B9.html" do
-    if Addressable::URI::IDNA.send(:use_libidn?)
-      @uri.normalize.to_s.should ==
-        "http://www.xn--8ws00zhy3a.com/atomtests/iri/%E8%A9%B9.html"
-      @uri.normalize!.to_s.should ==
-        "http://www.xn--8ws00zhy3a.com/atomtests/iri/%E8%A9%B9.html"
-    else
-      pending("Skipping IDN specification because GNU libidn is unavailable.")
-    end
+    @uri.normalize.to_s.should ==
+      "http://www.xn--8ws00zhy3a.com/atomtests/iri/%E8%A9%B9.html"
+    @uri.normalize!.to_s.should ==
+      "http://www.xn--8ws00zhy3a.com/atomtests/iri/%E8%A9%B9.html"
   end
 end
 
@@ -2257,16 +2237,12 @@ describe Addressable::URI, " when parsed from a percent-encoded IRI" do
   end
 
   it "should normalize to something sane" do
-    if Addressable::URI::IDNA.send(:use_libidn?)
-      @uri.normalize.to_s.should ==
-        "http://www.xn--n8jaaaaai5bhf7as8fsfk3jnknefdde3f" +
-        "g11amb5gzdb4wi9bya3kc6lra.w3.mag.keio.ac.jp/"
-      @uri.normalize!.to_s.should ==
-        "http://www.xn--n8jaaaaai5bhf7as8fsfk3jnknefdde3f" +
-        "g11amb5gzdb4wi9bya3kc6lra.w3.mag.keio.ac.jp/"
-    else
-      pending("Skipping IDN specification because GNU libidn is unavailable.")
-    end
+    @uri.normalize.to_s.should ==
+      "http://www.xn--n8jaaaaai5bhf7as8fsfk3jnknefdde3f" +
+      "g11amb5gzdb4wi9bya3kc6lra.w3.mag.keio.ac.jp/"
+    @uri.normalize!.to_s.should ==
+      "http://www.xn--n8jaaaaai5bhf7as8fsfk3jnknefdde3f" +
+      "g11amb5gzdb4wi9bya3kc6lra.w3.mag.keio.ac.jp/"
   end
 end
 
@@ -2552,89 +2528,6 @@ describe Addressable::URI, "with a base uri of 'http://a/b/c/d;p?q'" do
     (@uri + "//example.com/").to_s.should == "http://example.com/"
     Addressable::URI.join(
       @uri.to_s, "//example.com/").to_s.should == "http://example.com/"
-  end
-end
-
-describe Addressable::URI::IDNA, "without libidn bindings" do
-  before do
-    Addressable::URI::IDNA.instance_variable_set("@use_libidn", false)
-  end
-
-  it "should raise an exception when an operation is attempted" do
-    (lambda do
-      Addressable::URI::IDNA.to_ascii("www.詹姆斯.com")
-    end).should raise_error
-    (lambda do
-      Addressable::URI::IDNA.to_unicode("www.xn--8ws00zhy3a.com")
-    end).should raise_error
-  end
-
-  it "should not cause normalization routines to error out" do
-    (lambda do
-      uri = Addressable::URI.parse(
-        "http://www.詹姆斯.com/atomtests/iri/詹.html")
-      uri.normalize
-    end).should_not raise_error
-  end
-
-  it "should not cause display uri routines to error out" do
-    (lambda do
-      uri = Addressable::URI.parse(
-        "http://www.xn--8ws00zhy3a.com/atomtests/iri/%E8%A9%B9.html")
-      uri.display_uri
-    end).should_not raise_error
-  end
-
-  after do
-    Addressable::URI::IDNA.instance_variable_set("@use_libidn", nil)
-    Addressable::URI::IDNA.send(:use_libidn?)
-  end
-end
-
-describe Addressable::URI::IDNA, "with rubygems and idn missing" do
-  before do
-    module Kernel
-      alias_method :saved_require, :require
-      def require(path)
-        raise LoadError,
-          "Libraries cannot be loaded during this test."
-      end
-    end
-    Addressable::URI::IDNA.instance_variable_set("@use_libidn", nil)
-  end
-
-  it "should not raise an exception while checking " +
-      "if libidn is available" do
-    (lambda do
-      Addressable::URI::IDNA.send(:use_libidn?)
-    end).should_not raise_error
-  end
-
-  it "should not cause normalization routines to error out" do
-    (lambda do
-      uri = Addressable::URI.parse(
-        "http://www.詹姆斯.com/atomtests/iri/詹.html")
-      uri.normalize
-    end).should_not raise_error
-  end
-
-  it "should not cause display uri routines to error out" do
-    (lambda do
-      uri = Addressable::URI.parse(
-        "http://www.xn--8ws00zhy3a.com/atomtests/iri/%E8%A9%B9.html")
-      uri.display_uri
-    end).should_not raise_error
-  end
-
-  after do
-    module Kernel
-      def require(path)
-        saved_require(path)
-      end
-      alias_method :require, :saved_require
-    end
-    Addressable::URI::IDNA.instance_variable_set("@use_libidn", nil)
-    Addressable::URI::IDNA.send(:use_libidn?)
   end
 end
 
