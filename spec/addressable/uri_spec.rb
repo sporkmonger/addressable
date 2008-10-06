@@ -1458,6 +1458,76 @@ describe Addressable::URI, " when parsed from " +
 end
 
 describe Addressable::URI, " when parsed from " +
+    "'svn+ssh://developername@rubyforge.org/var/svn/project'" do
+  before do
+    @uri = Addressable::URI.parse(
+      "svn+ssh://developername@rubyforge.org/var/svn/project"
+    )
+  end
+
+  it "should have a scheme of 'svn+ssh'" do
+    @uri.scheme.should == "svn+ssh"
+  end
+
+  it "should be considered to be ip-based" do
+    @uri.should be_ip_based
+  end
+
+  it "should have a path of '/var/svn/project'" do
+    @uri.path.should == "/var/svn/project"
+  end
+
+  it "should have a username of 'developername'" do
+    @uri.user.should == "developername"
+  end
+
+  it "should have no password" do
+    @uri.password.should == nil
+  end
+
+  it "should be considered to be in normal form" do
+    @uri.normalize.should be_eql(@uri)
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
+    "'ssh+svn://developername@rubyforge.org/var/svn/project'" do
+  before do
+    @uri = Addressable::URI.parse(
+      "ssh+svn://developername@rubyforge.org/var/svn/project"
+    )
+  end
+
+  it "should have a scheme of 'ssh+svn'" do
+    @uri.scheme.should == "ssh+svn"
+  end
+
+  it "should have a normalized scheme of 'svn+ssh'" do
+    @uri.normalized_scheme.should == "svn+ssh"
+  end
+
+  it "should not be considered to be ip-based" do
+    @uri.should_not be_ip_based
+  end
+
+  it "should have a path of '/var/svn/project'" do
+    @uri.path.should == "/var/svn/project"
+  end
+
+  it "should have a username of 'developername'" do
+    @uri.user.should == "developername"
+  end
+
+  it "should have no password" do
+    @uri.password.should == nil
+  end
+
+  it "should not be considered to be in normal form" do
+    @uri.normalize.should_not be_eql(@uri)
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
     "'mailto:user@example.com'" do
   before do
     @uri = Addressable::URI.parse("mailto:user@example.com")
@@ -1659,6 +1729,8 @@ describe Addressable::URI, " when parsed from " +
     @uri.authority.should == "newuser:newpass@example.com:80"
     @uri.user.should == "newuser"
     @uri.password.should == "newpass"
+    @uri.userinfo.should == "newuser:newpass"
+    @uri.normalized_userinfo.should == "newuser:newpass"
     @uri.host.should == "example.com"
     @uri.port.should == 80
     @uri.inferred_port.should == 80
@@ -1773,6 +1845,14 @@ describe Addressable::URI, " when parsed from " +
     @uri.password.should == nil
   end
 
+  it "should have a userinfo of 'user'" do
+    @uri.userinfo.should == "user"
+  end
+
+  it "should have a normalized userinfo of 'user'" do
+    @uri.normalized_userinfo.should == "user"
+  end
+
   it "should have a host of 'example.com'" do
     @uri.host.should == "example.com"
   end
@@ -1853,6 +1933,10 @@ describe Addressable::URI, " when parsed from " +
     @uri.password.should == ""
   end
 
+  it "should have a normalized userinfo of 'user:'" do
+    @uri.normalized_userinfo.should == "user:"
+  end
+
   it "should have a host of 'example.com'" do
     @uri.host.should == "example.com"
   end
@@ -1908,6 +1992,10 @@ describe Addressable::URI, " when parsed from " +
     @uri.userinfo.should == ":pass"
   end
 
+  it "should have a normalized userinfo of ':pass'" do
+    @uri.normalized_userinfo.should == ":pass"
+  end
+
   it "should have a host of 'example.com'" do
     @uri.host.should == "example.com"
   end
@@ -1958,6 +2046,10 @@ describe Addressable::URI, " when parsed from " +
 
   it "should have a password of ''" do
     @uri.password.should == ""
+  end
+
+  it "should have a normalized userinfo of nil" do
+    @uri.normalized_userinfo.should == nil
   end
 
   it "should have a host of 'example.com'" do
@@ -2826,13 +2918,13 @@ end
 
 describe Addressable::URI, "when encoding a multibyte string" do
   it "should result in correct percent encoded sequence" do
-    Addressable::URI.encode_segment("günther").should == "g%C3%BCnther"
+    Addressable::URI.encode_component("günther").should == "g%C3%BCnther"
   end
 end
 
 describe Addressable::URI, "when unencoding a multibyte string" do
   it "should result in correct percent encoded sequence" do
-    Addressable::URI.unencode_segment("g%C3%BCnther").should == "günther"
+    Addressable::URI.unencode_component("g%C3%BCnther").should == "günther"
   end
 end
 
