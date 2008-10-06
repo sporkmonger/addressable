@@ -27,6 +27,19 @@ $:.uniq!
 
 require 'addressable/uri'
 
+if !"".respond_to?("force_encoding")
+  class String
+    def force_encoding(encoding)
+      # Do nothing, just make sure this gets called.
+    end
+  end
+
+  class Encoding
+    UTF_8 = Encoding.new
+    ASCII_8BIT = Encoding.new
+  end
+end
+
 class ExampleProcessor
   def self.validate(name, value)
     return !!(value =~ /^[\w ]+$/) if name == "query"
