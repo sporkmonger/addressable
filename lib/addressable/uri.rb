@@ -419,7 +419,7 @@ module Addressable
           components[key] = Addressable::IDNA.unicode_normalize_kc(value.to_s)
         end
       end
-      encoded = Addressable::URI.new(
+      return Addressable::URI.new(
         :scheme => self.encode_component(components[:scheme],
           Addressable::URI::CharacterClasses::SCHEME),
         :user => self.encode_component(components[:user],
@@ -435,10 +435,6 @@ module Addressable
         :fragment => self.encode_component(components[:fragment],
           Addressable::URI::CharacterClasses::FRAGMENT)
       ).to_s
-      if encoded.respond_to?(:force_encoding)
-        encoded.force_encoding(Encoding::UTF_8)
-      end
-      return encoded
     end
 
     # Extracts uris from an arbitrary body of text.
@@ -1266,6 +1262,9 @@ module Addressable
       uri_string << self.path.to_s
       uri_string << "?#{self.query}" if self.query != nil
       uri_string << "##{self.fragment}" if self.fragment != nil
+      if uri_string.respond_to?(:force_encoding)
+        uri_string.force_encoding(Encoding::UTF_8)
+      end
       return uri_string
     end
 
