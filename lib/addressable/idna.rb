@@ -43,6 +43,10 @@ module Addressable
     # Converts from a Unicode internationalized domain name to an ASCII
     # domain name as described in RFC 3490.
     def self.to_ascii(input)
+      input = input.dup
+      if input.respond_to?(:force_encoding)
+        input.force_encoding(Encoding::ASCII_8BIT)
+      end
       if input =~ UTF8_REGEX && input =~ UTF8_REGEX_MULTIBYTE
         parts = unicode_downcase(input).split('.')
         parts.map! do |part|
@@ -69,7 +73,11 @@ module Addressable
           part
         end
       end
-      parts.join('.')
+      output = parts.join('.')
+      if output.respond_to?(:force_encoding)
+        output.force_encoding(Encoding::UTF_8)
+      end
+      output
     end
 
     # Unicode normalization form KC.
