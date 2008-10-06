@@ -1171,7 +1171,8 @@ module Addressable
       if normalized_scheme == "feed"
         if self.to_s =~ /^feed:\/*http:\/*/
           return self.class.parse(
-            self.to_s.scan(/^feed:\/*(http:\/*.*)/).flatten[0]).normalize
+            self.to_s[/^feed:\/*(http:\/*.*)/, 1]
+          ).normalize
         end
       end
 
