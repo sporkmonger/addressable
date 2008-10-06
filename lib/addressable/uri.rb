@@ -379,10 +379,16 @@ module Addressable
     end
 
     # Percent encodes any special characters in the URI.  This method does
-    # not take IRIs or IDNs into account.
-    def self.encode(uri)
+    # not take IRIs or IDNs into account.  Returns a String by default,
+    # but if the optional second parameter is supplied, it may alternatively
+    # return an Addressable::URI object.
+    def self.encode(uri, returning=String)
+      if ![String, ::Addressable::URI].include?(returning)
+        raise TypeError,
+          "Expected String or Addressable::URI, got #{returning.inspect}"
+      end
       uri_object = uri.kind_of?(self) ? uri : self.parse(uri.to_s)
-      return Addressable::URI.new(
+      encoded_uri = Addressable::URI.new(
         :scheme => self.encode_component(uri_object.scheme,
           Addressable::URI::CharacterClasses::SCHEME),
         :authority => self.encode_component(uri_object.authority,
@@ -393,7 +399,12 @@ module Addressable
           Addressable::URI::CharacterClasses::QUERY),
         :fragment => self.encode_component(uri_object.fragment,
           Addressable::URI::CharacterClasses::FRAGMENT)
-      ).to_s
+      )
+      if returning == String
+        return encoded_uri.to_s
+      elsif returning == ::Addressable::URI
+        return encoded_uri
+      end
     end
 
     class << self
@@ -402,7 +413,11 @@ module Addressable
 
     # Normalizes the encoding of a URI.  Characters within a hostname are
     # not percent encoded to allow for internationalized domain names.
-    def self.normalized_encode(uri)
+    def self.normalized_encode(uri, returning=String)
+      if ![String, ::Addressable::URI].include?(returning)
+        raise TypeError,
+          "Expected String or Addressable::URI, got #{returning.inspect}"
+      end
       uri_object = uri.kind_of?(self) ? uri : self.parse(uri.to_s)
       components = {
         :scheme => self.unencode_component(uri_object.scheme),
@@ -419,7 +434,7 @@ module Addressable
           components[key] = Addressable::IDNA.unicode_normalize_kc(value.to_s)
         end
       end
-      return Addressable::URI.new(
+      encoded_uri = Addressable::URI.new(
         :scheme => self.encode_component(components[:scheme],
           Addressable::URI::CharacterClasses::SCHEME),
         :user => self.encode_component(components[:user],
@@ -434,7 +449,12 @@ module Addressable
           Addressable::URI::CharacterClasses::QUERY),
         :fragment => self.encode_component(components[:fragment],
           Addressable::URI::CharacterClasses::FRAGMENT)
-      ).to_s
+      )
+      if returning == String
+        return encoded_uri.to_s
+      elsif returning == ::Addressable::URI
+        return encoded_uri
+      end
     end
 
     # Extracts uris from an arbitrary body of text.
@@ -1176,15 +1196,15 @@ module Addressable
         end
       end
 
-      # This is kinda ugly.  Parse, convert, parse, convert.  Yuck.
-      return Addressable::URI.parse(
-        Addressable::URI.normalized_encode(Addressable::URI.new(
+      return Addressable::URI.normalized_encode(
+        Addressable::URI.new(
           :scheme => normalized_scheme,
           :authority => normalized_authority,
           :path => normalized_path,
           :query => normalized_query,
           :fragment => normalized_fragment
-        ))
+        ),
+        ::Addressable::URI
       )
     end
 

@@ -797,9 +797,26 @@ describe Addressable::URI, " when parsed from " +
       "http://example.com/%C3%87"
   end
 
+  it "should raise an error if encoding with an unexpected return type" do
+    (lambda do
+      Addressable::URI.normalized_encode(@uri, Integer)
+    end).should raise_error(TypeError)
+  end
+
   it "if percent encoded should be 'http://example.com/C%25CC%25A7'" do
     Addressable::URI.encode(@uri).to_s.should ==
       "http://example.com/%25C3%2587"
+  end
+
+  it "if percent encoded should be 'http://example.com/C%25CC%25A7'" do
+    Addressable::URI.encode(@uri, Addressable::URI).should ==
+      Addressable::URI.parse("http://example.com/%25C3%2587")
+  end
+
+  it "should raise an error if encoding with an unexpected return type" do
+    (lambda do
+      Addressable::URI.encode(@uri, Integer)
+    end).should raise_error(TypeError)
   end
 
   it "should be identical to its duplicate" do
