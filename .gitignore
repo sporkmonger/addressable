@@ -1,4 +1,5 @@
 .DS_Store
+.yardoc
 coverage
 doc
 heckling
