@@ -7,6 +7,9 @@
   * changed the behavior of the port method significantly
   * added a bunch of new specifications
   * Addressable::URI.encode_segment, Addressable::URI.unencode_segment renamed
+  * documentation is now in YARD format
+  * to_str method implemented, implicit conversion to Strings now allowed
+  * omit method added
 
 === Addressable 1.0.4
   * switched to using RSpec's pending system for specs that rely on IDN

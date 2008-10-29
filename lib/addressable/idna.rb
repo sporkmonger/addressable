@@ -16,6 +16,7 @@ module Addressable
     # http://rubyforge.org/frs/?group_id=2550
 
     # :stopdoc:
+
     ACE_PREFIX = "xn--"
 
     UTF8_REGEX = /\A(?:
@@ -38,6 +39,7 @@ module Addressable
       | [\xF1-\xF3][\x80-\xBF]{3}           # planes 4nil5
       | \xF4[\x80-\x8F][\x80-\xBF]{2}       # plane 16
       )/mnx
+
     # :startdoc:
 
     # Converts from a Unicode internationalized domain name to an ASCII
@@ -88,7 +90,13 @@ module Addressable
       return unpacked.pack("U*")
     end
 
-    # :stopdoc:
+    ##
+    # Unicode aware downcase method.
+    #
+    # @api private
+    # @param [String] input
+    #   The input string.
+    # @return [String] The downcased result.
     def self.unicode_downcase(input)
       unpacked = input.unpack("U*")
       unpacked.map! { |codepoint| lookup_unicode_lowercase(codepoint) }

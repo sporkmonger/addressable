@@ -237,43 +237,56 @@ module Addressable
       return Addressable::URI.parse(result)
     end
 
+    ##
     # Extracts a mapping from the URI using a URI Template pattern.
-    # Returns nil if the pattern doesn't match the URI.
     #
-    # An optional processor object may be supplied.  The object should
-    # respond to either the :restore or :match messages or both.
-    # The :restore method should take two parameters: :name and :value.
-    # The :restore method should reverse any transformations that have been
-    # performed on the value to ensure a valid URI.  The :match method
-    # should take a single parameter: :name.  The :match method should
-    # return a String containing a regular expression capture group for
-    # matching on that particular variable.  The default value is ".*".
+    # @param [String] pattern
+    #   A URI template pattern.
+    # @param [#restore, #match] processor
+    #   A template processor object may optionally be supplied.
+    #   The object should respond to either the <tt>:restore</tt> or
+    #   <tt>:match</tt> messages or both.  The <tt>:restore</tt> method should
+    #   take two parameters: [String] name and [String] value.  The
+    #   <tt>:restore</tt> method should reverse any transformations that have
+    #   been performed on the value to ensure a valid URI.  The
+    #   <tt>:match</tt> method should take a single parameter: [String] name.
+    #   The <tt>:match</tt> method should return a String containing a regular
+    #   expression capture group for matching on that particular variable.
+    #   The default value is ".*".
+    # @return [Hash, NilClass]
+    #   The Hash mapping that was extracted from the URI, or nil if the URI
+    #   didn't match the template.
     #
-    # An example:
+    # @example
+    #   class ExampleProcessor
+    #     def self.restore(name, value)
+    #       return value.gsub(/\+/, " ") if name == "query"
+    #       return value
+    #     end
     #
-    #  class ExampleProcessor
-    #    def self.restore(name, value)
-    #      return value.gsub(/\+/, " ") if name == "query"
-    #      return value
-    #    end
+    #     def self.match(name)
+    #       return ".*?" if name == "first"
+    #       return ".*"
+    #     end
+    #   end
     #
-    #    def self.match(name)
-    #      return ".*?" if name == "first"
-    #      return ".*"
-    #    end
-    #  end
+    #   uri = Addressable::URI.parse(
+    #     "http://example.com/search/an+example+search+query/"
+    #   )
+    #   uri.extract_mapping(
+    #     "http://example.com/search/{query}/",
+    #     ExampleProcessor
+    #   )
+    #   #=> {"query" => "an example search query"}
     #
-    #  uri = Addressable::URI.parse(
-    #    "http://example.com/search/an+example+search+query/")
-    #  uri.extract_mapping("http://example.com/search/{query}/",
-    #    ExampleProcessor)
-    #  => {"query" => "an example search query"}
-    #
-    #  uri = Addressable::URI.parse(
-    #    "http://example.com/a/b/c/")
-    #  uri.extract_mapping("http://example.com/{first}/{second}/",
-    #    ExampleProcessor)
-    #  => {"first" => "a", "second" => "b/c"}
+    #   uri = Addressable::URI.parse(
+    #     "http://example.com/a/b/c/"
+    #   )
+    #   uri.extract_mapping(
+    #     "http://example.com/{first}/{second}/",
+    #     ExampleProcessor
+    #   )
+    #   #=> {"first" => "a", "second" => "b/c"}
     def extract_mapping(pattern, processor=nil)
       mapping = {}
       variable_regexp =
@@ -359,8 +372,7 @@ module Addressable
     #  Addressable::URI.escape_segment("simple-example", "b-zB-Z0-9")
     #  => "simple%2Dex%61mple"
     def self.encode_component(segment, character_class=
-        Addressable::URI::CharacterClasses::RESERVED +
-        Addressable::URI::CharacterClasses::UNRESERVED)
+        CharacterClasses::RESERVED + CharacterClasses::UNRESERVED)
       return nil if segment.nil?
       return segment.gsub(/[^#{character_class}]/) do |sequence|
         (sequence.unpack('C*').map { |c| "%#{c.to_s(16).upcase}" }).join("")
@@ -944,8 +956,43 @@ module Addressable
       @normalized_query = nil
     end
 
-    # Returns the query string as a Hash object.
-    def query_values
+    ##
+    # Converts the query component to a Hash value.
+    #
+    # @option options :notation [Symbol] (:subscript)
+    #   May be one of <tt>:flat</tt>, <tt>:dot</tt>, or <tt>:subscript</tt>.
+    #   The <tt>:dot</tt> notation is not supported for assignment.
+    #
+    # @return [Hash] The query string parsed as a Hash object.
+    #
+    # @example
+    #   Addressable::URI.parse("?one=1&two=2&three=3").query_values
+    #   #=> {"one" => "1", "two" => "2", "three" => "3"}
+    #   Addressable::URI.parse("?one[two][three]=four").query_values
+    #   #=> {"one" => {"two" => {"three" => "four"}}}
+    #   Addressable::URI.parse("?one.two.three=four").query_values(
+    #     :notation => :dot
+    #   )
+    #   #=> {"one" => {"two" => {"three" => "four"}}}
+    #   Addressable::URI.parse("?one[two][three]=four").query_values(
+    #     :notation => :flat
+    #   )
+    #   #=> {"one[two][three]" => "four"}
+    #   Addressable::URI.parse("?one.two.three=four").query_values(
+    #     :notation => :flat
+    #   )
+    #   #=> {"one.two.three" => "four"}
+    #   Addressable::URI.parse(
+    #     "?one[two][three][]=four&one[two][three][]=five"
+    #   ).query_values
+    #   #=> {"one" => {"two" => {"three" => ["four", "five"]}}}
+    def query_values(options={})
+      defaults = {:notation => :subscript}
+      options = defaults.merge(options)
+      if ![:flat, :dot, :subscript].include?(options[:notation])
+        raise ArgumentError,
+          "Invalid notation. Must be one of: [:flat, :dot, :subscript]."
+      end
       return nil if self.query == nil
       return (self.query.split("&").map do |pair|
         pair.split("=")
@@ -956,7 +1003,32 @@ module Addressable
         if value != true
           value = self.class.unencode_component(value).gsub(/\+/, " ")
         end
-        accumulator[key] = value
+        if options[:notation] == :flat
+          if accumulator[key]
+            raise ArgumentError, "Key was repeated: #{key.inspect}"
+          end
+          accumulator[key] = value
+        else
+          if options[:notation] == :dot
+            array_value = false
+            subkeys = key.split(".")
+          elsif options[:notation] == :subscript
+            array_value = !!(key =~ /\[\]$/)
+            subkeys = key.split(/[\[\]]+/)
+          end
+          current_hash = accumulator
+          for i in 0...(subkeys.size - 1)
+            subkey = subkeys[i]
+            current_hash[subkey] = {} unless current_hash[subkey]
+            current_hash = current_hash[subkey]
+          end
+          if array_value
+            current_hash[subkeys.last] = [] unless current_hash[subkeys.last]
+            current_hash[subkeys.last] << value
+          else
+            current_hash[subkeys.last] = value
+          end
+        end
         accumulator
       end
     end
@@ -1274,6 +1346,42 @@ module Addressable
       return duplicated_uri
     end
 
+    ##
+    # Omits components from a URI.
+    #
+    # @param [Symbol] *components The components to be omitted.
+    #
+    # @return [Addressable::URI] The URI with components omitted.
+    #
+    # @example
+    #   uri = Addressable::URI.parse("http://example.com/path?query")
+    #   #=> #<Addressable::URI:0xcc5e7a URI:http://example.com/path?query>
+    #   uri.omit(:scheme, :authority)
+    #   #=> #<Addressable::URI:0xcc4d86 URI:/path?query>
+    def omit(*components)
+      invalid_components = components - [
+        :scheme, :user, :password, :userinfo, :host, :port, :authority,
+        :path, :query, :fragment
+      ]
+      unless invalid_components.empty?
+        raise ArgumentError,
+          "Invalid component names: #{invalid_components.inspect}."
+      end
+      duplicated_uri = self.dup
+      components.each do |component|
+        duplicated_uri.send((component.to_s + "=").to_sym, nil)
+      end
+      duplicated_uri
+    end
+
+    ##
+    # Destructive form of omit.
+    #
+    # @see Addressable::URI#omit
+    def omit!(*components)
+      replace_self(self.omit(*components))
+    end
+
     # Returns the assembled URI as a string.
     def to_s
       uri_string = ""
@@ -1287,6 +1395,9 @@ module Addressable
       end
       return uri_string
     end
+
+    # URI's are glorified Strings.  Allow implicit conversion.
+    alias_method :to_str, :to_s
 
     # Returns a Hash of the URI components.
     def to_hash
@@ -1354,11 +1465,10 @@ module Addressable
     # Replaces the internal state of self with the specified URI's state.
     # Used in destructive operations to avoid massive code repetition.
     def replace_self(uri)
-      # Reset the memoized values
-      @userinfo = nil
-      @normalized_userinfo = nil
-      @authority = nil
-      @inferred_port = nil
+      # Reset dependant values
+      instance_variables.each do |var|
+        instance_variable_set(var, nil)
+      end
 
       @scheme = uri.scheme
       @user = uri.user

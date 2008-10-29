@@ -2284,6 +2284,117 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+describe Addressable::URI, " when parsed from '?one=1&two=2&three=3'" do
+  before do
+    @uri = Addressable::URI.parse("?one=1&two=2&three=3")
+  end
+
+  it "should have the correct query values" do
+    @uri.query_values.should == {"one" => "1", "two" => "2", "three" => "3"}
+  end
+
+  it "should raise an error for invalid query value notations" do
+    (lambda do
+      @uri.query_values(:notation => :bogus)
+    end).should raise_error(ArgumentError)
+  end
+end
+
+describe Addressable::URI, " when parsed from '?one[two][three]=four'" do
+  before do
+    @uri = Addressable::URI.parse("?one[two][three]=four")
+  end
+
+  it "should have the correct query values" do
+    @uri.query_values.should == {"one" => {"two" => {"three" => "four"}}}
+  end
+
+  it "should have the correct flat notation query values" do
+    @uri.query_values(:notation => :flat).should == {
+      "one[two][three]" => "four"
+    }
+  end
+end
+
+describe Addressable::URI, " when parsed from '?one.two.three=four'" do
+  before do
+    @uri = Addressable::URI.parse("?one.two.three=four")
+  end
+
+  it "should have the correct dot notation query values" do
+    @uri.query_values(:notation => :dot).should == {
+      "one" => {"two" => {"three" => "four"}}
+    }
+  end
+
+  it "should have the correct flat notation query values" do
+    @uri.query_values(:notation => :flat).should == {
+      "one.two.three" => "four"
+    }
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
+    "'?one[two][three]=four&one[two][five]=six'" do
+  before do
+    @uri = Addressable::URI.parse("?one[two][three]=four&one[two][five]=six")
+  end
+
+  it "should have the correct dot notation query values" do
+    @uri.query_values(:notation => :subscript).should == {
+      "one" => {"two" => {"three" => "four", "five" => "six"}}
+    }
+  end
+
+  it "should have the correct flat notation query values" do
+    @uri.query_values(:notation => :flat).should == {
+      "one[two][three]" => "four",
+      "one[two][five]" => "six"
+    }
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
+    "'?one.two.three=four&one.two.five=six'" do
+  before do
+    @uri = Addressable::URI.parse("?one.two.three=four&one.two.five=six")
+  end
+
+  it "should have the correct dot notation query values" do
+    @uri.query_values(:notation => :dot).should == {
+      "one" => {"two" => {"three" => "four", "five" => "six"}}
+    }
+  end
+
+  it "should have the correct flat notation query values" do
+    @uri.query_values(:notation => :flat).should == {
+      "one.two.three" => "four",
+      "one.two.five" => "six"
+    }
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
+    "'?one[two][three][]=four&one[two][three][]=five'" do
+  before do
+    @uri = Addressable::URI.parse(
+      "?one[two][three][]=four&one[two][three][]=five"
+    )
+  end
+
+  it "should have the correct dot notation query values" do
+    @uri.query_values(:notation => :subscript).should == {
+      "one" => {"two" => {"three" => ["four", "five"]}}
+    }
+  end
+
+  it "should raise an error if a key is repeated in the flat notation" do
+    (lambda do
+      @uri.query_values(:notation => :flat)
+    end).should raise_error(ArgumentError)
+  end
+end
+
 describe Addressable::URI, " when parsed from " +
     "'http://www.詹姆斯.com/'" do
   before do
