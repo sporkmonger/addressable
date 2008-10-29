@@ -27,7 +27,8 @@ end
 namespace :doc do
   desc "Publish RDoc to RubyForge"
   task :release => ["doc:rdoc"] do
-    require 'rake/contrib/sshpublisher'
+    require "rake/contrib/sshpublisher"
+    require "yaml"
 
     config = YAML.load(
       File.read(File.expand_path('~/.rubyforge/user-config.yml'))
@@ -42,7 +43,8 @@ end
 namespace :spec do
   desc "Publish specdoc to RubyForge"
   task :release => ["spec:specdoc"] do
-    require 'rake/contrib/sshpublisher'
+    require "rake/contrib/sshpublisher"
+    require "yaml"
 
     config = YAML.load(
       File.read(File.expand_path('~/.rubyforge/user-config.yml'))
@@ -56,7 +58,8 @@ namespace :spec do
   namespace :rcov do
     desc "Publish coverage report to RubyForge"
     task :release => ["spec:rcov"] do
-      require 'rake/contrib/sshpublisher'
+      require "rake/contrib/sshpublisher"
+      require "yaml"
 
       config = YAML.load(
         File.read(File.expand_path('~/.rubyforge/user-config.yml'))
@@ -72,7 +75,8 @@ end
 namespace :website do
   desc "Publish website to RubyForge"
   task :release => ["doc:release", "spec:release", "spec:rcov:release"] do
-    require 'rake/contrib/sshpublisher'
+    require "rake/contrib/sshpublisher"
+    require "yaml"
 
     config = YAML.load(
       File.read(File.expand_path('~/.rubyforge/user-config.yml'))
