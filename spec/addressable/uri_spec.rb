@@ -109,6 +109,15 @@ describe Addressable::URI, "when created from string components" do
   it "should be equal to the equivalent parsed URI" do
     @uri.should == Addressable::URI.parse("http://example.com")
   end
+
+  it "should raise an error if invalid components omitted" do
+    (lambda do
+      @uri.omit(:bogus)
+    end).should raise_error(ArgumentError)
+    (lambda do
+      @uri.omit(:scheme, :bogus, :path)
+    end).should raise_error(ArgumentError)
+  end
 end
 
 describe Addressable::URI, "when created with a nil host but " +
@@ -219,6 +228,16 @@ describe Addressable::URI, " when parsed from " +
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
+
+  it "should correctly omit components" do
+    @uri.omit(:scheme).to_s.should == "//www.ietf.org/rfc/rfc2396.txt"
+    @uri.omit(:path).to_s.should == "http://www.ietf.org"
+  end
+
+  it "should correctly omit components destructively" do
+    @uri.omit!(:scheme)
+    @uri.to_s.should == "//www.ietf.org/rfc/rfc2396.txt"
+  end
 end
 
 # Section 1.1.2 of RFC 3986
@@ -250,6 +269,16 @@ describe Addressable::URI, "when parsed from " +
 
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
+  end
+
+  it "should correctly omit components" do
+    @uri.omit(:scheme, :authority).to_s.should == "/c=GB?objectClass?one"
+    @uri.omit(:path).to_s.should == "ldap://[2001:db8::7]?objectClass?one"
+  end
+
+  it "should correctly omit components destructively" do
+    @uri.omit!(:scheme, :authority)
+    @uri.to_s.should == "/c=GB?objectClass?one"
   end
 end
 
