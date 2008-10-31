@@ -1451,13 +1451,13 @@ module Addressable
           (self.host == nil || self.host == "") &&
           (self.path == nil || self.path == "")
         raise InvalidURIError,
-          "Absolute URI missing hierarchical segment."
+          "Absolute URI missing hierarchical segment: '#{self.to_s}'"
       end
       if self.host == nil
         if self.port != nil ||
             self.user != nil ||
             self.password != nil
-          raise InvalidURIError, "Hostname not supplied."
+          raise InvalidURIError, "Hostname not supplied: '#{self.to_s}'"
         end
       end
     end
