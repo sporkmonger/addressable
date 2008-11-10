@@ -25,7 +25,7 @@
 $:.unshift(File.expand_path(File.dirname(__FILE__) + '/../../lib'))
 $:.uniq!
 
-require 'addressable/uri'
+require "addressable/uri"
 
 if !"".respond_to?("force_encoding")
   class String
@@ -3095,6 +3095,36 @@ end
 describe Addressable::URI, "when unencoding a multibyte string" do
   it "should result in correct percent encoded sequence" do
     Addressable::URI.unencode_component("g%C3%BCnther").should == "günther"
+  end
+
+  it "should result in correct percent encoded sequence as a URI" do
+    Addressable::URI.unencode(
+      "/path?g%C3%BCnther", ::Addressable::URI
+    ).should == Addressable::URI.new(
+      :path => "/path", :query => "günther"
+    )
+  end
+end
+
+describe Addressable::URI, "when unencoding a bogus object" do
+  it "should raise a TypeError" do
+    (lambda do
+      Addressable::URI.unencode_component(42)
+    end).should raise_error(TypeError)
+  end
+
+  it "should raise a TypeError" do
+    (lambda do
+      Addressable::URI.unencode_component("g%C3%BCnther", Integer)
+    end).should raise_error(TypeError)
+  end
+end
+
+describe Addressable::URI, "when encoding a bogus object" do
+  it "should raise a TypeError" do
+    (lambda do
+      Addressable::URI.encode(42)
+    end).should raise_error(TypeError)
   end
 end
 

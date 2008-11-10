@@ -371,23 +371,45 @@ module Addressable
     #
     #  Addressable::URI.escape_segment("simple-example", "b-zB-Z0-9")
     #  => "simple%2Dex%61mple"
-    def self.encode_component(segment, character_class=
+    def self.encode_component(component, character_class=
         CharacterClasses::RESERVED + CharacterClasses::UNRESERVED)
-      return nil if segment.nil?
-      return segment.gsub(/[^#{character_class}]/) do |sequence|
+      return nil if component.nil?
+      return component.gsub(/[^#{character_class}]/) do |sequence|
         (sequence.unpack('C*').map { |c| "%#{c.to_s(16).upcase}" }).join("")
       end
     end
 
+    class << self
+      alias_method :encode_component, :encode_component
+    end
+
     # Unencodes any percent encoded characters within a URI segment.
     # Returns a string.
-    def self.unencode_component(segment)
-      return nil if segment.nil?
-      result = segment.to_s.gsub(/%[0-9a-f]{2}/i) do |sequence|
+    def self.unencode(uri, returning=String)
+      return nil if uri.nil?
+      if ![String, ::Addressable::URI].include?(returning)
+        raise TypeError,
+          "Expected String or Addressable::URI, got #{returning.inspect}"
+      end
+      if ![String, ::Addressable::URI].include?(uri.class)
+        raise TypeError,
+          "Expected String or Addressable::URI, got #{uri.inspect}"
+      end
+      result = uri.to_s.gsub(/%[0-9a-f]{2}/i) do |sequence|
         sequence[1..3].to_i(16).chr
       end
       result.force_encoding("utf-8") if result.respond_to?(:force_encoding)
-      return result
+      if returning == String
+        return result
+      elsif returning == ::Addressable::URI
+        return ::Addressable::URI.parse(result)
+      end
+    end
+
+    class << self
+      alias_method :unescape, :unencode
+      alias_method :unencode_component, :unencode
+      alias_method :unescape_component, :unencode
     end
 
     # Percent encodes any special characters in the URI.  This method does
@@ -395,9 +417,14 @@ module Addressable
     # but if the optional second parameter is supplied, it may alternatively
     # return an Addressable::URI object.
     def self.encode(uri, returning=String)
+      return nil if uri.nil?
       if ![String, ::Addressable::URI].include?(returning)
         raise TypeError,
           "Expected String or Addressable::URI, got #{returning.inspect}"
+      end
+      if ![String, ::Addressable::URI].include?(uri.class)
+        raise TypeError,
+          "Expected String or Addressable::URI, got #{uri.inspect}"
       end
       uri_object = uri.kind_of?(self) ? uri : self.parse(uri.to_s)
       encoded_uri = Addressable::URI.new(
@@ -436,7 +463,7 @@ module Addressable
         :user => self.unencode_component(uri_object.user),
         :password => self.unencode_component(uri_object.password),
         :host => self.unencode_component(uri_object.host),
-        :port => self.unencode_component(uri_object.port),
+        :port => uri_object.port,
         :path => self.unencode_component(uri_object.path),
         :query => self.unencode_component(uri_object.query),
         :fragment => self.unencode_component(uri_object.fragment)
@@ -539,7 +566,7 @@ module Addressable
         end
       end
 
-      @validation_deferred = true
+      self.validation_deferred = true
       self.scheme = options[:scheme] if options[:scheme]
       self.user = options[:user] if options[:user]
       self.password = options[:password] if options[:password]
@@ -550,9 +577,7 @@ module Addressable
       self.path = options[:path] if options[:path]
       self.query = options[:query] if options[:query]
       self.fragment = options[:fragment] if options[:fragment]
-      @validation_deferred = false
-
-      validate
+      self.validation_deferred = false
     end
 
     # Returns the scheme (protocol) for this URI.
@@ -1368,9 +1393,11 @@ module Addressable
           "Invalid component names: #{invalid_components.inspect}."
       end
       duplicated_uri = self.dup
+      duplicated_uri.validation_deferred = true
       components.each do |component|
         duplicated_uri.send((component.to_s + "=").to_sym, nil)
       end
+      duplicated_uri.validation_deferred = false
       duplicated_uri
     end
 
@@ -1418,6 +1445,19 @@ module Addressable
       sprintf("#<%s:%#0x URI:%s>", self.class.to_s, self.object_id, self.to_s)
     end
 
+    ##
+    # If URI validation needs to be disabled, this can be set to true.
+    def validation_deferred
+      @validation_deferred ||= false
+    end
+
+    ##
+    # If URI validation needs to be disabled, this can be set to true.
+    def validation_deferred=(new_validation_deferred)
+      @validation_deferred = new_validation_deferred
+      validate unless @validation_deferred
+    end
+
   private
     # Resolves paths to their simplest form.
     def self.normalize_path(path)
@@ -1444,9 +1484,10 @@ module Addressable
       return normalized_path
     end
 
+    ##
     # Ensures that the URI is valid.
     def validate
-      return if @validation_deferred
+      return if self.validation_deferred
       if self.scheme != nil &&
           (self.host == nil || self.host == "") &&
           (self.path == nil || self.path == "")
@@ -1460,6 +1501,7 @@ module Addressable
           raise InvalidURIError, "Hostname not supplied: '#{self.to_s}'"
         end
       end
+      return nil
     end
 
     # Replaces the internal state of self with the specified URI's state.
