@@ -3086,6 +3086,38 @@ describe Addressable::URI, "when given a mapping that contains values " +
   end
 end
 
+class SuperString
+  def initialize(string)
+    @string = string.to_s
+  end
+
+  def to_str
+    return @string
+  end
+end
+
+describe Addressable::URI, " when parsing a non-String object" do
+  it "should correctly parse anything with a 'to_str' method" do
+    Addressable::URI.parse(SuperString.new(42))
+  end
+
+  it "should raise a TypeError for objects than cannot be converted" do
+    (lambda do
+      Addressable::URI.parse(42)
+    end).should raise_error(TypeError)
+  end
+
+  it "should correctly parse heuristically anything with a 'to_str' method" do
+    Addressable::URI.heuristic_parse(SuperString.new(42))
+  end
+
+  it "should raise a TypeError for objects than cannot be converted" do
+    (lambda do
+      Addressable::URI.heuristic_parse(42)
+    end).should raise_error(TypeError)
+  end
+end
+
 describe Addressable::URI, "when encoding a multibyte string" do
   it "should result in correct percent encoded sequence" do
     Addressable::URI.encode_component("günther").should == "g%C3%BCnther"

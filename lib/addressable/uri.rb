@@ -34,18 +34,24 @@ module Addressable
   # <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>,
   # <a href="http://www.ietf.org/rfc/rfc3987.txt">RFC 3987</a>.
   class URI
+    ##
     # Raised if something other than a uri is supplied.
     class InvalidURIError < StandardError
     end
 
+    ##
     # Raised if an invalid method option is supplied.
     class InvalidOptionError < StandardError
     end
 
+    ##
     # Raised if an invalid method option is supplied.
     class InvalidTemplateValue < StandardError
     end
 
+    ##
+    # Container for the character classes specified in
+    # <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
     module CharacterClasses
       ALPHA = "a-zA-Z"
       DIGIT = "0-9"
@@ -61,22 +67,36 @@ module Addressable
       FRAGMENT = PCHAR + "\\/\\?"
     end
 
+    ##
     # Returns a URI object based on the parsed string.
-    def self.parse(uri_string)
-      return nil if uri_string.nil?
-
+    #
+    # @param [String, Addressable::URI, #to_str] uri
+    #   The URI string to parse.  No parsing is performed if the object is
+    #   already an <tt>Addressable::URI</tt>.
+    #
+    # @return [Addressable::URI] The parsed URI.
+    def self.parse(uri)
+      # If we were given nil, return nil.
+      return nil unless uri
       # If a URI object is passed, just return itself.
-      return uri_string if uri_string.kind_of?(self)
+      return uri if uri.kind_of?(self)
+      if !uri.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{uri.class} into String."
+      end
+      # Otherwise, convert to a String
+      uri = uri.to_str
 
       # If a URI object of the Ruby standard library variety is passed,
       # convert it to a string, then parse the string.
-      if uri_string.class.name =~ /^URI::/
-        uri_string = uri_string.to_s
+      # We do the check this way because we don't want to accidentally
+      # cause a missing constant exception to be thrown.
+      if uri.class.name =~ /^URI\b/
+        uri = uri.to_s
       end
 
       uri_regex =
         /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/
-      scan = uri_string.scan(uri_regex)
+      scan = uri.scan(uri_regex)
       fragments = scan[0]
       return nil if fragments.nil?
       scheme = fragments[1]
@@ -114,27 +134,45 @@ module Addressable
       )
     end
 
+    ##
     # Converts an input to a URI.  The input does not have to be a valid
-    # URI -- the method will use heuristics to guess what URI was intended.
-    # This is not standards compliant, merely user-friendly.
-    def self.heuristic_parse(input, hints={})
-      input = input.dup
+    # URI — the method will use heuristics to guess what URI was intended.
+    # This is not standards-compliant, merely user-friendly.
+    #
+    # @param [String, Addressable::URI, #to_str] uri
+    #   The URI string to parse.  No parsing is performed if the object is
+    #   already an <tt>Addressable::URI</tt>.
+    # @param [Hash] hints
+    #   A <tt>Hash</tt> of hints to the heuristic parser.  Defaults to
+    #   <tt>{:scheme => "http"}</tt>.
+    #
+    # @return [Addressable::URI] The parsed URI.
+    def self.heuristic_parse(uri, hints={})
+      # If we were given nil, return nil.
+      return nil unless uri
+      # If a URI object is passed, just return itself.
+      return uri if uri.kind_of?(self)
+      if !uri.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{uri.class} into String."
+      end
+      # Otherwise, convert to a String
+      uri = uri.to_str.dup
       hints = {
         :scheme => "http"
       }.merge(hints)
-      case input
+      case uri
       when /^http:\/+/
-        input.gsub!(/^http:\/+/, "http://")
+        uri.gsub!(/^http:\/+/, "http://")
       when /^feed:\/+http:\/+/
-        input.gsub!(/^feed:\/+http:\/+/, "feed:http://")
+        uri.gsub!(/^feed:\/+http:\/+/, "feed:http://")
       when /^feed:\/+/
-        input.gsub!(/^feed:\/+/, "feed://")
+        uri.gsub!(/^feed:\/+/, "feed://")
       when /^file:\/+/
-        input.gsub!(/^file:\/+/, "file:///")
+        uri.gsub!(/^file:\/+/, "file:///")
       end
-      parsed = self.parse(input)
+      parsed = self.parse(uri)
       if parsed.scheme =~ /^[^\/?#\.]+\.[^\/?#]+$/
-        parsed = self.parse(hints[:scheme] + "://" + input)
+        parsed = self.parse(hints[:scheme] + "://" + uri)
       end
       if parsed.authority == nil
         if parsed.path =~ /^[^\/]+\./
