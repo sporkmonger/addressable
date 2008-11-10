@@ -25,7 +25,7 @@
 $:.unshift(File.expand_path(File.dirname(__FILE__) + '/../../lib'))
 $:.uniq!
 
-require 'addressable/idna'
+require "addressable/idna"
 
 describe Addressable::IDNA, "when converting from unicode to ASCII" do
   it "should convert 'www.google.com' correctly" do
