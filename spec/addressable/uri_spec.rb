@@ -3090,6 +3090,12 @@ describe Addressable::URI, "when encoding a multibyte string" do
   it "should result in correct percent encoded sequence" do
     Addressable::URI.encode_component("günther").should == "g%C3%BCnther"
   end
+
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.encode_component(
+      "günther", /[^a-zA-Z0-9\:\/\?\#\[\]\@\!\$\&\'\(\)\*\+\,\;\=\-\.\_\~]/
+    ).should == "g%C3%BCnther"
+  end
 end
 
 describe Addressable::URI, "when unencoding a multibyte string" do
@@ -3115,7 +3121,7 @@ describe Addressable::URI, "when unencoding a bogus object" do
 
   it "should raise a TypeError" do
     (lambda do
-      Addressable::URI.unencode_component("g%C3%BCnther", Integer)
+      Addressable::URI.unencode("/path?g%C3%BCnther", Integer)
     end).should raise_error(TypeError)
   end
 end
@@ -3124,6 +3130,24 @@ describe Addressable::URI, "when encoding a bogus object" do
   it "should raise a TypeError" do
     (lambda do
       Addressable::URI.encode(42)
+    end).should raise_error(TypeError)
+  end
+
+  it "should raise a TypeError" do
+    (lambda do
+      Addressable::URI.normalized_encode(42)
+    end).should raise_error(TypeError)
+  end
+
+  it "should raise a TypeError" do
+    (lambda do
+      Addressable::URI.encode_component("günther", 42)
+    end).should raise_error(TypeError)
+  end
+
+  it "should raise a TypeError" do
+    (lambda do
+      Addressable::URI.encode_component(42)
     end).should raise_error(TypeError)
   end
 end

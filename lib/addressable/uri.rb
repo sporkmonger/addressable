@@ -29,7 +29,10 @@ require "addressable/version"
 require "addressable/idna"
 
 module Addressable
-  # This is an implementation of a URI parser based on RFC 3986, 3987.
+  ##
+  # This is an implementation of a URI parser based on
+  # <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>,
+  # <a href="http://www.ietf.org/rfc/rfc3987.txt">RFC 3987</a>.
   class URI
     # Raised if something other than a uri is supplied.
     class InvalidURIError < StandardError
@@ -359,22 +362,49 @@ module Addressable
       return result
     end
 
-    # Percent encodes a URI segment.  Returns a string.  Takes an optional
-    # character class parameter, which should be specified as a string
-    # containing a regular expression character class (not including the
-    # surrounding square brackets).  The character class parameter defaults
-    # to the reserved plus unreserved character classes specified in
-    # RFC 3986.  Usage of the constants within the CharacterClasses module is
-    # highly recommended when using this method.
+    # Percent encodes a URI component.
     #
-    # An example:
+    # @param [String, #to_str] component The URI component to encode.
     #
-    #  Addressable::URI.escape_segment("simple-example", "b-zB-Z0-9")
-    #  => "simple%2Dex%61mple"
+    # @param [String, Regexp] character_class
+    #   The characters which are not percent encoded.  If a <tt>String</tt>
+    #   is passed, the <tt>String</tt> must be formatted as a regular
+    #   expression character class.  (Do not include the surrounding square
+    #   brackets.)  For example, <tt>"b-zB-Z0-9"</tt> would cause everything
+    #   but the letters 'b' through 'z' and the numbers '0' through '9' to be
+    #   percent encoded.  If a <tt>Regexp</tt> is passed, the value
+    #   <tt>/[^b-zB-Z0-9]/</tt> would have the same effect.
+    #   A set of useful <tt>String</tt> values may be found in the
+    #   <tt>Addressable::URI::CharacterClasses</tt> module.  The default value
+    #   is the reserved plus unreserved character classes specified in
+    #   <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
+    #
+    # @return [String] The encoded component.
+    #
+    # @example
+    #   Addressable::URI.encode_component("simple/example", "b-zB-Z0-9")
+    #   => "simple%2Fex%61mple"
+    #   Addressable::URI.encode_component("simple/example", /[^b-zB-Z0-9]/)
+    #   => "simple%2Fex%61mple"
+    #   Addressable::URI.encode_component(
+    #     "simple/example", Addressable::URI::CharacterClasses::UNRESERVED
+    #   )
+    #   => "simple%2Fexample"
     def self.encode_component(component, character_class=
         CharacterClasses::RESERVED + CharacterClasses::UNRESERVED)
       return nil if component.nil?
-      return component.gsub(/[^#{character_class}]/) do |sequence|
+      if !component.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{component.class} into String."
+      end
+      component = component.to_str
+      if ![String, Regexp].include?(character_class.class)
+        raise TypeError,
+          "Expected String or Regexp, got #{character_class.inspect}"
+      end
+      if character_class.kind_of?(String)
+        character_class = /[^#{character_class}]/
+      end
+      return component.gsub(character_class) do |sequence|
         (sequence.unpack('C*').map { |c| "%#{c.to_s(16).upcase}" }).join("")
       end
     end
@@ -387,15 +417,14 @@ module Addressable
     # Returns a string.
     def self.unencode(uri, returning=String)
       return nil if uri.nil?
+      if !uri.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{uri.class} into String."
+      end
       if ![String, ::Addressable::URI].include?(returning)
         raise TypeError,
           "Expected String or Addressable::URI, got #{returning.inspect}"
       end
-      if ![String, ::Addressable::URI].include?(uri.class)
-        raise TypeError,
-          "Expected String or Addressable::URI, got #{uri.inspect}"
-      end
-      result = uri.to_s.gsub(/%[0-9a-f]{2}/i) do |sequence|
+      result = uri.to_str.gsub(/%[0-9a-f]{2}/i) do |sequence|
         sequence[1..3].to_i(16).chr
       end
       result.force_encoding("utf-8") if result.respond_to?(:force_encoding)
@@ -418,15 +447,14 @@ module Addressable
     # return an Addressable::URI object.
     def self.encode(uri, returning=String)
       return nil if uri.nil?
+      if !uri.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{uri.class} into String."
+      end
       if ![String, ::Addressable::URI].include?(returning)
         raise TypeError,
           "Expected String or Addressable::URI, got #{returning.inspect}"
       end
-      if ![String, ::Addressable::URI].include?(uri.class)
-        raise TypeError,
-          "Expected String or Addressable::URI, got #{uri.inspect}"
-      end
-      uri_object = uri.kind_of?(self) ? uri : self.parse(uri.to_s)
+      uri_object = uri.kind_of?(self) ? uri : self.parse(uri.to_str)
       encoded_uri = Addressable::URI.new(
         :scheme => self.encode_component(uri_object.scheme,
           Addressable::URI::CharacterClasses::SCHEME),
@@ -453,11 +481,14 @@ module Addressable
     # Normalizes the encoding of a URI.  Characters within a hostname are
     # not percent encoded to allow for internationalized domain names.
     def self.normalized_encode(uri, returning=String)
+      if !uri.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{uri.class} into String."
+      end
       if ![String, ::Addressable::URI].include?(returning)
         raise TypeError,
           "Expected String or Addressable::URI, got #{returning.inspect}"
       end
-      uri_object = uri.kind_of?(self) ? uri : self.parse(uri.to_s)
+      uri_object = uri.kind_of?(self) ? uri : self.parse(uri.to_str)
       components = {
         :scheme => self.unencode_component(uri_object.scheme),
         :user => self.unencode_component(uri_object.user),
@@ -1312,7 +1343,8 @@ module Addressable
 
     # Creates a URI suitable for display to users.  If semantic attacks are
     # likely, the application should try to detect these and warn the user.
-    # See RFC 3986 section 7.6 for more information.
+    # See <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>,
+    # section 7.6 for more information.
     def display_uri
       display_uri = self.normalize
       display_uri.instance_variable_set("@host",
