@@ -258,13 +258,19 @@ module Addressable
 
     # Expands a URI template into a full URI.
     #
-    # An optional processor object may be supplied.  The object should
-    # respond to either the :validate or :transform messages or both.
-    # Both the :validate and :transform methods should take two parameters:
-    # :name and :value.  The :validate method should return true or false;
-    # true if the value of the variable is valid, false otherwise.  The
-    # :transform method should return the transformed variable value as a
-    # string.
+    # @param [String, #to_str] pattern The URI template pattern.
+    # @param [Hash] mapping The mapping that corresponds to the pattern.
+    # @param [#validate, #transform] processor
+    #   An optional processor object may be supplied.  The object should
+    #   respond to either the :validate or :transform messages or both.
+    #   Both the :validate and :transform methods should take two parameters:
+    #   :name and :value.  The :validate method should return true or false;
+    #   true if the value of the variable is valid, false otherwise.  An
+    #   <tt>InvalidTemplateValue</tt> exception will be raised if the value
+    #   is invalid.  The :transform method should return the transformed
+    #   variable value as a <tt>String</tt>.
+    #
+    # @return [Addressable::URI] The expanded URI template.
     #
     # @example
     #   class ExampleProcessor
@@ -285,6 +291,13 @@ module Addressable
     #     ExampleProcessor
     #   ).to_s
     #   #=> "http://example.com/search/an+example+search+query/"
+    #
+    #   Addressable::URI.expand_template(
+    #     "http://example.com/search/{query}/",
+    #     {"query" => "bogus!"},
+    #     ExampleProcessor
+    #   ).to_s
+    #   #=> Addressable::URI::InvalidTemplateValue
     def self.expand_template(pattern, mapping, processor=nil)
       result = pattern.dup
       for name, value in mapping
@@ -302,9 +315,11 @@ module Addressable
         end
 
         # Handle percent escaping
-        transformed_value = self.encode_component(transformed_value,
+        transformed_value = self.encode_component(
+          transformed_value,
           Addressable::URI::CharacterClasses::RESERVED +
-          Addressable::URI::CharacterClasses::UNRESERVED)
+          Addressable::URI::CharacterClasses::UNRESERVED
+        )
 
         result.gsub!(/\{#{Regexp.escape(name)}\}/, transformed_value)
       end
