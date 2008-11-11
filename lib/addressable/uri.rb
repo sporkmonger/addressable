@@ -94,6 +94,7 @@ module Addressable
         uri = uri.to_s
       end
 
+      # This Regexp supplied as an example in RFC 3986, and it works great.
       uri_regex =
         /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/
       scan = uri.scan(uri_regex)
@@ -110,13 +111,14 @@ module Addressable
       host = nil
       port = nil
       if authority != nil
-        userinfo = authority.scan(/^([^\[\]]*)@/).flatten[0]
+        # The Regexp above doesn't split apart the authority.
+        userinfo = authority[/^([^\[\]]*)@/, 1]
         if userinfo != nil
-          user = userinfo.strip.scan(/^([^:]*):?/).flatten[0]
-          password = userinfo.strip.scan(/:(.*)$/).flatten[0]
+          user = userinfo.strip[/^([^:]*):?/, 1]
+          password = userinfo.strip[/:(.*)$/, 1]
         end
         host = authority.gsub(/^([^\[\]]*)@/, "").gsub(/:([^:@\[\]]*?)$/, "")
-        port = authority.scan(/:([^:@\[\]]*?)$/).flatten[0]
+        port = authority[/:([^:@\[\]]*?)$/, 1]
       end
       if port == ""
         port = nil
@@ -176,7 +178,7 @@ module Addressable
       end
       if parsed.authority == nil
         if parsed.path =~ /^[^\/]+\./
-          new_host = parsed.path.scan(/^([^\/]+\.[^\/]*)/).flatten[0]
+          new_host = parsed.path[/^([^\/]+\.[^\/]*)/, 1]
           if new_host
             new_path = parsed.path.gsub(
               Regexp.new("^" + Regexp.escape(new_host)), "")
@@ -350,7 +352,7 @@ module Addressable
 
         if processor != nil
           if processor.respond_to?(:match)
-            name = v.scan(variable_regexp).flatten[0]
+            name = v[variable_regexp, 1]
             capture_group = "(#{processor.match(name)})"
           end
         end
@@ -790,8 +792,8 @@ module Addressable
 
     # Sets the username and password segment of this URI.
     def userinfo=(new_userinfo)
-      new_user = new_userinfo.to_s.strip.scan(/^(.*):/).flatten[0]
-      new_password = new_userinfo.to_s.strip.scan(/:(.*)$/).flatten[0]
+      new_user = new_userinfo.to_s.strip[/^(.*):/, 1]
+      new_password = new_userinfo.to_s.strip[/:(.*)$/, 1]
 
       # Password assigned first to ensure validity in case of nil
       self.password = new_password
@@ -884,15 +886,15 @@ module Addressable
     # Sets the authority segment of this URI.
     def authority=(new_authority)
       if new_authority
-        new_userinfo = new_authority.scan(/^([^\[\]]*)@/).flatten[0]
+        new_userinfo = new_authority[/^([^\[\]]*)@/, 1]
         if new_userinfo
-          new_user = new_userinfo.strip.scan(/^([^:]*):?/).flatten[0]
-          new_password = new_userinfo.strip.scan(/:(.*)$/).flatten[0]
+          new_user = new_userinfo.strip[/^([^:]*):?/, 1]
+          new_password = new_userinfo.strip[/:(.*)$/, 1]
         end
         new_host =
           new_authority.gsub(/^([^\[\]]*)@/, "").gsub(/:([^:@\[\]]*?)$/, "")
         new_port =
-          new_authority.scan(/:([^:@\[\]]*?)$/).flatten[0]
+          new_authority[/:([^:@\[\]]*?)$/, 1]
       end
 
       # Password assigned first to ensure validity in case of nil
@@ -1540,11 +1542,11 @@ module Addressable
         previous_state = normalized_path.dup
         normalized_path.gsub!(/\/\.\//, "/")
         normalized_path.gsub!(/\/\.$/, "/")
-        parent = normalized_path.scan(/\/([^\/]+)\/\.\.\//).flatten[0]
+        parent = normalized_path[/\/([^\/]+)\/\.\.\//, 1]
         if parent != "." && parent != ".."
           normalized_path.gsub!(/\/#{parent}\/\.\.\//, "/")
         end
-        parent = normalized_path.scan(/\/([^\/]+)\/\.\.$/).flatten[0]
+        parent = normalized_path[/\/([^\/]+)\/\.\.$/, 1]
         if parent != "." && parent != ".."
           normalized_path.gsub!(/\/#{parent}\/\.\.$/, "/")
         end
