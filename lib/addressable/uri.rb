@@ -256,19 +256,21 @@ module Addressable
       return uri
     end
 
+    ##
     # Expands a URI template into a full URI.
     #
     # @param [String, #to_str] pattern The URI template pattern.
     # @param [Hash] mapping The mapping that corresponds to the pattern.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.  The object should
-    #   respond to either the :validate or :transform messages or both.
-    #   Both the :validate and :transform methods should take two parameters:
-    #   :name and :value.  The :validate method should return true or false;
-    #   true if the value of the variable is valid, false otherwise.  An
-    #   <tt>InvalidTemplateValue</tt> exception will be raised if the value
-    #   is invalid.  The :transform method should return the transformed
-    #   variable value as a <tt>String</tt>.
+    #   respond to either the <tt>validate</tt> or <tt>transform</tt> messages
+    #   or both.  Both the <tt>validate</tt> and <tt>transform</tt> methods
+    #   should take two parameters: <tt>name</tt> and <tt>value</tt>.  The
+    #   <tt>validate</tt> method should return <tt>true</tt> or
+    #   <tt>false</tt>; <tt>true</tt> if the value of the variable is valid,
+    #   <tt>false</tt> otherwise.  An <tt>InvalidTemplateValue</tt> exception
+    #   will be raised if the value is invalid.  The <tt>transform</tt> method
+    #   should return the transformed variable value as a <tt>String</tt>.
     #
     # @return [Addressable::URI] The expanded URI template.
     #
@@ -335,18 +337,18 @@ module Addressable
     #   A URI template pattern.
     # @param [#restore, #match] processor
     #   A template processor object may optionally be supplied.
-    #   The object should respond to either the <tt>:restore</tt> or
-    #   <tt>:match</tt> messages or both.  The <tt>:restore</tt> method should
+    #   The object should respond to either the <tt>restore</tt> or
+    #   <tt>match</tt> messages or both.  The <tt>restore</tt> method should
     #   take two parameters: [String] name and [String] value.  The
-    #   <tt>:restore</tt> method should reverse any transformations that have
+    #   <tt>restore</tt> method should reverse any transformations that have
     #   been performed on the value to ensure a valid URI.  The
-    #   <tt>:match</tt> method should take a single parameter: [String] name.
-    #   The <tt>:match</tt> method should return a String containing a regular
+    #   <tt>match</tt> method should take a single parameter: [String] name.
+    #   The <tt>match</tt> method should return a String containing a regular
     #   expression capture group for matching on that particular variable.
     #   The default value is ".*".
     # @return [Hash, NilClass]
-    #   The Hash mapping that was extracted from the URI, or nil if the URI
-    #   didn't match the template.
+    #   The <tt>Hash</tt> mapping that was extracted from the URI, or
+    #   <tt>nil</tt> if the URI didn't match the template.
     #
     # @example
     #   class ExampleProcessor
@@ -465,6 +467,7 @@ module Addressable
       return result
     end
 
+    ##
     # Percent encodes a URI component.
     #
     # @param [String, #to_str] component The URI component to encode.
@@ -516,8 +519,23 @@ module Addressable
       alias_method :encode_component, :encode_component
     end
 
-    # Unencodes any percent encoded characters within a URI segment.
-    # Returns a string.
+    ##
+    # Unencodes any percent encoded characters within a URI component.
+    # This method may be used for unencoding either components or full URIs,
+    # however, it is recommended to use the <tt>unencode_component</tt> alias
+    # when unencoding components.
+    #
+    # @param [String, Addressable::URI, #to_str] uri
+    #   The URI or component to unencode.
+    #
+    # @param [Class] returning
+    #   The type of object to return.  This value may only be set to
+    #   <tt>String</tt> or <tt>Addressable::URI</tt>.  All other values
+    #   are invalid.  Defaults to <tt>String</tt>.
+    #
+    # @return [String, Addressable::URI]
+    #   The unencoded component or URI.  The return type is determined by
+    #   the <tt>returning</tt> parameter.
     def self.unencode(uri, returning=String)
       return nil if uri.nil?
       if !uri.respond_to?(:to_str)
@@ -544,10 +562,20 @@ module Addressable
       alias_method :unescape_component, :unencode
     end
 
-    # Percent encodes any special characters in the URI.  This method does
-    # not take IRIs or IDNs into account.  Returns a String by default,
-    # but if the optional second parameter is supplied, it may alternatively
-    # return an Addressable::URI object.
+    ##
+    # Percent encodes any special characters in the URI.
+    #
+    # @param [String, Addressable::URI, #to_str] uri
+    #   The URI to encode.
+    #
+    # @param [Class] returning
+    #   The type of object to return.  This value may only be set to
+    #   <tt>String</tt> or <tt>Addressable::URI</tt>.  All other values
+    #   are invalid.  Defaults to <tt>String</tt>.
+    #
+    # @return [String, Addressable::URI]
+    #   The encoded URI.  The return type is determined by
+    #   the <tt>returning</tt> parameter.
     def self.encode(uri, returning=String)
       return nil if uri.nil?
       if !uri.respond_to?(:to_str)
@@ -581,8 +609,21 @@ module Addressable
       alias_method :escape, :encode
     end
 
+    ##
     # Normalizes the encoding of a URI.  Characters within a hostname are
     # not percent encoded to allow for internationalized domain names.
+    #
+    # @param [String, Addressable::URI, #to_str] uri
+    #   The URI to encode.
+    #
+    # @param [Class] returning
+    #   The type of object to return.  This value may only be set to
+    #   <tt>String</tt> or <tt>Addressable::URI</tt>.  All other values
+    #   are invalid.  Defaults to <tt>String</tt>.
+    #
+    # @return [String, Addressable::URI]
+    #   The encoded URI.  The return type is determined by
+    #   the <tt>returning</tt> parameter.
     def self.normalized_encode(uri, returning=String)
       if !uri.respond_to?(:to_str)
         raise TypeError, "Can't convert #{uri.class} into String."
@@ -630,6 +671,7 @@ module Addressable
       end
     end
 
+    ##
     # Extracts uris from an arbitrary body of text.
     def self.extract(text, options={})
       defaults = {:base => nil, :parse => false}
