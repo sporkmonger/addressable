@@ -2845,6 +2845,21 @@ describe Addressable::URI, "when converting the path " +
     @uri = Addressable::URI.convert_path(@path)
     @uri.to_s.should == "relative/path/to/something"
   end
+
+  it "should join with an absolute file path correctly" do
+    @base = Addressable::URI.convert_path("/absolute/path/")
+    @uri = Addressable::URI.convert_path(@path)
+    (@base + @uri).to_s.should ==
+      "file:///absolute/path/relative/path/to/something"
+  end
+end
+
+describe Addressable::URI, "when converting a bogus path" do
+  it "should raise a TypeError" do
+    (lambda do
+      Addressable::URI.convert_path(42)
+    end).should raise_error(TypeError)
+  end
 end
 
 describe Addressable::URI, "when given the root directory" do
@@ -2898,6 +2913,32 @@ describe Addressable::URI, " when given the path " +
     "'file://c:\\windows\\My Documents 100%20\\foo.txt'" do
   before do
     @path = "file://c:\\windows\\My Documents 100%20\\foo.txt"
+  end
+
+  it "should convert to " +
+      "\'file:///c:/windows/My%20Documents%20100%20/foo.txt\'" do
+    @uri = Addressable::URI.convert_path(@path)
+    @uri.to_s.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
+  end
+end
+
+describe Addressable::URI, " when given the path " +
+    "'file:c:\\windows\\My Documents 100%20\\foo.txt'" do
+  before do
+    @path = "file:c:\\windows\\My Documents 100%20\\foo.txt"
+  end
+
+  it "should convert to " +
+      "\'file:///c:/windows/My%20Documents%20100%20/foo.txt\'" do
+    @uri = Addressable::URI.convert_path(@path)
+    @uri.to_s.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
+  end
+end
+
+describe Addressable::URI, " when given the path " +
+    "'file:/c:\\windows\\My Documents 100%20\\foo.txt'" do
+  before do
+    @path = "file:/c:\\windows\\My Documents 100%20\\foo.txt"
   end
 
   it "should convert to " +

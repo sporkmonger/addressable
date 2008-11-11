@@ -191,36 +191,69 @@ module Addressable
       return parsed
     end
 
-    # Converts a path to a file protocol URI.  If the path supplied is
+    ##
+    # Converts a path to a file scheme URI.  If the path supplied is
     # relative, it will be returned as a relative URI.  If the path supplied
-    # is actually a URI, it will return the parsed URI.
+    # is actually a non-file URI, it will parse the URI as if it had been
+    # parsed with <tt>Addressable::URI.parse</tt>.  Handles all of the
+    # various Microsoft-specific formats for specifying paths.
+    #
+    # @param [String, Addressable::URI, #to_str] path
+    #   Typically a <tt>String</tt> path to a file or directory, but
+    #   will return a sensible return value if an absolute URI is supplied
+    #   instead.
+    #
+    # @return [Addressable::URI]
+    #   The parsed file scheme URI or the original URI if some other URI
+    #   scheme was provided.
+    #
+    # @example
+    #   base = Addressable::URI.convert_path("/absolute/path/")
+    #   uri = Addressable::URI.convert_path("relative/path")
+    #   (base + uri).to_s
+    #   #=> "file:///absolute/path/relative/path"
+    #
+    #   Addressable::URI.convert_path(
+    #     "c:\\windows\\My Documents 100%20\\foo.txt"
+    #   ).to_s
+    #   #=> "file:///c:/windows/My%20Documents%20100%20/foo.txt"
+    #
+    #   Addressable::URI.convert_path("http://example.com/").to_s
+    #   #=> "http://example.com/"
     def self.convert_path(path)
-      return nil if path.nil?
+      # If we were given nil, return nil.
+      return nil unless path
+      # If a URI object is passed, just return itself.
+      return path if path.kind_of?(self)
+      if !path.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{path.class} into String."
+      end
+      # Otherwise, convert to a String
+      path = path.to_str.strip
 
-      converted_uri = path.strip
-      if converted_uri.length > 0 && converted_uri[0..0] == "/"
-        converted_uri = "file://" + converted_uri
-      end
-      if converted_uri.length > 0 &&
-          converted_uri.scan(/^[a-zA-Z]:[\\\/]/).size > 0
-        converted_uri = "file:///" + converted_uri
-      end
-      converted_uri.gsub!(/^file:\/*/i, "file:///")
-      if converted_uri =~ /^file:/i
+      path.gsub!(/^file:\/?\/?/, "") if path =~ /^file:\/?\/?/
+      path = "/" + path if path =~ /^([a-zA-Z])(\||:)/
+      uri = self.parse(path)
+
+      if uri.scheme == nil
         # Adjust windows-style uris
-        converted_uri.gsub!(/^file:\/\/\/([a-zA-Z])\|/i, 'file:///\1:')
-        converted_uri.gsub!(/\\/, '/')
-        converted_uri = self.parse(converted_uri).normalize
-        if File.exists?(converted_uri.path) &&
-            File.stat(converted_uri.path).directory?
-          converted_uri.path.gsub!(/\/$/, "")
-          converted_uri.path = converted_uri.path + '/'
+        uri.path.gsub!(/^\/?([a-zA-Z])\|(\\|\/)/, "/\\1:/")
+        uri.path.gsub!(/\\/, "/")
+        if File.exists?(uri.path) &&
+            File.stat(uri.path).directory?
+          uri.path.gsub!(/\/$/, "")
+          uri.path = uri.path + '/'
         end
-      else
-        converted_uri = self.parse(converted_uri)
+
+        # If the path is absolute, set the scheme and host.
+        if uri.path =~ /^\//
+          uri.scheme = "file"
+          uri.host = ""
+        end
+        uri.normalize!
       end
 
-      return converted_uri
+      return uri
     end
 
     # Expands a URI template into a full URI.
@@ -233,25 +266,25 @@ module Addressable
     # :transform method should return the transformed variable value as a
     # string.
     #
-    # An example:
+    # @example
+    #   class ExampleProcessor
+    #     def self.validate(name, value)
+    #       return !!(value =~ /^[\w ]+$/) if name == "query"
+    #       return true
+    #     end
     #
-    #  class ExampleProcessor
-    #    def self.validate(name, value)
-    #      return !!(value =~ /^[\w ]+$/) if name == "query"
-    #      return true
-    #    end
+    #     def self.transform(name, value)
+    #       return value.gsub(/ /, "+") if name == "query"
+    #       return value
+    #     end
+    #   end
     #
-    #    def self.transform(name, value)
-    #      return value.gsub(/ /, "+") if name == "query"
-    #      return value
-    #    end
-    #  end
-    #
-    #  Addressable::URI.expand_template(
-    #    "http://example.com/search/{query}/",
-    #    {"query" => "an example search query"},
-    #    ExampleProcessor).to_s
-    #  => "http://example.com/search/an+example+search+query/"
+    #   Addressable::URI.expand_template(
+    #     "http://example.com/search/{query}/",
+    #     {"query" => "an example search query"},
+    #     ExampleProcessor
+    #   ).to_s
+    #   #=> "http://example.com/search/an+example+search+query/"
     def self.expand_template(pattern, mapping, processor=nil)
       result = pattern.dup
       for name, value in mapping
