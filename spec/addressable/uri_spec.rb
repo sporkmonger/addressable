@@ -570,6 +570,12 @@ describe Addressable::URI, " when parsed from " +
       Addressable::URI.parse("http://example.com/relative/path")
   end
 
+  it "when joined with a bogus object a TypeError should be raised" do
+    (lambda do
+      @uri.join(42)
+    end).should raise_error(TypeError)
+  end
+
   it "should have the correct username after assignment" do
     @uri.user = "newuser"
     @uri.user.should == "newuser"
@@ -2790,6 +2796,12 @@ describe Addressable::URI, "with a base uri of 'http://a/b/c/d;p?q'" do
     (@uri + "//example.com/").to_s.should == "http://example.com/"
     Addressable::URI.join(
       @uri.to_s, "//example.com/").to_s.should == "http://example.com/"
+  end
+
+  it "when joined with a bogus object a TypeError should be raised" do
+    (lambda do
+      Addressable::URI.join(@uri, 42)
+    end).should raise_error(TypeError)
   end
 end
 

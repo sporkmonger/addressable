@@ -438,10 +438,25 @@ module Addressable
       end
     end
 
-    # Joins several uris together.
+    ##
+    # Joins several URIs together.
+    #
+    # @param [String, Addressable::URI, #to_str] *uris
+    #   The URIs to join.
+    #
+    # @return [Addressable::URI] The joined URI.
+    #
+    # @example
+    #   base = "http://example.com/"
+    #   uri = Addressable::URI.parse("relative/path")
+    #   Addressable::URI.join(base, uri)
+    #   #=> #<Addressable::URI:0xcab390 URI:http://example.com/relative/path>
     def self.join(*uris)
       uri_objects = uris.collect do |uri|
-        uri.kind_of?(self) ? uri : self.parse(uri.to_s)
+        if !uri.respond_to?(:to_str)
+          raise TypeError, "Can't convert #{uri.class} into String."
+        end
+        uri.kind_of?(self) ? uri : self.parse(uri.to_str)
       end
       result = uri_objects.shift.dup
       for uri in uri_objects
@@ -1234,8 +1249,12 @@ module Addressable
 
     # Joins two URIs together.
     def +(uri)
+      if !uri.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{uri.class} into String."
+      end
       if !uri.kind_of?(self.class)
-        uri = URI.parse(uri.to_s)
+        # Otherwise, convert to a String, then parse.
+        uri = self.class.parse(uri.to_str)
       end
       if uri.to_s == ""
         return self.dup
