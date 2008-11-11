@@ -8,6 +8,7 @@
   * added a bunch of new specifications
   * Addressable::URI.encode_segment, Addressable::URI.unencode_segment renamed
   * documentation is now in YARD format
+  * more rigorous type checking
   * to_str method implemented, implicit conversion to Strings now allowed
   * omit method added
 
