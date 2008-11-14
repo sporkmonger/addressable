@@ -10,6 +10,7 @@
   * more rigorous type checking
   * to_str method implemented, implicit conversion to Strings now allowed
   * Addressable::URI#omit method added, Addressable::URI#merge method replaced
+  * updated URI Template code to match v 03 of the draft spec
   * added a bunch of new specifications
 
 === Addressable 1.0.4

@@ -3177,20 +3177,25 @@ describe Addressable::URI, " when given the mapping supplied in " +
         "https://this-is-spinal-tap.example.org?date=&option=fred"
   end
 
-  it "should result in 'http://example.org?quote=to+be+or+not+to+be' " +
+  # The v 01 draft conflicts with the v 03 draft here.
+  # The Addressable implementation uses v 03.
+  it "should result in " +
+      "'http://example.org?quote%3Dto%2Bbe%2Bor%2Bnot%2Bto%2Bbe' " +
       "when used to expand 'http://example.org?{p}'" do
     Addressable::URI.expand_template(
       "http://example.org?{p}",
       @mapping
-    ).to_s.should == "http://example.org?quote=to+be+or+not+to+be"
+    ).to_s.should == "http://example.org?quote%3Dto%2Bbe%2Bor%2Bnot%2Bto%2Bbe"
   end
 
-  it "should result in 'http://example.com/hullo#world' " +
+  # The v 01 draft conflicts with the v 03 draft here.
+  # The Addressable implementation uses v 03.
+  it "should result in 'http://example.com/hullo%23world' " +
       "when used to expand 'http://example.com/{q}'" do
     Addressable::URI.expand_template(
       "http://example.com/{q}",
       @mapping
-    ).to_s.should == "http://example.com/hullo#world"
+    ).to_s.should == "http://example.com/hullo%23world"
   end
 end
 
@@ -3320,9 +3325,37 @@ describe Addressable::URI, "when given a mapping that contains a " +
       "http://example.com/{a}/{b}/",
       @mapping).to_s.should == "http://example.com/%7Bb%7D/barney/"
   end
+
+  it "should result in 'http://example.com//%7Bb%7D/' " +
+      "when used to expand 'http://example.com/{-opt|foo|foo}/{a}/'" do
+    Addressable::URI.expand_template(
+      "http://example.com/{-opt|foo|foo}/{a}/",
+      @mapping).to_s.should == "http://example.com//%7Bb%7D/"
+  end
+
+  it "should result in 'http://example.com//%7Bb%7D/' " +
+      "when used to expand 'http://example.com/{-neg|foo|b}/{a}/'" do
+    Addressable::URI.expand_template(
+      "http://example.com/{-neg|foo|b}/{a}/",
+      @mapping).to_s.should == "http://example.com//%7Bb%7D/"
+  end
+
+  it "should result in 'http://example.com//barney/%7Bb%7D/' " +
+      "when used to expand 'http://example.com/{-prefix|/|b}/{a}/'" do
+    Addressable::URI.expand_template(
+      "http://example.com/{-prefix|/|b}/{a}/",
+      @mapping).to_s.should == "http://example.com//barney/%7Bb%7D/"
+  end
+
+  it "should result in 'http://example.com/barney//%7Bb%7D/' " +
+      "when used to expand 'http://example.com/{-suffix|/|b}/{a}/'" do
+    Addressable::URI.expand_template(
+      "http://example.com/{-suffix|/|b}/{a}/",
+      @mapping).to_s.should == "http://example.com/barney//%7Bb%7D/"
+  end
 end
 
-describe Addressable::URI, "when given a mapping that contains values " +
+describe Addressable::URI, "when given a mapping containing values " +
     "that are already percent-encoded" do
   before do
     @mapping = {
@@ -3335,6 +3368,84 @@ describe Addressable::URI, "when given a mapping that contains values " +
     Addressable::URI.expand_template(
       "http://example.com/{a}/",
       @mapping).to_s.should == "http://example.com/%257Bb%257D/"
+  end
+end
+
+describe Addressable::URI, "when given a mapping containing bogus values" do
+  it "should raise a TypeError" do
+    (lambda do
+      Addressable::URI.expand_template(
+        "http://example.com/{bogus}/", {
+          "bogus" => 42
+        }
+      )
+    end).should raise_error(TypeError)
+  end
+end
+
+describe Addressable::URI, "when given a pattern with bogus operators" do
+  it "should raise an InvalidTemplateOperatorError" do
+    (lambda do
+      Addressable::URI.expand_template(
+        "http://example.com/{-bogus|/|a,b,c}/", {
+          "a" => "a", "b" => "b", "c" => "c"
+        }
+      )
+    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
+  end
+
+  it "should raise an InvalidTemplateOperatorError" do
+    (lambda do
+      Addressable::URI.expand_template(
+        "http://example.com/{-prefix|/|a,b,c}/", {
+          "a" => "a", "b" => "b", "c" => "c"
+        }
+      )
+    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
+  end
+
+  it "should raise an InvalidTemplateOperatorError" do
+    (lambda do
+      Addressable::URI.expand_template(
+        "http://example.com/{-suffix|/|a,b,c}/", {
+          "a" => "a", "b" => "b", "c" => "c"
+        }
+      )
+    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
+  end
+
+  it "should raise an InvalidTemplateOperatorError" do
+    (lambda do
+      Addressable::URI.expand_template(
+        "http://example.com/{-join|/|a,b,c}/", {
+          "a" => ["a"], "b" => ["b"], "c" => "c"
+        }
+      )
+    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
+  end
+
+  it "should raise an InvalidTemplateOperatorError" do
+    (lambda do
+      Addressable::URI.expand_template(
+        "http://example.com/{-list|/|a,b,c}/", {
+          "a" => ["a"], "b" => ["b"], "c" => "c"
+        }
+      )
+    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
+  end
+end
+
+describe Addressable::URI, "when given a mapping that contains an Array" do
+  before do
+    @mapping = {"query" => "an example search query".split(" ")}
+  end
+
+  it "should result in 'http://example.com/search/an+example+search+query/'" +
+      " when used to expand 'http://example.com/search/{-list|+|query}/'" do
+    Addressable::URI.expand_template(
+      "http://example.com/search/{-list|+|query}/",
+      @mapping).to_s.should ==
+        "http://example.com/search/an+example+search+query/"
   end
 end
 

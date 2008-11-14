@@ -45,8 +45,13 @@ module Addressable
     end
 
     ##
-    # Raised if an invalid method option is supplied.
-    class InvalidTemplateValue < StandardError
+    # Raised if an invalid template value is supplied.
+    class InvalidTemplateValueError < StandardError
+    end
+
+    ##
+    # Raised if an invalid template operator is used in a pattern.
+    class InvalidTemplateOperatorError < StandardError
     end
 
     ##
@@ -268,9 +273,10 @@ module Addressable
     #   should take two parameters: <tt>name</tt> and <tt>value</tt>.  The
     #   <tt>validate</tt> method should return <tt>true</tt> or
     #   <tt>false</tt>; <tt>true</tt> if the value of the variable is valid,
-    #   <tt>false</tt> otherwise.  An <tt>InvalidTemplateValue</tt> exception
-    #   will be raised if the value is invalid.  The <tt>transform</tt> method
-    #   should return the transformed variable value as a <tt>String</tt>.
+    #   <tt>false</tt> otherwise.  An <tt>InvalidTemplateValueError</tt>
+    #   exception will be raised if the value is invalid.  The
+    #   <tt>transform</tt> method should return the transformed variable
+    #   value as a <tt>String</tt>.
     #
     # @return [Addressable::URI] The expanded URI template.
     #
@@ -295,20 +301,53 @@ module Addressable
     #   #=> "http://example.com/search/an+example+search+query/"
     #
     #   Addressable::URI.expand_template(
+    #     "http://example.com/search/{-list|+|query}/",
+    #     {"query" => "an example search query".split(" ")}
+    #   ).to_s
+    #   #=> "http://example.com/search/an+example+search+query/"
+    #
+    #   Addressable::URI.expand_template(
     #     "http://example.com/search/{query}/",
     #     {"query" => "bogus!"},
     #     ExampleProcessor
     #   ).to_s
-    #   #=> Addressable::URI::InvalidTemplateValue
+    #   #=> Addressable::URI::InvalidTemplateValueError
     def self.expand_template(pattern, mapping, processor=nil)
       result = pattern.dup
-      for name, value in mapping
-        transformed_value = value
+      character_class =
+        Addressable::URI::CharacterClasses::RESERVED +
+        Addressable::URI::CharacterClasses::UNRESERVED
+      transformed_mapping = mapping.inject({}) do |accu, pair|
+        name, value = pair
+        unless value.respond_to?(:to_ary) || value.respond_to?(:to_str)
+          raise TypeError,
+            "Can't convert #{value.class} into String or Array."
+        end
+        transformed_value =
+          value.respond_to?(:to_ary) ? value.to_ary : value.to_str
+
+        # Handle percent escaping, and unicode normalization
+        if transformed_value.kind_of?(Array)
+          transformed_value.map! do |value|
+            self.encode_component(
+              Addressable::IDNA.unicode_normalize_kc(value),
+              Addressable::URI::CharacterClasses::UNRESERVED
+            )
+          end
+        else
+          transformed_value = self.encode_component(
+            Addressable::IDNA.unicode_normalize_kc(transformed_value),
+            Addressable::URI::CharacterClasses::UNRESERVED
+          )
+        end
+
+        # Process, if we've got a processor
         if processor != nil
           if processor.respond_to?(:validate)
             if !processor.validate(name, value)
-              raise InvalidTemplateValue,
-                "(#{name}, #{value}) is an invalid template value."
+              display_value = value.kind_of?(Array) ? value.inspect : value
+              raise InvalidTemplateValueError,
+                "#{name}=#{display_value} is an invalid template value."
             end
           end
           if processor.respond_to?(:transform)
@@ -316,17 +355,85 @@ module Addressable
           end
         end
 
-        # Handle percent escaping
-        transformed_value = self.encode_component(
-          transformed_value,
-          Addressable::URI::CharacterClasses::RESERVED +
-          Addressable::URI::CharacterClasses::UNRESERVED
-        )
-
-        result.gsub!(/\{#{Regexp.escape(name)}\}/, transformed_value)
+        accu[name] = transformed_value
+        accu
       end
       result.gsub!(
-        /\{[#{Addressable::URI::CharacterClasses::UNRESERVED}]+\}/, "")
+        /\{-[a-zA-Z]+\|[#{character_class}]+\|[#{character_class}]+\}/
+      ) do |capture|
+        operator, argument, variables = capture[1...-1].split("|")
+        operator.gsub!(/^\-/, "")
+        variables = variables.split(",")
+        case operator
+        when "opt"
+          if (variables.any? do |variable|
+            transformed_mapping[variable] != [] &&
+            transformed_mapping[variable]
+          end)
+            argument
+          else
+            ""
+          end
+        when "neg"
+          if (variables.any? do |variable|
+            transformed_mapping[variable] != [] &&
+            transformed_mapping[variable]
+          end)
+            ""
+          else
+            argument
+          end
+        when "prefix"
+          if variables.size != 1
+            raise InvalidTemplateOperatorError,
+              "Template operator 'prefix' takes exactly one variable."
+          end
+          value = transformed_mapping[variables.first]
+          if value.kind_of?(Array)
+            (value.map { |list_value| argument + list_value }).join("")
+          else
+            argument + value.to_s
+          end
+        when "suffix"
+          if variables.size != 1
+            raise InvalidTemplateOperatorError,
+              "Template operator 'suffix' takes exactly one variable."
+          end
+          value = transformed_mapping[variables.first]
+          if value.kind_of?(Array)
+            (value.map { |list_value| list_value + argument }).join("")
+          else
+            value.to_s + argument
+          end
+        when "join"
+          variable_values = variables.inject([]) do |accu, variable|
+            if !transformed_mapping[variable].kind_of?(Array)
+              if transformed_mapping[variable]
+                accu << (variable + "=" + transformed_mapping[variable])
+              end
+            else
+              raise InvalidTemplateOperatorError,
+                "Template operator 'join' does not accept Array values."
+            end
+            accu
+          end
+          variable_values.join(argument)
+        when "list"
+          if variables.size != 1
+            raise InvalidTemplateOperatorError,
+              "Template operator 'list' takes exactly one variable."
+          end
+          transformed_mapping[variables.first].join(argument)
+        else
+          raise InvalidTemplateOperatorError,
+            "Invalid template operator: #{operator}"
+        end
+      end
+      result.gsub!(
+        /\{[#{character_class}]+\}/
+      ) do |capture|
+        transformed_mapping[capture[1...-1]]
+      end
       return Addressable::URI.parse(result)
     end
 
