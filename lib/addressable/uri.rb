@@ -1132,12 +1132,20 @@ module Addressable
       }
     end
 
-    # Returns the port number that was actually specified in the URI string.
+    ##
+    # The port component for this URI.
+    # This is the port number actually given in the URI.  This does not
+    # infer port numbers from default values.
+    #
+    # @return [Integer] The port component.
     def port
       return @port
     end
 
-    # Returns the URI's port component, normalized.
+    ##
+    # The port component for this URI, normalized.
+    #
+    # @return [Integer] The port component, normalized.
     def normalized_port
       @normalized_port ||= (begin
         if self.class.port_mapping[normalized_scheme] == self.port
@@ -1148,7 +1156,10 @@ module Addressable
       end)
     end
 
-    # Sets the port for this URI.
+    ##
+    # Sets the port component for this URI.
+    #
+    # @param [String, Integer, #to_s] new_port The new port component.
     def port=(new_port)
       if new_port != nil && !(new_port.to_s =~ /^\d+$/)
         raise InvalidURIError,
@@ -1167,9 +1178,12 @@ module Addressable
       validate()
     end
 
-    # Returns the port number for this URI.  This method will normalize to the
-    # default port for the URI's scheme if the port isn't explicitly specified
-    # in the URI.
+    ##
+    # The inferred port component for this URI.
+    # This method will normalize to the default port for the URI's scheme if
+    # the port isn't explicitly specified in the URI.
+    #
+    # @return [Integer] The inferred port component.
     def inferred_port
       @inferred_port ||= (begin
         if port.to_i == 0
