@@ -780,12 +780,18 @@ module Addressable
       self.validation_deferred = false
     end
 
-    # Returns the scheme (protocol) for this URI.
+    ##
+    # The scheme component for this URI.
+    #
+    # @return [String] The scheme component.
     def scheme
       return @scheme
     end
 
-    # Returns the URI's scheme component, normalized.
+    ##
+    # The scheme component for this URI, normalized.
+    #
+    # @return [String] The scheme component, normalized.
     def normalized_scheme
       @normalized_scheme ||= (begin
         if self.scheme != nil
@@ -800,7 +806,10 @@ module Addressable
       end)
     end
 
-    # Sets the scheme (protocol for this URI.)
+    ##
+    # Sets the scheme component for this URI.
+    #
+    # @param [String, #to_str] new_scheme The scheme component.
     def scheme=(new_scheme)
       @scheme = new_scheme ? new_scheme.to_str : nil
       @scheme = nil if @scheme.to_s.strip == ""
