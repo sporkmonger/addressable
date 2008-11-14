@@ -752,14 +752,14 @@ module Addressable
     #
     # @return [Addressable::URI] The constructed URI object.
     def initialize(options={})
-      if options[:authority]
+      if options.has_key?(:authority)
         if (options.keys & [:userinfo, :user, :password, :host, :port]).any?
           raise ArgumentError,
             "Cannot specify both an authority and any of the components " +
             "within the authority."
         end
       end
-      if options[:userinfo]
+      if options.has_key?(:userinfo)
         if (options.keys & [:user, :password]).any?
           raise ArgumentError,
             "Cannot specify both a userinfo and either the user or password."
@@ -1401,7 +1401,7 @@ module Addressable
     #
     # @param [String, #to_str] new_fragment The new fragment component.
     def fragment=(new_fragment)
-      @fragment = new_fragment.to_str
+      @fragment = new_fragment ? new_fragment.to_str : nil
 
       # Reset dependant values
       @normalized_fragment = nil
@@ -1552,6 +1552,84 @@ module Addressable
     # @see Addressable::URI#join
     def join!(uri)
       replace_self(self.join(uri))
+    end
+
+    ##
+    # Merges a URI with a <tt>Hash</tt> of components.
+    # This method has different behavior from <tt>join</tt>.  Any components
+    # present in the <tt>hash</tt> parameter will override the original
+    # components.  The path component is not treated specially.
+    #
+    # @param [Hash, Addressable::URI, #to_hash] The components to merge with.
+    #
+    # @return [Addressable::URI] The merged URI.
+    #
+    # @see Hash#merge
+    def merge(hash)
+      if !hash.respond_to?(:to_hash)
+        raise TypeError, "Can't convert #{hash.class} into Hash."
+      end
+      hash = hash.to_hash
+
+      if hash.has_key?(:authority)
+        if (hash.keys & [:userinfo, :user, :password, :host, :port]).any?
+          raise ArgumentError,
+            "Cannot specify both an authority and any of the components " +
+            "within the authority."
+        end
+      end
+      if hash.has_key?(:userinfo)
+        if (hash.keys & [:user, :password]).any?
+          raise ArgumentError,
+            "Cannot specify both a userinfo and either the user or password."
+        end
+      end
+
+      uri = Addressable::URI.new
+      uri.validation_deferred = true
+      uri.scheme =
+        hash.has_key?(:scheme) ? hash[:scheme] : self.scheme
+      if hash.has_key?(:authority)
+        uri.authority =
+          hash.has_key?(:authority) ? hash[:authority] : self.authority
+      end
+      if hash.has_key?(:userinfo)
+        uri.userinfo =
+          hash.has_key?(:userinfo) ? hash[:userinfo] : self.userinfo
+      end
+      if !hash.has_key?(:userinfo) && !hash.has_key?(:authority)
+        uri.user =
+          hash.has_key?(:user) ? hash[:user] : self.user
+        uri.password =
+          hash.has_key?(:password) ? hash[:password] : self.password
+      end
+      if !hash.has_key?(:authority)
+        uri.host =
+          hash.has_key?(:host) ? hash[:host] : self.host
+        uri.port =
+          hash.has_key?(:port) ? hash[:port] : self.port
+      end
+      uri.path =
+        hash.has_key?(:path) ? hash[:path] : self.path
+      uri.query =
+        hash.has_key?(:query) ? hash[:query] : self.query
+      uri.fragment =
+        hash.has_key?(:fragment) ? hash[:fragment] : self.fragment
+      uri.validation_deferred = false
+
+      return uri
+    end
+
+    ##
+    # Destructive form of <tt>merge</tt>.
+    #
+    # @param [Hash, Addressable::URI, #to_hash] The components to merge with.
+    #
+    # @return [Addressable::URI] The merged URI.
+    #
+    # @see Addressable::URI#merge
+    def merge!(uri)
+      replace_self(self.merge(uri))
     end
 
     ##

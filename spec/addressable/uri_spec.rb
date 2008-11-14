@@ -1885,6 +1885,78 @@ describe Addressable::URI, " when parsed from " +
     @uri.fragment.should == "newfragment"
     @uri.to_s.should ==
       "http://user:pass@example.com/path/to/resource?query=x#newfragment"
+
+    @uri.fragment = nil
+    @uri.fragment.should == nil
+    @uri.to_s.should ==
+      "http://user:pass@example.com/path/to/resource?query=x"
+  end
+
+  it "should have the correct values after a merge" do
+    @uri.merge(:fragment => "newfragment").to_s.should ==
+      "http://user:pass@example.com/path/to/resource?query=x#newfragment"
+  end
+
+  it "should have the correct values after a merge" do
+    @uri.merge(:fragment => nil).to_s.should ==
+      "http://user:pass@example.com/path/to/resource?query=x"
+  end
+
+  it "should have the correct values after a merge" do
+    @uri.merge(:userinfo => "newuser:newpass").to_s.should ==
+      "http://newuser:newpass@example.com/path/to/resource?query=x#fragment"
+  end
+
+  it "should have the correct values after a merge" do
+    @uri.merge(:userinfo => nil).to_s.should ==
+      "http://example.com/path/to/resource?query=x#fragment"
+  end
+
+  it "should have the correct values after a merge" do
+    @uri.merge(:path => "newpath").to_s.should ==
+      "http://user:pass@example.com/newpath?query=x#fragment"
+  end
+
+  it "should have the correct values after a merge" do
+    @uri.merge(:port => "42", :path => "newpath", :query => "").to_s.should ==
+      "http://user:pass@example.com:42/newpath?#fragment"
+  end
+
+  it "should have the correct values after a merge" do
+    @uri.merge(:authority => "foo:bar@baz:42").to_s.should ==
+      "http://foo:bar@baz:42/path/to/resource?query=x#fragment"
+    @uri.to_s.should ==
+      "http://user:pass@example.com/path/to/resource?query=x#fragment"
+  end
+
+  it "should have the correct values after a destructive merge" do
+    @uri.merge!(:authority => "foo:bar@baz:42")
+    @uri.to_s.should ==
+      "http://foo:bar@baz:42/path/to/resource?query=x#fragment"
+  end
+
+  it "should fail to merge with bogus values" do
+    (lambda do
+      @uri.merge(:port => "bogus")
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should fail to merge with bogus parameters" do
+    (lambda do
+      @uri.merge(42)
+    end).should raise_error(TypeError)
+  end
+
+  it "should fail to merge with both authority and subcomponents" do
+    (lambda do
+      @uri.merge(:authority => "foo:bar@baz:42", :port => "42")
+    end).should raise_error(ArgumentError)
+  end
+
+  it "should fail to merge with both userinfo and subcomponents" do
+    (lambda do
+      @uri.merge(:userinfo => "foo:bar", :user => "foo")
+    end).should raise_error(ArgumentError)
   end
 
   it "should be identical to its duplicate" do
