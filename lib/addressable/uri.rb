@@ -1552,9 +1552,15 @@ module Addressable
       replace_self(self.join(uri))
     end
 
+    ##
     # Returns the shortest normalized relative form of this URI that uses the
     # supplied URI as a base for resolution.  Returns an absolute URI if
-    # necessary.
+    # necessary.  This is effectively the opposite of <tt>route_to</tt>.
+    #
+    # @param [String, Addressable::URI, #to_str] uri The URI to route from.
+    #
+    # @return [Addressable::URI]
+    #   The normalized relative URI that is equivalent to the original URI.
     def route_from(uri)
       uri = self.class.parse(uri).normalize
       normalized_self = self.normalize
@@ -1604,9 +1610,15 @@ module Addressable
       )
     end
 
+    ##
     # Returns the shortest normalized relative form of the supplied URI that
     # uses this URI as a base for resolution.  Returns an absolute URI if
-    # necessary.
+    # necessary.  This is effectively the opposite of <tt>route_from</tt>.
+    #
+    # @param [String, Addressable::URI, #to_str] uri The URI to route to.
+    #
+    # @return [Addressable::URI]
+    #   The normalized relative URI that is equivalent to the supplied URI.
     def route_to(uri)
       return self.class.parse(uri).route_from(self)
     end
