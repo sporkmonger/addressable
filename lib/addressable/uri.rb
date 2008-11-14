@@ -867,12 +867,18 @@ module Addressable
       validate()
     end
 
-    # Returns the password for this URI.
+    ##
+    # The password component for this URI.
+    #
+    # @return [String] The password component.
     def password
       return @password
     end
 
-    # Returns the URI's password component, normalized.
+    ##
+    # The password component for this URI, normalized.
+    #
+    # @return [String] The password component, normalized.
     def normalized_password
       @normalized_password ||= (begin
         if self.password
@@ -888,7 +894,10 @@ module Addressable
       end)
     end
 
-    # Sets the password for this URI.
+    ##
+    # Sets the password component for this URI.
+    #
+    # @param [String, #to_str] new_password The new password component.
     def password=(new_password)
       @password = new_password ? new_password.to_str : nil
 
