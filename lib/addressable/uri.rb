@@ -1407,7 +1407,12 @@ module Addressable
       @normalized_fragment = nil
     end
 
-    # Returns true if the URI uses an IP-based protocol.
+    ##
+    # Determines if the scheme indicates an IP-based protocol.
+    #
+    # @return [TrueClass, FalseClass]
+    #   <tt>true</tt> if the scheme indicates an IP-based protocol.
+    #   <tt>false</tt> otherwise.
     def ip_based?
       if self.scheme
         return self.class.ip_based_schemes.include?(
@@ -1416,12 +1421,22 @@ module Addressable
       return false
     end
 
-    # Returns true if this URI is known to be relative.
+    ##
+    # Determines if the URI is relative.
+    #
+    # @return [TrueClass, FalseClass]
+    #   <tt>true</tt> if the URI is relative.
+    #   <tt>false</tt> otherwise.
     def relative?
       return self.scheme.nil?
     end
 
-    # Returns true if this URI is known to be absolute.
+    ##
+    # Determines if the URI is absolute.
+    #
+    # @return [TrueClass, FalseClass]
+    #   <tt>true</tt> if the URI is absolute.
+    #   <tt>false</tt> otherwise.
     def absolute?
       return !relative?
     end
