@@ -1947,6 +1947,12 @@ describe Addressable::URI, " when parsed from " +
     end).should raise_error(TypeError)
   end
 
+  it "should fail to merge with bogus parameters" do
+    (lambda do
+      @uri.merge("http://example.com/")
+    end).should raise_error(TypeError)
+  end
+
   it "should fail to merge with both authority and subcomponents" do
     (lambda do
       @uri.merge(:authority => "foo:bar@baz:42", :port => "42")
