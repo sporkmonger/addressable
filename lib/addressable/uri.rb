@@ -1441,8 +1441,13 @@ module Addressable
       return !relative?
     end
 
+    ##
     # Joins two URIs together.
-    def +(uri)
+    #
+    # @param [String, Addressable::URI, #to_str] The URI to join with.
+    #
+    # @return [Addressable::URI] The joined URI.
+    def join(uri)
       if !uri.respond_to?(:to_str)
         raise TypeError, "Can't convert #{uri.class} into String."
       end
@@ -1535,18 +1540,17 @@ module Addressable
         :fragment => joined_fragment
       )
     end
+    alias_method :+, :join
 
-    # Merges two URIs together.
-    def merge(uri)
-      return self + uri
+    ##
+    # Destructive form of <tt>join</tt>.
+    #
+    # @param [String, Addressable::URI, #to_str] The URI to join with.
+    #
+    # @return [Addressable::URI] The joined URI.
+    def join!(uri)
+      replace_self(self.join(uri))
     end
-    alias_method :join, :merge
-
-    # Destructive form of merge.
-    def merge!(uri)
-      replace_self(self.merge(uri))
-    end
-    alias_method :join!, :merge!
 
     # Returns the shortest normalized relative form of this URI that uses the
     # supplied URI as a base for resolution.  Returns an absolute URI if
