@@ -1696,8 +1696,8 @@ module Addressable
         uri_string = uri.normalize.to_s
       else
         begin
-          uri_string = URI.parse(uri).normalize.to_s
-        rescue InvalidURIError
+          uri_string = ::Addressable::URI.parse(uri).normalize.to_s
+        rescue InvalidURIError, TypeError
           return false
         end
       end
