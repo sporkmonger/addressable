@@ -1026,7 +1026,11 @@ module Addressable
       validate()
     end
 
-    # Returns the authority segment of this URI.
+    ##
+    # The authority component for this URI.
+    # Combines the user, password, host, and port components.
+    #
+    # @return [String] The authority component.
     def authority
       @authority ||= (begin
         if self.host.nil?
@@ -1045,7 +1049,10 @@ module Addressable
       end)
     end
 
-    # Returns the authority segment of this URI.
+    ##
+    # The authority component for this URI, normalized.
+    #
+    # @return [String] The authority component, normalized.
     def normalized_authority
       @normalized_authority ||= (begin
         if self.normalized_host.nil?
@@ -1064,7 +1071,10 @@ module Addressable
       end)
     end
 
-    # Sets the authority segment of this URI.
+    ##
+    # Sets the authority component for this URI.
+    #
+    # @param [String, #to_str] new_authority The new authority component.
     def authority=(new_authority)
       if new_authority
         new_authority = new_authority.to_str
