@@ -1254,17 +1254,26 @@ module Addressable
       return File.extname(self.basename)
     end
 
-    # Returns the query string for this URI.
+    ##
+    # The query component for this URI.
+    #
+    # @return [String] The query component.
     def query
       return @query
     end
 
-    # Returns the URI's query component, normalized.
+    ##
+    # The query component for this URI, normalized.
+    #
+    # @return [String] The query component, normalized.
     def normalized_query
       @normalized_query ||= (self.query ? self.query.strip : nil)
     end
 
-    # Sets the query string for this URI.
+    ##
+    # Sets the query component for this URI.
+    #
+    # @param [String, #to_str] new_query The new query component.
     def query=(new_query)
       @query = new_query.to_str
 
@@ -1275,9 +1284,10 @@ module Addressable
     ##
     # Converts the query component to a Hash value.
     #
-    # @option options :notation [Symbol] (:subscript)
+    # @option [Symbol] notation
     #   May be one of <tt>:flat</tt>, <tt>:dot</tt>, or <tt>:subscript</tt>.
     #   The <tt>:dot</tt> notation is not supported for assignment.
+    #   Default value is <tt>:subscript</tt>.
     #
     # @return [Hash] The query string parsed as a Hash object.
     #
@@ -1349,9 +1359,12 @@ module Addressable
       end
     end
 
-    # Sets the query string for this URI from a Hash object.
-    def query_values=(new_query_hash)
-      @query = (new_query_hash.inject([]) do |accumulator, pair|
+    ##
+    # Sets the query component for this URI from a Hash object.
+    #
+    # @param [Hash, #to_hash] new_query_values The new query values.
+    def query_values=(new_query_values)
+      @query = (new_query_values.to_hash.inject([]) do |accumulator, pair|
         key, value = pair
         key = self.class.encode_component(key, CharacterClasses::UNRESERVED)
         if value == true
