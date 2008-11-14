@@ -732,8 +732,25 @@ module Addressable
       end
     end
 
-    # Creates a new uri object from component parts.  Passing nil for
-    # any of these parameters is acceptable.
+    ##
+    # Creates a new uri object from component parts.
+    #
+    # @option [String, #to_str] scheme The scheme component.
+    # @option [String, #to_str] user The user component.
+    # @option [String, #to_str] password The password component.
+    # @option [String, #to_str] userinfo
+    #   The userinfo component.  If this is supplied, the user and password
+    #   components must be omitted.
+    # @option [String, #to_str] host The host component.
+    # @option [String, #to_str] port The port component.
+    # @option [String, #to_str] authority
+    #   The authority component.  If this is supplied, the user, password,
+    #   userinfo, host, and port components must be omitted.
+    # @option [String, #to_str] path The path component.
+    # @option [String, #to_str] query The query component.
+    # @option [String, #to_str] fragment The fragment component.
+    #
+    # @return [Addressable::URI] The constructed URI object.
     def initialize(options={})
       if options[:authority]
         if (options.keys & [:userinfo, :user, :password, :host, :port]).any?
@@ -785,8 +802,8 @@ module Addressable
 
     # Sets the scheme (protocol for this URI.)
     def scheme=(new_scheme)
-      @scheme = new_scheme
-      @scheme = nil if new_scheme.to_s.strip == ""
+      @scheme = new_scheme ? new_scheme.to_str : nil
+      @scheme = nil if @scheme.to_s.strip == ""
 
       # Reset dependant values
       @normalized_scheme = nil
@@ -815,7 +832,7 @@ module Addressable
 
     # Sets the user for this URI.
     def user=(new_user)
-      @user = new_user
+      @user = new_user ? new_user.to_str : nil
 
       # You can't have a nil user with a non-nil password
       if @password != nil
@@ -855,7 +872,7 @@ module Addressable
 
     # Sets the password for this URI.
     def password=(new_password)
-      @password = new_password
+      @password = new_password ? new_password.to_str : nil
 
       # You can't have a nil user with a non-nil password
       if @password != nil
@@ -904,8 +921,14 @@ module Addressable
 
     # Sets the username and password segment of this URI.
     def userinfo=(new_userinfo)
-      new_user = new_userinfo.to_s.strip[/^(.*):/, 1]
-      new_password = new_userinfo.to_s.strip[/:(.*)$/, 1]
+      new_user, new_password = if new_userinfo
+        [
+          new_userinfo.to_str.strip[/^(.*):/, 1],
+          new_userinfo.to_str.strip[/:(.*)$/, 1]
+        ]
+      else
+        [nil, nil]
+      end
 
       # Password assigned first to ensure validity in case of nil
       self.password = new_password
@@ -947,7 +970,7 @@ module Addressable
 
     # Sets the host for this URI.
     def host=(new_host)
-      @host = new_host
+      @host = new_host ? new_host.to_str : nil
 
       # Reset dependant values
       @authority = nil
@@ -998,6 +1021,7 @@ module Addressable
     # Sets the authority segment of this URI.
     def authority=(new_authority)
       if new_authority
+        new_authority = new_authority.to_str
         new_userinfo = new_authority[/^([^\[\]]*)@/, 1]
         if new_userinfo
           new_user = new_userinfo.strip[/^([^:]*):?/, 1]
@@ -1123,7 +1147,7 @@ module Addressable
 
     # Sets the path for this URI.
     def path=(new_path)
-      @path = (new_path || "")
+      @path = (new_path || "").to_str
       if @path != "" && @path[0..0] != "/" && host != nil
         @path = "/#{@path}"
       end
@@ -1159,7 +1183,7 @@ module Addressable
 
     # Sets the query string for this URI.
     def query=(new_query)
-      @query = new_query
+      @query = new_query.to_str
 
       # Reset dependant values
       @normalized_query = nil
@@ -1272,7 +1296,7 @@ module Addressable
 
     # Sets the fragment for this URI.
     def fragment=(new_fragment)
-      @fragment = new_fragment
+      @fragment = new_fragment.to_str
 
       # Reset dependant values
       @normalized_fragment = nil
