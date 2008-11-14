@@ -1623,6 +1623,7 @@ module Addressable
       return self.class.parse(uri).route_from(self)
     end
 
+    ##
     # Returns a normalized URI object.
     #
     # NOTE: This method does not attempt to fully conform to specifications.
@@ -1630,6 +1631,8 @@ module Addressable
     # specifications, and also to deal with caching issues since several
     # different URIs may represent the same resource and should not be
     # cached multiple times.
+    #
+    # @return [Addressable::URI] The normalized URI.
     def normalize
       # This is a special exception for the frequently misused feed
       # URI scheme.
@@ -1653,7 +1656,10 @@ module Addressable
       )
     end
 
+    ##
     # Destructively normalizes this URI object.
+    #
+    # @return [Addressable::URI] The normalized URI.
     def normalize!
       replace_self(self.normalize)
     end
