@@ -518,9 +518,9 @@ describe Addressable::URI, " when parsed from " +
     end).should_not raise_error
   end
 
-  it "should result in itself when merged with itself" do
-    @uri.merge(@uri).to_s.should == "http://example.com"
-    @uri.merge!(@uri).to_s.should == "http://example.com"
+  it "should result in itself when joined with itself" do
+    @uri.join(@uri).to_s.should == "http://example.com"
+    @uri.join!(@uri).to_s.should == "http://example.com"
   end
 
   # Section 6.2.3 of RFC 3986

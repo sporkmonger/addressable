@@ -462,7 +462,7 @@ module Addressable
       end
       result = uri_objects.shift.dup
       for uri in uri_objects
-        result.merge!(uri)
+        result.join!(uri)
       end
       return result
     end
