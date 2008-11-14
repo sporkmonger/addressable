@@ -673,6 +673,19 @@ module Addressable
 
     ##
     # Extracts uris from an arbitrary body of text.
+    #
+    # @param [String, #to_str] text
+    #   The body of text to extract URIs from.
+    #
+    # @option [String, Addressable::URI, #to_str] base
+    #   Causes any relative URIs to be resolved against the base URI.
+    #
+    # @option [TrueClass, FalseClass] parse
+    #   If parse is true, all extracted URIs will be parsed.  If parse is
+    #   false, the return value with be an <tt>Array</tt> of <tt>Strings</aa>.
+    #   Defaults to false.
+    #
+    # @return [Array] The extracted URIs.
     def self.extract(text, options={})
       defaults = {:base => nil, :parse => false}
       options = defaults.merge(options)
@@ -707,16 +720,10 @@ module Addressable
           nil
         end
       end
-      parsed_uris.reject! do |uri|
-        (uri.scheme =~ /T\d+/ ||
-         uri.scheme == "xmlns" ||
-         uri.scheme == "xml" ||
-         uri.scheme == "thr" ||
-         uri.scheme == "this" ||
-         uri.scheme == "float" ||
-         uri.scheme == "user" ||
-         uri.scheme == "username" ||
-         uri.scheme == "out")
+      parsed_uris = parsed_uris.select do |uri|
+        (self.ip_based_schemes | [
+          "file", "git", "svn", "mailto", "tel"
+        ]).include?(uri.normalized_scheme)
       end
       if options[:parse]
         return parsed_uris
@@ -1033,6 +1040,7 @@ module Addressable
         "https" => 443,
         "ftp" => 21,
         "tftp" => 69,
+        "sftp" => 22,
         "ssh" => 22,
         "svn+ssh" => 22,
         "telnet" => 23,
