@@ -1198,12 +1198,18 @@ module Addressable
       end)
     end
 
-    # Returns the path for this URI.
+    ##
+    # The path component for this URI.
+    #
+    # @return [String] The path component.
     def path
       return (@path || "")
     end
 
-    # Returns the URI's path component, normalized.
+    ##
+    # The path component for this URI, normalized.
+    #
+    # @return [String] The path component, normalized.
     def normalized_path
       @normalized_path ||= (begin
         result = self.class.normalize_path(self.path.strip)
@@ -1215,7 +1221,10 @@ module Addressable
       end)
     end
 
-    # Sets the path for this URI.
+    ##
+    # Sets the path component for this URI.
+    #
+    # @param [String, #to_str] new_path The new path component.
     def path=(new_path)
       @path = (new_path || "").to_str
       if @path != "" && @path[0..0] != "/" && host != nil
@@ -1226,16 +1235,20 @@ module Addressable
       @normalized_path = nil
     end
 
-    # Returns the basename, if any, of the file at the path being referenced.
-    # Returns nil if there is no path component.
+    ##
+    # The basename, if any, of the file in the path component.
+    #
+    # @return [String] The path's basename.
     def basename
       # Path cannot be nil
       return File.basename(self.path).gsub(/;[^\/]*$/, "")
     end
 
-    # Returns the extension, if any, of the file at the path being referenced.
-    # Returns "" if there is no extension or nil if there is no path
-    # component.
+    ##
+    # The extname, if any, of the file in the path component.
+    # Empty string if there is no extension.
+    #
+    # @return [String] The path's extname.
     def extname
       return nil unless self.path
       return File.extname(self.basename)
