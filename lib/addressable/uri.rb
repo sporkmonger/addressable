@@ -364,11 +364,17 @@ module Addressable
         operator, argument, variables = capture[1...-1].split("|")
         operator.gsub!(/^\-/, "")
         variables = variables.split(",")
+        default_mapping = (variables.inject({}) do |accu, var|
+          varname, _, vardefault = var.scan(/^(.+?)(=(.*))?$/)[0]
+          accu[varname] = vardefault
+          accu
+        end).merge(transformed_mapping)
+        variables = variables.map { |var| var.gsub(/=.*$/, "") }
         case operator
         when "opt"
           if (variables.any? do |variable|
-            transformed_mapping[variable] != [] &&
-            transformed_mapping[variable]
+            default_mapping[variable] != [] &&
+            default_mapping[variable]
           end)
             argument
           else
@@ -376,8 +382,8 @@ module Addressable
           end
         when "neg"
           if (variables.any? do |variable|
-            transformed_mapping[variable] != [] &&
-            transformed_mapping[variable]
+            default_mapping[variable] != [] &&
+            default_mapping[variable]
           end)
             ""
           else
@@ -388,7 +394,7 @@ module Addressable
             raise InvalidTemplateOperatorError,
               "Template operator 'prefix' takes exactly one variable."
           end
-          value = transformed_mapping[variables.first]
+          value = default_mapping[variables.first]
           if value.kind_of?(Array)
             (value.map { |list_value| argument + list_value }).join("")
           else
@@ -399,7 +405,7 @@ module Addressable
             raise InvalidTemplateOperatorError,
               "Template operator 'suffix' takes exactly one variable."
           end
-          value = transformed_mapping[variables.first]
+          value = default_mapping[variables.first]
           if value.kind_of?(Array)
             (value.map { |list_value| list_value + argument }).join("")
           else
@@ -407,9 +413,10 @@ module Addressable
           end
         when "join"
           variable_values = variables.inject([]) do |accu, variable|
-            if !transformed_mapping[variable].kind_of?(Array)
-              if transformed_mapping[variable]
-                accu << (variable + "=" + transformed_mapping[variable])
+            if !default_mapping[variable].kind_of?(Array)
+              if default_mapping[variable]
+                accu <<
+                  variable + "=" + (default_mapping[variable])
               end
             else
               raise InvalidTemplateOperatorError,
@@ -423,7 +430,7 @@ module Addressable
             raise InvalidTemplateOperatorError,
               "Template operator 'list' takes exactly one variable."
           end
-          transformed_mapping[variables.first].join(argument)
+          default_mapping[variables.first].join(argument)
         else
           raise InvalidTemplateOperatorError,
             "Invalid template operator: #{operator}"
@@ -432,7 +439,8 @@ module Addressable
       result.gsub!(
         /\{[#{character_class}]+\}/
       ) do |capture|
-        transformed_mapping[capture[1...-1]]
+        varname, _, vardefault = capture.scan(/^\{(.+?)(=(.*))?\}$/)[0]
+        transformed_mapping[varname] || vardefault
       end
       return Addressable::URI.parse(result)
     end

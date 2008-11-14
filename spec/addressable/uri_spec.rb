@@ -3353,6 +3353,49 @@ describe Addressable::URI, "when given a mapping that contains a " +
       "http://example.com/{-suffix|/|b}/{a}/",
       @mapping).to_s.should == "http://example.com/barney//%7Bb%7D/"
   end
+
+  it "should result in 'http://example.com/%7Bb%7D/?b=barney&c=42' " +
+      "when used to expand 'http://example.com/{a}/?{-join|&|b,c=42}'" do
+    Addressable::URI.expand_template(
+      "http://example.com/{a}/?{-join|&|b,c=42}",
+      @mapping).to_s.should == "http://example.com/%7Bb%7D/?b=barney&c=42"
+  end
+
+  it "should result in 'http://example.com/42/?b=barney' " +
+      "when used to expand 'http://example.com/{c=42}/?{-join|&|b}'" do
+    Addressable::URI.expand_template(
+      "http://example.com/{c=42}/?{-join|&|b}",
+      @mapping).to_s.should == "http://example.com/42/?b=barney"
+  end
+end
+
+describe Addressable::URI, "when given a single variable mapping" do
+  before do
+    @mapping = {
+      "foo" => "fred"
+    }
+  end
+
+  it "should result in 'fred' when used to expand '{foo}'" do
+    Addressable::URI.expand_template(
+      "{foo}",
+      @mapping
+    ).to_s.should == "fred"
+  end
+
+  it "should result in 'wilma' when used to expand '{bar=wilma}'" do
+    Addressable::URI.expand_template(
+      "{bar=wilma}",
+      @mapping
+    ).to_s.should == "wilma"
+  end
+
+  it "should result in '' when used to expand '{baz}'" do
+    Addressable::URI.expand_template(
+      "{baz}",
+      @mapping
+    ).to_s.should == ""
+  end
 end
 
 describe Addressable::URI, "when given a mapping containing values " +
