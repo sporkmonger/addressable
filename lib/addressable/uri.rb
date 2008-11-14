@@ -373,70 +373,13 @@ module Addressable
           accu
         end).merge(transformed_mapping)
         variables = variables.map { |var| var.gsub(/=.*$/, "") }
-        case operator
-        when "opt"
-          if (variables.any? do |variable|
-            default_mapping[variable] != [] &&
-            default_mapping[variable]
-          end)
-            argument
-          else
-            ""
-          end
-        when "neg"
-          if (variables.any? do |variable|
-            default_mapping[variable] != [] &&
-            default_mapping[variable]
-          end)
-            ""
-          else
-            argument
-          end
-        when "prefix"
-          if variables.size != 1
-            raise InvalidTemplateOperatorError,
-              "Template operator 'prefix' takes exactly one variable."
-          end
-          value = default_mapping[variables.first]
-          if value.kind_of?(Array)
-            (value.map { |list_value| argument + list_value }).join("")
-          else
-            argument + value.to_s
-          end
-        when "suffix"
-          if variables.size != 1
-            raise InvalidTemplateOperatorError,
-              "Template operator 'suffix' takes exactly one variable."
-          end
-          value = default_mapping[variables.first]
-          if value.kind_of?(Array)
-            (value.map { |list_value| list_value + argument }).join("")
-          else
-            value.to_s + argument
-          end
-        when "join"
-          variable_values = variables.inject([]) do |accu, variable|
-            if !default_mapping[variable].kind_of?(Array)
-              if default_mapping[variable]
-                accu <<
-                  variable + "=" + (default_mapping[variable])
-              end
-            else
-              raise InvalidTemplateOperatorError,
-                "Template operator 'join' does not accept Array values."
-            end
-            accu
-          end
-          variable_values.join(argument)
-        when "list"
-          if variables.size != 1
-            raise InvalidTemplateOperatorError,
-              "Template operator 'list' takes exactly one variable."
-          end
-          default_mapping[variables.first].join(argument)
-        else
+        expand_method = "expand_#{operator}_operator"
+        if ([expand_method, expand_method.to_sym] & private_methods).empty?
+          puts private_methods.sort.inspect
           raise InvalidTemplateOperatorError,
             "Invalid template operator: #{operator}"
+        else
+          send(expand_method.to_sym, argument, variables, default_mapping)
         end
       end
       result.gsub!(
@@ -447,6 +390,131 @@ module Addressable
       end
       return Addressable::URI.parse(result)
     end
+
+    ##
+    # Expands a URI Template opt operator.
+    #
+    # @param [String] argument The argument to the operator.
+    # @param [Array] variables The variables the operator is working on.
+    # @param [Hash] mapping The mapping of variables to values.
+    #
+    # @return [String] The expanded result.
+    def self.expand_opt_operator(argument, variables, mapping)
+      if (variables.any? do |variable|
+        mapping[variable] != [] &&
+        mapping[variable]
+      end)
+        argument
+      else
+        ""
+      end
+    end
+    class <<self; private :expand_opt_operator; end
+
+    ##
+    # Expands a URI Template neg operator.
+    #
+    # @param [String] argument The argument to the operator.
+    # @param [Array] variables The variables the operator is working on.
+    # @param [Hash] mapping The mapping of variables to values.
+    #
+    # @return [String] The expanded result.
+    def self.expand_neg_operator(argument, variables, mapping)
+      if (variables.any? do |variable|
+        mapping[variable] != [] &&
+        mapping[variable]
+      end)
+        ""
+      else
+        argument
+      end
+    end
+    class <<self; private :expand_neg_operator; end
+
+    ##
+    # Expands a URI Template prefix operator.
+    #
+    # @param [String] argument The argument to the operator.
+    # @param [Array] variables The variables the operator is working on.
+    # @param [Hash] mapping The mapping of variables to values.
+    #
+    # @return [String] The expanded result.
+    def self.expand_prefix_operator(argument, variables, mapping)
+      if variables.size != 1
+        raise InvalidTemplateOperatorError,
+          "Template operator 'prefix' takes exactly one variable."
+      end
+      value = mapping[variables.first]
+      if value.kind_of?(Array)
+        (value.map { |list_value| argument + list_value }).join("")
+      else
+        argument + value.to_s
+      end
+    end
+    class <<self; private :expand_prefix_operator; end
+
+    ##
+    # Expands a URI Template suffix operator.
+    #
+    # @param [String] argument The argument to the operator.
+    # @param [Array] variables The variables the operator is working on.
+    # @param [Hash] mapping The mapping of variables to values.
+    #
+    # @return [String] The expanded result.
+    def self.expand_suffix_operator(argument, variables, mapping)
+      if variables.size != 1
+        raise InvalidTemplateOperatorError,
+          "Template operator 'suffix' takes exactly one variable."
+      end
+      value = mapping[variables.first]
+      if value.kind_of?(Array)
+        (value.map { |list_value| list_value + argument }).join("")
+      else
+        value.to_s + argument
+      end
+    end
+    class <<self; private :expand_suffix_operator; end
+
+    ##
+    # Expands a URI Template join operator.
+    #
+    # @param [String] argument The argument to the operator.
+    # @param [Array] variables The variables the operator is working on.
+    # @param [Hash] mapping The mapping of variables to values.
+    #
+    # @return [String] The expanded result.
+    def self.expand_join_operator(argument, variables, mapping)
+      variable_values = variables.inject([]) do |accu, variable|
+        if !mapping[variable].kind_of?(Array)
+          if mapping[variable]
+            accu << variable + "=" + (mapping[variable])
+          end
+        else
+          raise InvalidTemplateOperatorError,
+            "Template operator 'join' does not accept Array values."
+        end
+        accu
+      end
+      variable_values.join(argument)
+    end
+    class <<self; private :expand_join_operator; end
+
+    ##
+    # Expands a URI Template list operator.
+    #
+    # @param [String] argument The argument to the operator.
+    # @param [Array] variables The variables the operator is working on.
+    # @param [Hash] mapping The mapping of variables to values.
+    #
+    # @return [String] The expanded result.
+    def self.expand_list_operator(argument, variables, mapping)
+      if variables.size != 1
+        raise InvalidTemplateOperatorError,
+          "Template operator 'list' takes exactly one variable."
+      end
+      mapping[variables.first].join(argument)
+    end
+    class <<self; private :expand_list_operator; end
 
     ##
     # Extracts a mapping from the URI using a URI Template pattern.
@@ -490,14 +558,18 @@ module Addressable
     #   )
     #   #=> {"query" => "an example search query"}
     #
-    #   uri = Addressable::URI.parse(
-    #     "http://example.com/a/b/c/"
-    #   )
+    #   uri = Addressable::URI.parse("http://example.com/a/b/c/")
     #   uri.extract_mapping(
     #     "http://example.com/{first}/{second}/",
     #     ExampleProcessor
     #   )
     #   #=> {"first" => "a", "second" => "b/c"}
+    #
+    #   uri = Addressable::URI.parse("http://example.com/a/b/c/")
+    #   uri.extract_mapping(
+    #     "http://example.com/{first}/{-list|/|second}/"
+    #   )
+    #   #=> {"first" => "a", "second" => ["b", "c"]}
     def extract_mapping(pattern, processor=nil)
       mapping = {}
       variable_regexp =
