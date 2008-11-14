@@ -1548,6 +1548,8 @@ module Addressable
     # @param [String, Addressable::URI, #to_str] The URI to join with.
     #
     # @return [Addressable::URI] The joined URI.
+    #
+    # @see Addressable::URI#join
     def join!(uri)
       replace_self(self.join(uri))
     end
@@ -1660,14 +1662,19 @@ module Addressable
     # Destructively normalizes this URI object.
     #
     # @return [Addressable::URI] The normalized URI.
+    #
+    # @see Addressable::URI#normalize
     def normalize!
       replace_self(self.normalize)
     end
 
+    ##
     # Creates a URI suitable for display to users.  If semantic attacks are
     # likely, the application should try to detect these and warn the user.
     # See <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>,
     # section 7.6 for more information.
+    #
+    # @return [Addressable::URI] A URI suitable for display purposes.
     def display_uri
       display_uri = self.normalize
       display_uri.instance_variable_set("@host",
@@ -1675,15 +1682,21 @@ module Addressable
       return display_uri
     end
 
-    # Returns true if the URI objects are equal.  This method normalizes
-    # both URIs before doing the comparison, and allows comparison against
-    # strings.
+    ##
+    # Returns <tt>true</tt> if the URI objects are equal.  This method
+    # normalizes both URIs before doing the comparison, and allows comparison
+    # against <tt>Strings</tt>.
+    #
+    # @param [Object] uri The URI to compare.
+    #
+    # @return [TrueClass, FalseClass]
+    #   <tt>true</tt> if the URIs are equivalent, <tt>false</tt> otherwise.
     def ===(uri)
       if uri.respond_to?(:normalize)
         uri_string = uri.normalize.to_s
       else
         begin
-          uri_string = URI.parse(uri.to_s).normalize.to_s
+          uri_string = URI.parse(uri).normalize.to_s
         rescue InvalidURIError
           return false
         end
@@ -1691,27 +1704,45 @@ module Addressable
       return self.normalize.to_s == uri_string
     end
 
-    # Returns true if the URI objects are equal.  This method normalizes
-    # both URIs before doing the comparison.
+    ##
+    # Returns <tt>true</tt> if the URI objects are equal.  This method
+    # normalizes both URIs before doing the comparison.
+    #
+    # @param [Object] uri The URI to compare.
+    #
+    # @return [TrueClass, FalseClass]
+    #   <tt>true</tt> if the URIs are equivalent, <tt>false</tt> otherwise.
     def ==(uri)
       return false unless uri.kind_of?(self.class)
       return self.normalize.to_s == uri.normalize.to_s
     end
 
-    # Returns true if the URI objects are equal.  This method does NOT
-    # normalize either URI before doing the comparison.
+    ##
+    # Returns <tt>true</tt> if the URI objects are equal.  This method
+    # does NOT normalize either URI before doing the comparison.
+    #
+    # @param [Object] uri The URI to compare.
+    #
+    # @return [TrueClass, FalseClass]
+    #   <tt>true</tt> if the URIs are equivalent, <tt>false</tt> otherwise.
     def eql?(uri)
       return false unless uri.kind_of?(self.class)
       return self.to_s == uri.to_s
     end
 
-    # Returns a hash value that will make a URI equivalent to its normalized
+    ##
+    # A hash value that will make a URI equivalent to its normalized
     # form.
+    #
+    # @return [Integer] A hash of the URI.
     def hash
       return (self.normalize.to_s.hash * -1)
     end
 
+    ##
     # Clones the URI object.
+    #
+    # @return [Addressable::URI] The cloned URI.
     def dup
       duplicated_uri = Addressable::URI.new(
         :scheme => self.scheme ? self.scheme.dup : nil,
@@ -1759,12 +1790,19 @@ module Addressable
     ##
     # Destructive form of omit.
     #
+    # @param [Symbol] *components The components to be omitted.
+    #
+    # @return [Addressable::URI] The URI with components omitted.
+    #
     # @see Addressable::URI#omit
     def omit!(*components)
       replace_self(self.omit(*components))
     end
 
-    # Returns the assembled URI as a string.
+    ##
+    # Converts the URI to a <tt>String</tt>.
+    #
+    # @return [String] The URI's <tt>String</tt> representation.
     def to_s
       uri_string = ""
       uri_string << "#{self.scheme}:" if self.scheme != nil
@@ -1778,10 +1816,14 @@ module Addressable
       return uri_string
     end
 
-    # URI's are glorified Strings.  Allow implicit conversion.
+    ##
+    # URI's are glorified <tt>Strings</tt>.  Allow implicit conversion.
     alias_method :to_str, :to_s
 
+    ##
     # Returns a Hash of the URI components.
+    #
+    # @return [Hash] The URI as a <tt>Hash</tt> of components.
     def to_hash
       return {
         :scheme => self.scheme,
@@ -1795,26 +1837,42 @@ module Addressable
       }
     end
 
-    # Returns a string representation of the URI object's state.
+    ##
+    # Returns a <tt>String</tt> representation of the URI object's state.
+    #
+    # @return [String] The URI object's state, as a <tt>String</tt>.
     def inspect
       sprintf("#<%s:%#0x URI:%s>", self.class.to_s, self.object_id, self.to_s)
     end
 
     ##
     # If URI validation needs to be disabled, this can be set to true.
+    #
+    # @return [TrueClass, FalseClass]
+    #   <tt>true</tt> if validation has been deferred,
+    #   <tt>false</tt> otherwise.
     def validation_deferred
       @validation_deferred ||= false
     end
 
     ##
     # If URI validation needs to be disabled, this can be set to true.
+    #
+    # @param [TrueClass, FalseClass] new_validation_deferred
+    #   <tt>true</tt> if validation will be deferred,
+    #   <tt>false</tt> otherwise.
     def validation_deferred=(new_validation_deferred)
       @validation_deferred = new_validation_deferred
       validate unless @validation_deferred
     end
 
   private
+    ##
     # Resolves paths to their simplest form.
+    #
+    # @param [String] path The path to normalize.
+    #
+    # @return [String] The normalized path.
     def self.normalize_path(path)
       # Section 5.2.4 of RFC 3986
 
@@ -1859,8 +1917,13 @@ module Addressable
       return nil
     end
 
+    ##
     # Replaces the internal state of self with the specified URI's state.
     # Used in destructive operations to avoid massive code repetition.
+    #
+    # @param [Addressable::URI] uri The URI to replace <tt>self</tt> with.
+    #
+    # @return [Addressable::URI] <tt>self</tt>.
     def replace_self(uri)
       # Reset dependant values
       instance_variables.each do |var|
