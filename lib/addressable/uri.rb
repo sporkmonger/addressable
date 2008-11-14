@@ -978,12 +978,18 @@ module Addressable
       validate()
     end
 
-    # Returns the host for this URI.
+    ##
+    # The host component for this URI.
+    #
+    # @return [String] The host component.
     def host
       return @host
     end
 
-    # Returns the URI's host component, normalized.
+    ##
+    # The host component for this URI, normalized.
+    #
+    # @return [String] The host component, normalized.
     def normalized_host
       @normalized_host ||= (begin
         if self.host != nil
@@ -1005,7 +1011,10 @@ module Addressable
       end)
     end
 
-    # Sets the host for this URI.
+    ##
+    # Sets the host component for this URI.
+    #
+    # @param [String, #to_str] new_host The new host component.
     def host=(new_host)
       @host = new_host ? new_host.to_str : nil
 
