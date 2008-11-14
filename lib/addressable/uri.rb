@@ -916,7 +916,11 @@ module Addressable
       validate()
     end
 
-    # Returns the username and password segment of this URI.
+    ##
+    # The userinfo component for this URI.
+    # Combines the user and password components.
+    #
+    # @return [String] The userinfo component.
     def userinfo
       @userinfo ||= (begin
         current_user = self.user
@@ -931,7 +935,10 @@ module Addressable
       end)
     end
 
-    # Returns the URI's userinfo component, normalized.
+    ##
+    # The userinfo component for this URI, normalized.
+    #
+    # @return [String] The userinfo component, normalized.
     def normalized_userinfo
       @normalized_userinfo ||= (begin
         current_user = self.normalized_user
@@ -946,7 +953,10 @@ module Addressable
       end)
     end
 
-    # Sets the username and password segment of this URI.
+    ##
+    # Sets the userinfo component for this URI.
+    #
+    # @param [String, #to_str] new_userinfo The new userinfo component.
     def userinfo=(new_userinfo)
       new_user, new_password = if new_userinfo
         [
