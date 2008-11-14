@@ -1380,17 +1380,26 @@ module Addressable
       @normalized_query = nil
     end
 
-    # Returns the fragment for this URI.
+    ##
+    # The fragment component for this URI.
+    #
+    # @return [String] The fragment component.
     def fragment
       return @fragment
     end
 
-    # Returns the URI's fragment component, normalized.
+    ##
+    # The fragment component for this URI, normalized.
+    #
+    # @return [String] The fragment component, normalized.
     def normalized_fragment
       @normalized_fragment ||= (self.fragment ? self.fragment.strip : nil)
     end
 
-    # Sets the fragment for this URI.
+    ##
+    # Sets the fragment component for this URI.
+    #
+    # @param [String, #to_str] new_fragment The new fragment component.
     def fragment=(new_fragment)
       @fragment = new_fragment.to_str
 
