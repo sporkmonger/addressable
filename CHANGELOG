@@ -9,7 +9,7 @@
   * documentation is now in YARD format
   * more rigorous type checking
   * to_str method implemented, implicit conversion to Strings now allowed
-  * omit method added
+  * Addressable::URI#omit method added, Addressable::URI#merge method replaced
   * added a bunch of new specifications
 
 === Addressable 1.0.4
