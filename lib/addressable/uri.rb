@@ -313,6 +313,9 @@ module Addressable
     #   ).to_s
     #   #=> Addressable::URI::InvalidTemplateValueError
     def self.expand_template(pattern, mapping, processor=nil)
+
+      # FIXME: MUST REFACTOR!!!
+
       result = pattern.dup
       character_class =
         Addressable::URI::CharacterClasses::RESERVED +
