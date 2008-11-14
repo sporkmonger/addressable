@@ -3090,9 +3090,9 @@ describe Addressable::URI, " when given the template pattern " +
   end
 end
 
-# Section 3.3.1 of the URI Template draft
+# Section 3.3.1 of the URI Template draft v 01
 describe Addressable::URI, " when given the mapping supplied in " +
-    "Section 3.3.1 of the URI Template draft" do
+    "Section 3.3.1 of the URI Template draft v 01" do
   before do
     @mapping = {
       "a" => "fred",
@@ -3112,21 +3112,24 @@ describe Addressable::URI, " when given the mapping supplied in " +
       "when used to expand 'http://example.org/page1\#{a}'" do
     Addressable::URI.expand_template(
       "http://example.org/page1\#{a}",
-      @mapping).to_s.should == "http://example.org/page1#fred"
+      @mapping
+    ).to_s.should == "http://example.org/page1#fred"
   end
 
   it "should result in 'http://example.org/fred/barney/' " +
       "when used to expand 'http://example.org/{a}/{b}/'" do
     Addressable::URI.expand_template(
       "http://example.org/{a}/{b}/",
-      @mapping).to_s.should == "http://example.org/fred/barney/"
+      @mapping
+    ).to_s.should == "http://example.org/fred/barney/"
   end
 
   it "should result in 'http://example.org/fredbarney/' " +
       "when used to expand 'http://example.org/{a}{b}/'" do
     Addressable::URI.expand_template(
       "http://example.org/{a}{b}/",
-      @mapping).to_s.should == "http://example.org/fredbarney/"
+      @mapping
+    ).to_s.should == "http://example.org/fredbarney/"
   end
 
   it "should result in " +
@@ -3134,7 +3137,8 @@ describe Addressable::URI, " when given the mapping supplied in " +
       "when used to expand 'http://example.com/order/{c}/{c}/{c}/'" do
     Addressable::URI.expand_template(
       "http://example.com/order/{c}/{c}/{c}/",
-      @mapping).to_s.should ==
+      @mapping
+    ).to_s.should ==
         "http://example.com/order/cheeseburger/cheeseburger/cheeseburger/"
   end
 
@@ -3142,21 +3146,24 @@ describe Addressable::URI, " when given the mapping supplied in " +
       "when used to expand 'http://example.org/{d}'" do
     Addressable::URI.expand_template(
       "http://example.org/{d}",
-      @mapping).to_s.should == "http://example.org/one%20two%20three"
+      @mapping
+    ).to_s.should == "http://example.org/one%20two%20three"
   end
 
   it "should result in 'http://example.org/20%25%20tricky' " +
       "when used to expand 'http://example.org/{e}'" do
     Addressable::URI.expand_template(
       "http://example.org/{e}",
-      @mapping).to_s.should == "http://example.org/20%25%20tricky"
+      @mapping
+    ).to_s.should == "http://example.org/20%25%20tricky"
   end
 
   it "should result in 'http://example.com//' " +
       "when used to expand 'http://example.com/{f}/'" do
     Addressable::URI.expand_template(
       "http://example.com/{f}/",
-      @mapping).to_s.should == "http://example.com//"
+      @mapping
+    ).to_s.should == "http://example.com//"
   end
 
   it "should result in " +
@@ -3165,7 +3172,8 @@ describe Addressable::URI, " when given the mapping supplied in " +
       "'{scheme}://{20}.example.org?date={wilma}&option={a}'" do
     Addressable::URI.expand_template(
       "{scheme}://{20}.example.org?date={wilma}&option={a}",
-      @mapping).to_s.should ==
+      @mapping
+    ).to_s.should ==
         "https://this-is-spinal-tap.example.org?date=&option=fred"
   end
 
@@ -3173,14 +3181,127 @@ describe Addressable::URI, " when given the mapping supplied in " +
       "when used to expand 'http://example.org?{p}'" do
     Addressable::URI.expand_template(
       "http://example.org?{p}",
-      @mapping).to_s.should == "http://example.org?quote=to+be+or+not+to+be"
+      @mapping
+    ).to_s.should == "http://example.org?quote=to+be+or+not+to+be"
   end
 
   it "should result in 'http://example.com/hullo#world' " +
       "when used to expand 'http://example.com/{q}'" do
     Addressable::URI.expand_template(
       "http://example.com/{q}",
-      @mapping).to_s.should == "http://example.com/hullo#world"
+      @mapping
+    ).to_s.should == "http://example.com/hullo#world"
+  end
+end
+
+# Section 4.5 of the URI Template draft v 03
+describe Addressable::URI, " when given the mapping supplied in " +
+    "Section 4.5 of the URI Template draft v 03" do
+  before do
+    @mapping = {
+      "foo" => "ϓ",
+      "bar" => "fred",
+      "baz" => "10,20,30",
+      "qux" => ["10","20","30"],
+      "corge" => [],
+      "grault" => "",
+      "garply" => "a/b/c",
+      "waldo" => "ben & jerrys",
+      "fred" => ["fred", "", "wilma"],
+      "plugh" => ["ẛ", "ṡ"],
+      "1-a_b.c" => "200"
+    }
+  end
+
+  it "should result in 'http://example.org/?q=fred' " +
+      "when used to expand 'http://example.org/?q={bar}'" do
+    Addressable::URI.expand_template(
+      "http://example.org/?q={bar}",
+      @mapping
+    ).to_s.should == "http://example.org/?q=fred"
+  end
+
+  it "should result in '/' " +
+      "when used to expand '/{xyzzy}'" do
+    Addressable::URI.expand_template(
+      "/{xyzzy}",
+      @mapping
+    ).to_s.should == "/"
+  end
+
+  it "should result in " +
+      "'http://example.org/?foo=%CE%8E&bar=fred&baz=10%2C20%2C30' " +
+      "when used to expand " +
+      "'http://example.org/?{-join|&|foo,bar,xyzzy,baz}'" do
+    Addressable::URI.expand_template(
+      "http://example.org/?{-join|&|foo,bar,xyzzy,baz}",
+      @mapping
+    ).to_s.should ==
+      "http://example.org/?foo=%CE%8E&bar=fred&baz=10%2C20%2C30"
+  end
+
+  it "should result in 'http://example.org/?d=10,20,30' " +
+      "when used to expand 'http://example.org/?d={-list|,|qux}'" do
+    Addressable::URI.expand_template(
+      "http://example.org/?d={-list|,|qux}",
+      @mapping
+    ).to_s.should == "http://example.org/?d=10,20,30"
+  end
+
+  it "should result in 'http://example.org/?d=10&d=20&d=30' " +
+      "when used to expand 'http://example.org/?d={-list|&d=|qux}'" do
+    Addressable::URI.expand_template(
+      "http://example.org/?d={-list|&d=|qux}",
+      @mapping
+    ).to_s.should == "http://example.org/?d=10&d=20&d=30"
+  end
+
+  it "should result in 'http://example.org/fredfred/a%2Fb%2Fc' " +
+      "when used to expand 'http://example.org/{bar}{bar}/{garply}'" do
+    Addressable::URI.expand_template(
+      "http://example.org/{bar}{bar}/{garply}",
+      @mapping
+    ).to_s.should == "http://example.org/fredfred/a%2Fb%2Fc"
+  end
+
+  it "should result in 'http://example.org/fred/fred//wilma' " +
+      "when used to expand 'http://example.org/{bar}{-prefix|/|fred}'" do
+    Addressable::URI.expand_template(
+      "http://example.org/{bar}{-prefix|/|fred}",
+      @mapping
+    ).to_s.should == "http://example.org/fred/fred//wilma"
+  end
+
+  it "should result in ':%E1%B9%A1:%E1%B9%A1:' " +
+      "when used to expand '{-neg|:|corge}{-suffix|:|plugh}'" do
+    Addressable::URI.expand_template(
+      "{-neg|:|corge}{-suffix|:|plugh}",
+      @mapping
+    ).to_s.should == ":%E1%B9%A1:%E1%B9%A1:"
+  end
+
+  it "should result in '../ben%20%26%20jerrys/' " +
+      "when used to expand '../{waldo}/'" do
+    Addressable::URI.expand_template(
+      "../{waldo}/",
+      @mapping
+    ).to_s.should == "../ben%20%26%20jerrys/"
+  end
+
+  it "should result in 'telnet:192.0.2.16:80' " +
+      "when used to expand 'telnet:192.0.2.16{-opt|:80|grault}'" do
+    Addressable::URI.expand_template(
+      "telnet:192.0.2.16{-opt|:80|grault}",
+      @mapping
+    ).to_s.should == "telnet:192.0.2.16:80"
+  end
+
+  it "should result in ':200:' " +
+      "when used to expand ':{1-a_b.c}:'" do
+    Addressable::URI.expand_template(
+      ":{1-a_b.c}:",
+      @mapping
+    ).to_s.should == ":200:"
   end
 end
 
