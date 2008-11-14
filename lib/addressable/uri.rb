@@ -809,7 +809,7 @@ module Addressable
     ##
     # Sets the scheme component for this URI.
     #
-    # @param [String, #to_str] new_scheme The scheme component.
+    # @param [String, #to_str] new_scheme The new scheme component.
     def scheme=(new_scheme)
       @scheme = new_scheme ? new_scheme.to_str : nil
       @scheme = nil if @scheme.to_s.strip == ""
@@ -818,12 +818,18 @@ module Addressable
       @normalized_scheme = nil
     end
 
-    # Returns the user for this URI.
+    ##
+    # The user component for this URI.
+    #
+    # @return [String] The user component.
     def user
       return @user
     end
 
-    # Returns the URI's user component, normalized.
+    ##
+    # The user component for this URI, normalized.
+    #
+    # @return [String] The user component, normalized.
     def normalized_user
       @normalized_user ||= (begin
         if self.user
@@ -839,7 +845,10 @@ module Addressable
       end)
     end
 
-    # Sets the user for this URI.
+    ##
+    # Sets the user component for this URI.
+    #
+    # @param [String, #to_str] new_user The new user component.
     def user=(new_user)
       @user = new_user ? new_user.to_str : nil
 
