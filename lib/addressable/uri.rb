@@ -856,7 +856,7 @@ module Addressable
         end
         mapping[name] = parsed_value
       end
-      if (parsed_variables & variables) != variables
+      if (parsed_variables & variables) != parsed_variables
         raise TemplateOperatorAbortedError,
           "Template operator 'join' variable mismatch: " +
           "#{parsed_variables.inspect}, #{variables.inspect}"

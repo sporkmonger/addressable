@@ -3399,6 +3399,40 @@ describe Addressable::URI, "when given a single variable mapping" do
   end
 end
 
+describe Addressable::URI, "when given a simple mapping" do
+  before do
+    @mapping = {
+      "foo" => "fred",
+      "bar" => "barney",
+      "baz" => ""
+    }
+  end
+
+  it "should result in 'foo=fred&bar=barney&baz=' when used to expand " +
+      "'{-join|&|foo,bar,baz,qux}'" do
+    Addressable::URI.expand_template(
+      "{-join|&|foo,bar,baz,qux}",
+      @mapping
+    ).to_s.should == "foo=fred&bar=barney&baz="
+  end
+
+  it "should result in 'bar=barney' when used to expand " +
+      "'{-join|&|bar}'" do
+    Addressable::URI.expand_template(
+      "{-join|&|bar}",
+      @mapping
+    ).to_s.should == "bar=barney"
+  end
+
+  it "should result in '' when used to expand " +
+      "'{-join|&|qux}'" do
+    Addressable::URI.expand_template(
+      "{-join|&|qux}",
+      @mapping
+    ).to_s.should == ""
+  end
+end
+
 describe Addressable::URI, "when given a mapping containing values " +
     "that are already percent-encoded" do
   before do
@@ -4002,6 +4036,67 @@ describe Addressable::URI, " when parsed from " +
     @uri.extract_mapping(
       "http://example.com/?email={-neg|bob@sporkmonger.com|test}"
     ).should == {}
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
+    "'http://example.com/a/b/c/?one=1&two=2#foo'" do
+  before do
+    @uri = Addressable::URI.parse(
+      "http://example.com/a/b/c/?one=1&two=2#foo"
+    )
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://{host}/{-suffix|/|segments}?{-join|&|one,two}\#{fragment}'" do
+    @uri.extract_mapping(
+      "http://{host}/{-suffix|/|segments}?{-join|&|one,two}\#{fragment}"
+    ).should == {
+      "host" => "example.com",
+      "segments" => ["a", "b", "c"],
+      "one" => "1",
+      "two" => "2",
+      "fragment" => "foo"
+    }
+  end
+
+  it "should not match when extracting values " +
+      "using the pattern " +
+      "'http://{host}/{-suffix|/|segments}?{-join|&|one}\#{fragment}'" do
+    @uri.extract_mapping(
+      "http://{host}/{-suffix|/|segments}?{-join|&|one}\#{fragment}"
+    ).should == nil
+  end
+
+  it "should not match when extracting values " +
+      "using the pattern " +
+      "'http://{host}/{-suffix|/|segments}?{-join|&|bogus}\#{fragment}'" do
+    @uri.extract_mapping(
+      "http://{host}/{-suffix|/|segments}?{-join|&|bogus}\#{fragment}"
+    ).should == nil
+  end
+
+  it "should not match when extracting values " +
+      "using the pattern " +
+      "'http://{host}/{-suffix|/|segments}?{-join|&|one,bogus}\#{fragment}'" do
+    @uri.extract_mapping(
+      "http://{host}/{-suffix|/|segments}?{-join|&|one,bogus}\#{fragment}"
+    ).should == nil
+  end
+
+  it "should not match when extracting values " +
+      "using the pattern " +
+      "'http://{host}/{-suffix|/|segments}?{-join|&|one,two,bogus}\#{fragment}'" do
+    @uri.extract_mapping(
+      "http://{host}/{-suffix|/|segments}?{-join|&|one,two,bogus}\#{fragment}"
+    ).should == {
+      "host" => "example.com",
+      "segments" => ["a", "b", "c"],
+      "one" => "1",
+      "two" => "2",
+      "fragment" => "foo"
+    }
   end
 end
 
