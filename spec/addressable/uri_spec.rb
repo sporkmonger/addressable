@@ -53,6 +53,7 @@ class ExampleProcessor
 
   def self.restore(name, value)
     return value.gsub(/\+/, " ") if name == "query"
+    return value.tr("A-Za-z", "N-ZA-Mn-za-m") if name == "rot13"
     return value
   end
 
@@ -3660,6 +3661,16 @@ describe Addressable::URI, " when parsed from " +
     }
   end
 
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com/search/{-list|+|query}/'" do
+    @uri.extract_mapping(
+      "http://example.com/search/{-list|+|query}/"
+    ).should == {
+      "query" => ["an", "example", "search", "query"]
+    }
+  end
+
   it "should return nil when extracting values using " +
       "a non-matching pattern" do
     @uri.extract_mapping(
@@ -3685,6 +3696,85 @@ describe Addressable::URI, " when parsed from " +
       "second" => "b/c"
     }
   end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com/{first}/{-list|/|second}/'" do
+    @uri.extract_mapping(
+      "http://example.com/{first}/{-list|/|second}/"
+    ).should == {
+      "first" => "a",
+      "second" => ["b", "c"]
+    }
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com/{first}/{-list|/|rot13}/' " +
+      "with the ExampleProcessor" do
+    @uri.extract_mapping(
+      "http://example.com/{first}/{-list|/|rot13}/",
+      ExampleProcessor
+    ).should == {
+      "first" => "a",
+      "rot13" => ["o", "p"]
+    }
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com/{-list|/|rot13}/' " +
+      "with the ExampleProcessor" do
+    @uri.extract_mapping(
+      "http://example.com/{-list|/|rot13}/",
+      ExampleProcessor
+    ).should == {
+      "rot13" => ["n", "o", "p"]
+    }
+  end
+
+  it "should not map to anything when extracting values " +
+      "using the pattern " +
+      "'http://example.com/{-list|/|rot13}/'" do
+    @uri.extract_mapping("http://example.com/{-join|/|a,b,c}/").should == nil
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
+    "'http://example.com/?a=one&b=two&c=three'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/?a=one&b=two&c=three")
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com/?{-join|&|a,b,c}'" do
+    @uri.extract_mapping(
+      "http://example.com/?{-join|&|a,b,c}"
+    ).should == {
+      "a" => "one",
+      "b" => "two",
+      "c" => "three"
+    }
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
+    "'http://example.com/?rot13=frperg'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/?rot13=frperg")
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com/?{-join|&|rot13}' with the ExampleProcessor" do
+    @uri.extract_mapping(
+      "http://example.com/?{-join|&|rot13}",
+      ExampleProcessor
+    ).should == {
+      "rot13" => "secret"
+    }
+  end
 end
 
 describe Addressable::URI, " when parsed from " +
@@ -3697,10 +3787,251 @@ describe Addressable::URI, " when parsed from " +
       "using the pattern " +
       "'http://example.com/{first}/spacer/{second}/'" do
     @uri.extract_mapping(
-      "http://example.com/{first}/spacer/{second}/").should == {
-        "first" => "one",
-        "second" => "two"
-      }
+      "http://example.com/{first}/spacer/{second}/"
+    ).should == {
+      "first" => "one",
+      "second" => "two"
+    }
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com{-prefix|/|stuff}/'" do
+    @uri.extract_mapping(
+      "http://example.com{-prefix|/|stuff}/"
+    ).should == {
+      "stuff" => ["one", "spacer", "two"]
+    }
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com/o{-prefix|/|stuff}/'" do
+    @uri.extract_mapping(
+      "http://example.com/o{-prefix|/|stuff}/"
+    ).should == nil
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com/{first}/spacer{-prefix|/|stuff}/'" do
+    @uri.extract_mapping(
+      "http://example.com/{first}/spacer{-prefix|/|stuff}/"
+    ).should == {
+      "first" => "one",
+      "stuff" => ["two"]
+    }
+  end
+
+  it "should not match anything when extracting values " +
+      "using the incorrect suffix pattern " +
+      "'http://example.com/{-prefix|/|stuff}/'" do
+    @uri.extract_mapping(
+      "http://example.com/{-prefix|/|stuff}/"
+    ).should == nil
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com{-prefix|/|rot13}/' with the ExampleProcessor" do
+    @uri.extract_mapping(
+      "http://example.com{-prefix|/|rot13}/",
+      ExampleProcessor
+    ).should == {
+      "rot13" => ["bar", "fcnpre", "gjb"]
+    }
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com{-prefix|/|rot13}' with the ExampleProcessor" do
+    @uri.extract_mapping(
+      "http://example.com{-prefix|/|rot13}",
+      ExampleProcessor
+    ).should == {
+      "rot13" => ["bar", "fcnpre", "gjb", ""]
+    }
+  end
+
+  it "should not match anything when extracting values " +
+      "using the incorrect suffix pattern " +
+      "'http://example.com/{-prefix|/|rot13}' with the ExampleProcessor" do
+    @uri.extract_mapping(
+      "http://example.com/{-prefix|/|rot13}",
+      ExampleProcessor
+    ).should == nil
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com/{-suffix|/|stuff}'" do
+    @uri.extract_mapping(
+      "http://example.com/{-suffix|/|stuff}"
+    ).should == {
+      "stuff" => ["one", "spacer", "two"]
+    }
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com/{-suffix|/|stuff}o'" do
+    @uri.extract_mapping(
+      "http://example.com/{-suffix|/|stuff}o"
+    ).should == nil
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com/o{-suffix|/|stuff}'" do
+    @uri.extract_mapping(
+      "http://example.com/o{-suffix|/|stuff}"
+    ).should == {"stuff"=>["ne", "spacer", "two"]}
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com/{first}/spacer/{-suffix|/|stuff}'" do
+    @uri.extract_mapping(
+      "http://example.com/{first}/spacer/{-suffix|/|stuff}"
+    ).should == {
+      "first" => "one",
+      "stuff" => ["two"]
+    }
+  end
+
+  it "should not match anything when extracting values " +
+      "using the incorrect suffix pattern " +
+      "'http://example.com/{-suffix|/|stuff}/'" do
+    @uri.extract_mapping(
+      "http://example.com/{-suffix|/|stuff}/"
+    ).should == nil
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com/{-suffix|/|rot13}' with the ExampleProcessor" do
+    @uri.extract_mapping(
+      "http://example.com/{-suffix|/|rot13}",
+      ExampleProcessor
+    ).should == {
+      "rot13" => ["bar", "fcnpre", "gjb"]
+    }
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern " +
+      "'http://example.com{-suffix|/|rot13}' with the ExampleProcessor" do
+    @uri.extract_mapping(
+      "http://example.com{-suffix|/|rot13}",
+      ExampleProcessor
+    ).should == {
+      "rot13" => ["", "bar", "fcnpre", "gjb"]
+    }
+  end
+
+  it "should not match anything when extracting values " +
+      "using the incorrect suffix pattern " +
+      "'http://example.com/{-suffix|/|rot13}/' with the ExampleProcessor" do
+    @uri.extract_mapping(
+      "http://example.com/{-suffix|/|rot13}/",
+      ExampleProcessor
+    ).should == nil
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
+    "'http://example.com/?email=bob@sporkmonger.com'" do
+  before do
+    @uri = Addressable::URI.parse(
+      "http://example.com/?email=bob@sporkmonger.com"
+    )
+  end
+
+  it "should not match anything when extracting values " +
+      "using the incorrect opt pattern " +
+      "'http://example.com/?email={-opt|bogus@bogus.com|test}'" do
+    @uri.extract_mapping(
+      "http://example.com/?email={-opt|bogus@bogus.com|test}"
+    ).should == nil
+  end
+
+  it "should not match anything when extracting values " +
+      "using the incorrect neg pattern " +
+      "'http://example.com/?email={-neg|bogus@bogus.com|test}'" do
+    @uri.extract_mapping(
+      "http://example.com/?email={-neg|bogus@bogus.com|test}"
+    ).should == nil
+  end
+
+  it "should indicate a match when extracting values " +
+      "using the opt pattern " +
+      "'http://example.com/?email={-opt|bob@sporkmonger.com|test}'" do
+    @uri.extract_mapping(
+      "http://example.com/?email={-opt|bob@sporkmonger.com|test}"
+    ).should == {}
+  end
+
+  it "should indicate a match when extracting values " +
+      "using the neg pattern " +
+      "'http://example.com/?email={-neg|bob@sporkmonger.com|test}'" do
+    @uri.extract_mapping(
+      "http://example.com/?email={-neg|bob@sporkmonger.com|test}"
+    ).should == {}
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
+    "'http://example.com/?email='" do
+  before do
+    @uri = Addressable::URI.parse(
+      "http://example.com/?email="
+    )
+  end
+
+  it "should indicate a match when extracting values " +
+      "using the opt pattern " +
+      "'http://example.com/?email={-opt|bob@sporkmonger.com|test}'" do
+    @uri.extract_mapping(
+      "http://example.com/?email={-opt|bob@sporkmonger.com|test}"
+    ).should == {}
+  end
+
+  it "should indicate a match when extracting values " +
+      "using the neg pattern " +
+      "'http://example.com/?email={-neg|bob@sporkmonger.com|test}'" do
+    @uri.extract_mapping(
+      "http://example.com/?email={-neg|bob@sporkmonger.com|test}"
+    ).should == {}
+  end
+end
+
+describe Addressable::URI, "when given a pattern with bogus operators" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/a/b/c/")
+  end
+
+  it "should raise an InvalidTemplateOperatorError" do
+    (lambda do
+      @uri.extract_mapping("http://example.com/{-bogus|/|a,b,c}/")
+    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
+  end
+
+  it "should raise an InvalidTemplateOperatorError" do
+    (lambda do
+      @uri.extract_mapping("http://example.com/{-prefix|/|a,b,c}/")
+    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
+  end
+
+  it "should raise an InvalidTemplateOperatorError" do
+    (lambda do
+      @uri.extract_mapping("http://example.com/{-suffix|/|a,b,c}/")
+    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
+  end
+
+  it "should raise an InvalidTemplateOperatorError" do
+    (lambda do
+      @uri.extract_mapping("http://example.com/{-list|/|a,b,c}/")
+    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
   end
 end
 

@@ -55,6 +55,11 @@ module Addressable
     end
 
     ##
+    # Raised if an invalid template operator is used in a pattern.
+    class TemplateOperatorAbortedError < StandardError
+    end
+
+    ##
     # Container for the character classes specified in
     # <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
     module CharacterClasses
@@ -317,9 +322,14 @@ module Addressable
       # FIXME: MUST REFACTOR!!!
 
       result = pattern.dup
-      character_class =
-        Addressable::URI::CharacterClasses::RESERVED +
-        Addressable::URI::CharacterClasses::UNRESERVED
+
+      reserved = Addressable::URI::CharacterClasses::RESERVED
+      unreserved = Addressable::URI::CharacterClasses::UNRESERVED
+      anything = reserved + unreserved
+      operator_expansion =
+        /\{-([a-zA-Z]+)\|([#{anything}]+)\|([#{anything}]+)\}/
+      variable_expansion = /\{([#{anything}]+?)(=([#{anything}]+))?\}/
+
       transformed_mapping = mapping.inject({}) do |accu, pair|
         name, value = pair
         unless value.respond_to?(:to_ary) || value.respond_to?(:to_str)
@@ -362,31 +372,22 @@ module Addressable
         accu
       end
       result.gsub!(
-        /\{-[a-zA-Z]+\|[#{character_class}]+\|[#{character_class}]+\}/
+        /#{operator_expansion}|#{variable_expansion}/
       ) do |capture|
-        operator, argument, variables = capture[1...-1].split("|")
-        operator.gsub!(/^\-/, "")
-        variables = variables.split(",")
-        default_mapping = (variables.inject({}) do |accu, var|
-          varname, _, vardefault = var.scan(/^(.+?)(=(.*))?$/)[0]
-          accu[varname] = vardefault
-          accu
-        end).merge(transformed_mapping)
-        variables = variables.map { |var| var.gsub(/=.*$/, "") }
-        expand_method = "expand_#{operator}_operator"
-        if ([expand_method, expand_method.to_sym] & private_methods).empty?
-          puts private_methods.sort.inspect
-          raise InvalidTemplateOperatorError,
-            "Invalid template operator: #{operator}"
+        if capture =~ operator_expansion
+          operator, argument, variables, default_mapping =
+            parse_template_expansion(capture, transformed_mapping)
+          expand_method = "expand_#{operator}_operator"
+          if ([expand_method, expand_method.to_sym] & private_methods).empty?
+            raise InvalidTemplateOperatorError,
+              "Invalid template operator: #{operator}"
+          else
+            send(expand_method.to_sym, argument, variables, default_mapping)
+          end
         else
-          send(expand_method.to_sym, argument, variables, default_mapping)
+          varname, _, vardefault = capture.scan(/^\{(.+?)(=(.*))?\}$/)[0]
+          transformed_mapping[varname] || vardefault
         end
-      end
-      result.gsub!(
-        /\{[#{character_class}]+\}/
-      ) do |capture|
-        varname, _, vardefault = capture.scan(/^\{(.+?)(=(.*))?\}$/)[0]
-        transformed_mapping[varname] || vardefault
       end
       return Addressable::URI.parse(result)
     end
@@ -517,6 +518,28 @@ module Addressable
     class <<self; private :expand_list_operator; end
 
     ##
+    # Parses a URI template expansion <tt>String</tt>.
+    #
+    # @param [String] expansion The operator <tt>String</tt>.
+    # @param [Hash] mapping The mapping to merge defaults into.
+    #
+    # @return [Array]
+    #   A tuple of the operator, argument, variables, and mapping.
+    def self.parse_template_expansion(capture, mapping)
+      operator, argument, variables = capture[1...-1].split("|")
+      operator.gsub!(/^\-/, "")
+      variables = variables.split(",")
+      mapping = (variables.inject({}) do |accu, var|
+        varname, _, vardefault = var.scan(/^(.+?)(=(.*))?$/)[0]
+        accu[varname] = vardefault
+        accu
+      end).merge(mapping)
+      variables = variables.map { |var| var.gsub(/=.*$/, "") }
+      return operator, argument, variables, mapping
+    end
+    class <<self; private :parse_template_expansion; end
+
+    ##
     # Extracts a mapping from the URI using a URI Template pattern.
     #
     # @param [String] pattern
@@ -529,9 +552,10 @@ module Addressable
     #   <tt>restore</tt> method should reverse any transformations that have
     #   been performed on the value to ensure a valid URI.  The
     #   <tt>match</tt> method should take a single parameter: [String] name.
-    #   The <tt>match</tt> method should return a String containing a regular
-    #   expression capture group for matching on that particular variable.
-    #   The default value is ".*".
+    #   The <tt>match</tt> method should return a <tt>String</tt> containing
+    #   a regular expression capture group for matching on that particular
+    #   variable.  The default value is ".*?".  The <tt>match</tt> method has
+    #   no effect on multivariate operator expansions.
     # @return [Hash, NilClass]
     #   The <tt>Hash</tt> mapping that was extracted from the URI, or
     #   <tt>nil</tt> if the URI didn't match the template.
@@ -571,64 +595,297 @@ module Addressable
     #   )
     #   #=> {"first" => "a", "second" => ["b", "c"]}
     def extract_mapping(pattern, processor=nil)
+      reserved = Addressable::URI::CharacterClasses::RESERVED
+      unreserved = Addressable::URI::CharacterClasses::UNRESERVED
+      anything = reserved + unreserved
+      operator_expansion =
+        /\{-([a-zA-Z]+)\|([#{anything}]+)\|([#{anything}]+)\}/
+      variable_expansion = /\{([#{anything}]+?)(=([#{anything}]+))?\}/
+
+      # First, we need to process the pattern, and extract the values.
+      expansions, expansion_regexp =
+        parse_template_pattern(pattern, processor)
+      unparsed_values = self.to_s.scan(expansion_regexp).flatten
+
       mapping = {}
-      variable_regexp =
-        /\{([#{Addressable::URI::CharacterClasses::UNRESERVED}]+)\}/
 
-      # Get all the variables in the pattern
-      variables = pattern.scan(variable_regexp).flatten
+      if self.to_s == pattern
+        return mapping
+      elsif expansions.size > 0 && expansions.size == unparsed_values.size
+        expansions.each_with_index do |expansion, index|
+          unparsed_value = unparsed_values[index]
+          if expansion =~ operator_expansion
+            operator, argument, variables =
+              parse_template_expansion(expansion)
+            extract_method = "extract_#{operator}_operator"
+            if ([extract_method, extract_method.to_sym] &
+                private_methods).empty?
+              raise InvalidTemplateOperatorError,
+                "Invalid template operator: #{operator}"
+            else
+              begin
+                send(
+                  extract_method.to_sym, unparsed_value, processor,
+                  argument, variables, mapping
+                )
+              rescue TemplateOperatorAbortedError
+                return nil
+              end
+            end
+          else
+            name = expansion[variable_expansion, 1]
+            value = unparsed_value
+            if processor != nil && processor.respond_to?(:restore)
+              value = processor.restore(name, value)
+            end
+            mapping[name] = value
+          end
+        end
+        return mapping
+      else
+        return nil
+      end
+    end
 
-      # Initialize all result values to the empty string
-      variables.each { |v| mapping[v] = "" }
+    ##
+    # Generates the <tt>Regexp</tt> that parses a template pattern.
+    #
+    # @param [String] pattern The URI template pattern.
+    # @param [#match] processor The template processor to use.
+    #
+    # @return [Regexp]
+    #   A regular expression which may be used to parse a template pattern.
+    def parse_template_pattern(pattern, processor)
+      reserved = Addressable::URI::CharacterClasses::RESERVED
+      unreserved = Addressable::URI::CharacterClasses::UNRESERVED
+      anything = reserved + unreserved
+      operator_expansion =
+        /\{-[a-zA-Z]+\|[#{anything}]+\|[#{anything}]+\}/
+      variable_expansion = /\{([#{anything}]+?)(=([#{anything}]+))?\}/
 
-      # Escape the pattern
-      escaped_pattern =
-        Regexp.escape(pattern).gsub(/\\\{/, "{").gsub(/\\\}/, "}")
+      # Escape the pattern.  The two gsubs restore the escaped curly braces
+      # back to their original form.  Basically, escape everything that isn't
+      # within an expansion.
+      escaped_pattern = Regexp.escape(
+        pattern
+      ).gsub(/\\\{(.*?)\\\}/) do |escaped|
+        escaped.gsub(/\\(.)/, "\\1")
+      end
+
+      expansions = []
 
       # Create a regular expression that captures the values of the
       # variables in the URI.
-      regexp_string = escaped_pattern.gsub(variable_regexp) do |v|
-        capture_group = "(.*)"
-
-        if processor != nil
-          if processor.respond_to?(:match)
-            name = v[variable_regexp, 1]
+      regexp_string = escaped_pattern.gsub(
+        /#{operator_expansion}|#{variable_expansion}/
+      ) do |expansion|
+        expansions << expansion
+        if expansion =~ operator_expansion
+          capture_group = "(.*)"
+          if processor != nil && processor.respond_to?(:match)
+            # We can only lookup the match values for single variable
+            # operator expansions.  Besides, ".*" is usually the only
+            # reasonable value for multivariate operators anyways.
+            operator, _, names, _ =
+              parse_template_expansion(expansion)
+            if ["prefix", "suffix", "list"].include?(operator)
+              capture_group = "(#{processor.match(names.first)})"
+            end
+          end
+          capture_group
+        else
+          capture_group = "(.*?)"
+          if processor != nil && processor.respond_to?(:match)
+            name = expansion[/\{([^\}=]+)(=[^\}]+)?\}/, 1]
             capture_group = "(#{processor.match(name)})"
           end
+          capture_group
         end
-
-        capture_group
       end
 
       # Ensure that the regular expression matches the whole URI.
       regexp_string = "^#{regexp_string}$"
 
-      regexp = Regexp.new(regexp_string)
-      values = self.to_s.scan(regexp).flatten
+      return expansions, Regexp.new(regexp_string)
+    end
+    private :parse_template_pattern
 
-      if variables.size == values.size && variables.size > 0
-        # We have a match.
-        for i in 0...variables.size
-          name = variables[i]
-          value = values[i]
+    ##
+    # Parses a URI template expansion <tt>String</tt>.
+    #
+    # @param [String] expansion The operator <tt>String</tt>.
+    #
+    # @return [Array]
+    #   A tuple of the operator, argument, variables.
+    def parse_template_expansion(capture)
+      operator, argument, variables = capture[1...-1].split("|")
+      operator.gsub!(/^\-/, "")
+      variables = variables.split(",").map { |var| var.gsub(/=.*$/, "") }
+      return operator, argument, variables
+    end
+    private :parse_template_expansion
 
-          if processor != nil
-            if processor.respond_to?(:restore)
-              value = processor.restore(name, value)
-            end
-          end
 
-          mapping[name] = value
-        end
-        return mapping
-      elsif self.to_s == pattern
-        # The pattern contained no variables but still matched.
-        return mapping
-      else
-        # Pattern failed to match URI.
-        return nil
+    ##
+    # Extracts a URI Template opt operator.
+    #
+    # @param [String] value The unparsed value to extract from.
+    # @param [#restore] processor The processor object.
+    # @param [String] argument The argument to the operator.
+    # @param [Array] variables The variables the operator is working on.
+    # @param [Hash] mapping The mapping of variables to values.
+    #
+    # @return [String] The extracted result.
+    def extract_opt_operator(
+        value, processor, argument, variables, mapping)
+      if value != "" && value != argument
+        raise TemplateOperatorAbortedError,
+          "Value for template operator 'neg' was unexpected."
       end
     end
+    private :extract_opt_operator
+
+    ##
+    # Extracts a URI Template neg operator.
+    #
+    # @param [String] value The unparsed value to extract from.
+    # @param [#restore] processor The processor object.
+    # @param [String] argument The argument to the operator.
+    # @param [Array] variables The variables the operator is working on.
+    # @param [Hash] mapping The mapping of variables to values.
+    #
+    # @return [String] The extracted result.
+    def extract_neg_operator(
+        value, processor, argument, variables, mapping)
+      if value != "" && value != argument
+        raise TemplateOperatorAbortedError,
+          "Value for template operator 'neg' was unexpected."
+      end
+    end
+    private :extract_neg_operator
+
+    ##
+    # Extracts a URI Template prefix operator.
+    #
+    # @param [String] value The unparsed value to extract from.
+    # @param [#restore] processor The processor object.
+    # @param [String] argument The argument to the operator.
+    # @param [Array] variables The variables the operator is working on.
+    # @param [Hash] mapping The mapping of variables to values.
+    #
+    # @return [String] The extracted result.
+    def extract_prefix_operator(
+        value, processor, argument, variables, mapping)
+      if variables.size != 1
+        raise InvalidTemplateOperatorError,
+          "Template operator 'suffix' takes exactly one variable."
+      end
+      if value[0...argument.size] != argument
+        raise TemplateOperatorAbortedError,
+          "Value for template operator 'prefix' missing expected prefix."
+      end
+      values = value.split(argument)
+      # Compensate for the crappy result from split.
+      if value[-argument.size..-1] == argument
+        values << ""
+      end
+      if values[0] == ""
+        values.shift
+      end
+      if processor && processor.respond_to?(:restore)
+        values.map! { |value| processor.restore(variables.first, value) }
+      end
+      mapping[variables.first] = values
+    end
+    private :extract_prefix_operator
+
+    ##
+    # Extracts a URI Template suffix operator.
+    #
+    # @param [String] value The unparsed value to extract from.
+    # @param [#restore] processor The processor object.
+    # @param [String] argument The argument to the operator.
+    # @param [Array] variables The variables the operator is working on.
+    # @param [Hash] mapping The mapping of variables to values.
+    #
+    # @return [String] The extracted result.
+    def extract_suffix_operator(
+        value, processor, argument, variables, mapping)
+      if variables.size != 1
+        raise InvalidTemplateOperatorError,
+          "Template operator 'suffix' takes exactly one variable."
+      end
+      if value[-argument.size..-1] != argument
+        raise TemplateOperatorAbortedError,
+          "Value for template operator 'suffix' missing expected suffix."
+      end
+      values = value.split(argument)
+      # Compensate for the crappy result from split.
+      if value[-argument.size..-1] == argument
+        values << ""
+      end
+      if values[-1] == ""
+        values.pop
+      end
+      if processor && processor.respond_to?(:restore)
+        values.map! { |value| processor.restore(variables.first, value) }
+      end
+      mapping[variables.first] = values
+    end
+    private :extract_suffix_operator
+
+    ##
+    # Extracts a URI Template join operator.
+    #
+    # @param [String] value The unparsed value to extract from.
+    # @param [#restore] processor The processor object.
+    # @param [String] argument The argument to the operator.
+    # @param [Array] variables The variables the operator is working on.
+    # @param [Hash] mapping The mapping of variables to values.
+    #
+    # @return [String] The extracted result.
+    def extract_join_operator(value, processor, argument, variables, mapping)
+      unparsed_values = value.split(argument)
+      parsed_variables = []
+      for unparsed_value in unparsed_values
+        name = unparsed_value[/^(.+?)=(.+)$/, 1]
+        parsed_variables << name
+        parsed_value = unparsed_value[/^(.+?)=(.+)$/, 2]
+        if processor && processor.respond_to?(:restore)
+          parsed_value = processor.restore(name, parsed_value)
+        end
+        mapping[name] = parsed_value
+      end
+      if (parsed_variables & variables) != variables
+        raise TemplateOperatorAbortedError,
+          "Template operator 'join' variable mismatch: " +
+          "#{parsed_variables.inspect}, #{variables.inspect}"
+      end
+    end
+    private :extract_join_operator
+
+    ##
+    # Extracts a URI Template list operator.
+    #
+    # @param [String] value The unparsed value to extract from.
+    # @param [#restore] processor The processor object.
+    # @param [String] argument The argument to the operator.
+    # @param [Array] variables The variables the operator is working on.
+    # @param [Hash] mapping The mapping of variables to values.
+    #
+    # @return [String] The extracted result.
+    def extract_list_operator(value, processor, argument, variables, mapping)
+      if variables.size != 1
+        raise InvalidTemplateOperatorError,
+          "Template operator 'list' takes exactly one variable."
+      end
+      values = value.split(argument)
+      if processor && processor.respond_to?(:restore)
+        values.map! { |value| processor.restore(variables.first, value) }
+      end
+      mapping[variables.first] = values
+    end
+    private :extract_list_operator
 
     ##
     # Joins several URIs together.
