@@ -4079,7 +4079,8 @@ describe Addressable::URI, " when parsed from " +
 
   it "should not match when extracting values " +
       "using the pattern " +
-      "'http://{host}/{-suffix|/|segments}?{-join|&|one,bogus}\#{fragment}'" do
+      "'http://{host}/{-suffix|/|segments}?" +
+      "{-join|&|one,bogus}\#{fragment}'" do
     @uri.extract_mapping(
       "http://{host}/{-suffix|/|segments}?{-join|&|one,bogus}\#{fragment}"
     ).should == nil
@@ -4087,7 +4088,8 @@ describe Addressable::URI, " when parsed from " +
 
   it "should not match when extracting values " +
       "using the pattern " +
-      "'http://{host}/{-suffix|/|segments}?{-join|&|one,two,bogus}\#{fragment}'" do
+      "'http://{host}/{-suffix|/|segments}?" +
+      "{-join|&|one,two,bogus}\#{fragment}'" do
     @uri.extract_mapping(
       "http://{host}/{-suffix|/|segments}?{-join|&|one,two,bogus}\#{fragment}"
     ).should == {
