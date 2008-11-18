@@ -14,11 +14,25 @@ Example usage:
   uri.path
   #=> "/path/to/resource/"
 
+  uri = Addressable::URI.parse("http://www.詹姆斯.com/")
+  uri.normalize
+  #=> #<Addressable::URI:0xc9a4c8 URI:http://www.xn--8ws00zhy3a.com/>
+
   Addressable::URI.expand_template("http://example.com/{-list|+|query}/", {
     "query" => "an example query".split(" ")
   })
   #=> #<Addressable::URI:0xc9d95c URI:http://example.com/an+example+query/>
 
-  uri = Addressable::URI.parse("http://www.詹姆斯.com/")
-  uri.normalize
-  #=> #<Addressable::URI:0xc9a4c8 URI:http://www.xn--8ws00zhy3a.com/>
+  Addressable::URI.parse(
+    "http://example.com/a/b/c/?one=1&two=2#foo"
+  ).extract_mapping(
+    "http://{host}/{-suffix|/|segments}?{-join|&|one,two,bogus}\#{fragment}"
+  )
+  #=>
+  # {
+  #   "host" => "example.com",
+  #   "segments" => ["a", "b", "c"],
+  #   "one" => "1",
+  #   "two" => "2",
+  #   "fragment" => "foo"
+  # }
