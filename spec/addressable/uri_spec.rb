@@ -584,11 +584,25 @@ describe Addressable::URI, " when parsed from " +
     @uri.to_s.should == "http://newuser@example.com"
   end
 
+  it "should have the correct username after assignment" do
+    @uri.user = "user@123!"
+    @uri.user.should == "user@123!"
+    @uri.password.should == nil
+    @uri.to_s.should == "http://user%40123%21@example.com"
+  end
+
   it "should have the correct password after assignment" do
     @uri.password = "newpass"
     @uri.password.should == "newpass"
     @uri.user.should == ""
-    @uri.to_s.should == "http://:newpass@example.com"
+    @uri.normalize.to_s.should == "http://:newpass@example.com"
+  end
+
+  it "should have the correct password after assignment" do
+    @uri.password = "secret@123!"
+    @uri.password.should == "secret@123!"
+    @uri.user.should == ""
+    @uri.normalize.to_s.should == "http://:secret%40123%21@example.com"
   end
 
   it "should have the correct user/pass after repeated assignment" do

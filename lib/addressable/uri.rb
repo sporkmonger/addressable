@@ -990,7 +990,8 @@ module Addressable
       end
       if ![String, ::Addressable::URI].include?(returning)
         raise TypeError,
-          "Expected String or Addressable::URI, got #{returning.inspect}"
+          "Expected Class (String or Addressable::URI), " +
+          "got #{returning.inspect}"
       end
       result = uri.to_str.gsub(/%[0-9a-f]{2}/i) do |sequence|
         sequence[1..3].to_i(16).chr
@@ -1030,7 +1031,8 @@ module Addressable
       end
       if ![String, ::Addressable::URI].include?(returning)
         raise TypeError,
-          "Expected String or Addressable::URI, got #{returning.inspect}"
+          "Expected Class (String or Addressable::URI), " +
+          "got #{returning.inspect}"
       end
       uri_object = uri.kind_of?(self) ? uri : self.parse(uri.to_str)
       encoded_uri = Addressable::URI.new(
@@ -1077,7 +1079,8 @@ module Addressable
       end
       if ![String, ::Addressable::URI].include?(returning)
         raise TypeError,
-          "Expected String or Addressable::URI, got #{returning.inspect}"
+          "Expected Class (String or Addressable::URI), " +
+          "got #{returning.inspect}"
       end
       uri_object = uri.kind_of?(self) ? uri : self.parse(uri.to_str)
       components = {
@@ -1099,9 +1102,9 @@ module Addressable
         :scheme => self.encode_component(components[:scheme],
           Addressable::URI::CharacterClasses::SCHEME),
         :user => self.encode_component(components[:user],
-          Addressable::URI::CharacterClasses::AUTHORITY),
+          Addressable::URI::CharacterClasses::UNRESERVED),
         :password => self.encode_component(components[:password],
-          Addressable::URI::CharacterClasses::AUTHORITY),
+          Addressable::URI::CharacterClasses::UNRESERVED),
         :host => components[:host],
         :port => components[:port],
         :path => self.encode_component(components[:path],
