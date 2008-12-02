@@ -587,22 +587,24 @@ describe Addressable::URI, " when parsed from " +
   it "should have the correct username after assignment" do
     @uri.user = "user@123!"
     @uri.user.should == "user@123!"
+    @uri.normalized_user.should == "user%40123%21"
     @uri.password.should == nil
-    @uri.to_s.should == "http://user%40123%21@example.com"
+    @uri.normalize.to_s.should == "http://user%40123%21@example.com/"
   end
 
   it "should have the correct password after assignment" do
     @uri.password = "newpass"
     @uri.password.should == "newpass"
     @uri.user.should == ""
-    @uri.normalize.to_s.should == "http://:newpass@example.com"
+    @uri.to_s.should == "http://:newpass@example.com"
   end
 
   it "should have the correct password after assignment" do
     @uri.password = "secret@123!"
     @uri.password.should == "secret@123!"
+    @uri.normalized_password.should == "secret%40123%21"
     @uri.user.should == ""
-    @uri.normalize.to_s.should == "http://:secret%40123%21@example.com"
+    @uri.normalize.to_s.should == "http://:secret%40123%21@example.com/"
   end
 
   it "should have the correct user/pass after repeated assignment" do
@@ -844,6 +846,8 @@ describe Addressable::URI, " when parsed from " +
 
   it "should not change if encoded with the normalizing algorithm" do
     Addressable::URI.normalized_encode(@uri).to_s.should ==
+      "http://example.com/%C3%87"
+    Addressable::URI.normalized_encode(@uri, Addressable::URI).to_s.should ===
       "http://example.com/%C3%87"
   end
 
@@ -1139,6 +1143,25 @@ describe Addressable::URI, " when parsed from " +
 
   it "should be identical to its duplicate" do
     @uri.should == @uri.dup
+  end
+end
+
+describe Addressable::URI, " when parsed from " +
+    "'http://example.com:%38%30/'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com:%38%30/")
+  end
+
+  it "should have the correct port" do
+    @uri.port.should == 80
+  end
+
+  it "should not be considered to be in normal form" do
+    @uri.normalize.should_not be_eql(@uri)
+  end
+
+  it "should normalize to 'http://example.com/'" do
+    @uri.normalize.should === "http://example.com/"
   end
 end
 
@@ -1802,6 +1825,11 @@ describe Addressable::URI, " when parsed from " +
     @uri.scheme.should == "ftp"
     @uri.to_s.should ==
       "ftp://user:pass@example.com/path/to/resource?query=x#fragment"
+    @uri.scheme = "bogus!"
+    @uri.scheme.should == "bogus!"
+    @uri.normalized_scheme.should == "bogus%21"
+    @uri.normalize.to_s.should ==
+      "bogus%21://user:pass@example.com/path/to/resource?query=x#fragment"
   end
 
   it "should have the correct authority segment after assignment" do

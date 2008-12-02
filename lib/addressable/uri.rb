@@ -1248,7 +1248,12 @@ module Addressable
           if self.scheme =~ /^\s*ssh\+svn\s*$/i
             "svn+ssh"
           else
-            self.scheme.strip.downcase
+            Addressable::URI.encode_component(
+              Addressable::IDNA.unicode_normalize_kc(
+                Addressable::URI.unencode_component(
+                  self.scheme.strip.downcase)),
+              Addressable::URI::CharacterClasses::SCHEME
+            )
           end
         else
           nil
@@ -1287,7 +1292,11 @@ module Addressable
               (!self.password || self.password.strip == "")
             nil
           else
-            self.user.strip
+            Addressable::URI.encode_component(
+              Addressable::IDNA.unicode_normalize_kc(
+                Addressable::URI.unencode_component(self.user.strip)),
+              Addressable::URI::CharacterClasses::UNRESERVED
+            )
           end
         else
           nil
@@ -1336,7 +1345,11 @@ module Addressable
               (!self.user || self.user.strip == "")
             nil
           else
-            self.password.strip
+            Addressable::URI.encode_component(
+              Addressable::IDNA.unicode_normalize_kc(
+                Addressable::URI.unencode_component(self.password.strip)),
+              Addressable::URI::CharacterClasses::UNRESERVED
+            )
           end
         else
           nil
@@ -1611,6 +1624,9 @@ module Addressable
     #
     # @param [String, Integer, #to_s] new_port The new port component.
     def port=(new_port)
+      if new_port != nil && new_port.respond_to?(:to_str)
+        new_port = Addressable::URI.unencode_component(new_port.to_str)
+      end
       if new_port != nil && !(new_port.to_s =~ /^\d+$/)
         raise InvalidURIError,
           "Invalid port number: #{new_port.inspect}"
@@ -1662,7 +1678,12 @@ module Addressable
     # @return [String] The path component, normalized.
     def normalized_path
       @normalized_path ||= (begin
-        result = self.class.normalize_path(self.path.strip)
+        result = Addressable::URI.encode_component(
+          Addressable::IDNA.unicode_normalize_kc(
+            Addressable::URI.unencode_component(self.path.strip)),
+          Addressable::URI::CharacterClasses::PATH
+        )
+        result = self.class.normalize_path(result)
         if result == "" &&
             ["http", "https", "ftp", "tftp"].include?(self.normalized_scheme)
           result = "/"
@@ -1717,7 +1738,17 @@ module Addressable
     #
     # @return [String] The query component, normalized.
     def normalized_query
-      @normalized_query ||= (self.query ? self.query.strip : nil)
+      @normalized_query ||= (begin
+        if self.query
+          Addressable::URI.encode_component(
+            Addressable::IDNA.unicode_normalize_kc(
+              Addressable::URI.unencode_component(self.query.strip)),
+            Addressable::URI::CharacterClasses::QUERY
+          )
+        else
+          nil
+        end
+      end)
     end
 
     ##
@@ -1843,7 +1874,17 @@ module Addressable
     #
     # @return [String] The fragment component, normalized.
     def normalized_fragment
-      @normalized_fragment ||= (self.fragment ? self.fragment.strip : nil)
+      @normalized_fragment ||= (begin
+        if self.fragment
+          Addressable::URI.encode_component(
+            Addressable::IDNA.unicode_normalize_kc(
+              Addressable::URI.unencode_component(self.fragment.strip)),
+            Addressable::URI::CharacterClasses::FRAGMENT
+          )
+        else
+          nil
+        end
+      end)
     end
 
     ##
@@ -2174,15 +2215,12 @@ module Addressable
         end
       end
 
-      return Addressable::URI.normalized_encode(
-        Addressable::URI.new(
-          :scheme => normalized_scheme,
-          :authority => normalized_authority,
-          :path => normalized_path,
-          :query => normalized_query,
-          :fragment => normalized_fragment
-        ),
-        ::Addressable::URI
+      return Addressable::URI.new(
+        :scheme => normalized_scheme,
+        :authority => normalized_authority,
+        :path => normalized_path,
+        :query => normalized_query,
+        :fragment => normalized_fragment
       )
     end
 
