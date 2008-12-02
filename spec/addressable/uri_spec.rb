@@ -1876,6 +1876,10 @@ describe Addressable::URI, " when parsed from " +
     @uri.query.should == "newquery=x"
     @uri.to_s.should ==
       "http://user:pass@example.com/path/to/resource?newquery=x#fragment"
+    @uri.query = nil
+    @uri.query.should == nil
+    @uri.to_s.should ==
+      "http://user:pass@example.com/path/to/resource#fragment"
   end
 
   it "should have the correct query string after hash assignment" do

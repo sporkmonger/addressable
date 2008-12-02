@@ -1725,7 +1725,7 @@ module Addressable
     #
     # @param [String, #to_str] new_query The new query component.
     def query=(new_query)
-      @query = new_query.to_str
+      @query = new_query ? new_query.to_str : nil
 
       # Reset dependant values
       @normalized_query = nil
