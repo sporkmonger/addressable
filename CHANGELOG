@@ -1,6 +1,6 @@
 === Addressable 2.0.1
   * fixed issue with query string assignment
-  * fixed issue with improperly escaped user and password components
+  * fixed issue with improperly encoded components
 
 === Addressable 2.0.0
   * the initialize method now takes an options hash as its only parameter
