@@ -3617,6 +3617,18 @@ describe Addressable::URI, "when encoding a multibyte string" do
   end
 end
 
+describe Addressable::URI, "when encoding a string with ASCII chars 0-15" do
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.encode_component("one\ntwo").should == "one%0Atwo"
+  end
+
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.encode_component(
+      "one\ntwo", /[^a-zA-Z0-9\:\/\?\#\[\]\@\!\$\&\'\(\)\*\+\,\;\=\-\.\_\~]/
+    ).should == "one%0Atwo"
+  end
+end
+
 describe Addressable::URI, "when unencoding a multibyte string" do
   it "should result in correct percent encoded sequence" do
     Addressable::URI.unencode_component("g%C3%BCnther").should == "günther"

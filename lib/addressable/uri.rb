@@ -958,7 +958,7 @@ module Addressable
         character_class = /[^#{character_class}]/
       end
       return component.gsub(character_class) do |sequence|
-        (sequence.unpack('C*').map { |c| "%#{c.to_s(16).upcase}" }).join("")
+        (sequence.unpack('C*').map { |c| "%" + ("%02x" % c).upcase }).join("")
       end
     end
 
