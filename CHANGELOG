@@ -1,3 +1,7 @@
+=== Addressable 2.0.2
+  * fixed issue with URI template expansion
+  * fixed issue with percent escaping characters 0-15
+
 === Addressable 2.0.1
   * fixed issue with query string assignment
   * fixed issue with improperly encoded components
