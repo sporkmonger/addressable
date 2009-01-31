@@ -281,7 +281,10 @@ module Addressable
     #   <tt>false</tt> otherwise.  An <tt>InvalidTemplateValueError</tt>
     #   exception will be raised if the value is invalid.  The
     #   <tt>transform</tt> method should return the transformed variable
-    #   value as a <tt>String</tt>.
+    #   value as a <tt>String</tt>.  If a <tt>transform</tt> method is used,
+    #   the value will not be percent encoded automatically.  Unicode
+    #   normalization will be performed both before and after sending the
+    #   value to the transform method.
     #
     # @return [Addressable::URI] The expanded URI template.
     #
@@ -336,22 +339,27 @@ module Addressable
           raise TypeError,
             "Can't convert #{value.class} into String or Array."
         end
-        transformed_value =
-          value.respond_to?(:to_ary) ? value.to_ary : value.to_str
 
-        # Handle percent escaping, and unicode normalization
-        if transformed_value.kind_of?(Array)
-          transformed_value.map! do |value|
-            self.encode_component(
-              Addressable::IDNA.unicode_normalize_kc(value),
-              Addressable::URI::CharacterClasses::UNRESERVED
-            )
-          end
+        value =
+          value.respond_to?(:to_ary) ? value.to_ary : value.to_str
+        # Handle unicode normalization
+        if value.kind_of?(Array)
+          value.map! { |val| Addressable::IDNA.unicode_normalize_kc(val) }
         else
-          transformed_value = self.encode_component(
-            Addressable::IDNA.unicode_normalize_kc(transformed_value),
-            Addressable::URI::CharacterClasses::UNRESERVED
-          )
+          value = Addressable::IDNA.unicode_normalize_kc(value)
+        end
+
+        if processor == nil || !processor.respond_to?(:transform)
+          # Handle percent escaping
+          if value.kind_of?(Array)
+            transformed_value = value.map do |val|
+              self.encode_component(
+                val, Addressable::URI::CharacterClasses::UNRESERVED)
+            end
+          else
+            transformed_value = self.encode_component(
+              value, Addressable::URI::CharacterClasses::UNRESERVED)
+          end
         end
 
         # Process, if we've got a processor
@@ -365,6 +373,14 @@ module Addressable
           end
           if processor.respond_to?(:transform)
             transformed_value = processor.transform(name, value)
+            if transformed_value.kind_of?(Array)
+              transformed_value.map! do |val|
+                Addressable::IDNA.unicode_normalize_kc(val)
+              end
+            else
+              transformed_value =
+                Addressable::IDNA.unicode_normalize_kc(transformed_value)
+            end
           end
         end
 

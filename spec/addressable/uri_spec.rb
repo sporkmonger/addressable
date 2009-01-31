@@ -69,6 +69,12 @@ class SlashlessProcessor
   end
 end
 
+class NoOpProcessor
+  def self.transform(name, value)
+    value
+  end
+end
+
 describe Addressable::URI, "when created with a non-numeric port number" do
   it "should raise an error" do
     (lambda do
@@ -3569,6 +3575,15 @@ describe Addressable::URI, "when given a mapping that contains an Array" do
     Addressable::URI.expand_template(
       "http://example.com/search/{-list|+|query}/",
       @mapping).to_s.should ==
+        "http://example.com/search/an+example+search+query/"
+  end
+
+  it "should result in 'http://example.com/search/an+example+search+query/'" +
+      " when used to expand 'http://example.com/search/{-list|+|query}/'" +
+      " with a NoOpProcessor" do
+    Addressable::URI.expand_template(
+      "http://example.com/search/{-list|+|query}/",
+      @mapping, NoOpProcessor).to_s.should ==
         "http://example.com/search/an+example+search+query/"
   end
 end
