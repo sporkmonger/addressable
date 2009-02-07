@@ -1138,67 +1138,6 @@ module Addressable
     end
 
     ##
-    # Extracts uris from an arbitrary body of text.
-    #
-    # @param [String, #to_str] text
-    #   The body of text to extract URIs from.
-    #
-    # @option [String, Addressable::URI, #to_str] base
-    #   Causes any relative URIs to be resolved against the base URI.
-    #
-    # @option [TrueClass, FalseClass] parse
-    #   If parse is true, all extracted URIs will be parsed.  If parse is
-    #   false, the return value with be an <tt>Array</tt> of <tt>Strings</aa>.
-    #   Defaults to false.
-    #
-    # @return [Array] The extracted URIs.
-    def self.extract(text, options={})
-      defaults = {:base => nil, :parse => false}
-      options = defaults.merge(options)
-      raise InvalidOptionError unless (options.keys - defaults.keys).empty?
-      # This regular expression needs to be less forgiving or else it would
-      # match virtually all text.  Which isn't exactly what we're going for.
-      extract_regex = /((([a-z\+]+):)[^ \n\<\>\"\\]+[\w\/])/
-      extracted_uris =
-        text.scan(extract_regex).collect { |match| match[0] }
-      sgml_extract_regex = /<[^>]+href=\"([^\"]+?)\"[^>]*>/
-      sgml_extracted_uris =
-        text.scan(sgml_extract_regex).collect { |match| match[0] }
-      extracted_uris.concat(sgml_extracted_uris - extracted_uris)
-      textile_extract_regex = /\".+?\":([^ ]+\/[^ ]+)[ \,\.\;\:\?\!\<\>\"]/i
-      textile_extracted_uris =
-        text.scan(textile_extract_regex).collect { |match| match[0] }
-      extracted_uris.concat(textile_extracted_uris - extracted_uris)
-      parsed_uris = []
-      base_uri = nil
-      if options[:base] != nil
-        base_uri = options[:base] if options[:base].kind_of?(self)
-        base_uri = self.parse(options[:base].to_s) if base_uri == nil
-      end
-      for uri_string in extracted_uris
-        begin
-          if base_uri == nil
-            parsed_uris << self.parse(uri_string)
-          else
-            parsed_uris << (base_uri + self.parse(uri_string))
-          end
-        rescue Exception
-          nil
-        end
-      end
-      parsed_uris = parsed_uris.select do |uri|
-        (self.ip_based_schemes | [
-          "file", "git", "svn", "mailto", "tel"
-        ]).include?(uri.normalized_scheme)
-      end
-      if options[:parse]
-        return parsed_uris
-      else
-        return parsed_uris.collect { |uri| uri.to_s }
-      end
-    end
-
-    ##
     # Creates a new uri object from component parts.
     #
     # @option [String, #to_str] scheme The scheme component.

@@ -2936,47 +2936,6 @@ describe Addressable::URI, "with a base uri of 'http://a/b/c/d;p?q'" do
   end
 end
 
-describe Addressable::URI, "when extracting from an arbitrary text" do
-  before do
-    @text = File.open(File.expand_path(
-      File.dirname(__FILE__) + "/../data/rfc3986.txt")) { |file| file.read }
-  end
-
-  it "should have all obvious URIs extractable from it" do
-    @uris = Addressable::URI.extract(@text)
-    @uris.should include("http://www.w3.org/People/Berners-Lee/")
-    @uris.should include("http://roy.gbiv.com/")
-    @uris.should include("http://larry.masinter.net/")
-    @uris = Addressable::URI.extract(@text,
-      :base => "http://example.com/", :parse => true)
-    @uris.should include(
-      Addressable::URI.parse("http://www.w3.org/People/Berners-Lee/"))
-    @uris.should include(
-      Addressable::URI.parse("http://roy.gbiv.com/"))
-    @uris.should include(
-      Addressable::URI.parse("http://larry.masinter.net/"))
-  end
-end
-
-describe Addressable::URI, "when extracting from an arbitrary text " +
-    "containing invalid URIs" do
-  before do
-    @text = <<-TEXT
-      This is an invalid URI:
-        http://example.com:bogus/path/to/something/
-      This is a valid URI:
-        http://example.com:80/path/to/something/
-    TEXT
-  end
-
-  it "should ignore invalid URIs when extracting" do
-    @uris = Addressable::URI.extract(@text)
-    @uris.should include("http://example.com:80/path/to/something/")
-    @uris.should_not include("http://example.com:bogus/path/to/something/")
-    @uris.size.should == 1
-  end
-end
-
 describe Addressable::URI, "when converting the path " +
     "'relative/path/to/something'" do
   before do
