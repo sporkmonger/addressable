@@ -200,6 +200,13 @@ describe Addressable::URI, "when parsed from an Addressable::URI object" do
       Addressable::URI.parse(uri).object_id.should == uri.object_id
     end).should_not raise_error
   end
+
+  it "should return the object" do
+    uri = Addressable::URI.parse("http://example.com/")
+    (lambda do
+      Addressable::URI.heuristic_parse(uri).object_id.should == uri.object_id
+    end).should_not raise_error
+  end
 end
 
 describe Addressable::URI, "when parsed from something that looks " +
@@ -3632,7 +3639,7 @@ describe Addressable::URI, " when parsing a non-String object" do
   it "should raise a TypeError for objects than cannot be converted" do
     (lambda do
       Addressable::URI.heuristic_parse(42)
-    end).should raise_error(TypeError)
+    end).should raise_error(TypeError, "Can't convert Fixnum into String.")
   end
 end
 
@@ -4218,6 +4225,49 @@ describe Addressable::URI, "when given a pattern with bogus operators" do
     (lambda do
       @uri.extract_mapping("http://example.com/{-list|/|a,b,c}/")
     end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
+  end
+end
+
+describe Addressable::URI, " when given the input " +
+    "'http://example.com/'" do
+  before do
+    @input = "http://example.com/"
+  end
+
+  it "should heuristically parse to 'http://example.com/'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    @uri.to_s.should == "http://example.com/"
+  end
+end
+
+
+describe Addressable::URI, " when given the input " +
+    "'http:example.com/'" do
+  before do
+    @input = "http:example.com/"
+  end
+
+  it "should heuristically parse to 'http://example.com/'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    @uri.to_s.should == "http://example.com/"
+  end
+
+  it "should heuristically parse to 'http://example.com/' " +
+      "even with a scheme hint of 'ftp'" do
+    @uri = Addressable::URI.heuristic_parse(@input, {:scheme => 'ftp'})
+    @uri.to_s.should == "http://example.com/"
+  end
+end
+
+describe Addressable::URI, " when given the input " +
+    "'http://example.com/example.com/'" do
+  before do
+    @input = "http://example.com/example.com/"
+  end
+
+  it "should heuristically parse to 'http://example.com/example.com/'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    @uri.to_s.should == "http://example.com/example.com/"
   end
 end
 

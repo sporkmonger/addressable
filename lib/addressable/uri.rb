@@ -185,16 +185,14 @@ module Addressable
       if parsed.scheme =~ /^[^\/?#\.]+\.[^\/?#]+$/
         parsed = self.parse(hints[:scheme] + "://" + uri)
       end
-      if parsed.authority == nil
-        if parsed.path =~ /^[^\/]+\./
-          new_host = parsed.path[/^([^\/]+\.[^\/]*)/, 1]
-          if new_host
-            new_path = parsed.path.gsub(
-              Regexp.new("^" + Regexp.escape(new_host)), "")
-            parsed.host = new_host
-            parsed.path = new_path
-            parsed.scheme = hints[:scheme]
-          end
+      if parsed.path.include?(".")
+        new_host = parsed.path[/^([^\/]+\.[^\/]*)/, 1]
+        if new_host
+          new_path = parsed.path.gsub(
+            Regexp.new("^" + Regexp.escape(new_host)), "")
+          parsed.host = new_host
+          parsed.path = new_path
+          parsed.scheme = hints[:scheme] unless parsed.scheme
         end
       end
       return parsed
