@@ -40,6 +40,18 @@ if !"".respond_to?("force_encoding")
   end
 end
 
+module URI
+  class HTTP
+    def initialize(uri)
+      @uri = uri
+    end
+
+    def to_s
+      return @uri.to_s
+    end
+  end
+end
+
 class ExampleProcessor
   def self.validate(name, value)
     return !!(value =~ /^[\w ]+$/) if name == "query"
@@ -178,6 +190,51 @@ describe Addressable::URI, "when created with a path that hasn't been " +
     Addressable::URI.new(
       :scheme => "http", :path => "path"
     ).should == Addressable::URI.parse("http:path")
+  end
+end
+
+describe Addressable::URI, "when parsed from an Addressable::URI object" do
+  it "should return the object" do
+    uri = Addressable::URI.parse("http://example.com/")
+    (lambda do
+      Addressable::URI.parse(uri).object_id.should == uri.object_id
+    end).should_not raise_error
+  end
+end
+
+describe Addressable::URI, "when parsed from something that looks " +
+    "like a URI object" do
+  it "should parse without error" do
+    uri = Addressable::URI.parse(URI::HTTP.new("http://example.com/"))
+    (lambda do
+      Addressable::URI.parse(uri)
+    end).should_not raise_error
+  end
+end
+
+describe Addressable::URI, "when parsed from ''" do
+  before do
+    @uri = Addressable::URI.parse("")
+  end
+
+  it "should have no scheme" do
+    @uri.scheme.should == nil
+  end
+
+  it "should not be considered to be ip-based" do
+    @uri.should_not be_ip_based
+  end
+
+  it "should have a path of ''" do
+    @uri.path.should == ""
+  end
+
+  it "should be considered relative" do
+    @uri.should be_relative
+  end
+
+  it "should be considered to be in normal form" do
+    @uri.normalize.should be_eql(@uri)
   end
 end
 
@@ -3565,7 +3622,7 @@ describe Addressable::URI, " when parsing a non-String object" do
   it "should raise a TypeError for objects than cannot be converted" do
     (lambda do
       Addressable::URI.parse(42)
-    end).should raise_error(TypeError)
+    end).should raise_error(TypeError, "Can't convert Fixnum into String.")
   end
 
   it "should correctly parse heuristically anything with a 'to_str' method" do

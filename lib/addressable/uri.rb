@@ -90,11 +90,6 @@ module Addressable
       return nil unless uri
       # If a URI object is passed, just return itself.
       return uri if uri.kind_of?(self)
-      if !uri.respond_to?(:to_str)
-        raise TypeError, "Can't convert #{uri.class} into String."
-      end
-      # Otherwise, convert to a String
-      uri = uri.to_str
 
       # If a URI object of the Ruby standard library variety is passed,
       # convert it to a string, then parse the string.
@@ -104,18 +99,22 @@ module Addressable
         uri = uri.to_s
       end
 
+      if !uri.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{uri.class} into String."
+      end
+      # Otherwise, convert to a String
+      uri = uri.to_str
+
       # This Regexp supplied as an example in RFC 3986, and it works great.
       uri_regex =
-        /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/
+        /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/
       scan = uri.scan(uri_regex)
       fragments = scan[0]
-      return nil if fragments.nil?
       scheme = fragments[1]
       authority = fragments[3]
       path = fragments[4]
       query = fragments[6]
       fragment = fragments[8]
-      userinfo = nil
       user = nil
       password = nil
       host = nil
