@@ -129,6 +129,11 @@ describe Addressable::URI, "when created from nil components" do
     @uri.to_s.should == ""
   end
 
+  it "should still be an empty uri if the scheme is set to whitespace" do
+    @uri.scheme = "\t \n"
+    @uri.to_s.should == ""
+  end
+
   it "should raise an error if set into an invalid state" do
     (lambda do
       @uri.user = "user"
