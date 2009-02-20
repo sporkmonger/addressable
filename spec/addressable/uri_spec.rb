@@ -128,6 +128,32 @@ describe Addressable::URI, "when created from nil components" do
   it "should be an empty uri" do
     @uri.to_s.should == ""
   end
+
+  it "should raise an error if set into an invalid state" do
+    (lambda do
+      @uri.user = "user"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if set into an invalid state" do
+    (lambda do
+      @uri.password = "pass"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if set into an invalid state" do
+    (lambda do
+      @uri.scheme = "http"
+      @uri.fragment = "fragment"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if set into an invalid state" do
+    (lambda do
+      @uri.fragment = "fragment"
+      @uri.scheme = "http"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
 end
 
 describe Addressable::URI, "when created from string components" do
@@ -362,6 +388,12 @@ describe Addressable::URI, "when parsed from " +
   it "should correctly omit components destructively" do
     @uri.omit!(:scheme, :authority)
     @uri.to_s.should == "/c=GB?objectClass?one"
+  end
+
+  it "should raise an error if omission would create an invalid URI" do
+    (lambda do
+      @uri.omit(:authority, :path)
+    end).should raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
@@ -687,6 +719,7 @@ describe Addressable::URI, " when parsed from " +
     @uri.normalized_password.should == "secret%40123%21"
     @uri.user.should == ""
     @uri.normalize.to_s.should == "http://:secret%40123%21@example.com/"
+    @uri.omit(:password).to_s.should == "http://example.com"
   end
 
   it "should have the correct user/pass after repeated assignment" do

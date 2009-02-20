@@ -1223,6 +1223,9 @@ module Addressable
 
       # Reset dependant values
       @normalized_scheme = nil
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     ##
@@ -1848,6 +1851,9 @@ module Addressable
 
       # Reset dependant values
       @normalized_fragment = nil
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     ##
@@ -2301,6 +2307,7 @@ module Addressable
       components.each do |component|
         duplicated_uri.send((component.to_s + "=").to_sym, nil)
       end
+      duplicated_uri.user = duplicated_uri.normalized_user
       duplicated_uri.validation_deferred = false
       duplicated_uri
     end
@@ -2370,7 +2377,7 @@ module Addressable
     #   <tt>true</tt> if validation has been deferred,
     #   <tt>false</tt> otherwise.
     def validation_deferred
-      @validation_deferred ||= false
+      !!@validation_deferred
     end
 
     ##
