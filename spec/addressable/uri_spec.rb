@@ -30,13 +30,25 @@ require "addressable/uri"
 if !"".respond_to?("force_encoding")
   class String
     def force_encoding(encoding)
-      # Do nothing, just make sure this gets called.
+      @encoding = encoding
+    end
+
+    def encoding
+      @encoding ||= Encoding::ASCII_8BIT
     end
   end
 
   class Encoding
-    UTF_8 = Encoding.new
-    ASCII_8BIT = Encoding.new
+    def initialize(name)
+      @name = name
+    end
+
+    def to_s
+      return @name
+    end
+
+    UTF_8 = Encoding.new("UTF-8")
+    ASCII_8BIT = Encoding.new("US-ASCII")
   end
 end
 
@@ -1895,10 +1907,14 @@ describe Addressable::URI, " when parsed from " +
     @uri.scheme.should == "ftp"
     @uri.to_s.should ==
       "ftp://user:pass@example.com/path/to/resource?query=x#fragment"
+    @uri.to_str.should ==
+      "ftp://user:pass@example.com/path/to/resource?query=x#fragment"
     @uri.scheme = "bogus!"
     @uri.scheme.should == "bogus!"
     @uri.normalized_scheme.should == "bogus%21"
     @uri.normalize.to_s.should ==
+      "bogus%21://user:pass@example.com/path/to/resource?query=x#fragment"
+    @uri.normalize.to_str.should ==
       "bogus%21://user:pass@example.com/path/to/resource?query=x#fragment"
   end
 
@@ -2670,6 +2686,14 @@ describe Addressable::URI, " when parsed from " +
   it "should be displayed as http://www.詹姆斯.com/" do
     @uri.display_uri.to_s.should == "http://www.詹姆斯.com/"
   end
+
+  it "should properly force the encoding" do
+    display_string = @uri.display_uri.to_str
+    display_string.should == "http://www.詹姆斯.com/"
+    if display_string.respond_to?(:encoding)
+      display_string.encoding.to_s.should == Encoding::UTF_8.to_s
+    end
+  end
 end
 
 describe Addressable::URI, " when parsed from " +
@@ -3009,13 +3033,13 @@ describe Addressable::URI, "when converting the path " +
   it "should convert to " +
       "\'relative/path/to/something\'" do
     @uri = Addressable::URI.convert_path(@path)
-    @uri.to_s.should == "relative/path/to/something"
+    @uri.to_str.should == "relative/path/to/something"
   end
 
   it "should join with an absolute file path correctly" do
     @base = Addressable::URI.convert_path("/absolute/path/")
     @uri = Addressable::URI.convert_path(@path)
-    (@base + @uri).to_s.should ==
+    (@base + @uri).to_str.should ==
       "file:///absolute/path/relative/path/to/something"
   end
 end
@@ -3040,12 +3064,12 @@ describe Addressable::URI, "when given the root directory" do
   if RUBY_PLATFORM =~ /mswin/
     it "should convert to \'file:///c:/\'" do
       @uri = Addressable::URI.convert_path(@path)
-      @uri.to_s.should == "file:///c:/"
+      @uri.to_str.should == "file:///c:/"
     end
   else
     it "should convert to \'file:///\'" do
       @uri = Addressable::URI.convert_path(@path)
-      @uri.to_s.should == "file:///"
+      @uri.to_str.should == "file:///"
     end
   end
 end
@@ -3058,7 +3082,7 @@ describe Addressable::URI, "when given the path '/home/user/'" do
   it "should convert to " +
       "\'file:///home/user/\'" do
     @uri = Addressable::URI.convert_path(@path)
-    @uri.to_s.should == "file:///home/user/"
+    @uri.to_str.should == "file:///home/user/"
   end
 end
 
@@ -3071,7 +3095,7 @@ describe Addressable::URI, " when given the path " +
   it "should convert to " +
       "\'file:///c:/windows/My%20Documents%20100%20/foo.txt\'" do
     @uri = Addressable::URI.convert_path(@path)
-    @uri.to_s.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
+    @uri.to_str.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
   end
 end
 
@@ -3084,7 +3108,7 @@ describe Addressable::URI, " when given the path " +
   it "should convert to " +
       "\'file:///c:/windows/My%20Documents%20100%20/foo.txt\'" do
     @uri = Addressable::URI.convert_path(@path)
-    @uri.to_s.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
+    @uri.to_str.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
   end
 end
 
@@ -3097,7 +3121,7 @@ describe Addressable::URI, " when given the path " +
   it "should convert to " +
       "\'file:///c:/windows/My%20Documents%20100%20/foo.txt\'" do
     @uri = Addressable::URI.convert_path(@path)
-    @uri.to_s.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
+    @uri.to_str.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
   end
 end
 
@@ -3110,7 +3134,7 @@ describe Addressable::URI, " when given the path " +
   it "should convert to " +
       "\'file:///c:/windows/My%20Documents%20100%20/foo.txt\'" do
     @uri = Addressable::URI.convert_path(@path)
-    @uri.to_s.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
+    @uri.to_str.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
   end
 end
 
@@ -3123,7 +3147,7 @@ describe Addressable::URI, " when given the path " +
   it "should convert to " +
       "\'file:///c:/windows/My%20Documents%20100%20/foo.txt\'" do
     @uri = Addressable::URI.convert_path(@path)
-    @uri.to_s.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
+    @uri.to_str.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
   end
 end
 
@@ -3134,7 +3158,7 @@ describe Addressable::URI, "when given an http protocol URI" do
 
   it "should not do any conversion at all" do
     @uri = Addressable::URI.convert_path(@path)
-    @uri.to_s.should == "http://example.com/"
+    @uri.to_str.should == "http://example.com/"
   end
 end
 
@@ -3399,49 +3423,49 @@ describe Addressable::URI, "when given a mapping that contains a " +
       "when used to expand 'http://example.com/{a}/{b}/'" do
     Addressable::URI.expand_template(
       "http://example.com/{a}/{b}/",
-      @mapping).to_s.should == "http://example.com/%7Bb%7D/barney/"
+      @mapping).to_str.should == "http://example.com/%7Bb%7D/barney/"
   end
 
   it "should result in 'http://example.com//%7Bb%7D/' " +
       "when used to expand 'http://example.com/{-opt|foo|foo}/{a}/'" do
     Addressable::URI.expand_template(
       "http://example.com/{-opt|foo|foo}/{a}/",
-      @mapping).to_s.should == "http://example.com//%7Bb%7D/"
+      @mapping).to_str.should == "http://example.com//%7Bb%7D/"
   end
 
   it "should result in 'http://example.com//%7Bb%7D/' " +
       "when used to expand 'http://example.com/{-neg|foo|b}/{a}/'" do
     Addressable::URI.expand_template(
       "http://example.com/{-neg|foo|b}/{a}/",
-      @mapping).to_s.should == "http://example.com//%7Bb%7D/"
+      @mapping).to_str.should == "http://example.com//%7Bb%7D/"
   end
 
   it "should result in 'http://example.com//barney/%7Bb%7D/' " +
       "when used to expand 'http://example.com/{-prefix|/|b}/{a}/'" do
     Addressable::URI.expand_template(
       "http://example.com/{-prefix|/|b}/{a}/",
-      @mapping).to_s.should == "http://example.com//barney/%7Bb%7D/"
+      @mapping).to_str.should == "http://example.com//barney/%7Bb%7D/"
   end
 
   it "should result in 'http://example.com/barney//%7Bb%7D/' " +
       "when used to expand 'http://example.com/{-suffix|/|b}/{a}/'" do
     Addressable::URI.expand_template(
       "http://example.com/{-suffix|/|b}/{a}/",
-      @mapping).to_s.should == "http://example.com/barney//%7Bb%7D/"
+      @mapping).to_str.should == "http://example.com/barney//%7Bb%7D/"
   end
 
   it "should result in 'http://example.com/%7Bb%7D/?b=barney&c=42' " +
       "when used to expand 'http://example.com/{a}/?{-join|&|b,c=42}'" do
     Addressable::URI.expand_template(
       "http://example.com/{a}/?{-join|&|b,c=42}",
-      @mapping).to_s.should == "http://example.com/%7Bb%7D/?b=barney&c=42"
+      @mapping).to_str.should == "http://example.com/%7Bb%7D/?b=barney&c=42"
   end
 
   it "should result in 'http://example.com/42/?b=barney' " +
       "when used to expand 'http://example.com/{c=42}/?{-join|&|b}'" do
     Addressable::URI.expand_template(
       "http://example.com/{c=42}/?{-join|&|b}",
-      @mapping).to_s.should == "http://example.com/42/?b=barney"
+      @mapping).to_str.should == "http://example.com/42/?b=barney"
   end
 end
 
@@ -3597,7 +3621,7 @@ describe Addressable::URI, "when given a mapping that contains an Array" do
       " when used to expand 'http://example.com/search/{-list|+|query}/'" do
     Addressable::URI.expand_template(
       "http://example.com/search/{-list|+|query}/",
-      @mapping).to_s.should ==
+      @mapping).to_str.should ==
         "http://example.com/search/an+example+search+query/"
   end
 
@@ -3606,7 +3630,7 @@ describe Addressable::URI, "when given a mapping that contains an Array" do
       " with a NoOpProcessor" do
     Addressable::URI.expand_template(
       "http://example.com/search/{-list|+|query}/",
-      @mapping, NoOpProcessor).to_s.should ==
+      @mapping, NoOpProcessor).to_str.should ==
         "http://example.com/search/an+example+search+query/"
   end
 end
