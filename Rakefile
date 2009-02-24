@@ -8,7 +8,6 @@ require 'rake/testtask'
 require 'rake/rdoctask'
 require 'rake/packagetask'
 require 'rake/gempackagetask'
-require 'rake/contrib/rubyforgepublisher'
 require 'spec/rake/spectask'
 
 require File.join(File.dirname(__FILE__), 'lib/addressable', 'version')

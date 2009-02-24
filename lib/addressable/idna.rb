@@ -52,6 +52,9 @@ module Addressable
       if input =~ UTF8_REGEX && input =~ UTF8_REGEX_MULTIBYTE
         parts = unicode_downcase(input).split('.')
         parts.map! do |part|
+          if part.respond_to?(:force_encoding)
+            part.force_encoding(Encoding::ASCII_8BIT)
+          end
           if part =~ UTF8_REGEX && part =~ UTF8_REGEX_MULTIBYTE
             ACE_PREFIX + punycode_encode(unicode_normalize_kc(part))
           else
