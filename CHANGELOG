@@ -1,6 +1,7 @@
 === Addressable 2.0.3
   * removed extract method due to being useless and unreliable
   * fixed minor bugs in the parse and heuristic_parse methods
+  * fixed incompatibility with Ruby 1.9.1
   * improved specs
 
 === Addressable 2.0.2
