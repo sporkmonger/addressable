@@ -1108,7 +1108,13 @@ module Addressable
       }
       components.each do |key, value|
         if value != nil
-          components[key] = Addressable::IDNA.unicode_normalize_kc(value.to_s)
+          begin
+            components[key] =
+              Addressable::IDNA.unicode_normalize_kc(value.to_str)
+          rescue ArgumentError
+            # Likely a malformed UTF-8 character, skip unicode normalization
+            components[key] = value.to_str
+          end
         end
       end
       encoded_uri = Addressable::URI.new(
@@ -1640,11 +1646,19 @@ module Addressable
     # @return [String] The path component, normalized.
     def normalized_path
       @normalized_path ||= (begin
-        result = Addressable::URI.encode_component(
-          Addressable::IDNA.unicode_normalize_kc(
-            Addressable::URI.unencode_component(self.path.strip)),
-          Addressable::URI::CharacterClasses::PATH
-        )
+        begin
+          result = Addressable::URI.encode_component(
+            Addressable::IDNA.unicode_normalize_kc(
+              Addressable::URI.unencode_component(self.path.strip)),
+            Addressable::URI::CharacterClasses::PATH
+          )
+        rescue ArgumentError
+          # Likely a malformed UTF-8 character, skip unicode normalization
+          result = Addressable::URI.encode_component(
+            Addressable::URI.unencode_component(self.path.strip),
+            Addressable::URI::CharacterClasses::PATH
+          )
+        end
         result = self.class.normalize_path(result)
         if result == "" &&
             ["http", "https", "ftp", "tftp"].include?(self.normalized_scheme)
