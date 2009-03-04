@@ -852,8 +852,8 @@ describe Addressable::URI, " when parsed from " +
     @uri.hash.should_not == @uri.to_s.hash
   end
 
-  it "should have the same hash as an equivalent URI" do
-    @uri.hash.should == Addressable::URI.parse("http://example.com:80/").hash
+  it "should have the same hash as an equal URI" do
+    @uri.hash.should == Addressable::URI.parse("http://example.com/").hash
   end
 end
 
