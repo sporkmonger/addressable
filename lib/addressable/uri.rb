@@ -1223,6 +1223,7 @@ module Addressable
 
       # Reset dependant values
       @normalized_scheme = nil
+      @uri_string = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1276,6 +1277,7 @@ module Addressable
       @normalized_userinfo = nil
       @authority = nil
       @normalized_user = nil
+      @uri_string = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1329,6 +1331,7 @@ module Addressable
       @normalized_userinfo = nil
       @authority = nil
       @normalized_password = nil
+      @uri_string = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1391,6 +1394,7 @@ module Addressable
 
       # Reset dependant values
       @authority = nil
+      @uri_string = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1439,6 +1443,7 @@ module Addressable
       # Reset dependant values
       @authority = nil
       @normalized_host = nil
+      @uri_string = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1517,6 +1522,7 @@ module Addressable
       @inferred_port = nil
       @userinfo = nil
       @normalized_userinfo = nil
+      @uri_string = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1594,6 +1600,7 @@ module Addressable
       @authority = nil
       @inferred_port = nil
       @normalized_port = nil
+      @uri_string = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1659,6 +1666,7 @@ module Addressable
 
       # Reset dependant values
       @normalized_path = nil
+      @uri_string = nil
     end
 
     ##
@@ -1715,6 +1723,7 @@ module Addressable
 
       # Reset dependant values
       @normalized_query = nil
+      @uri_string = nil
     end
 
     ##
@@ -1814,6 +1823,7 @@ module Addressable
 
       # Reset dependant values
       @normalized_query = nil
+      @uri_string = nil
     end
 
     ##
@@ -1851,6 +1861,7 @@ module Addressable
 
       # Reset dependant values
       @normalized_fragment = nil
+      @uri_string = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -2260,7 +2271,7 @@ module Addressable
     #
     # @return [Integer] A hash of the URI.
     def hash
-      return (self.normalize.to_s.hash * -1)
+      return @hash ||= (self.to_s.hash * -1)
     end
 
     ##
@@ -2329,16 +2340,18 @@ module Addressable
     #
     # @return [String] The URI's <tt>String</tt> representation.
     def to_s
-      uri_string = ""
-      uri_string << "#{self.scheme}:" if self.scheme != nil
-      uri_string << "//#{self.authority}" if self.authority != nil
-      uri_string << self.path.to_s
-      uri_string << "?#{self.query}" if self.query != nil
-      uri_string << "##{self.fragment}" if self.fragment != nil
-      if uri_string.respond_to?(:force_encoding)
-        uri_string.force_encoding(Encoding::UTF_8)
-      end
-      return uri_string
+      @uri_string ||= (begin
+        uri_string = ""
+        uri_string << "#{self.scheme}:" if self.scheme != nil
+        uri_string << "//#{self.authority}" if self.authority != nil
+        uri_string << self.path.to_s
+        uri_string << "?#{self.query}" if self.query != nil
+        uri_string << "##{self.fragment}" if self.fragment != nil
+        if uri_string.respond_to?(:force_encoding)
+          uri_string.force_encoding(Encoding::UTF_8)
+        end
+        uri_string
+      end)
     end
 
     ##
