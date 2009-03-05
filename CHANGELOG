@@ -3,7 +3,7 @@
   * fixed minor bugs in the parse and heuristic_parse methods
   * fixed incompatibility with Ruby 1.9.1
   * fixed bottleneck in Addressable::URI#hash and Addressable::URI#to_s
-  * fixed exception in IDNA code
+  * fixed unicode normalization exception
   * improved specs
 
 === Addressable 2.0.2
