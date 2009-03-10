@@ -152,6 +152,7 @@ module Addressable
 
       p = []
       ucs4_to_utf8 = lambda do |ch|
+        # FIXME: Potential for BUS error?!?!
         if ch < 128
           p << ch
         elsif ch < 2048
