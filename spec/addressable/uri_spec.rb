@@ -3697,6 +3697,36 @@ describe Addressable::URI, "when given a mapping that contains an Array" do
   end
 end
 
+describe Addressable::URI, "when given an empty mapping" do
+  before do
+    @mapping = {}
+  end
+
+  it "should result in 'http://example.com/search/'" +
+      " when used to expand 'http://example.com/search/{-list|+|query}'" do
+    Addressable::URI.expand_template(
+      "http://example.com/search/{-list|+|query}",
+      @mapping).to_str.should ==
+        "http://example.com/search/"
+  end
+
+  it "should result in 'http://example.com'" +
+      " when used to expand 'http://example.com{-prefix|/|foo}'" do
+    Addressable::URI.expand_template(
+      "http://example.com{-prefix|/|foo}",
+      @mapping).to_str.should ==
+        "http://example.com"
+  end
+
+  it "should result in 'http://example.com'" +
+      " when used to expand 'http://example.com{-suffix|/|foo}'" do
+    Addressable::URI.expand_template(
+      "http://example.com{-suffix|/|foo}",
+      @mapping).to_str.should ==
+        "http://example.com"
+  end
+end
+
 class SuperString
   def initialize(string)
     @string = string.to_s

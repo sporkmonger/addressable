@@ -461,7 +461,7 @@ module Addressable
       value = mapping[variables.first]
       if value.kind_of?(Array)
         (value.map { |list_value| argument + list_value }).join("")
-      else
+      elsif value
         argument + value.to_s
       end
     end
@@ -483,7 +483,7 @@ module Addressable
       value = mapping[variables.first]
       if value.kind_of?(Array)
         (value.map { |list_value| list_value + argument }).join("")
-      else
+      elsif value
         value.to_s + argument
       end
     end
@@ -526,7 +526,8 @@ module Addressable
         raise InvalidTemplateOperatorError,
           "Template operator 'list' takes exactly one variable."
       end
-      mapping[variables.first].join(argument)
+      values = mapping[variables.first]
+      values.join(argument) if values
     end
     class <<self; private :expand_list_operator; end
 
