@@ -1275,6 +1275,7 @@ module Addressable
       @user = new_user ? new_user.to_str : nil
 
       # You can't have a nil user with a non-nil password
+      @password ||= nil
       if @password != nil
         @user = "" if @user.nil?
       end
@@ -1329,6 +1330,8 @@ module Addressable
       @password = new_password ? new_password.to_str : nil
 
       # You can't have a nil user with a non-nil password
+      @password ||= nil
+      @user ||= nil
       if @password != nil
         @user = "" if @user.nil?
       end
@@ -1570,7 +1573,7 @@ module Addressable
     #
     # @return [Integer] The port component.
     def port
-      return @port
+      return @port ||= nil
     end
 
     ##
