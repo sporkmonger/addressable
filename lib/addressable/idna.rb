@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 module Addressable
   # A pure Ruby implementation of IDNA.  C was eschewed for the sake of JRuby,
   # and because performance is largely irrelevant here.

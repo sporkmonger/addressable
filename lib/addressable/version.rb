@@ -1,3 +1,4 @@
+# encoding:utf-8
 #--
 # Addressable, Copyright (c) 2006-2008 Bob Aman
 #
