@@ -1,10 +1,11 @@
 Addressable is a replacement for the URI implementation that is part of
 Ruby's standard library. It more closely conforms to the relevant RFCs and
-adds support for IRIs and URI templates.
+adds support for IRIs and URI templates.  Additionally, it provides extensive
+support for URI templates.
 
 Example usage:
  
-  require 'addressable/uri'
+  require "addressable/uri"
 
   uri = Addressable::URI.parse("http://example.com/path/to/resource/")
   uri.scheme
@@ -18,16 +19,21 @@ Example usage:
   uri.normalize
   #=> #<Addressable::URI:0xc9a4c8 URI:http://www.xn--8ws00zhy3a.com/>
 
-  Addressable::URI.expand_template("http://example.com/{-list|+|query}/", {
+  require "addressable/template"
+
+  template = Addressable::Template.new("http://example.com/{-list|+|query}/")
+  template.expand({
     "query" => "an example query".split(" ")
   })
   #=> #<Addressable::URI:0xc9d95c URI:http://example.com/an+example+query/>
 
-  Addressable::URI.parse(
-    "http://example.com/a/b/c/?one=1&two=2#foo"
-  ).extract_mapping(
+  template = Addressable::Template.new(
     "http://{host}/{-suffix|/|segments}?{-join|&|one,two,bogus}\#{fragment}"
   )
+  uri = Addressable::URI.parse(
+    "http://example.com/a/b/c/?one=1&two=2#foo"
+  )
+  template.extract(uri)
   #=>
   # {
   #   "host" => "example.com",

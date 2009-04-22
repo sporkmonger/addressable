@@ -64,41 +64,6 @@ module URI
   end
 end
 
-class ExampleProcessor
-  def self.validate(name, value)
-    return !!(value =~ /^[\w ]+$/) if name == "query"
-    return true
-  end
-
-  def self.transform(name, value)
-    return value.gsub(/ /, "+") if name == "query"
-    return value
-  end
-
-  def self.restore(name, value)
-    return value.gsub(/\+/, " ") if name == "query"
-    return value.tr("A-Za-z", "N-ZA-Mn-za-m") if name == "rot13"
-    return value
-  end
-
-  def self.match(name)
-    return ".*?" if name == "first"
-    return ".*"
-  end
-end
-
-class SlashlessProcessor
-  def self.match(name)
-    return "[^/\\n]*"
-  end
-end
-
-class NoOpProcessor
-  def self.transform(name, value)
-    value
-  end
-end
-
 describe Addressable::URI, "when created with a non-numeric port number" do
   it "should raise an error" do
     (lambda do
@@ -194,7 +159,9 @@ end
 describe Addressable::URI, "when created with both an authority and a user" do
   it "should raise an error" do
     (lambda do
-      Addressable::URI.new(:user => "user", :authority => "user@example.com:80")
+      Addressable::URI.new(
+        :user => "user", :authority => "user@example.com:80"
+      )
     end).should raise_error(ArgumentError)
   end
 end
@@ -289,7 +256,7 @@ describe Addressable::URI, "when parsed from ''" do
 end
 
 # Section 1.1.2 of RFC 3986
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'ftp://ftp.is.co.za/rfc/rfc1808.txt'" do
   before do
     @uri = Addressable::URI.parse("ftp://ftp.is.co.za/rfc/rfc1808.txt")
@@ -317,7 +284,7 @@ describe Addressable::URI, " when parsed from " +
 end
 
 # Section 1.1.2 of RFC 3986
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://www.ietf.org/rfc/rfc2396.txt'" do
   before do
     @uri = Addressable::URI.parse("http://www.ietf.org/rfc/rfc2396.txt")
@@ -403,7 +370,7 @@ describe Addressable::URI, "when parsed from " +
 end
 
 # Section 1.1.2 of RFC 3986
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'mailto:John.Doe@example.com'" do
   before do
     @uri = Addressable::URI.parse("mailto:John.Doe@example.com")
@@ -427,7 +394,7 @@ describe Addressable::URI, " when parsed from " +
 end
 
 # Section 1.1.2 of RFC 3986
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'news:comp.infosystems.www.servers.unix'" do
   before do
     @uri = Addressable::URI.parse("news:comp.infosystems.www.servers.unix")
@@ -475,7 +442,7 @@ describe Addressable::URI, "when parsed from " +
 end
 
 # Section 1.1.2 of RFC 3986
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'telnet://192.0.2.16:80/'" do
   before do
     @uri = Addressable::URI.parse("telnet://192.0.2.16:80/")
@@ -507,7 +474,7 @@ describe Addressable::URI, " when parsed from " +
 end
 
 # Section 1.1.2 of RFC 3986
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'urn:oasis:names:specification:docbook:dtd:xml:4.1.2'" do
   before do
     @uri = Addressable::URI.parse(
@@ -532,7 +499,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com'" do
   before do
     @uri = Addressable::URI.parse("http://example.com")
@@ -782,7 +749,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/")
@@ -857,7 +824,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://@example.com/'" do
   before do
     @uri = Addressable::URI.parse("http://@example.com/")
@@ -885,7 +852,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com./'" do
   before do
     @uri = Addressable::URI.parse("http://example.com./")
@@ -904,7 +871,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://:@example.com/'" do
   before do
     @uri = Addressable::URI.parse("http://:@example.com/")
@@ -932,7 +899,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/~smith/'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/~smith/")
@@ -953,7 +920,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/%E8'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/%E8")
@@ -977,7 +944,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/%C3%87'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/%C3%87")
@@ -1022,7 +989,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/?q=string'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/?q=string")
@@ -1081,7 +1048,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com:80/'" do
   before do
     @uri = Addressable::URI.parse("http://example.com:80/")
@@ -1193,7 +1160,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com:8080/'" do
   before do
     @uri = Addressable::URI.parse("http://example.com:8080/")
@@ -1290,7 +1257,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com:%38%30/'" do
   before do
     @uri = Addressable::URI.parse("http://example.com:%38%30/")
@@ -1309,7 +1276,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/path/to/resource/'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/path/to/resource/")
@@ -1547,7 +1514,7 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/file.txt'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/file.txt")
@@ -1598,7 +1565,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/file.txt;parameter'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/file.txt;parameter")
@@ -1649,7 +1616,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/file.txt;x=y'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/file.txt;x=y")
@@ -1704,7 +1671,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'svn+ssh://developername@rubyforge.org/var/svn/project'" do
   before do
     @uri = Addressable::URI.parse(
@@ -1737,7 +1704,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'ssh+svn://developername@rubyforge.org/var/svn/project'" do
   before do
     @uri = Addressable::URI.parse(
@@ -1774,7 +1741,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'mailto:user@example.com'" do
   before do
     @uri = Addressable::URI.parse("mailto:user@example.com")
@@ -1801,7 +1768,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'tag:example.com,2006-08-18:/path/to/something'" do
   before do
     @uri = Addressable::URI.parse(
@@ -1830,7 +1797,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/x;y/'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/x;y/")
@@ -1841,7 +1808,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/?x=1&y=2'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/?x=1&y=2")
@@ -1852,7 +1819,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'view-source:http://example.com/'" do
   before do
     @uri = Addressable::URI.parse("view-source:http://example.com/")
@@ -1871,7 +1838,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://user:pass@example.com/path/to/resource?query=x#fragment'" do
   before do
     @uri = Addressable::URI.parse(
@@ -2165,7 +2132,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://user@example.com'" do
   before do
     @uri = Addressable::URI.parse("http://user@example.com")
@@ -2253,7 +2220,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://user:@example.com'" do
   before do
     @uri = Addressable::URI.parse("http://user:@example.com")
@@ -2308,7 +2275,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://:pass@example.com'" do
   before do
     @uri = Addressable::URI.parse("http://:pass@example.com")
@@ -2368,7 +2335,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://:@example.com'" do
   before do
     @uri = Addressable::URI.parse("http://:@example.com")
@@ -2424,7 +2391,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'#example'" do
   before do
     @uri = Addressable::URI.parse("#example")
@@ -2451,7 +2418,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "the network-path reference '//example.com/'" do
   before do
     @uri = Addressable::URI.parse("//example.com/")
@@ -2479,7 +2446,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'feed://http://example.com/'" do
   before do
     @uri = Addressable::URI.parse("feed://http://example.com/")
@@ -2494,7 +2461,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'feed:http://example.com/'" do
   before do
     @uri = Addressable::URI.parse("feed:http://example.com/")
@@ -2523,7 +2490,7 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/indirect/path/./to/../resource/'" do
   before do
     @uri = Addressable::URI.parse(
@@ -2553,7 +2520,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://under_score.example.com/'" do
   it "should not cause an error" do
     (lambda do
@@ -2562,7 +2529,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'./this:that'" do
   before do
     @uri = Addressable::URI.parse("./this:that")
@@ -2592,7 +2559,7 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from '?one=1&two=2&three=3'" do
+describe Addressable::URI, "when parsed from '?one=1&two=2&three=3'" do
   before do
     @uri = Addressable::URI.parse("?one=1&two=2&three=3")
   end
@@ -2608,7 +2575,7 @@ describe Addressable::URI, " when parsed from '?one=1&two=2&three=3'" do
   end
 end
 
-describe Addressable::URI, " when parsed from '?one[two][three]=four'" do
+describe Addressable::URI, "when parsed from '?one[two][three]=four'" do
   before do
     @uri = Addressable::URI.parse("?one[two][three]=four")
   end
@@ -2624,7 +2591,7 @@ describe Addressable::URI, " when parsed from '?one[two][three]=four'" do
   end
 end
 
-describe Addressable::URI, " when parsed from '?one.two.three=four'" do
+describe Addressable::URI, "when parsed from '?one.two.three=four'" do
   before do
     @uri = Addressable::URI.parse("?one.two.three=four")
   end
@@ -2642,7 +2609,7 @@ describe Addressable::URI, " when parsed from '?one.two.three=four'" do
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'?one[two][three]=four&one[two][five]=six'" do
   before do
     @uri = Addressable::URI.parse("?one[two][three]=four&one[two][five]=six")
@@ -2662,7 +2629,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'?one.two.three=four&one.two.five=six'" do
   before do
     @uri = Addressable::URI.parse("?one.two.three=four&one.two.five=six")
@@ -2682,7 +2649,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'?one[two][three][]=four&one[two][three][]=five'" do
   before do
     @uri = Addressable::URI.parse(
@@ -2703,7 +2670,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://www.詹姆斯.com/'" do
   before do
     @uri = Addressable::URI.parse("http://www.詹姆斯.com/")
@@ -2720,7 +2687,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://www.詹姆斯.com/ some spaces /'" do
   before do
     @uri = Addressable::URI.parse("http://www.詹姆斯.com/ some spaces /")
@@ -2739,7 +2706,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://www.xn--8ws00zhy3a.com/'" do
   before do
     @uri = Addressable::URI.parse("http://www.xn--8ws00zhy3a.com/")
@@ -2758,7 +2725,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from " +
+describe Addressable::URI, "when parsed from " +
     "'http://www.詹姆斯.com/atomtests/iri/詹.html'" do
   before do
     @uri = Addressable::URI.parse("http://www.詹姆斯.com/atomtests/iri/詹.html")
@@ -2773,7 +2740,7 @@ describe Addressable::URI, " when parsed from " +
   end
 end
 
-describe Addressable::URI, " when parsed from a percent-encoded IRI" do
+describe Addressable::URI, "when parsed from a percent-encoded IRI" do
   before do
     @uri = Addressable::URI.parse(
       "http://www.%E3%81%BB%E3%82%93%E3%81%A8%E3%81%86%E3%81%AB%E3%81%AA" +
@@ -3148,7 +3115,7 @@ describe Addressable::URI, "when given the path '/home/user/'" do
   end
 end
 
-describe Addressable::URI, " when given the path " +
+describe Addressable::URI, "when given the path " +
     "'c:\\windows\\My Documents 100%20\\foo.txt'" do
   before do
     @path = "c:\\windows\\My Documents 100%20\\foo.txt"
@@ -3161,7 +3128,7 @@ describe Addressable::URI, " when given the path " +
   end
 end
 
-describe Addressable::URI, " when given the path " +
+describe Addressable::URI, "when given the path " +
     "'file://c:\\windows\\My Documents 100%20\\foo.txt'" do
   before do
     @path = "file://c:\\windows\\My Documents 100%20\\foo.txt"
@@ -3174,7 +3141,7 @@ describe Addressable::URI, " when given the path " +
   end
 end
 
-describe Addressable::URI, " when given the path " +
+describe Addressable::URI, "when given the path " +
     "'file:c:\\windows\\My Documents 100%20\\foo.txt'" do
   before do
     @path = "file:c:\\windows\\My Documents 100%20\\foo.txt"
@@ -3187,7 +3154,7 @@ describe Addressable::URI, " when given the path " +
   end
 end
 
-describe Addressable::URI, " when given the path " +
+describe Addressable::URI, "when given the path " +
     "'file:/c:\\windows\\My Documents 100%20\\foo.txt'" do
   before do
     @path = "file:/c:\\windows\\My Documents 100%20\\foo.txt"
@@ -3200,7 +3167,7 @@ describe Addressable::URI, " when given the path " +
   end
 end
 
-describe Addressable::URI, " when given the path " +
+describe Addressable::URI, "when given the path " +
     "'file:///c|/windows/My%20Documents%20100%20/foo.txt'" do
   before do
     @path = "file:///c|/windows/My%20Documents%20100%20/foo.txt"
@@ -3224,7 +3191,7 @@ describe Addressable::URI, "when given an http protocol URI" do
   end
 end
 
-describe Addressable::URI, " when given the template pattern " +
+describe Addressable::URI, "when given the template pattern " +
     "'http://example.com/search/{query}/' " +
     "to be processed with the ExampleProcessor" do
   before do
@@ -3253,7 +3220,7 @@ describe Addressable::URI, " when given the template pattern " +
 end
 
 # Section 3.3.1 of the URI Template draft v 01
-describe Addressable::URI, " when given the mapping supplied in " +
+describe Addressable::URI, "when given the mapping supplied in " +
     "Section 3.3.1 of the URI Template draft v 01" do
   before do
     @mapping = {
@@ -3362,7 +3329,7 @@ describe Addressable::URI, " when given the mapping supplied in " +
 end
 
 # Section 4.5 of the URI Template draft v 03
-describe Addressable::URI, " when given the mapping supplied in " +
+describe Addressable::URI, "when given the mapping supplied in " +
     "Section 4.5 of the URI Template draft v 03" do
   before do
     @mapping = {
@@ -3630,7 +3597,9 @@ describe Addressable::URI, "when given a pattern with bogus operators" do
           "a" => "a", "b" => "b", "c" => "c"
         }
       )
-    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
   end
 
   it "should raise an InvalidTemplateOperatorError" do
@@ -3640,7 +3609,9 @@ describe Addressable::URI, "when given a pattern with bogus operators" do
           "a" => "a", "b" => "b", "c" => "c"
         }
       )
-    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
   end
 
   it "should raise an InvalidTemplateOperatorError" do
@@ -3650,7 +3621,9 @@ describe Addressable::URI, "when given a pattern with bogus operators" do
           "a" => "a", "b" => "b", "c" => "c"
         }
       )
-    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
   end
 
   it "should raise an InvalidTemplateOperatorError" do
@@ -3660,7 +3633,9 @@ describe Addressable::URI, "when given a pattern with bogus operators" do
           "a" => ["a"], "b" => ["b"], "c" => "c"
         }
       )
-    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
   end
 
   it "should raise an InvalidTemplateOperatorError" do
@@ -3670,7 +3645,9 @@ describe Addressable::URI, "when given a pattern with bogus operators" do
           "a" => ["a"], "b" => ["b"], "c" => "c"
         }
       )
-    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
   end
 end
 
@@ -3737,7 +3714,7 @@ class SuperString
   end
 end
 
-describe Addressable::URI, " when parsing a non-String object" do
+describe Addressable::URI, "when parsing a non-String object" do
   it "should correctly parse anything with a 'to_str' method" do
     Addressable::URI.parse(SuperString.new(42))
   end
@@ -3837,514 +3814,7 @@ describe Addressable::URI, "when encoding a bogus object" do
   end
 end
 
-describe Addressable::URI, " when parsed from " +
-    "'/'" do
-  before do
-    @uri = Addressable::URI.parse("/")
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern '/'" do
-    @uri.extract_mapping("/").should == {}
-  end
-end
-
-describe Addressable::URI, " when parsed from '/one/'" do
-  before do
-    @uri = Addressable::URI.parse("/one/")
-  end
-
-  it "should not match the pattern '/two/'" do
-    @uri.extract_mapping("/two/").should == nil
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern '/{number}/'" do
-    @uri.extract_mapping("/{number}/").should == {"number" => "one"}
-  end
-end
-
-describe Addressable::URI, " when parsed from '/one/two/'" do
-  before do
-    @uri = Addressable::URI.parse("/one/two/")
-  end
-
-  it "should not match the pattern '/{number}/' " +
-      "with the SlashlessProcessor" do
-    @uri.extract_mapping("/{number}/", SlashlessProcessor).should == nil
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern '/{number}/' without a processor" do
-    @uri.extract_mapping("/{number}/").should == {
-      "number" => "one/two"
-    }
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern '/{first}/{second}/' with the SlashlessProcessor" do
-    @uri.extract_mapping("/{first}/{second}/", SlashlessProcessor).should == {
-      "first" => "one",
-      "second" => "two"
-    }
-  end
-end
-
-describe Addressable::URI, " when parsed from " +
-    "'http://example.com/search/an+example+search+query/'" do
-  before do
-    @uri = Addressable::URI.parse(
-      "http://example.com/search/an+example+search+query/")
-  end
-
-  it "should have the correct mapping when extracting values using " +
-      "the pattern 'http://example.com/search/{query}/' with the " +
-      "ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/search/{query}/", ExampleProcessor
-    ).should == {
-      "query" => "an example search query"
-    }
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/search/{-list|+|query}/'" do
-    @uri.extract_mapping(
-      "http://example.com/search/{-list|+|query}/"
-    ).should == {
-      "query" => ["an", "example", "search", "query"]
-    }
-  end
-
-  it "should return nil when extracting values using " +
-      "a non-matching pattern" do
-    @uri.extract_mapping(
-      "http://bogus.com/{thingy}/"
-    ).should == nil
-  end
-end
-
-describe Addressable::URI, " when parsed from " +
-    "'http://example.com/a/b/c/'" do
-  before do
-    @uri = Addressable::URI.parse(
-      "http://example.com/a/b/c/")
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/{first}/{second}/' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/{first}/{second}/", ExampleProcessor
-    ).should == {
-      "first" => "a",
-      "second" => "b/c"
-    }
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/{first}/{-list|/|second}/'" do
-    @uri.extract_mapping(
-      "http://example.com/{first}/{-list|/|second}/"
-    ).should == {
-      "first" => "a",
-      "second" => ["b", "c"]
-    }
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/{first}/{-list|/|rot13}/' " +
-      "with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/{first}/{-list|/|rot13}/",
-      ExampleProcessor
-    ).should == {
-      "first" => "a",
-      "rot13" => ["o", "p"]
-    }
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/{-list|/|rot13}/' " +
-      "with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/{-list|/|rot13}/",
-      ExampleProcessor
-    ).should == {
-      "rot13" => ["n", "o", "p"]
-    }
-  end
-
-  it "should not map to anything when extracting values " +
-      "using the pattern " +
-      "'http://example.com/{-list|/|rot13}/'" do
-    @uri.extract_mapping("http://example.com/{-join|/|a,b,c}/").should == nil
-  end
-end
-
-describe Addressable::URI, " when parsed from " +
-    "'http://example.com/?a=one&b=two&c=three'" do
-  before do
-    @uri = Addressable::URI.parse("http://example.com/?a=one&b=two&c=three")
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/?{-join|&|a,b,c}'" do
-    @uri.extract_mapping(
-      "http://example.com/?{-join|&|a,b,c}"
-    ).should == {
-      "a" => "one",
-      "b" => "two",
-      "c" => "three"
-    }
-  end
-end
-
-describe Addressable::URI, " when parsed from " +
-    "'http://example.com/?rot13=frperg'" do
-  before do
-    @uri = Addressable::URI.parse("http://example.com/?rot13=frperg")
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/?{-join|&|rot13}' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/?{-join|&|rot13}",
-      ExampleProcessor
-    ).should == {
-      "rot13" => "secret"
-    }
-  end
-end
-
-describe Addressable::URI, " when parsed from " +
-    "'http://example.com/one/spacer/two/'" do
-  before do
-    @uri = Addressable::URI.parse("http://example.com/one/spacer/two/")
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/{first}/spacer/{second}/'" do
-    @uri.extract_mapping(
-      "http://example.com/{first}/spacer/{second}/"
-    ).should == {
-      "first" => "one",
-      "second" => "two"
-    }
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com{-prefix|/|stuff}/'" do
-    @uri.extract_mapping(
-      "http://example.com{-prefix|/|stuff}/"
-    ).should == {
-      "stuff" => ["one", "spacer", "two"]
-    }
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/o{-prefix|/|stuff}/'" do
-    @uri.extract_mapping(
-      "http://example.com/o{-prefix|/|stuff}/"
-    ).should == nil
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/{first}/spacer{-prefix|/|stuff}/'" do
-    @uri.extract_mapping(
-      "http://example.com/{first}/spacer{-prefix|/|stuff}/"
-    ).should == {
-      "first" => "one",
-      "stuff" => ["two"]
-    }
-  end
-
-  it "should not match anything when extracting values " +
-      "using the incorrect suffix pattern " +
-      "'http://example.com/{-prefix|/|stuff}/'" do
-    @uri.extract_mapping(
-      "http://example.com/{-prefix|/|stuff}/"
-    ).should == nil
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com{-prefix|/|rot13}/' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com{-prefix|/|rot13}/",
-      ExampleProcessor
-    ).should == {
-      "rot13" => ["bar", "fcnpre", "gjb"]
-    }
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com{-prefix|/|rot13}' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com{-prefix|/|rot13}",
-      ExampleProcessor
-    ).should == {
-      "rot13" => ["bar", "fcnpre", "gjb", ""]
-    }
-  end
-
-  it "should not match anything when extracting values " +
-      "using the incorrect suffix pattern " +
-      "'http://example.com/{-prefix|/|rot13}' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/{-prefix|/|rot13}",
-      ExampleProcessor
-    ).should == nil
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/{-suffix|/|stuff}'" do
-    @uri.extract_mapping(
-      "http://example.com/{-suffix|/|stuff}"
-    ).should == {
-      "stuff" => ["one", "spacer", "two"]
-    }
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/{-suffix|/|stuff}o'" do
-    @uri.extract_mapping(
-      "http://example.com/{-suffix|/|stuff}o"
-    ).should == nil
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/o{-suffix|/|stuff}'" do
-    @uri.extract_mapping(
-      "http://example.com/o{-suffix|/|stuff}"
-    ).should == {"stuff"=>["ne", "spacer", "two"]}
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/{first}/spacer/{-suffix|/|stuff}'" do
-    @uri.extract_mapping(
-      "http://example.com/{first}/spacer/{-suffix|/|stuff}"
-    ).should == {
-      "first" => "one",
-      "stuff" => ["two"]
-    }
-  end
-
-  it "should not match anything when extracting values " +
-      "using the incorrect suffix pattern " +
-      "'http://example.com/{-suffix|/|stuff}/'" do
-    @uri.extract_mapping(
-      "http://example.com/{-suffix|/|stuff}/"
-    ).should == nil
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com/{-suffix|/|rot13}' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/{-suffix|/|rot13}",
-      ExampleProcessor
-    ).should == {
-      "rot13" => ["bar", "fcnpre", "gjb"]
-    }
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://example.com{-suffix|/|rot13}' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com{-suffix|/|rot13}",
-      ExampleProcessor
-    ).should == {
-      "rot13" => ["", "bar", "fcnpre", "gjb"]
-    }
-  end
-
-  it "should not match anything when extracting values " +
-      "using the incorrect suffix pattern " +
-      "'http://example.com/{-suffix|/|rot13}/' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/{-suffix|/|rot13}/",
-      ExampleProcessor
-    ).should == nil
-  end
-end
-
-describe Addressable::URI, " when parsed from " +
-    "'http://example.com/?email=bob@sporkmonger.com'" do
-  before do
-    @uri = Addressable::URI.parse(
-      "http://example.com/?email=bob@sporkmonger.com"
-    )
-  end
-
-  it "should not match anything when extracting values " +
-      "using the incorrect opt pattern " +
-      "'http://example.com/?email={-opt|bogus@bogus.com|test}'" do
-    @uri.extract_mapping(
-      "http://example.com/?email={-opt|bogus@bogus.com|test}"
-    ).should == nil
-  end
-
-  it "should not match anything when extracting values " +
-      "using the incorrect neg pattern " +
-      "'http://example.com/?email={-neg|bogus@bogus.com|test}'" do
-    @uri.extract_mapping(
-      "http://example.com/?email={-neg|bogus@bogus.com|test}"
-    ).should == nil
-  end
-
-  it "should indicate a match when extracting values " +
-      "using the opt pattern " +
-      "'http://example.com/?email={-opt|bob@sporkmonger.com|test}'" do
-    @uri.extract_mapping(
-      "http://example.com/?email={-opt|bob@sporkmonger.com|test}"
-    ).should == {}
-  end
-
-  it "should indicate a match when extracting values " +
-      "using the neg pattern " +
-      "'http://example.com/?email={-neg|bob@sporkmonger.com|test}'" do
-    @uri.extract_mapping(
-      "http://example.com/?email={-neg|bob@sporkmonger.com|test}"
-    ).should == {}
-  end
-end
-
-describe Addressable::URI, " when parsed from " +
-    "'http://example.com/?email='" do
-  before do
-    @uri = Addressable::URI.parse(
-      "http://example.com/?email="
-    )
-  end
-
-  it "should indicate a match when extracting values " +
-      "using the opt pattern " +
-      "'http://example.com/?email={-opt|bob@sporkmonger.com|test}'" do
-    @uri.extract_mapping(
-      "http://example.com/?email={-opt|bob@sporkmonger.com|test}"
-    ).should == {}
-  end
-
-  it "should indicate a match when extracting values " +
-      "using the neg pattern " +
-      "'http://example.com/?email={-neg|bob@sporkmonger.com|test}'" do
-    @uri.extract_mapping(
-      "http://example.com/?email={-neg|bob@sporkmonger.com|test}"
-    ).should == {}
-  end
-end
-
-describe Addressable::URI, " when parsed from " +
-    "'http://example.com/a/b/c/?one=1&two=2#foo'" do
-  before do
-    @uri = Addressable::URI.parse(
-      "http://example.com/a/b/c/?one=1&two=2#foo"
-    )
-  end
-
-  it "should have the correct mapping when extracting values " +
-      "using the pattern " +
-      "'http://{host}/{-suffix|/|segments}?{-join|&|one,two}\#{fragment}'" do
-    @uri.extract_mapping(
-      "http://{host}/{-suffix|/|segments}?{-join|&|one,two}\#{fragment}"
-    ).should == {
-      "host" => "example.com",
-      "segments" => ["a", "b", "c"],
-      "one" => "1",
-      "two" => "2",
-      "fragment" => "foo"
-    }
-  end
-
-  it "should not match when extracting values " +
-      "using the pattern " +
-      "'http://{host}/{-suffix|/|segments}?{-join|&|one}\#{fragment}'" do
-    @uri.extract_mapping(
-      "http://{host}/{-suffix|/|segments}?{-join|&|one}\#{fragment}"
-    ).should == nil
-  end
-
-  it "should not match when extracting values " +
-      "using the pattern " +
-      "'http://{host}/{-suffix|/|segments}?{-join|&|bogus}\#{fragment}'" do
-    @uri.extract_mapping(
-      "http://{host}/{-suffix|/|segments}?{-join|&|bogus}\#{fragment}"
-    ).should == nil
-  end
-
-  it "should not match when extracting values " +
-      "using the pattern " +
-      "'http://{host}/{-suffix|/|segments}?" +
-      "{-join|&|one,bogus}\#{fragment}'" do
-    @uri.extract_mapping(
-      "http://{host}/{-suffix|/|segments}?{-join|&|one,bogus}\#{fragment}"
-    ).should == nil
-  end
-
-  it "should not match when extracting values " +
-      "using the pattern " +
-      "'http://{host}/{-suffix|/|segments}?" +
-      "{-join|&|one,two,bogus}\#{fragment}'" do
-    @uri.extract_mapping(
-      "http://{host}/{-suffix|/|segments}?{-join|&|one,two,bogus}\#{fragment}"
-    ).should == {
-      "host" => "example.com",
-      "segments" => ["a", "b", "c"],
-      "one" => "1",
-      "two" => "2",
-      "fragment" => "foo"
-    }
-  end
-end
-
-describe Addressable::URI, "when given a pattern with bogus operators" do
-  before do
-    @uri = Addressable::URI.parse("http://example.com/a/b/c/")
-  end
-
-  it "should raise an InvalidTemplateOperatorError" do
-    (lambda do
-      @uri.extract_mapping("http://example.com/{-bogus|/|a,b,c}/")
-    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
-  end
-
-  it "should raise an InvalidTemplateOperatorError" do
-    (lambda do
-      @uri.extract_mapping("http://example.com/{-prefix|/|a,b,c}/")
-    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
-  end
-
-  it "should raise an InvalidTemplateOperatorError" do
-    (lambda do
-      @uri.extract_mapping("http://example.com/{-suffix|/|a,b,c}/")
-    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
-  end
-
-  it "should raise an InvalidTemplateOperatorError" do
-    (lambda do
-      @uri.extract_mapping("http://example.com/{-list|/|a,b,c}/")
-    end).should raise_error(Addressable::URI::InvalidTemplateOperatorError)
-  end
-end
-
-describe Addressable::URI, " when given the input " +
+describe Addressable::URI, "when given the input " +
     "'http://example.com/'" do
   before do
     @input = "http://example.com/"
@@ -4357,7 +3827,7 @@ describe Addressable::URI, " when given the input " +
 end
 
 
-describe Addressable::URI, " when given the input " +
+describe Addressable::URI, "when given the input " +
     "'http:example.com/'" do
   before do
     @input = "http:example.com/"
@@ -4375,7 +3845,7 @@ describe Addressable::URI, " when given the input " +
   end
 end
 
-describe Addressable::URI, " when given the input " +
+describe Addressable::URI, "when given the input " +
     "'http://example.com/example.com/'" do
   before do
     @input = "http://example.com/example.com/"
@@ -4387,7 +3857,7 @@ describe Addressable::URI, " when given the input " +
   end
 end
 
-describe Addressable::URI, " when given the input " +
+describe Addressable::URI, "when given the input " +
     "'/path/to/resource'" do
   before do
     @input = "/path/to/resource"
@@ -4399,7 +3869,7 @@ describe Addressable::URI, " when given the input " +
   end
 end
 
-describe Addressable::URI, " when given the input " +
+describe Addressable::URI, "when given the input " +
     "'relative/path/to/resource'" do
   before do
     @input = "relative/path/to/resource"
@@ -4411,7 +3881,7 @@ describe Addressable::URI, " when given the input " +
   end
 end
 
-describe Addressable::URI, " when given the input " +
+describe Addressable::URI, "when given the input " +
     "'example.com'" do
   before do
     @input = "example.com"
@@ -4423,7 +3893,7 @@ describe Addressable::URI, " when given the input " +
   end
 end
 
-describe Addressable::URI, " when given the input " +
+describe Addressable::URI, "when given the input " +
     "'example.com' and a scheme hint of 'ftp'" do
   before do
     @input = "example.com"
@@ -4436,7 +3906,7 @@ describe Addressable::URI, " when given the input " +
   end
 end
 
-describe Addressable::URI, " when given the input " +
+describe Addressable::URI, "when given the input " +
     "'example.com:21' and a scheme hint of 'ftp'" do
   before do
     @input = "example.com:21"
@@ -4449,7 +3919,7 @@ describe Addressable::URI, " when given the input " +
   end
 end
 
-describe Addressable::URI, " when given the input " +
+describe Addressable::URI, "when given the input " +
     "'example.com/path/to/resource'" do
   before do
     @input = "example.com/path/to/resource"
@@ -4461,7 +3931,7 @@ describe Addressable::URI, " when given the input " +
   end
 end
 
-describe Addressable::URI, " when given the input " +
+describe Addressable::URI, "when given the input " +
     "'http:///example.com'" do
   before do
     @input = "http:///example.com"
@@ -4473,7 +3943,7 @@ describe Addressable::URI, " when given the input " +
   end
 end
 
-describe Addressable::URI, " when given the input " +
+describe Addressable::URI, "when given the input " +
     "'feed:///example.com'" do
   before do
     @input = "feed:///example.com"
@@ -4485,7 +3955,7 @@ describe Addressable::URI, " when given the input " +
   end
 end
 
-describe Addressable::URI, " when given the input " +
+describe Addressable::URI, "when given the input " +
     "'file://path/to/resource/'" do
   before do
     @input = "file://path/to/resource/"
@@ -4497,7 +3967,7 @@ describe Addressable::URI, " when given the input " +
   end
 end
 
-describe Addressable::URI, " when given the input " +
+describe Addressable::URI, "when given the input " +
     "'feed://http://example.com'" do
   before do
     @input = "feed://http://example.com"

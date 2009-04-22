@@ -5,6 +5,10 @@
   * fixed bottleneck in Addressable::URI#hash and Addressable::URI#to_s
   * fixed unicode normalization exception
   * improved specs
+  * refactored URI template support out into its own class
+  * deprecated Addressable::URI.expand_template
+  * deprecated Addressable::URI#extract_mapping
+  * worked around issue with freezing URIs
 
 === Addressable 2.0.2
   * fixed issue with URI template expansion
