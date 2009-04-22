@@ -96,14 +96,17 @@ describe Addressable::Template do
   end
 end
 
-describe Addressable::URI, "when parsed from '/'" do
+describe Addressable::Template, "created with the pattern '/'" do
   before do
-    @uri = Addressable::URI.parse("/")
+    @template = Addressable::Template.new("/")
   end
 
-  it "should have the correct mapping when extracting values " +
-      "using the pattern '/'" do
-    @uri.extract_mapping("/").should == {}
+  it "should no variables" do
+    @template.variables.should be_empty
+  end
+
+  it "should have the correct mapping when extracting from '/'" do
+    @template.extract("/").should == {}
   end
 end
 
@@ -113,12 +116,14 @@ describe Addressable::URI, "when parsed from '/one/'" do
   end
 
   it "should not match the pattern '/two/'" do
-    @uri.extract_mapping("/two/").should == nil
+    Addressable::Template.new("/two/").extract(@uri).should == nil
   end
 
   it "should have the correct mapping when extracting values " +
       "using the pattern '/{number}/'" do
-    @uri.extract_mapping("/{number}/").should == {"number" => "one"}
+    Addressable::Template.new(
+      "/{number}/"
+    ).extract(@uri).should == {"number" => "one"}
   end
 end
 
@@ -194,19 +199,23 @@ describe Addressable::URI, "when parsed from '/one/two/'" do
 
   it "should not match the pattern '/{number}/' " +
       "with the SlashlessProcessor" do
-    @uri.extract_mapping("/{number}/", SlashlessProcessor).should == nil
+    Addressable::Template.new(
+      "/{number}/"
+    ).extract(@uri, SlashlessProcessor).should == nil
   end
 
   it "should have the correct mapping when extracting values " +
       "using the pattern '/{number}/' without a processor" do
-    @uri.extract_mapping("/{number}/").should == {
+    Addressable::Template.new("/{number}/").extract(@uri).should == {
       "number" => "one/two"
     }
   end
 
   it "should have the correct mapping when extracting values " +
       "using the pattern '/{first}/{second}/' with the SlashlessProcessor" do
-    @uri.extract_mapping("/{first}/{second}/", SlashlessProcessor).should == {
+    Addressable::Template.new(
+      "/{first}/{second}/"
+    ).extract(@uri, SlashlessProcessor).should == {
       "first" => "one",
       "second" => "two"
     }
@@ -223,9 +232,9 @@ describe Addressable::URI, "when parsed from " +
   it "should have the correct mapping when extracting values using " +
       "the pattern 'http://example.com/search/{query}/' with the " +
       "ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/search/{query}/", ExampleProcessor
-    ).should == {
+    Addressable::Template.new(
+      "http://example.com/search/{query}/"
+    ).extract(@uri, ExampleProcessor).should == {
       "query" => "an example search query"
     }
   end
@@ -233,18 +242,18 @@ describe Addressable::URI, "when parsed from " +
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/search/{-list|+|query}/'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/search/{-list|+|query}/"
-    ).should == {
+    ).extract(@uri).should == {
       "query" => ["an", "example", "search", "query"]
     }
   end
 
   it "should return nil when extracting values using " +
       "a non-matching pattern" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://bogus.com/{thingy}/"
-    ).should == nil
+    ).extract(@uri).should == nil
   end
 end
 
@@ -258,9 +267,9 @@ describe Addressable::URI, "when parsed from " +
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/{first}/{second}/' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/{first}/{second}/", ExampleProcessor
-    ).should == {
+    Addressable::Template.new(
+      "http://example.com/{first}/{second}/"
+    ).extract(@uri, ExampleProcessor).should == {
       "first" => "a",
       "second" => "b/c"
     }
@@ -269,9 +278,9 @@ describe Addressable::URI, "when parsed from " +
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/{first}/{-list|/|second}/'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/{first}/{-list|/|second}/"
-    ).should == {
+    ).extract(@uri).should == {
       "first" => "a",
       "second" => ["b", "c"]
     }
@@ -281,10 +290,9 @@ describe Addressable::URI, "when parsed from " +
       "using the pattern " +
       "'http://example.com/{first}/{-list|/|rot13}/' " +
       "with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/{first}/{-list|/|rot13}/",
-      ExampleProcessor
-    ).should == {
+    Addressable::Template.new(
+      "http://example.com/{first}/{-list|/|rot13}/"
+    ).extract(@uri, ExampleProcessor).should == {
       "first" => "a",
       "rot13" => ["o", "p"]
     }
@@ -294,10 +302,9 @@ describe Addressable::URI, "when parsed from " +
       "using the pattern " +
       "'http://example.com/{-list|/|rot13}/' " +
       "with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/{-list|/|rot13}/",
-      ExampleProcessor
-    ).should == {
+    Addressable::Template.new(
+      "http://example.com/{-list|/|rot13}/"
+    ).extract(@uri, ExampleProcessor).should == {
       "rot13" => ["n", "o", "p"]
     }
   end
@@ -305,7 +312,9 @@ describe Addressable::URI, "when parsed from " +
   it "should not map to anything when extracting values " +
       "using the pattern " +
       "'http://example.com/{-list|/|rot13}/'" do
-    @uri.extract_mapping("http://example.com/{-join|/|a,b,c}/").should == nil
+    Addressable::Template.new(
+      "http://example.com/{-join|/|a,b,c}/"
+    ).extract(@uri).should == nil
   end
 end
 
@@ -318,9 +327,9 @@ describe Addressable::URI, "when parsed from " +
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/?{-join|&|a,b,c}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/?{-join|&|a,b,c}"
-    ).should == {
+    ).extract(@uri).should == {
       "a" => "one",
       "b" => "two",
       "c" => "three"
@@ -337,10 +346,9 @@ describe Addressable::URI, "when parsed from " +
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/?{-join|&|rot13}' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/?{-join|&|rot13}",
-      ExampleProcessor
-    ).should == {
+    Addressable::Template.new(
+      "http://example.com/?{-join|&|rot13}"
+    ).extract(@uri, ExampleProcessor).should == {
       "rot13" => "secret"
     }
   end
@@ -355,9 +363,9 @@ describe Addressable::URI, "when parsed from " +
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/{first}/spacer/{second}/'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/{first}/spacer/{second}/"
-    ).should == {
+    ).extract(@uri).should == {
       "first" => "one",
       "second" => "two"
     }
@@ -366,9 +374,9 @@ describe Addressable::URI, "when parsed from " +
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com{-prefix|/|stuff}/'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com{-prefix|/|stuff}/"
-    ).should == {
+    ).extract(@uri).should == {
       "stuff" => ["one", "spacer", "two"]
     }
   end
@@ -376,17 +384,17 @@ describe Addressable::URI, "when parsed from " +
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/o{-prefix|/|stuff}/'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/o{-prefix|/|stuff}/"
-    ).should == nil
+    ).extract(@uri).should == nil
   end
 
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/{first}/spacer{-prefix|/|stuff}/'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/{first}/spacer{-prefix|/|stuff}/"
-    ).should == {
+    ).extract(@uri).should == {
       "first" => "one",
       "stuff" => ["two"]
     }
@@ -395,18 +403,17 @@ describe Addressable::URI, "when parsed from " +
   it "should not match anything when extracting values " +
       "using the incorrect suffix pattern " +
       "'http://example.com/{-prefix|/|stuff}/'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/{-prefix|/|stuff}/"
-    ).should == nil
+    ).extract(@uri).should == nil
   end
 
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com{-prefix|/|rot13}/' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com{-prefix|/|rot13}/",
-      ExampleProcessor
-    ).should == {
+    Addressable::Template.new(
+      "http://example.com{-prefix|/|rot13}/"
+    ).extract(@uri, ExampleProcessor).should == {
       "rot13" => ["bar", "fcnpre", "gjb"]
     }
   end
@@ -414,10 +421,9 @@ describe Addressable::URI, "when parsed from " +
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com{-prefix|/|rot13}' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com{-prefix|/|rot13}",
-      ExampleProcessor
-    ).should == {
+    Addressable::Template.new(
+      "http://example.com{-prefix|/|rot13}"
+    ).extract(@uri, ExampleProcessor).should == {
       "rot13" => ["bar", "fcnpre", "gjb", ""]
     }
   end
@@ -425,18 +431,17 @@ describe Addressable::URI, "when parsed from " +
   it "should not match anything when extracting values " +
       "using the incorrect suffix pattern " +
       "'http://example.com/{-prefix|/|rot13}' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/{-prefix|/|rot13}",
-      ExampleProcessor
-    ).should == nil
+    Addressable::Template.new(
+      "http://example.com/{-prefix|/|rot13}"
+    ).extract(@uri, ExampleProcessor).should == nil
   end
 
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/{-suffix|/|stuff}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/{-suffix|/|stuff}"
-    ).should == {
+    ).extract(@uri).should == {
       "stuff" => ["one", "spacer", "two"]
     }
   end
@@ -444,25 +449,25 @@ describe Addressable::URI, "when parsed from " +
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/{-suffix|/|stuff}o'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/{-suffix|/|stuff}o"
-    ).should == nil
+    ).extract(@uri).should == nil
   end
 
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/o{-suffix|/|stuff}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/o{-suffix|/|stuff}"
-    ).should == {"stuff"=>["ne", "spacer", "two"]}
+    ).extract(@uri).should == {"stuff"=>["ne", "spacer", "two"]}
   end
 
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/{first}/spacer/{-suffix|/|stuff}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/{first}/spacer/{-suffix|/|stuff}"
-    ).should == {
+    ).extract(@uri).should == {
       "first" => "one",
       "stuff" => ["two"]
     }
@@ -471,18 +476,17 @@ describe Addressable::URI, "when parsed from " +
   it "should not match anything when extracting values " +
       "using the incorrect suffix pattern " +
       "'http://example.com/{-suffix|/|stuff}/'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/{-suffix|/|stuff}/"
-    ).should == nil
+    ).extract(@uri).should == nil
   end
 
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com/{-suffix|/|rot13}' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/{-suffix|/|rot13}",
-      ExampleProcessor
-    ).should == {
+    Addressable::Template.new(
+      "http://example.com/{-suffix|/|rot13}"
+    ).extract(@uri, ExampleProcessor).should == {
       "rot13" => ["bar", "fcnpre", "gjb"]
     }
   end
@@ -490,10 +494,9 @@ describe Addressable::URI, "when parsed from " +
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://example.com{-suffix|/|rot13}' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com{-suffix|/|rot13}",
-      ExampleProcessor
-    ).should == {
+    Addressable::Template.new(
+      "http://example.com{-suffix|/|rot13}"
+    ).extract(@uri, ExampleProcessor).should == {
       "rot13" => ["", "bar", "fcnpre", "gjb"]
     }
   end
@@ -501,10 +504,9 @@ describe Addressable::URI, "when parsed from " +
   it "should not match anything when extracting values " +
       "using the incorrect suffix pattern " +
       "'http://example.com/{-suffix|/|rot13}/' with the ExampleProcessor" do
-    @uri.extract_mapping(
-      "http://example.com/{-suffix|/|rot13}/",
-      ExampleProcessor
-    ).should == nil
+    Addressable::Template.new(
+      "http://example.com/{-suffix|/|rot13}/"
+    ).extract(@uri, ExampleProcessor).should == nil
   end
 end
 
@@ -519,33 +521,33 @@ describe Addressable::URI, "when parsed from " +
   it "should not match anything when extracting values " +
       "using the incorrect opt pattern " +
       "'http://example.com/?email={-opt|bogus@bogus.com|test}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/?email={-opt|bogus@bogus.com|test}"
-    ).should == nil
+    ).extract(@uri).should == nil
   end
 
   it "should not match anything when extracting values " +
       "using the incorrect neg pattern " +
       "'http://example.com/?email={-neg|bogus@bogus.com|test}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/?email={-neg|bogus@bogus.com|test}"
-    ).should == nil
+    ).extract(@uri).should == nil
   end
 
   it "should indicate a match when extracting values " +
       "using the opt pattern " +
       "'http://example.com/?email={-opt|bob@sporkmonger.com|test}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/?email={-opt|bob@sporkmonger.com|test}"
-    ).should == {}
+    ).extract(@uri).should == {}
   end
 
   it "should indicate a match when extracting values " +
       "using the neg pattern " +
       "'http://example.com/?email={-neg|bob@sporkmonger.com|test}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/?email={-neg|bob@sporkmonger.com|test}"
-    ).should == {}
+    ).extract(@uri).should == {}
   end
 end
 
@@ -560,17 +562,17 @@ describe Addressable::URI, "when parsed from " +
   it "should indicate a match when extracting values " +
       "using the opt pattern " +
       "'http://example.com/?email={-opt|bob@sporkmonger.com|test}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/?email={-opt|bob@sporkmonger.com|test}"
-    ).should == {}
+    ).extract(@uri).should == {}
   end
 
   it "should indicate a match when extracting values " +
       "using the neg pattern " +
       "'http://example.com/?email={-neg|bob@sporkmonger.com|test}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://example.com/?email={-neg|bob@sporkmonger.com|test}"
-    ).should == {}
+    ).extract(@uri).should == {}
   end
 end
 
@@ -585,9 +587,9 @@ describe Addressable::URI, "when parsed from " +
   it "should have the correct mapping when extracting values " +
       "using the pattern " +
       "'http://{host}/{-suffix|/|segments}?{-join|&|one,two}\#{fragment}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://{host}/{-suffix|/|segments}?{-join|&|one,two}\#{fragment}"
-    ).should == {
+    ).extract(@uri).should == {
       "host" => "example.com",
       "segments" => ["a", "b", "c"],
       "one" => "1",
@@ -599,35 +601,35 @@ describe Addressable::URI, "when parsed from " +
   it "should not match when extracting values " +
       "using the pattern " +
       "'http://{host}/{-suffix|/|segments}?{-join|&|one}\#{fragment}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://{host}/{-suffix|/|segments}?{-join|&|one}\#{fragment}"
-    ).should == nil
+    ).extract(@uri).should == nil
   end
 
   it "should not match when extracting values " +
       "using the pattern " +
       "'http://{host}/{-suffix|/|segments}?{-join|&|bogus}\#{fragment}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://{host}/{-suffix|/|segments}?{-join|&|bogus}\#{fragment}"
-    ).should == nil
+    ).extract(@uri).should == nil
   end
 
   it "should not match when extracting values " +
       "using the pattern " +
       "'http://{host}/{-suffix|/|segments}?" +
       "{-join|&|one,bogus}\#{fragment}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://{host}/{-suffix|/|segments}?{-join|&|one,bogus}\#{fragment}"
-    ).should == nil
+    ).extract(@uri).should == nil
   end
 
   it "should not match when extracting values " +
       "using the pattern " +
       "'http://{host}/{-suffix|/|segments}?" +
       "{-join|&|one,two,bogus}\#{fragment}'" do
-    @uri.extract_mapping(
+    Addressable::Template.new(
       "http://{host}/{-suffix|/|segments}?{-join|&|one,two,bogus}\#{fragment}"
-    ).should == {
+    ).extract(@uri).should == {
       "host" => "example.com",
       "segments" => ["a", "b", "c"],
       "one" => "1",
@@ -644,7 +646,9 @@ describe Addressable::URI, "when given a pattern with bogus operators" do
 
   it "should raise an InvalidTemplateOperatorError" do
     (lambda do
-      @uri.extract_mapping("http://example.com/{-bogus|/|a,b,c}/")
+      Addressable::Template.new(
+        "http://example.com/{-bogus|/|a,b,c}/"
+      ).extract(@uri)
     end).should raise_error(
       Addressable::Template::InvalidTemplateOperatorError
     )
@@ -652,7 +656,9 @@ describe Addressable::URI, "when given a pattern with bogus operators" do
 
   it "should raise an InvalidTemplateOperatorError" do
     (lambda do
-      @uri.extract_mapping("http://example.com/{-prefix|/|a,b,c}/")
+      Addressable::Template.new(
+        "http://example.com/{-prefix|/|a,b,c}/"
+      ).extract(@uri)
     end).should raise_error(
       Addressable::Template::InvalidTemplateOperatorError
     )
@@ -660,7 +666,9 @@ describe Addressable::URI, "when given a pattern with bogus operators" do
 
   it "should raise an InvalidTemplateOperatorError" do
     (lambda do
-      @uri.extract_mapping("http://example.com/{-suffix|/|a,b,c}/")
+      Addressable::Template.new(
+        "http://example.com/{-suffix|/|a,b,c}/"
+      ).extract(@uri)
     end).should raise_error(
       Addressable::Template::InvalidTemplateOperatorError
     )
@@ -668,7 +676,524 @@ describe Addressable::URI, "when given a pattern with bogus operators" do
 
   it "should raise an InvalidTemplateOperatorError" do
     (lambda do
-      @uri.extract_mapping("http://example.com/{-list|/|a,b,c}/")
+      Addressable::Template.new(
+        "http://example.com/{-list|/|a,b,c}/"
+      ).extract(@uri)
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
+  end
+end
+
+describe Addressable::URI, "when given a mapping that contains an Array" do
+  before do
+    @mapping = {"query" => "an example search query".split(" ")}
+  end
+
+  it "should result in 'http://example.com/search/an+example+search+query/'" +
+      " when used to expand 'http://example.com/search/{-list|+|query}/'" do
+    Addressable::Template.new(
+      "http://example.com/search/{-list|+|query}/"
+    ).expand(@mapping).to_str.should ==
+      "http://example.com/search/an+example+search+query/"
+  end
+
+  it "should result in 'http://example.com/search/an+example+search+query/'" +
+      " when used to expand 'http://example.com/search/{-list|+|query}/'" +
+      " with a NoOpProcessor" do
+    Addressable::Template.new(
+      "http://example.com/search/{-list|+|query}/"
+    ).expand(@mapping, NoOpProcessor).to_str.should ==
+      "http://example.com/search/an+example+search+query/"
+  end
+end
+
+describe Addressable::URI, "when given an empty mapping" do
+  before do
+    @mapping = {}
+  end
+
+  it "should result in 'http://example.com/search/'" +
+      " when used to expand 'http://example.com/search/{-list|+|query}'" do
+    Addressable::Template.new(
+      "http://example.com/search/{-list|+|query}"
+    ).expand(@mapping).to_str.should == "http://example.com/search/"
+  end
+
+  it "should result in 'http://example.com'" +
+      " when used to expand 'http://example.com{-prefix|/|foo}'" do
+    Addressable::Template.new(
+      "http://example.com{-prefix|/|foo}"
+    ).expand(@mapping).to_str.should == "http://example.com"
+  end
+
+  it "should result in 'http://example.com'" +
+      " when used to expand 'http://example.com{-suffix|/|foo}'" do
+    Addressable::Template.new(
+      "http://example.com{-suffix|/|foo}"
+    ).expand(@mapping).to_str.should == "http://example.com"
+  end
+end
+
+describe Addressable::URI, "when given the template pattern " +
+    "'http://example.com/search/{query}/' " +
+    "to be processed with the ExampleProcessor" do
+  before do
+    @pattern = "http://example.com/search/{query}/"
+  end
+
+  it "should expand to " +
+      "'http://example.com/search/an+example+search+query/' " +
+      "with a mapping of {\"query\" => \"an example search query\"} " do
+    Addressable::Template.new(
+      "http://example.com/search/{query}/"
+    ).expand({
+      "query" => "an example search query"
+    }, ExampleProcessor).to_s.should ==
+      "http://example.com/search/an+example+search+query/"
+  end
+
+  it "should raise an error " +
+      "with a mapping of {\"query\" => \"invalid!\"}" do
+    (lambda do
+      Addressable::Template.new(
+        "http://example.com/search/{query}/"
+      ).expand({"query" => "invalid!"}, ExampleProcessor).to_s
+    end).should raise_error(Addressable::Template::InvalidTemplateValueError)
+  end
+end
+
+# Section 3.3.1 of the URI Template draft v 01
+describe Addressable::URI, "when given the mapping supplied in " +
+    "Section 3.3.1 of the URI Template draft v 01" do
+  before do
+    @mapping = {
+      "a" => "fred",
+      "b" => "barney",
+      "c" => "cheeseburger",
+      "d" => "one two three",
+      "e" => "20% tricky",
+      "f" => "",
+      "20" => "this-is-spinal-tap",
+      "scheme" => "https",
+      "p" => "quote=to+be+or+not+to+be",
+      "q" => "hullo#world"
+    }
+  end
+
+  it "should result in 'http://example.org/page1#fred' " +
+      "when used to expand 'http://example.org/page1\#{a}'" do
+    Addressable::Template.new(
+      "http://example.org/page1\#{a}"
+    ).expand(@mapping).to_s.should == "http://example.org/page1#fred"
+  end
+
+  it "should result in 'http://example.org/fred/barney/' " +
+      "when used to expand 'http://example.org/{a}/{b}/'" do
+    Addressable::Template.new(
+      "http://example.org/{a}/{b}/"
+    ).expand(@mapping).to_s.should == "http://example.org/fred/barney/"
+  end
+
+  it "should result in 'http://example.org/fredbarney/' " +
+      "when used to expand 'http://example.org/{a}{b}/'" do
+    Addressable::Template.new(
+      "http://example.org/{a}{b}/"
+    ).expand(@mapping).to_s.should == "http://example.org/fredbarney/"
+  end
+
+  it "should result in " +
+      "'http://example.com/order/cheeseburger/cheeseburger/cheeseburger/' " +
+      "when used to expand 'http://example.com/order/{c}/{c}/{c}/'" do
+    Addressable::Template.new(
+      "http://example.com/order/{c}/{c}/{c}/"
+    ).expand(@mapping).to_s.should ==
+      "http://example.com/order/cheeseburger/cheeseburger/cheeseburger/"
+  end
+
+  it "should result in 'http://example.org/one%20two%20three' " +
+      "when used to expand 'http://example.org/{d}'" do
+    Addressable::Template.new(
+      "http://example.org/{d}"
+    ).expand(@mapping).to_s.should ==
+      "http://example.org/one%20two%20three"
+  end
+
+  it "should result in 'http://example.org/20%25%20tricky' " +
+      "when used to expand 'http://example.org/{e}'" do
+    Addressable::Template.new(
+      "http://example.org/{e}"
+    ).expand(@mapping).to_s.should ==
+      "http://example.org/20%25%20tricky"
+  end
+
+  it "should result in 'http://example.com//' " +
+      "when used to expand 'http://example.com/{f}/'" do
+    Addressable::Template.new(
+      "http://example.com/{f}/"
+    ).expand(@mapping).to_s.should ==
+      "http://example.com//"
+  end
+
+  it "should result in " +
+      "'https://this-is-spinal-tap.example.org?date=&option=fred' " +
+      "when used to expand " +
+      "'{scheme}://{20}.example.org?date={wilma}&option={a}'" do
+    Addressable::Template.new(
+      "{scheme}://{20}.example.org?date={wilma}&option={a}"
+    ).expand(@mapping).to_s.should ==
+      "https://this-is-spinal-tap.example.org?date=&option=fred"
+  end
+
+  # The v 01 draft conflicts with the v 03 draft here.
+  # The Addressable implementation uses v 03.
+  it "should result in " +
+      "'http://example.org?quote%3Dto%2Bbe%2Bor%2Bnot%2Bto%2Bbe' " +
+      "when used to expand 'http://example.org?{p}'" do
+    Addressable::Template.new(
+      "http://example.org?{p}"
+    ).expand(@mapping).to_s.should ==
+      "http://example.org?quote%3Dto%2Bbe%2Bor%2Bnot%2Bto%2Bbe"
+  end
+
+  # The v 01 draft conflicts with the v 03 draft here.
+  # The Addressable implementation uses v 03.
+  it "should result in 'http://example.com/hullo%23world' " +
+      "when used to expand 'http://example.com/{q}'" do
+    Addressable::Template.new(
+      "http://example.com/{q}"
+    ).expand(@mapping).to_s.should == "http://example.com/hullo%23world"
+  end
+end
+
+# Section 4.5 of the URI Template draft v 03
+describe Addressable::URI, "when given the mapping supplied in " +
+    "Section 4.5 of the URI Template draft v 03" do
+  before do
+    @mapping = {
+      "foo" => "ϓ",
+      "bar" => "fred",
+      "baz" => "10,20,30",
+      "qux" => ["10","20","30"],
+      "corge" => [],
+      "grault" => "",
+      "garply" => "a/b/c",
+      "waldo" => "ben & jerrys",
+      "fred" => ["fred", "", "wilma"],
+      "plugh" => ["ẛ", "ṡ"],
+      "1-a_b.c" => "200"
+    }
+  end
+
+  it "should result in 'http://example.org/?q=fred' " +
+      "when used to expand 'http://example.org/?q={bar}'" do
+    Addressable::Template.new(
+      "http://example.org/?q={bar}"
+    ).expand(@mapping).to_s.should == "http://example.org/?q=fred"
+  end
+
+  it "should result in '/' " +
+      "when used to expand '/{xyzzy}'" do
+    Addressable::Template.new(
+      "/{xyzzy}"
+    ).expand(@mapping).to_s.should == "/"
+  end
+
+  it "should result in " +
+      "'http://example.org/?foo=%CE%8E&bar=fred&baz=10%2C20%2C30' " +
+      "when used to expand " +
+      "'http://example.org/?{-join|&|foo,bar,xyzzy,baz}'" do
+    Addressable::Template.new(
+      "http://example.org/?{-join|&|foo,bar,xyzzy,baz}"
+    ).expand(@mapping).to_s.should ==
+      "http://example.org/?foo=%CE%8E&bar=fred&baz=10%2C20%2C30"
+  end
+
+  it "should result in 'http://example.org/?d=10,20,30' " +
+      "when used to expand 'http://example.org/?d={-list|,|qux}'" do
+    Addressable::Template.new(
+      "http://example.org/?d={-list|,|qux}"
+    ).expand(
+      @mapping
+    ).to_s.should == "http://example.org/?d=10,20,30"
+  end
+
+  it "should result in 'http://example.org/?d=10&d=20&d=30' " +
+      "when used to expand 'http://example.org/?d={-list|&d=|qux}'" do
+    Addressable::Template.new(
+      "http://example.org/?d={-list|&d=|qux}"
+    ).expand(
+      @mapping
+    ).to_s.should == "http://example.org/?d=10&d=20&d=30"
+  end
+
+  it "should result in 'http://example.org/fredfred/a%2Fb%2Fc' " +
+      "when used to expand 'http://example.org/{bar}{bar}/{garply}'" do
+    Addressable::Template.new(
+      "http://example.org/{bar}{bar}/{garply}"
+    ).expand(
+      @mapping
+    ).to_s.should == "http://example.org/fredfred/a%2Fb%2Fc"
+  end
+
+  it "should result in 'http://example.org/fred/fred//wilma' " +
+      "when used to expand 'http://example.org/{bar}{-prefix|/|fred}'" do
+    Addressable::Template.new(
+      "http://example.org/{bar}{-prefix|/|fred}"
+    ).expand(
+      @mapping
+    ).to_s.should == "http://example.org/fred/fred//wilma"
+  end
+
+  it "should result in ':%E1%B9%A1:%E1%B9%A1:' " +
+      "when used to expand '{-neg|:|corge}{-suffix|:|plugh}'" do
+    Addressable::Template.new(
+      "{-neg|:|corge}{-suffix|:|plugh}"
+    ).expand(
+      @mapping
+    ).to_s.should == ":%E1%B9%A1:%E1%B9%A1:"
+  end
+
+  it "should result in '../ben%20%26%20jerrys/' " +
+      "when used to expand '../{waldo}/'" do
+    Addressable::Template.new(
+      "../{waldo}/"
+    ).expand(
+      @mapping
+    ).to_s.should == "../ben%20%26%20jerrys/"
+  end
+
+  it "should result in 'telnet:192.0.2.16:80' " +
+      "when used to expand 'telnet:192.0.2.16{-opt|:80|grault}'" do
+    Addressable::Template.new(
+      "telnet:192.0.2.16{-opt|:80|grault}"
+    ).expand(
+      @mapping
+    ).to_s.should == "telnet:192.0.2.16:80"
+  end
+
+  it "should result in ':200:' " +
+      "when used to expand ':{1-a_b.c}:'" do
+    Addressable::Template.new(
+      ":{1-a_b.c}:"
+    ).expand(
+      @mapping
+    ).to_s.should == ":200:"
+  end
+end
+
+describe Addressable::URI, "when given a mapping that contains a " +
+  "template-var within a value" do
+  before do
+    @mapping = {
+      "a" => "{b}",
+      "b" => "barney",
+    }
+  end
+
+  it "should result in 'http://example.com/%7Bb%7D/barney/' " +
+      "when used to expand 'http://example.com/{a}/{b}/'" do
+    Addressable::Template.new(
+      "http://example.com/{a}/{b}/"
+    ).expand(
+      @mapping
+    ).to_s.should == "http://example.com/%7Bb%7D/barney/"
+  end
+
+  it "should result in 'http://example.com//%7Bb%7D/' " +
+      "when used to expand 'http://example.com/{-opt|foo|foo}/{a}/'" do
+    Addressable::Template.new(
+      "http://example.com/{-opt|foo|foo}/{a}/"
+    ).expand(
+      @mapping
+    ).to_s.should == "http://example.com//%7Bb%7D/"
+  end
+
+  it "should result in 'http://example.com//%7Bb%7D/' " +
+      "when used to expand 'http://example.com/{-neg|foo|b}/{a}/'" do
+    Addressable::Template.new(
+      "http://example.com/{-neg|foo|b}/{a}/"
+    ).expand(
+      @mapping
+    ).to_s.should == "http://example.com//%7Bb%7D/"
+  end
+
+  it "should result in 'http://example.com//barney/%7Bb%7D/' " +
+      "when used to expand 'http://example.com/{-prefix|/|b}/{a}/'" do
+    Addressable::Template.new(
+      "http://example.com/{-prefix|/|b}/{a}/"
+    ).expand(
+      @mapping
+    ).to_s.should == "http://example.com//barney/%7Bb%7D/"
+  end
+
+  it "should result in 'http://example.com/barney//%7Bb%7D/' " +
+      "when used to expand 'http://example.com/{-suffix|/|b}/{a}/'" do
+    Addressable::Template.new(
+      "http://example.com/{-suffix|/|b}/{a}/"
+    ).expand(
+      @mapping
+    ).to_s.should == "http://example.com/barney//%7Bb%7D/"
+  end
+
+  it "should result in 'http://example.com/%7Bb%7D/?b=barney&c=42' " +
+      "when used to expand 'http://example.com/{a}/?{-join|&|b,c=42}'" do
+    Addressable::Template.new(
+      "http://example.com/{a}/?{-join|&|b,c=42}"
+    ).expand(
+      @mapping
+    ).to_s.should == "http://example.com/%7Bb%7D/?b=barney&c=42"
+  end
+
+  it "should result in 'http://example.com/42/?b=barney' " +
+      "when used to expand 'http://example.com/{c=42}/?{-join|&|b}'" do
+    Addressable::Template.new(
+      "http://example.com/{c=42}/?{-join|&|b}"
+    ).expand(@mapping).to_s.should == "http://example.com/42/?b=barney"
+  end
+end
+
+describe Addressable::URI, "when given a single variable mapping" do
+  before do
+    @mapping = {
+      "foo" => "fred"
+    }
+  end
+
+  it "should result in 'fred' when used to expand '{foo}'" do
+    Addressable::Template.new(
+      "{foo}"
+    ).expand(@mapping).to_s.should == "fred"
+  end
+
+  it "should result in 'wilma' when used to expand '{bar=wilma}'" do
+    Addressable::Template.new(
+      "{bar=wilma}"
+    ).expand(@mapping).to_s.should == "wilma"
+  end
+
+  it "should result in '' when used to expand '{baz}'" do
+    Addressable::Template.new(
+      "{baz}"
+    ).expand(@mapping).to_s.should == ""
+  end
+end
+
+describe Addressable::URI, "when given a simple mapping" do
+  before do
+    @mapping = {
+      "foo" => "fred",
+      "bar" => "barney",
+      "baz" => ""
+    }
+  end
+
+  it "should result in 'foo=fred&bar=barney&baz=' when used to expand " +
+      "'{-join|&|foo,bar,baz,qux}'" do
+    Addressable::Template.new(
+      "{-join|&|foo,bar,baz,qux}"
+    ).expand(@mapping).to_s.should == "foo=fred&bar=barney&baz="
+  end
+
+  it "should result in 'bar=barney' when used to expand " +
+      "'{-join|&|bar}'" do
+    Addressable::Template.new(
+      "{-join|&|bar}"
+    ).expand(@mapping).to_s.should == "bar=barney"
+  end
+
+  it "should result in '' when used to expand " +
+      "'{-join|&|qux}'" do
+    Addressable::Template.new(
+      "{-join|&|qux}"
+    ).expand(@mapping).to_s.should == ""
+  end
+end
+
+describe Addressable::URI, "when given a mapping containing values " +
+    "that are already percent-encoded" do
+  before do
+    @mapping = {
+      "a" => "%7Bb%7D"
+    }
+  end
+
+  it "should result in 'http://example.com/%257Bb%257D/' " +
+      "when used to expand 'http://example.com/{a}/'" do
+    Addressable::Template.new(
+      "http://example.com/{a}/"
+    ).expand(@mapping).to_s.should == "http://example.com/%257Bb%257D/"
+  end
+end
+
+describe Addressable::URI, "when given a mapping containing bogus values" do
+  it "should raise a TypeError" do
+    (lambda do
+      Addressable::Template.new(
+        "http://example.com/{bogus}/"
+      ).expand({
+        "bogus" => 42
+      })
+    end).should raise_error(TypeError)
+  end
+end
+
+describe Addressable::URI, "when given a pattern with bogus operators" do
+  it "should raise an InvalidTemplateOperatorError" do
+    (lambda do
+      Addressable::Template.new(
+        "http://example.com/{-bogus|/|a,b,c}/"
+      ).expand({
+        "a" => "a", "b" => "b", "c" => "c"
+      })
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
+  end
+
+  it "should raise an InvalidTemplateOperatorError" do
+    (lambda do
+      Addressable::Template.new(
+        "http://example.com/{-prefix|/|a,b,c}/"
+      ).expand({
+        "a" => "a", "b" => "b", "c" => "c"
+      })
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
+  end
+
+  it "should raise an InvalidTemplateOperatorError" do
+    (lambda do
+      Addressable::Template.new(
+        "http://example.com/{-suffix|/|a,b,c}/"
+      ).expand({
+        "a" => "a", "b" => "b", "c" => "c"
+      })
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
+  end
+
+  it "should raise an InvalidTemplateOperatorError" do
+    (lambda do
+      Addressable::Template.new(
+        "http://example.com/{-join|/|a,b,c}/"
+      ).expand({
+        "a" => ["a"], "b" => ["b"], "c" => "c"
+      })
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
+  end
+
+  it "should raise an InvalidTemplateOperatorError" do
+    (lambda do
+      Addressable::Template.new(
+        "http://example.com/{-list|/|a,b,c}/"
+      ).expand({
+        "a" => ["a"], "b" => ["b"], "c" => "c"
+      })
     end).should raise_error(
       Addressable::Template::InvalidTemplateOperatorError
     )
