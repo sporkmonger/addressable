@@ -90,6 +90,7 @@ module Addressable
       def variables
         self.template.variables
       end
+      alias_method :keys, :variables
 
       ##
       # @return [Array]
