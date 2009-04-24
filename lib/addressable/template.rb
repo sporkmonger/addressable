@@ -484,6 +484,7 @@ module Addressable
         result.uniq
       end)
     end
+    alias_method :keys, :variables
 
   private
     ##
