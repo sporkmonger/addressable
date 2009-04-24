@@ -342,6 +342,12 @@ module Addressable
       if character_class.kind_of?(String)
         character_class = /[^#{character_class}]/
       end
+      if component.respond_to?(:force_encoding)
+        # We can't perform regexps on invalid UTF sequences, but
+        # here we need to, so switch to ASCII.
+        component = component.dup
+        component.force_encoding(Encoding::ASCII_8BIT)
+      end
       return component.gsub(character_class) do |sequence|
         (sequence.unpack('C*').map { |c| "%" + ("%02x" % c).upcase }).join("")
       end

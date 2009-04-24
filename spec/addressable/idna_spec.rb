@@ -39,16 +39,17 @@ describe Addressable::IDNA, "when converting from unicode to ASCII" do
   end
 
   it "should convert 'www.Iñtërnâtiônàlizætiøn.com' correctly" do
+    "www.Iñtërnâtiônàlizætiøn.com"
     Addressable::IDNA.to_ascii(
-      "www.I\303\261t\303\253rn\303\242ti\303\264" +
-      "n\303\240liz\303\246ti\303\270n.com"
+      "www.I\xC3\xB1t\xC3\xABrn\xC3\xA2ti\xC3\xB4" +
+      "n\xC3\xA0liz\xC3\xA6ti\xC3\xB8n.com"
     ).should == "www.xn--itrntinliztin-vdb0a5exd8ewcye.com"
   end
 
   it "should convert 'www.Iñtërnâtiônàlizætiøn.com' correctly" do
     Addressable::IDNA.to_ascii(
-      "www.In\314\203te\314\210rna\314\202tio\314\202n" +
-      "a\314\200liz\303\246ti\303\270n.com"
+      "www.In\xCC\x83te\xCC\x88rna\xCC\x82tio\xCC\x82n" +
+      "a\xCC\x80liz\xC3\xA6ti\xC3\xB8n.com"
     ).should == "www.xn--itrntinliztin-vdb0a5exd8ewcye.com"
   end
 

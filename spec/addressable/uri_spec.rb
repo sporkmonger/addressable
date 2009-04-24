@@ -1,4 +1,4 @@
-# encoding:utf-8
+# encoding: utf-8
 #--
 # Addressable, Copyright (c) 2006-2007 Bob Aman
 #
@@ -2026,10 +2026,12 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should have the correct query string after hash assignment" do
-    @uri.query_values = {"?uestion mark"=>"=sign", "hello"=>"günther"}
+    @uri.query_values = {"?uestion mark"=>"=sign", "hello"=>"g\xC3\xBCnther"}
     @uri.query.split("&").should include("%3Fuestion%20mark=%3Dsign")
     @uri.query.split("&").should include("hello=g%C3%BCnther")
-    @uri.query_values.should == {"?uestion mark"=>"=sign", "hello"=>"günther"}
+    @uri.query_values.should == {
+      "?uestion mark"=>"=sign", "hello"=>"g\xC3\xBCnther"
+    }
   end
 
   it "should have the correct query string after flag hash assignment" do
