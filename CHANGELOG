@@ -6,6 +6,7 @@
   * fixed unicode normalization exception
   * improved specs
   * refactored URI template support out into its own class
+  * added partial template expansion
   * deprecated Addressable::URI.expand_template
   * deprecated Addressable::URI#extract_mapping
   * worked around issue with freezing URIs

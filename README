@@ -28,6 +28,12 @@ Example usage:
   #=> #<Addressable::URI:0xc9d95c URI:http://example.com/an+example+query/>
 
   template = Addressable::Template.new(
+    "http://example.com/{-join|&|one,two,three}/"
+  )
+  template.partial_expand({"one" => "1", "three" => 3}).pattern
+  #=> "http://example.com/?one=1{-prefix|&two=|two}&three=3"
+
+  template = Addressable::Template.new(
     "http://{host}/{-suffix|/|segments}?{-join|&|one,two,bogus}\#{fragment}"
   )
   uri = Addressable::URI.parse(

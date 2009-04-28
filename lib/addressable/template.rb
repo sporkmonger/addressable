@@ -33,6 +33,14 @@ module Addressable
   # This is an implementation of a URI template based on
   # <a href="http://tinyurl.com/uritemplatedraft03">URI Template draft 03</a>.
   class Template
+    # Constants used throughout the template code.
+    anything =
+      Addressable::URI::CharacterClasses::RESERVED +
+      Addressable::URI::CharacterClasses::UNRESERVED
+    OPERATOR_EXPANSION =
+      /\{-([a-zA-Z]+)\|([#{anything}]+)\|([#{anything}]+)\}/
+    VARIABLE_EXPANSION = /\{([#{anything}]+?)(=([#{anything}]+))?\}/
+
     ##
     # Raised if an invalid template value is supplied.
     class InvalidTemplateValueError < StandardError
@@ -265,13 +273,6 @@ module Addressable
       uri = Addressable::URI.parse(uri)
       mapping = {}
 
-      reserved = Addressable::URI::CharacterClasses::RESERVED
-      unreserved = Addressable::URI::CharacterClasses::UNRESERVED
-      anything = reserved + unreserved
-      operator_expansion =
-        /\{-([a-zA-Z]+)\|([#{anything}]+)\|([#{anything}]+)\}/
-      variable_expansion = /\{([#{anything}]+?)(=([#{anything}]+))?\}/
-
       # First, we need to process the pattern, and extract the values.
       expansions, expansion_regexp =
         parse_template_pattern(pattern, processor)
@@ -282,7 +283,7 @@ module Addressable
       elsif expansions.size > 0 && expansions.size == unparsed_values.size
         expansions.each_with_index do |expansion, index|
           unparsed_value = unparsed_values[index]
-          if expansion =~ operator_expansion
+          if expansion =~ OPERATOR_EXPANSION
             operator, argument, variables =
               parse_template_expansion(expansion)
             extract_method = "extract_#{operator}_operator"
@@ -301,7 +302,7 @@ module Addressable
               end
             end
           else
-            name = expansion[variable_expansion, 1]
+            name = expansion[VARIABLE_EXPANSION, 1]
             value = unparsed_value
             if processor != nil && processor.respond_to?(:restore)
               value = processor.restore(name, value)
@@ -313,6 +314,82 @@ module Addressable
       else
         return nil
       end
+    end
+
+    ##
+    # Expands a URI template into another URI template.
+    #
+    # @param [Hash] mapping The mapping that corresponds to the pattern.
+    # @param [#validate, #transform] processor
+    #   An optional processor object may be supplied.  The object should
+    #   respond to either the <tt>validate</tt> or <tt>transform</tt> messages
+    #   or both.  Both the <tt>validate</tt> and <tt>transform</tt> methods
+    #   should take two parameters: <tt>name</tt> and <tt>value</tt>.  The
+    #   <tt>validate</tt> method should return <tt>true</tt> or
+    #   <tt>false</tt>; <tt>true</tt> if the value of the variable is valid,
+    #   <tt>false</tt> otherwise.  An <tt>InvalidTemplateValueError</tt>
+    #   exception will be raised if the value is invalid.  The
+    #   <tt>transform</tt> method should return the transformed variable
+    #   value as a <tt>String</tt>.  If a <tt>transform</tt> method is used,
+    #   the value will not be percent encoded automatically.  Unicode
+    #   normalization will be performed both before and after sending the
+    #   value to the transform method.
+    #
+    # @return [Addressable::Template] The partially expanded URI template.
+    #
+    # @example
+    #   Addressable::Template.new(
+    #     "http://example.com/{one}/{two}/"
+    #   ).partial_expand({"one" => "1"}).pattern
+    #   #=> "http://example.com/1/{two}/"
+    #
+    #   Addressable::Template.new(
+    #     "http://example.com/search/{-list|+|query}/"
+    #   ).partial_expand(
+    #     {"query" => "an example search query".split(" ")}
+    #   ).pattern
+    #   #=> "http://example.com/search/an+example+search+query/"
+    #
+    #   Addressable::Template.new(
+    #     "http://example.com/{-join|&|one,two}/"
+    #   ).partial_expand({"one" => "1"}).pattern
+    #   #=> "http://example.com/?one=1{-prefix|&two=|two}"
+    #
+    #   Addressable::Template.new(
+    #     "http://example.com/{-join|&|one,two,three}/"
+    #   ).partial_expand({"one" => "1", "three" => 3}).pattern
+    #   #=> "http://example.com/?one=1{-prefix|&two=|two}&three=3"
+    def partial_expand(mapping, processor=nil)
+      result = self.pattern.dup
+      transformed_mapping = transform_mapping(mapping, processor)
+      result.gsub!(
+        /#{OPERATOR_EXPANSION}|#{VARIABLE_EXPANSION}/
+      ) do |capture|
+        if capture =~ OPERATOR_EXPANSION
+          operator, argument, variables, default_mapping =
+            parse_template_expansion(capture, transformed_mapping)
+          expand_method = "expand_#{operator}_operator"
+          if ([expand_method, expand_method.to_sym] & private_methods).empty?
+            raise InvalidTemplateOperatorError,
+              "Invalid template operator: #{operator}"
+          else
+            send(
+              expand_method.to_sym, argument, variables,
+              default_mapping, true
+            )
+          end
+        else
+          varname, _, vardefault = capture.scan(/^\{(.+?)(=(.*))?\}$/)[0]
+          if transformed_mapping[varname]
+            transformed_mapping[varname]
+          elsif vardefault
+            "{#{varname}=#{vardefault}}"
+          else
+            "{#{varname}}"
+          end
+        end
+      end
+      return Addressable::Template.new(result)
     end
 
     ##
@@ -373,15 +450,77 @@ module Addressable
     #   #=> Addressable::Template::InvalidTemplateValueError
     def expand(mapping, processor=nil)
       result = self.pattern.dup
+      transformed_mapping = transform_mapping(mapping, processor)
+      result.gsub!(
+        /#{OPERATOR_EXPANSION}|#{VARIABLE_EXPANSION}/
+      ) do |capture|
+        if capture =~ OPERATOR_EXPANSION
+          operator, argument, variables, default_mapping =
+            parse_template_expansion(capture, transformed_mapping)
+          expand_method = "expand_#{operator}_operator"
+          if ([expand_method, expand_method.to_sym] & private_methods).empty?
+            raise InvalidTemplateOperatorError,
+              "Invalid template operator: #{operator}"
+          else
+            send(expand_method.to_sym, argument, variables, default_mapping)
+          end
+        else
+          varname, _, vardefault = capture.scan(/^\{(.+?)(=(.*))?\}$/)[0]
+          transformed_mapping[varname] || vardefault
+        end
+      end
+      return Addressable::URI.parse(result)
+    end
 
-      reserved = Addressable::URI::CharacterClasses::RESERVED
-      unreserved = Addressable::URI::CharacterClasses::UNRESERVED
-      anything = reserved + unreserved
-      operator_expansion =
-        /\{-([a-zA-Z]+)\|([#{anything}]+)\|([#{anything}]+)\}/
-      variable_expansion = /\{([#{anything}]+?)(=([#{anything}]+))?\}/
+    ##
+    # Returns an Array of variables used within the template pattern.
+    # The variables are listed in the Array in the order they appear within
+    # the pattern.  Multiple occurrences of a variable within a pattern are
+    # not represented in this Array.
+    #
+    # @return [Array] The variables present in the template's pattern.
+    def variables
+      @variables ||= (begin
+        result = []
 
-      transformed_mapping = mapping.inject({}) do |accu, pair|
+        expansions, expansion_regexp = parse_template_pattern(pattern)
+        expansions.each do |expansion|
+          if expansion =~ OPERATOR_EXPANSION
+            _, _, variables, _ = parse_template_expansion(expansion)
+            result.concat(variables)
+          else
+            result << expansion[VARIABLE_EXPANSION, 1]
+          end
+        end
+        result.uniq
+      end)
+    end
+    alias_method :keys, :variables
+
+  private
+    ##
+    # Transforms a mapping so that values can be substituted into the
+    # template.
+    #
+    # @param [Hash] mapping The mapping of variables to values.
+    # @param [#validate, #transform] processor
+    #   An optional processor object may be supplied.  The object should
+    #   respond to either the <tt>validate</tt> or <tt>transform</tt> messages
+    #   or both.  Both the <tt>validate</tt> and <tt>transform</tt> methods
+    #   should take two parameters: <tt>name</tt> and <tt>value</tt>.  The
+    #   <tt>validate</tt> method should return <tt>true</tt> or
+    #   <tt>false</tt>; <tt>true</tt> if the value of the variable is valid,
+    #   <tt>false</tt> otherwise.  An <tt>InvalidTemplateValueError</tt>
+    #   exception will be raised if the value is invalid.  The
+    #   <tt>transform</tt> method should return the transformed variable
+    #   value as a <tt>String</tt>.  If a <tt>transform</tt> method is used,
+    #   the value will not be percent encoded automatically.  Unicode
+    #   normalization will be performed both before and after sending the
+    #   value to the transform method.
+    #
+    # @return [Hash] The transformed mapping.
+    def transform_mapping(mapping, processor=nil)
+      return mapping.inject({}) do |accu, pair|
         name, value = pair
         unless value.respond_to?(:to_ary) || value.respond_to?(:to_str)
           raise TypeError,
@@ -435,59 +574,8 @@ module Addressable
         accu[name] = transformed_value
         accu
       end
-      result.gsub!(
-        /#{operator_expansion}|#{variable_expansion}/
-      ) do |capture|
-        if capture =~ operator_expansion
-          operator, argument, variables, default_mapping =
-            parse_template_expansion(capture, transformed_mapping)
-          expand_method = "expand_#{operator}_operator"
-          if ([expand_method, expand_method.to_sym] & private_methods).empty?
-            raise InvalidTemplateOperatorError,
-              "Invalid template operator: #{operator}"
-          else
-            send(expand_method.to_sym, argument, variables, default_mapping)
-          end
-        else
-          varname, _, vardefault = capture.scan(/^\{(.+?)(=(.*))?\}$/)[0]
-          transformed_mapping[varname] || vardefault
-        end
-      end
-      return Addressable::URI.parse(result)
     end
 
-    ##
-    # Returns an Array of variables used within the template pattern.
-    # The variables are listed in the Array in the order they appear within
-    # the pattern.  Multiple occurrences of a variable within a pattern are
-    # not represented in this Array.
-    #
-    # @return [Array] The variables present in the template's pattern.
-    def variables
-      @variables ||= (begin
-        result = []
-        reserved = Addressable::URI::CharacterClasses::RESERVED
-        unreserved = Addressable::URI::CharacterClasses::UNRESERVED
-        anything = reserved + unreserved
-        operator_expansion =
-          /\{-([a-zA-Z]+)\|([#{anything}]+)\|([#{anything}]+)\}/
-        variable_expansion = /\{([#{anything}]+?)(=([#{anything}]+))?\}/
-
-        expansions, expansion_regexp = parse_template_pattern(pattern)
-        expansions.each do |expansion|
-          if expansion =~ operator_expansion
-            _, _, variables, _ = parse_template_expansion(expansion)
-            result.concat(variables)
-          else
-            result << expansion[variable_expansion, 1]
-          end
-        end
-        result.uniq
-      end)
-    end
-    alias_method :keys, :variables
-
-  private
     ##
     # Expands a URI Template opt operator.
     #
@@ -496,11 +584,14 @@ module Addressable
     # @param [Hash] mapping The mapping of variables to values.
     #
     # @return [String] The expanded result.
-    def expand_opt_operator(argument, variables, mapping)
-      if (variables.any? do |variable|
+    def expand_opt_operator(argument, variables, mapping, partial=false)
+      variables_present = variables.any? do |variable|
         mapping[variable] != [] &&
         mapping[variable]
-      end)
+      end
+      if partial && !variables_present
+        "{-opt|#{argument}|#{variables.join(",")}}"
+      elsif variables_present
         argument
       else
         ""
@@ -515,11 +606,14 @@ module Addressable
     # @param [Hash] mapping The mapping of variables to values.
     #
     # @return [String] The expanded result.
-    def expand_neg_operator(argument, variables, mapping)
-      if (variables.any? do |variable|
+    def expand_neg_operator(argument, variables, mapping, partial=false)
+      variables_present = variables.any? do |variable|
         mapping[variable] != [] &&
         mapping[variable]
-      end)
+      end
+      if partial && !variables_present
+        "{-neg|#{argument}|#{variables.join(",")}}"
+      elsif variables_present
         ""
       else
         argument
@@ -534,16 +628,20 @@ module Addressable
     # @param [Hash] mapping The mapping of variables to values.
     #
     # @return [String] The expanded result.
-    def expand_prefix_operator(argument, variables, mapping)
+    def expand_prefix_operator(argument, variables, mapping, partial=false)
       if variables.size != 1
         raise InvalidTemplateOperatorError,
           "Template operator 'prefix' takes exactly one variable."
       end
       value = mapping[variables.first]
-      if value.kind_of?(Array)
-        (value.map { |list_value| argument + list_value }).join("")
-      elsif value
-        argument + value.to_s
+      if !partial || value
+        if value.kind_of?(Array)
+          (value.map { |list_value| argument + list_value }).join("")
+        elsif value
+          argument + value.to_s
+        end
+      else
+        "{-prefix|#{argument}|#{variables.first}}"
       end
     end
 
@@ -555,16 +653,20 @@ module Addressable
     # @param [Hash] mapping The mapping of variables to values.
     #
     # @return [String] The expanded result.
-    def expand_suffix_operator(argument, variables, mapping)
+    def expand_suffix_operator(argument, variables, mapping, partial=false)
       if variables.size != 1
         raise InvalidTemplateOperatorError,
           "Template operator 'suffix' takes exactly one variable."
       end
       value = mapping[variables.first]
-      if value.kind_of?(Array)
-        (value.map { |list_value| list_value + argument }).join("")
-      elsif value
-        value.to_s + argument
+      if !partial || value
+        if value.kind_of?(Array)
+          (value.map { |list_value| list_value + argument }).join("")
+        elsif value
+          value.to_s + argument
+        end
+      else
+        "{-suffix|#{argument}|#{variables.first}}"
       end
     end
 
@@ -576,19 +678,60 @@ module Addressable
     # @param [Hash] mapping The mapping of variables to values.
     #
     # @return [String] The expanded result.
-    def expand_join_operator(argument, variables, mapping)
-      variable_values = variables.inject([]) do |accu, variable|
-        if !mapping[variable].kind_of?(Array)
-          if mapping[variable]
-            accu << variable + "=" + (mapping[variable])
+    def expand_join_operator(argument, variables, mapping, partial=false)
+      if !partial
+        variable_values = variables.inject([]) do |accu, variable|
+          if !mapping[variable].kind_of?(Array)
+            if mapping[variable]
+              accu << variable + "=" + (mapping[variable])
+            end
+          else
+            raise InvalidTemplateOperatorError,
+              "Template operator 'join' does not accept Array values."
           end
-        else
-          raise InvalidTemplateOperatorError,
-            "Template operator 'join' does not accept Array values."
+          accu
         end
-        accu
+        variable_values.join(argument)
+      else
+        buffer = ""
+        state = :suffix
+        variables.each_with_index do |variable, index|
+          if !mapping[variable].kind_of?(Array)
+            if mapping[variable]
+              if buffer.empty? || buffer[-1..-1] == "}"
+                buffer << (variable + "=" + (mapping[variable]))
+              elsif state == :suffix
+                buffer << argument
+                buffer << (variable + "=" + (mapping[variable]))
+              else
+                buffer << (variable + "=" + (mapping[variable]))
+              end
+            else
+              if !buffer.empty? && (buffer[-1..-1] != "}" || state == :prefix)
+                buffer << "{-opt|#{argument}|#{variable}}"
+                state = :prefix
+              end
+              if buffer.empty? && variables.size == 1
+                # Evaluates back to itself
+                buffer << "{-join|#{argument}|#{variable}}"
+              else
+                buffer << "{-prefix|#{variable}=|#{variable}}"
+              end
+              if (index != (variables.size - 1) && state == :suffix)
+                buffer << "{-opt|#{argument}|#{variable}}"
+              elsif index != (variables.size - 1) &&
+                  mapping[variables[index + 1]]
+                buffer << argument
+                state = :prefix
+              end
+            end
+          else
+            raise InvalidTemplateOperatorError,
+              "Template operator 'join' does not accept Array values."
+          end
+        end
+        buffer
       end
-      variable_values.join(argument)
     end
 
     ##
@@ -599,13 +742,24 @@ module Addressable
     # @param [Hash] mapping The mapping of variables to values.
     #
     # @return [String] The expanded result.
-    def expand_list_operator(argument, variables, mapping)
+    def expand_list_operator(argument, variables, mapping, partial=false)
       if variables.size != 1
         raise InvalidTemplateOperatorError,
           "Template operator 'list' takes exactly one variable."
       end
-      values = mapping[variables.first]
-      values.join(argument) if values
+      if !partial || mapping[variables.first]
+        values = mapping[variables.first]
+        if values
+          if values.kind_of?(Array)
+            values.join(argument)
+          else
+            raise InvalidTemplateOperatorError,
+              "Template operator 'list' only accepts Array values."
+          end
+        end
+      else
+        "{-list|#{argument}|#{variables.first}}"
+      end
     end
 
     ##
@@ -638,13 +792,6 @@ module Addressable
     # @return [Regexp]
     #   A regular expression which may be used to parse a template pattern.
     def parse_template_pattern(pattern, processor=nil)
-      reserved = Addressable::URI::CharacterClasses::RESERVED
-      unreserved = Addressable::URI::CharacterClasses::UNRESERVED
-      anything = reserved + unreserved
-      operator_expansion =
-        /\{-[a-zA-Z]+\|[#{anything}]+\|[#{anything}]+\}/
-      variable_expansion = /\{([#{anything}]+?)(=([#{anything}]+))?\}/
-
       # Escape the pattern.  The two gsubs restore the escaped curly braces
       # back to their original form.  Basically, escape everything that isn't
       # within an expansion.
@@ -659,10 +806,10 @@ module Addressable
       # Create a regular expression that captures the values of the
       # variables in the URI.
       regexp_string = escaped_pattern.gsub(
-        /#{operator_expansion}|#{variable_expansion}/
+        /#{OPERATOR_EXPANSION}|#{VARIABLE_EXPANSION}/
       ) do |expansion|
         expansions << expansion
-        if expansion =~ operator_expansion
+        if expansion =~ OPERATOR_EXPANSION
           capture_group = "(.*)"
           if processor != nil && processor.respond_to?(:match)
             # We can only lookup the match values for single variable

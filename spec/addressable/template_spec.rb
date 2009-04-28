@@ -1199,3 +1199,682 @@ describe Addressable::URI, "when given a pattern with bogus operators" do
     )
   end
 end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/{one}/{two}/"
+    )
+    @partial_template = @initial_template.partial_expand({"one" => "1"})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "1", "two" => "2"}).should ==
+      @partial_template.expand({"two" => "2"})
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/{one}/{two}/"
+    )
+    @partial_template = @initial_template.partial_expand({"two" => "2"})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "1", "two" => "2"}).should ==
+      @partial_template.expand({"one" => "1"})
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/{one}/{two}/"
+    )
+    @partial_template = @initial_template.partial_expand({"two" => "2"})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "1", "two" => "2"}).should ==
+      @partial_template.expand({"one" => "1"})
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/{one=1}/{two=2}/"
+    )
+    @partial_template = @initial_template.partial_expand({"one" => "3"})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "3", "two" => "4"}).should ==
+      @partial_template.expand({"two" => "4"})
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).should === "http://example.com/3/2/"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/{one=1}/{two=2}/"
+    )
+    @partial_template = @initial_template.partial_expand({"two" => "4"})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "3", "two" => "4"}).should ==
+      @partial_template.expand({"one" => "3"})
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).should === "http://example.com/1/4/"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/{-opt|found|one,two,three}"
+    )
+    @partial_template = @initial_template.partial_expand({})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "1"}).to_str.should ==
+      @partial_template.expand({"two" => "2"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"one" => "1"}).to_str.should ==
+      "http://example.com/found"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"two" => "2"}).to_str.should ==
+      "http://example.com/found"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"three" => "3"}).to_str.should ==
+      "http://example.com/found"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"four" => "4"}).to_str.should ==
+      "http://example.com/"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"one" => "1", "two" => "2"}).to_str.should ==
+      "http://example.com/found"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/{-opt|found|one,two,three}"
+    )
+    @partial_template = @initial_template.partial_expand({"one" => "1"})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "1"}).to_str.should ==
+      @partial_template.expand({"two" => "2"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/found"
+  end
+
+  it "should produce the correct pattern" do
+    @partial_template.pattern.should == "http://example.com/found"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/{-neg|notfound|one,two,three}"
+    )
+    @partial_template = @initial_template.partial_expand({})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "1"}).to_str.should ==
+      @partial_template.expand({"two" => "2"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/notfound"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"one" => "1"}).to_str.should ==
+      "http://example.com/"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"two" => "2"}).to_str.should ==
+      "http://example.com/"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"three" => "3"}).to_str.should ==
+      "http://example.com/"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"four" => "4"}).to_str.should ==
+      "http://example.com/notfound"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"one" => "1", "two" => "2"}).to_str.should ==
+      "http://example.com/"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/{-neg|notfound|one,two,three}"
+    )
+    @partial_template = @initial_template.partial_expand({"one" => "1"})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "1"}).to_str.should ==
+      @partial_template.expand({"two" => "2"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/"
+  end
+
+  it "should produce the correct pattern" do
+    @partial_template.pattern.should == "http://example.com/"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/?{-prefix|x=|one}"
+    )
+    @partial_template = @initial_template.partial_expand({})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "1"}).to_str.should ==
+      @partial_template.expand({"one" => "1"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/?"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"one" => "1"}).to_str.should ==
+      "http://example.com/?x=1"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"two" => "2"}).to_str.should ==
+      "http://example.com/?"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"one" => "1", "two" => "2"}).to_str.should ==
+      "http://example.com/?x=1"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/?{-prefix|x=|one}"
+    )
+    @partial_template = @initial_template.partial_expand({"one" => "1"})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "1"}).to_str.should ==
+      @partial_template.expand({}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/?x=1"
+  end
+
+  it "should produce the correct pattern" do
+    @partial_template.pattern.should == "http://example.com/?x=1"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/?{-suffix|=x|one}"
+    )
+    @partial_template = @initial_template.partial_expand({})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "1"}).to_str.should ==
+      @partial_template.expand({"one" => "1"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/?"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"one" => "1"}).to_str.should ==
+      "http://example.com/?1=x"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"two" => "2"}).to_str.should ==
+      "http://example.com/?"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"one" => "1", "two" => "2"}).to_str.should ==
+      "http://example.com/?1=x"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/?{-suffix|=x|one}"
+    )
+    @partial_template = @initial_template.partial_expand({"one" => "1"})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "1"}).to_str.should ==
+      @partial_template.expand({}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/?1=x"
+  end
+
+  it "should produce the correct pattern" do
+    @partial_template.pattern.should == "http://example.com/?1=x"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/?{-join|&|one}"
+    )
+    @partial_template = @initial_template.partial_expand({})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "1"}).to_str.should ==
+      @partial_template.expand({"one" => "1"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/?"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.pattern.should == @initial_template.pattern
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/?{-join|&|one,two}"
+    )
+    @partial_template = @initial_template.partial_expand({"one" => "1"})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "1", "two" => "2"}).to_str.should ==
+      @partial_template.expand({"two" => "2"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/?one=1"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/?{-join|&|one,two}"
+    )
+    @partial_template = @initial_template.partial_expand({"two" => "2"})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({"one" => "1", "two" => "2"}).to_str.should ==
+      @partial_template.expand({"one" => "1"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/?two=2"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/?{-join|&|one,two,three}"
+    )
+    @partial_template = @initial_template.partial_expand({"one" => "1"})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({
+      "one" => "1", "two" => "2", "three" => "3"
+    }).to_str.should ==
+      @partial_template.expand({"two" => "2", "three" => "3"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/?one=1"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"two" => "2"}).to_str.should ==
+      "http://example.com/?one=1&two=2"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"three" => "3"}).to_str.should ==
+      "http://example.com/?one=1&three=3"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/?{-join|&|one,two,three}"
+    )
+    @partial_template = @initial_template.partial_expand({"two" => "2"})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({
+      "one" => "1", "two" => "2", "three" => "3"
+    }).to_str.should ==
+      @partial_template.expand({"one" => "1", "three" => "3"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/?two=2"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"one" => "1"}).to_str.should ==
+      "http://example.com/?one=1&two=2"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"three" => "3"}).to_str.should ==
+      "http://example.com/?two=2&three=3"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/?{-join|&|one,two,three}"
+    )
+    @partial_template = @initial_template.partial_expand({"three" => "3"})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({
+      "one" => "1", "two" => "2", "three" => "3"
+    }).to_str.should ==
+      @partial_template.expand({"one" => "1", "two" => "2"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/?three=3"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"one" => "1"}).to_str.should ==
+      "http://example.com/?one=1&three=3"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"two" => "2"}).to_str.should ==
+      "http://example.com/?two=2&three=3"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/?{-join|&|one,two,three}"
+    )
+    @partial_template = @initial_template.partial_expand({
+      "one" => "1", "two" => "2"
+    })
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({
+      "one" => "1", "two" => "2", "three" => "3"
+    }).to_str.should ==
+      @partial_template.expand({"three" => "3"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should ==
+      "http://example.com/?one=1&two=2"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"three" => "3"}).to_str.should ==
+      "http://example.com/?one=1&two=2&three=3"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/?{-join|&|one,two,three}"
+    )
+    @partial_template = @initial_template.partial_expand({
+      "one" => "1", "three" => "3"
+    })
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({
+      "one" => "1", "two" => "2", "three" => "3"
+    }).to_str.should ==
+      @partial_template.expand({"two" => "2"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should ==
+      "http://example.com/?one=1&three=3"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"two" => "2"}).to_str.should ==
+      "http://example.com/?one=1&two=2&three=3"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/?{-join|&|one,two,three}"
+    )
+    @partial_template = @initial_template.partial_expand({
+      "two" => "2", "three" => "3"
+    })
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({
+      "one" => "1", "two" => "2", "three" => "3"
+    }).to_str.should ==
+      @partial_template.expand({"one" => "1"}).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should ==
+      "http://example.com/?two=2&three=3"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({"one" => "1"}).to_str.should ==
+      "http://example.com/?one=1&two=2&three=3"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/?{-join|&|one,two,three}"
+    )
+  end
+
+  it "should raise an error when partially expanding a bogus operator" do
+    (lambda do
+      @initial_template.partial_expand({"one" => ["1"]})
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
+    (lambda do
+      @initial_template.partial_expand({"two" => "2", "three" => ["3"]})
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/{-list|/|numbers}/{-list|/|letters}/"
+    )
+    @partial_template = @initial_template.partial_expand({})
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({
+      "numbers" => ["1", "2", "3"], "letters" => ["a", "b", "c"]
+    }).to_str.should == @partial_template.expand({
+      "numbers" => ["1", "2", "3"], "letters" => ["a", "b", "c"]
+    }).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com///"
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.pattern.should == @initial_template.pattern
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/{-list|/|numbers}/{-list|/|letters}/"
+    )
+    @partial_template = @initial_template.partial_expand({
+      "numbers" => ["1", "2", "3"]
+    })
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({
+      "numbers" => ["1", "2", "3"], "letters" => ["a", "b", "c"]
+    }).to_str.should == @partial_template.expand({
+      "letters" => ["a", "b", "c"]
+    }).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com/1/2/3//"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/{-list|/|numbers}/{-list|/|letters}/"
+    )
+    @partial_template = @initial_template.partial_expand({
+      "letters" => ["a", "b", "c"]
+    })
+  end
+
+  it "should produce the same result when fully expanded" do
+    @initial_template.expand({
+      "numbers" => ["1", "2", "3"], "letters" => ["a", "b", "c"]
+    }).to_str.should == @partial_template.expand({
+      "numbers" => ["1", "2", "3"]
+    }).to_str
+  end
+
+  it "should produce the correct result when fully expanded" do
+    @partial_template.expand({}).to_str.should == "http://example.com//a/b/c/"
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/{-list|/|numbers}/{-list|/|letters}/"
+    )
+  end
+
+  it "should raise an error when partially expanding a bogus operator" do
+    (lambda do
+      @initial_template.partial_expand({"numbers" => "1"})
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
+    (lambda do
+      @initial_template.partial_expand({"letters" => "a"})
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
+  end
+end
+
+describe Addressable::Template, "with a partially expanded template" do
+  before do
+    @initial_template = Addressable::Template.new(
+      "http://example.com/{-bogus|/|one,two}/"
+    )
+  end
+
+  it "should raise an error when partially expanding a bogus operator" do
+    (lambda do
+      @initial_template.partial_expand({"one" => "1"})
+    end).should raise_error(
+      Addressable::Template::InvalidTemplateOperatorError
+    )
+  end
+end
