@@ -1186,8 +1186,22 @@ module Addressable
         raise ArgumentError,
           "Invalid notation. Must be one of: [:flat, :dot, :subscript]."
       end
+      dehash = lambda do |hash|
+        hash.each do |(key, value)|
+          if value.kind_of?(Hash)
+            hash[key] = dehash.call(value)
+          end
+        end
+        if hash.keys.all? { |key| key =~ /^\d+$/ }
+          hash.sort.inject([]) do |accu, (key, value)|
+            accu << value; accu
+          end
+        else
+          hash
+        end
+      end
       return nil if self.query == nil
-      return (self.query.split("&").map do |pair|
+      return dehash.call((self.query.split("&").map do |pair|
         pair.split("=")
       end).inject({}) do |accumulator, pair|
         key, value = pair
@@ -1223,28 +1237,55 @@ module Addressable
           end
         end
         accumulator
-      end
+      end)
     end
 
     ##
     # Sets the query component for this URI from a Hash object.
+    # This method produces a query string using the :subscript notation.
     #
     # @param [Hash, #to_hash] new_query_values The new query values.
     def query_values=(new_query_values)
       # Check for frozenness
       raise TypeError, "Can't modify frozen URI." if self.frozen?
+      if !new_query_values.respond_to?(:to_hash)
+        raise TypeError, "Can't convert #{new_query_values.class} into Hash."
+      end
+      new_query_values = new_query_values.to_hash
 
-      @query = (new_query_values.to_hash.inject([]) do |accumulator, pair|
-        key, value = pair
-        key = self.class.encode_component(key, CharacterClasses::UNRESERVED)
-        if value == true
-          accumulator << "#{key}"
+      # Algorithm shamelessly stolen from Julien Genestoux, slightly modified
+      buffer = ""
+      stack = []
+      e = lambda do |component|
+        component = component.to_s if component.kind_of?(Symbol)
+        self.class.encode_component(component, CharacterClasses::UNRESERVED)
+      end
+      new_query_values.each do |key, value|
+        if value.kind_of?(Hash)
+          stack << [key, value]
+        elsif value.kind_of?(Array)
+          stack << [
+            key,
+            value.inject({}) { |accu, x| accu[accu.size.to_s] = x; accu }
+          ]
+        elsif value == true
+          buffer << "#{e.call(key)}&"
         else
-          value = self.class.encode_component(
-            value, CharacterClasses::UNRESERVED)
-          accumulator << "#{key}=#{value}"
+          buffer << "#{e.call(key)}=#{e.call(value)}&"
         end
-      end).join("&")
+      end
+      stack.each do |(parent, hash)|
+        (hash.sort_by { |key| key.to_s }).each do |(key, value)|
+          if value.kind_of?(Hash)
+            stack << ["#{parent}[#{key}]", value]
+          elsif value == true
+            buffer << "#{parent}[#{e.call(key)}]&"
+          else
+            buffer << "#{parent}[#{e.call(key)}]=#{e.call(value)}&"
+          end
+        end
+      end
+      @query = buffer.chop
 
       # Reset dependant values
       @normalized_query = nil

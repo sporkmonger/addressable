@@ -2044,6 +2044,12 @@ describe Addressable::URI, "when parsed from " +
     }
   end
 
+  it "should raise an error if query values are set to a bogus type" do
+    (lambda do
+      @uri.query_values = "bogus"
+    end).should raise_error(TypeError)
+  end
+
   it "should have the correct fragment after assignment" do
     @uri.fragment = "newfragment"
     @uri.fragment.should == "newfragment"
@@ -2659,7 +2665,7 @@ describe Addressable::URI, "when parsed from " +
     )
   end
 
-  it "should have the correct dot notation query values" do
+  it "should have the correct subscript notation query values" do
     @uri.query_values(:notation => :subscript).should == {
       "one" => {"two" => {"three" => ["four", "five"]}}
     }
@@ -2669,6 +2675,21 @@ describe Addressable::URI, "when parsed from " +
     (lambda do
       @uri.query_values(:notation => :flat)
     end).should raise_error(ArgumentError)
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'?one[two][three][0]=four&one[two][three][1]=five'" do
+  before do
+    @uri = Addressable::URI.parse(
+      "?one[two][three][0]=four&one[two][three][1]=five"
+    )
+  end
+
+  it "should have the correct subscript notation query values" do
+    @uri.query_values(:notation => :subscript).should == {
+      "one" => {"two" => {"three" => ["four", "five"]}}
+    }
   end
 end
 
@@ -3465,5 +3486,48 @@ describe Addressable::URI, "when given the input " +
   it "should heuristically parse to 'feed:http://example.com'" do
     @uri = Addressable::URI.heuristic_parse(@input)
     @uri.to_s.should == "feed:http://example.com"
+  end
+end
+
+describe Addressable::URI, "when assigning query values" do
+  before do
+    @uri = Addressable::URI.new
+  end
+
+  it "should correctly assign {:a => 'a', :b => ['c', 'd', 'e']}" do
+    @uri.query_values = {:a => "a", :b => ["c", "d", "e"]}
+    @uri.query.should == "a=a&b[0]=c&b[1]=d&b[2]=e"
+  end
+
+  it "should correctly assign " +
+      "{:a => 'a', :b => [{:c => 'c', :d => 'd'}, {:e => 'e', :f => 'f'}]}" do
+    @uri.query_values = {
+      :a => "a", :b => [{:c => "c", :d => "d"}, {:e => "e", :f => "f"}]
+    }
+    @uri.query.should == "a=a&b[0][c]=c&b[0][d]=d&b[1][e]=e&b[1][f]=f"
+  end
+
+  it "should correctly assign " +
+      "{:a => 'a', :b => [{:c => true, :d => 'd'}, {:e => 'e', :f => 'f'}]}" do
+    @uri.query_values = {
+      :a => 'a', :b => [{:c => true, :d => 'd'}, {:e => 'e', :f => 'f'}]
+    }
+    @uri.query.should == "a=a&b[0][c]&b[0][d]=d&b[1][e]=e&b[1][f]=f"
+  end
+
+  it "should correctly assign " +
+      "{:a => 'a', :b => {:c => true, :d => 'd'}}" do
+    @uri.query_values = {
+      :a => 'a', :b => {:c => true, :d => 'd'}
+    }
+    @uri.query.should == "a=a&b[c]&b[d]=d"
+  end
+
+  it "should correctly assign " +
+      "{:a => 'a', :b => {:c => true, :d => 'd'}, :e => []}" do
+    @uri.query_values = {
+      :a => 'a', :b => {:c => true, :d => 'd'}
+    }
+    @uri.query.should == "a=a&b[c]&b[d]=d"
   end
 end
