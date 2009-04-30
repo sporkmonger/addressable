@@ -2567,6 +2567,25 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+describe Addressable::URI, "when parsed from '?'" do
+  before do
+    @uri = Addressable::URI.parse("?")
+  end
+
+  it "should have the correct subscript notation query values" do
+    @uri.query_values.should == {}
+    @uri.query_values(:notation => :subscript).should == {}
+  end
+
+  it "should have the correct dot notation query values" do
+    @uri.query_values(:notation => :dot).should == {}
+  end
+
+  it "should have the correct flat notation query values" do
+    @uri.query_values(:notation => :flat).should == {}
+  end
+end
+
 describe Addressable::URI, "when parsed from '?one=1&two=2&three=3'" do
   before do
     @uri = Addressable::URI.parse("?one=1&two=2&three=3")

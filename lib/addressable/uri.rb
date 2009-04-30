@@ -1192,7 +1192,7 @@ module Addressable
             hash[key] = dehash.call(value)
           end
         end
-        if hash.keys.all? { |key| key =~ /^\d+$/ }
+        if hash != {} && hash.keys.all? { |key| key =~ /^\d+$/ }
           hash.sort.inject([]) do |accu, (key, value)|
             accu << value; accu
           end
@@ -1201,10 +1201,9 @@ module Addressable
         end
       end
       return nil if self.query == nil
-      return dehash.call((self.query.split("&").map do |pair|
+      return ((self.query.split("&").map do |pair|
         pair.split("=")
-      end).inject({}) do |accumulator, pair|
-        key, value = pair
+      end).inject({}) do |accumulator, (key, value)|
         value = true if value.nil?
         key = self.class.unencode_component(key)
         if value != true
@@ -1237,7 +1236,10 @@ module Addressable
           end
         end
         accumulator
-      end)
+      end).inject({}) do |accumulator, (key, value)|
+        accumulator[key] = value.kind_of?(Hash) ? dehash.call(value) : value
+        accumulator
+      end
     end
 
     ##
