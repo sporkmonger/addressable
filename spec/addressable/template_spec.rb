@@ -101,7 +101,7 @@ describe Addressable::Template, "created with the pattern '/'" do
     @template = Addressable::Template.new("/")
   end
 
-  it "should no variables" do
+  it "should have no variables" do
     @template.variables.should be_empty
   end
 
@@ -142,6 +142,203 @@ describe Addressable::Template, "created with the pattern '/{number}/'" do
 
   it "should match the pattern '/two/'" do
     @template.match("/two/").mapping.should == {"number" => "two"}
+  end
+end
+
+describe Addressable::Template,
+    "created with the pattern '/{number}/{number}/'" do
+  before do
+    @template = Addressable::Template.new("/{number}/{number}/")
+  end
+
+  it "should have one variable" do
+    @template.variables.should == ["number"]
+  end
+
+  it "should have the correct mapping when extracting from '/1/1/'" do
+    @template.extract("/1/1/").should == {"number" => "1"}
+  end
+
+  it "should not match '/1/2/'" do
+    @template.match("/1/2/").should == nil
+  end
+
+  it "should not match '/2/1/'" do
+    @template.match("/2/1/").should == nil
+  end
+
+  it "should not match '/1/'" do
+    @template.match("/1/").should == nil
+  end
+
+  it "should not match '/1/1/1/'" do
+    @template.match("/1/1/1/").should == nil
+  end
+
+  it "should not match '/1/2/3/'" do
+    @template.match("/1/2/3/").should == nil
+  end
+end
+
+describe Addressable::Template,
+    "created with the pattern '/{number}{-prefix|.|number}'" do
+  before do
+    @template = Addressable::Template.new("/{number}{-prefix|.|number}")
+  end
+
+  it "should have one variable" do
+    @template.variables.should == ["number"]
+  end
+
+  it "should have the correct mapping when extracting from '/1.1'" do
+    @template.extract("/1.1").should == {"number" => "1"}
+  end
+
+  it "should have the correct mapping when extracting from '/99.99'" do
+    @template.extract("/99.99").should == {"number" => "99"}
+  end
+
+  it "should not match '/1.2'" do
+    @template.match("/1.2").should == nil
+  end
+
+  it "should not match '/2.1'" do
+    @template.match("/2.1").should == nil
+  end
+
+  it "should not match '/1'" do
+    @template.match("/1").should == nil
+  end
+
+  it "should not match '/1.1.1'" do
+    @template.match("/1.1.1").should == nil
+  end
+
+  it "should not match '/1.23'" do
+    @template.match("/1.23").should == nil
+  end
+end
+
+describe Addressable::Template,
+    "created with the pattern '/{number}/{-suffix|/|number}'" do
+  before do
+    @template = Addressable::Template.new("/{number}/{-suffix|/|number}")
+  end
+
+  it "should have one variable" do
+    @template.variables.should == ["number"]
+  end
+
+  it "should have the correct mapping when extracting from '/1/1/'" do
+    @template.extract("/1/1/").should == {"number" => "1"}
+  end
+
+  it "should have the correct mapping when extracting from '/99/99/'" do
+    @template.extract("/99/99/").should == {"number" => "99"}
+  end
+
+  it "should not match '/1/1'" do
+    @template.match("/1/1").should == nil
+  end
+
+  it "should not match '/11/'" do
+    @template.match("/11/").should == nil
+  end
+
+  it "should not match '/1/2/'" do
+    @template.match("/1/2/").should == nil
+  end
+
+  it "should not match '/2/1/'" do
+    @template.match("/2/1/").should == nil
+  end
+
+  it "should not match '/1/'" do
+    @template.match("/1/").should == nil
+  end
+
+  it "should not match '/1/1/1/'" do
+    @template.match("/1/1/1/").should == nil
+  end
+
+  it "should not match '/1/23/'" do
+    @template.match("/1/23/").should == nil
+  end
+end
+
+describe Addressable::Template,
+    "created with the pattern '/{number}/?{-join|&|number}'" do
+  before do
+    @template = Addressable::Template.new(
+      "/{number}/?{-join|&|number,letter}"
+    )
+  end
+
+  it "should have one variable" do
+    @template.variables.should == ["number", "letter"]
+  end
+
+  it "should have the correct mapping when extracting from '/1/?number=1'" do
+    @template.extract("/1/?number=1").should == {"number" => "1"}
+  end
+
+  it "should have the correct mapping when extracting " +
+      "from '/99/?number=99'" do
+    @template.extract("/99/?number=99").should == {"number" => "99"}
+  end
+
+  it "should have the correct mapping when extracting " +
+      "from '/1/?number=1&letter=a'" do
+    @template.extract("/1/?number=1&letter=a").should == {
+      "number" => "1", "letter" => "a"
+    }
+  end
+
+  it "should not match '/1/?number=1&bogus=foo'" do
+    @template.match("/1/?number=1&bogus=foo").should == nil
+  end
+
+  it "should not match '/1/?number=2'" do
+    @template.match("/1/?number=2").should == nil
+  end
+
+  it "should not match '/2/?number=1'" do
+    @template.match("/2/?number=1").should == nil
+  end
+
+  it "should not match '/1/?'" do
+    @template.match("/1/?").should == nil
+  end
+end
+
+describe Addressable::Template,
+    "created with the pattern '/{number}/{-list|/|number}/'" do
+  before do
+    @template = Addressable::Template.new("/{number}/{-list|/|number}/")
+  end
+
+  it "should have one variable" do
+    @template.variables.should == ["number"]
+  end
+
+  it "should not match '/1/1/'" do
+    @template.match("/1/1/").should == nil
+  end
+
+  it "should not match '/1/2/'" do
+    @template.match("/1/2/").should == nil
+  end
+
+  it "should not match '/2/1/'" do
+    @template.match("/2/1/").should == nil
+  end
+
+  it "should not match '/1/1/1/'" do
+    @template.match("/1/1/1/").should == nil
+  end
+
+  it "should not match '/1/1/1/1/'" do
+    @template.match("/1/1/1/1/").should == nil
   end
 end
 
@@ -396,7 +593,7 @@ describe Addressable::URI, "when parsed from " +
       "http://example.com/{first}/spacer{-prefix|/|stuff}/"
     ).extract(@uri).should == {
       "first" => "one",
-      "stuff" => ["two"]
+      "stuff" => "two"
     }
   end
 
@@ -469,7 +666,7 @@ describe Addressable::URI, "when parsed from " +
       "http://example.com/{first}/spacer/{-suffix|/|stuff}"
     ).extract(@uri).should == {
       "first" => "one",
-      "stuff" => ["two"]
+      "stuff" => "two"
     }
   end
 
@@ -657,7 +854,7 @@ describe Addressable::URI, "when given a pattern with bogus operators" do
   it "should raise an InvalidTemplateOperatorError" do
     (lambda do
       Addressable::Template.new(
-        "http://example.com/{-prefix|/|a,b,c}/"
+        "http://example.com{-prefix|/|a,b,c}/"
       ).extract(@uri)
     end).should raise_error(
       Addressable::Template::InvalidTemplateOperatorError
@@ -667,7 +864,7 @@ describe Addressable::URI, "when given a pattern with bogus operators" do
   it "should raise an InvalidTemplateOperatorError" do
     (lambda do
       Addressable::Template.new(
-        "http://example.com/{-suffix|/|a,b,c}/"
+        "http://example.com/{-suffix|/|a,b,c}"
       ).extract(@uri)
     end).should raise_error(
       Addressable::Template::InvalidTemplateOperatorError

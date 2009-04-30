@@ -307,7 +307,11 @@ module Addressable
             if processor != nil && processor.respond_to?(:restore)
               value = processor.restore(name, value)
             end
-            mapping[name] = value
+            if mapping[name] == nil || mapping[name] == value
+              mapping[name] = value
+            else
+              return nil
+            end
           end
         end
         return Addressable::Template::MatchData.new(uri, self, mapping)
@@ -811,15 +815,19 @@ module Addressable
         expansions << expansion
         if expansion =~ OPERATOR_EXPANSION
           capture_group = "(.*)"
+          operator, argument, names, _ =
+            parse_template_expansion(expansion)
           if processor != nil && processor.respond_to?(:match)
             # We can only lookup the match values for single variable
             # operator expansions.  Besides, ".*" is usually the only
             # reasonable value for multivariate operators anyways.
-            operator, _, names, _ =
-              parse_template_expansion(expansion)
             if ["prefix", "suffix", "list"].include?(operator)
               capture_group = "(#{processor.match(names.first)})"
             end
+          elsif operator == "prefix"
+            capture_group = "(#{Regexp.escape(argument)}.*?)"
+          elsif operator == "suffix"
+            capture_group = "(.*?#{Regexp.escape(argument)})"
           end
           capture_group
         else
@@ -852,7 +860,7 @@ module Addressable
         value, processor, argument, variables, mapping)
       if value != "" && value != argument
         raise TemplateOperatorAbortedError,
-          "Value for template operator 'neg' was unexpected."
+          "Value for template operator 'opt' was unexpected."
       end
     end
 
@@ -888,7 +896,7 @@ module Addressable
         value, processor, argument, variables, mapping)
       if variables.size != 1
         raise InvalidTemplateOperatorError,
-          "Template operator 'suffix' takes exactly one variable."
+          "Template operator 'prefix' takes exactly one variable."
       end
       if value[0...argument.size] != argument
         raise TemplateOperatorAbortedError,
@@ -896,16 +904,19 @@ module Addressable
       end
       values = value.split(argument)
       # Compensate for the crappy result from split.
-      if value[-argument.size..-1] == argument
-        values << ""
-      end
-      if values[0] == ""
-        values.shift
-      end
+      values << "" if value[-argument.size..-1] == argument
+      values.shift if values[0] == ""
+
       if processor && processor.respond_to?(:restore)
         values.map! { |value| processor.restore(variables.first, value) }
       end
-      mapping[variables.first] = values
+      values = values.first if values.size == 1
+      if mapping[variables.first] == nil || mapping[variables.first] == values
+        mapping[variables.first] = values
+      else
+        raise TemplateOperatorAbortedError,
+          "Value mismatch for repeated variable."
+      end
     end
 
     ##
@@ -939,7 +950,13 @@ module Addressable
       if processor && processor.respond_to?(:restore)
         values.map! { |value| processor.restore(variables.first, value) }
       end
-      mapping[variables.first] = values
+      values = values.first if values.size == 1
+      if mapping[variables.first] == nil || mapping[variables.first] == values
+        mapping[variables.first] = values
+      else
+        raise TemplateOperatorAbortedError,
+          "Value mismatch for repeated variable."
+      end
     end
 
     ##
@@ -962,7 +979,18 @@ module Addressable
         if processor && processor.respond_to?(:restore)
           parsed_value = processor.restore(name, parsed_value)
         end
-        mapping[name] = parsed_value
+        if mapping[name] == nil || mapping[name] == parsed_value
+          mapping[name] = parsed_value
+        else
+          raise TemplateOperatorAbortedError,
+            "Value mismatch for repeated variable."
+        end
+      end
+      for variable in variables
+        if !parsed_variables.include?(variable) && mapping[variable] != nil
+          raise TemplateOperatorAbortedError,
+            "Value mismatch for repeated variable."
+        end
       end
       if (parsed_variables & variables) != parsed_variables
         raise TemplateOperatorAbortedError,
@@ -990,7 +1018,12 @@ module Addressable
       if processor && processor.respond_to?(:restore)
         values.map! { |value| processor.restore(variables.first, value) }
       end
-      mapping[variables.first] = values
+      if mapping[variables.first] == nil || mapping[variables.first] == values
+        mapping[variables.first] = values
+      else
+        raise TemplateOperatorAbortedError,
+          "Value mismatch for repeated variable."
+      end
     end
   end
 end
