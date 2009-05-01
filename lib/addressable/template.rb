@@ -902,10 +902,10 @@ module Addressable
         raise TemplateOperatorAbortedError,
           "Value for template operator 'prefix' missing expected prefix."
       end
-      values = value.split(argument)
-      # Compensate for the crappy result from split.
+      values = value.split(argument, -1)
       values << "" if value[-argument.size..-1] == argument
       values.shift if values[0] == ""
+      values.pop if values[-1] == ""
 
       if processor && processor.respond_to?(:restore)
         values.map! { |value| processor.restore(variables.first, value) }
@@ -939,14 +939,8 @@ module Addressable
         raise TemplateOperatorAbortedError,
           "Value for template operator 'suffix' missing expected suffix."
       end
-      values = value.split(argument)
-      # Compensate for the crappy result from split.
-      if value[-argument.size..-1] == argument
-        values << ""
-      end
-      if values[-1] == ""
-        values.pop
-      end
+      values = value.split(argument, -1)
+      values.pop if values[-1] == ""
       if processor && processor.respond_to?(:restore)
         values.map! { |value| processor.restore(variables.first, value) }
       end
@@ -1014,7 +1008,8 @@ module Addressable
         raise InvalidTemplateOperatorError,
           "Template operator 'list' takes exactly one variable."
       end
-      values = value.split(argument)
+      values = value.split(argument, -1)
+      values.pop if values[-1] == ""
       if processor && processor.respond_to?(:restore)
         values.map! { |value| processor.restore(variables.first, value) }
       end

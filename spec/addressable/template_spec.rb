@@ -552,6 +552,40 @@ describe Addressable::URI, "when parsed from " +
 end
 
 describe Addressable::URI, "when parsed from " +
+    "'http://example.org///something///'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.org///something///")
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern 'http://example.org{-prefix|/|parts}/'" do
+    Addressable::Template.new(
+      "http://example.org{-prefix|/|parts}/"
+    ).extract(@uri).should == {
+      "parts" => ["", "", "something", "", ""]
+    }
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern 'http://example.org/{-suffix|/|parts}'" do
+    Addressable::Template.new(
+      "http://example.org/{-suffix|/|parts}"
+    ).extract(@uri).should == {
+      "parts" => ["", "", "something", "", ""]
+    }
+  end
+
+  it "should have the correct mapping when extracting values " +
+      "using the pattern 'http://example.org/{-list|/|parts}'" do
+    Addressable::Template.new(
+      "http://example.org/{-list|/|parts}"
+    ).extract(@uri).should == {
+      "parts" => ["", "", "something", "", ""]
+    }
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/one/spacer/two/'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/one/spacer/two/")
