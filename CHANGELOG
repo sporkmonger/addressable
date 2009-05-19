@@ -1,16 +1,16 @@
 === Addressable 2.1.0
+  * refactored URI template support out into its own class
   * removed extract method due to being useless and unreliable
+  * removed Addressable::URI.expand_template
+  * removed Addressable::URI#extract_mapping
+  * added partial template expansion
   * fixed minor bugs in the parse and heuristic_parse methods
   * fixed incompatibility with Ruby 1.9.1
   * fixed bottleneck in Addressable::URI#hash and Addressable::URI#to_s
   * fixed unicode normalization exception
-  * improved specs
-  * refactored URI template support out into its own class
   * updated query_values methods to better handle subscript notation
-  * added partial template expansion
-  * deprecated Addressable::URI.expand_template
-  * deprecated Addressable::URI#extract_mapping
   * worked around issue with freezing URIs
+  * improved specs
 
 === Addressable 2.0.2
   * fixed issue with URI template expansion

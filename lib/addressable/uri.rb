@@ -249,30 +249,6 @@ module Addressable
     end
 
     ##
-    # @deprecated Use Addressable::Template#expand instead.
-    # @see Addressable::Template#expand
-    def self.expand_template(pattern, mapping, processor=nil)
-      warn("Addressable::URI.expand_template is deprecated.")
-      require "addressable/template" unless defined?(Addressable::Template)
-      unless pattern.kind_of?(Addressable::Template)
-        pattern = Addressable::Template.new(pattern)
-      end
-      return pattern.expand(mapping, processor)
-    end
-
-    ##
-    # @deprecated Use Addressable::Template#extract instead.
-    # @see Addressable::Template#extract
-    def extract_mapping(pattern, processor=nil)
-      warn("Addressable::URI#extract_mapping is deprecated.")
-      require "addressable/template" unless defined?(Addressable::Template)
-      unless pattern.kind_of?(Addressable::Template)
-        pattern = Addressable::Template.new(pattern)
-      end
-      return pattern.extract(self, processor)
-    end
-
-    ##
     # Joins several URIs together.
     #
     # @param [String, Addressable::URI, #to_str] *uris
