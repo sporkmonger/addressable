@@ -72,6 +72,86 @@ describe Addressable::URI, "when created with a non-numeric port number" do
   end
 end
 
+describe Addressable::URI, "when created with a non-string scheme" do
+  it "should raise an error" do
+    (lambda do
+      Addressable::URI.new(:scheme => :bogus)
+    end).should raise_error(TypeError)
+  end
+end
+
+describe Addressable::URI, "when created with a non-string user" do
+  it "should raise an error" do
+    (lambda do
+      Addressable::URI.new(:user => :bogus)
+    end).should raise_error(TypeError)
+  end
+end
+
+describe Addressable::URI, "when created with a non-string password" do
+  it "should raise an error" do
+    (lambda do
+      Addressable::URI.new(:password => :bogus)
+    end).should raise_error(TypeError)
+  end
+end
+
+describe Addressable::URI, "when created with a non-string userinfo" do
+  it "should raise an error" do
+    (lambda do
+      Addressable::URI.new(:userinfo => :bogus)
+    end).should raise_error(TypeError)
+  end
+end
+
+describe Addressable::URI, "when created with a non-string host" do
+  it "should raise an error" do
+    (lambda do
+      Addressable::URI.new(:host => :bogus)
+    end).should raise_error(TypeError)
+  end
+end
+
+describe Addressable::URI, "when created with a non-string authority" do
+  it "should raise an error" do
+    (lambda do
+      Addressable::URI.new(:authority => :bogus)
+    end).should raise_error(TypeError)
+  end
+end
+
+describe Addressable::URI, "when created with a non-string authority" do
+  it "should raise an error" do
+    (lambda do
+      Addressable::URI.new(:authority => :bogus)
+    end).should raise_error(TypeError)
+  end
+end
+
+describe Addressable::URI, "when created with a non-string path" do
+  it "should raise an error" do
+    (lambda do
+      Addressable::URI.new(:path => :bogus)
+    end).should raise_error(TypeError)
+  end
+end
+
+describe Addressable::URI, "when created with a non-string query" do
+  it "should raise an error" do
+    (lambda do
+      Addressable::URI.new(:query => :bogus)
+    end).should raise_error(TypeError)
+  end
+end
+
+describe Addressable::URI, "when created with a non-string fragment" do
+  it "should raise an error" do
+    (lambda do
+      Addressable::URI.new(:fragment => :bogus)
+    end).should raise_error(TypeError)
+  end
+end
+
 describe Addressable::URI, "when created with a scheme but no hierarchical " +
     "segment" do
   it "should raise an error" do

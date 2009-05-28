@@ -581,6 +581,9 @@ module Addressable
       # Check for frozenness
       raise TypeError, "Can't modify frozen URI." if self.frozen?
 
+      if new_scheme && !new_scheme.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{new_scheme.class} into String."
+      end
       @scheme = new_scheme ? new_scheme.to_str : nil
       @scheme = nil if @scheme.to_s.strip == ""
 
@@ -631,6 +634,9 @@ module Addressable
       # Check for frozenness
       raise TypeError, "Can't modify frozen URI." if self.frozen?
 
+      if new_user && !new_user.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{new_user.class} into String."
+      end
       @user = new_user ? new_user.to_str : nil
 
       # You can't have a nil user with a non-nil password
@@ -689,6 +695,9 @@ module Addressable
       # Check for frozenness
       raise TypeError, "Can't modify frozen URI." if self.frozen?
 
+      if new_password && !new_password.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{new_password.class} into String."
+      end
       @password = new_password ? new_password.to_str : nil
 
       # You can't have a nil user with a non-nil password
@@ -754,6 +763,9 @@ module Addressable
       # Check for frozenness
       raise TypeError, "Can't modify frozen URI." if self.frozen?
 
+      if new_userinfo && !new_userinfo.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{new_userinfo.class} into String."
+      end
       new_user, new_password = if new_userinfo
         [
           new_userinfo.to_str.strip[/^(.*):/, 1],
@@ -816,6 +828,9 @@ module Addressable
       # Check for frozenness
       raise TypeError, "Can't modify frozen URI." if self.frozen?
 
+      if new_host && !new_host.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{new_host.class} into String."
+      end
       @host = new_host ? new_host.to_str : nil
 
       # Reset dependant values
@@ -881,6 +896,9 @@ module Addressable
       raise TypeError, "Can't modify frozen URI." if self.frozen?
 
       if new_authority
+        if !new_authority.respond_to?(:to_str)
+          raise TypeError, "Can't convert #{new_authority.class} into String."
+        end
         new_authority = new_authority.to_str
         new_userinfo = new_authority[/^([^\[\]]*)@/, 1]
         if new_userinfo
@@ -894,10 +912,10 @@ module Addressable
       end
 
       # Password assigned first to ensure validity in case of nil
-      self.password = new_password
-      self.user = new_user
-      self.host = new_host
-      self.port = new_port
+      self.password = defined?(new_password) ? new_password : nil
+      self.user = defined?(new_user) ? new_user : nil
+      self.host = defined?(new_host) ? new_host : nil
+      self.port = defined?(new_port) ? new_port : nil
 
       # Reset dependant values
       @inferred_port = nil
@@ -1054,6 +1072,9 @@ module Addressable
       # Check for frozenness
       raise TypeError, "Can't modify frozen URI." if self.frozen?
 
+      if new_path && !new_path.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{new_path.class} into String."
+      end
       @path = (new_path || "").to_str
       if @path != "" && @path[0..0] != "/" && host != nil
         @path = "/#{@path}"
@@ -1117,6 +1138,9 @@ module Addressable
       # Check for frozenness
       raise TypeError, "Can't modify frozen URI." if self.frozen?
 
+      if new_query && !new_query.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{new_query.class} into String."
+      end
       @query = new_query ? new_query.to_str : nil
 
       # Reset dependant values
@@ -1304,6 +1328,9 @@ module Addressable
       # Check for frozenness
       raise TypeError, "Can't modify frozen URI." if self.frozen?
 
+      if new_fragment && !new_fragment.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{new_fragment.class} into String."
+      end
       @fragment = new_fragment ? new_fragment.to_str : nil
 
       # Reset dependant values
