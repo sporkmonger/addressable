@@ -4855,15 +4855,15 @@ module Addressable
       delta = firsttime ? delta / PUNYCODE_DAMP : delta >> 1
       # delta >> 1 is a faster way of doing delta / 2
       delta += delta / numpoints
+      difference = PUNYCODE_BASE - PUNYCODE_TMIN
 
       k = 0
-      while delta > ((PUNYCODE_BASE - PUNYCODE_TMIN) * PUNYCODE_TMAX) / 2
-        delta /= PUNYCODE_BASE - PUNYCODE_TMIN
+      while delta > (difference * PUNYCODE_TMAX) / 2
+        delta /= difference
         k += PUNYCODE_BASE
       end
 
-      k + (PUNYCODE_BASE - PUNYCODE_TMIN + 1) *
-        delta / (delta + PUNYCODE_SKEW)
+      k + (difference + 1) * delta / (delta + PUNYCODE_SKEW)
     end
     (class <<self; private :punycode_adapt; end)
   end
