@@ -1119,11 +1119,19 @@ module Addressable
     def normalized_query
       @normalized_query ||= (begin
         if self.query
-          Addressable::URI.encode_component(
-            Addressable::IDNA.unicode_normalize_kc(
-              Addressable::URI.unencode_component(self.query.strip)),
-            Addressable::URI::CharacterClasses::QUERY
-          )
+          begin
+            Addressable::URI.encode_component(
+              Addressable::IDNA.unicode_normalize_kc(
+                Addressable::URI.unencode_component(self.query.strip)),
+              Addressable::URI::CharacterClasses::QUERY
+            )
+          rescue ArgumentError
+            # Likely a malformed UTF-8 character, skip unicode normalization
+            Addressable::URI.encode_component(
+              Addressable::URI.unencode_component(self.query.strip),
+              Addressable::URI::CharacterClasses::QUERY
+            )
+          end
         else
           nil
         end
@@ -1309,11 +1317,19 @@ module Addressable
     def normalized_fragment
       @normalized_fragment ||= (begin
         if self.fragment
-          Addressable::URI.encode_component(
-            Addressable::IDNA.unicode_normalize_kc(
-              Addressable::URI.unencode_component(self.fragment.strip)),
-            Addressable::URI::CharacterClasses::FRAGMENT
-          )
+          begin
+            Addressable::URI.encode_component(
+              Addressable::IDNA.unicode_normalize_kc(
+                Addressable::URI.unencode_component(self.fragment.strip)),
+              Addressable::URI::CharacterClasses::FRAGMENT
+            )
+          rescue ArgumentError
+            # Likely a malformed UTF-8 character, skip unicode normalization
+            Addressable::URI.encode_component(
+              Addressable::URI.unencode_component(self.fragment.strip),
+              Addressable::URI::CharacterClasses::FRAGMENT
+            )
+          end
         else
           nil
         end

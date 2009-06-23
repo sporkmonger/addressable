@@ -1025,6 +1025,54 @@ describe Addressable::URI, "when parsed from " +
 end
 
 describe Addressable::URI, "when parsed from " +
+    "'http://example.com/?%F6'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/?%F6")
+  end
+
+  it "should not raise an exception when normalized" do
+    (lambda do
+      @uri.normalize
+    end).should_not raise_error(ArgumentError)
+  end
+
+  it "should be considered to be in normal form" do
+    @uri.normalize.should be_eql(@uri)
+  end
+
+  it "should not change if encoded with the normalizing algorithm" do
+    Addressable::URI.normalized_encode(@uri).to_s.should ==
+      "http://example.com/?%F6"
+    Addressable::URI.normalized_encode(@uri, Addressable::URI).to_s.should ===
+      "http://example.com/?%F6"
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'http://example.com/#%F6'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/#%F6")
+  end
+
+  it "should not raise an exception when normalized" do
+    (lambda do
+      @uri.normalize
+    end).should_not raise_error(ArgumentError)
+  end
+
+  it "should be considered to be in normal form" do
+    @uri.normalize.should be_eql(@uri)
+  end
+
+  it "should not change if encoded with the normalizing algorithm" do
+    Addressable::URI.normalized_encode(@uri).to_s.should ==
+      "http://example.com/#%F6"
+    Addressable::URI.normalized_encode(@uri, Addressable::URI).to_s.should ===
+      "http://example.com/#%F6"
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/%C3%87'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/%C3%87")
