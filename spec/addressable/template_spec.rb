@@ -1353,6 +1353,18 @@ describe Addressable::URI, "when given a mapping with symbol keys" do
   end
 end
 
+describe Addressable::URI, "when given a mapping with numeric values" do
+  before do
+    @mapping = { :id => 123 }
+  end
+
+  it "should result in 'fred' when used to expand '{foo}'" do
+    Addressable::Template.new(
+      "{id}"
+    ).expand(@mapping).to_s.should == "123"
+  end
+end
+
 describe Addressable::URI, "when given a mapping containing values " +
     "that are already percent-encoded" do
   before do
@@ -1366,18 +1378,6 @@ describe Addressable::URI, "when given a mapping containing values " +
     Addressable::Template.new(
       "http://example.com/{a}/"
     ).expand(@mapping).to_s.should == "http://example.com/%257Bb%257D/"
-  end
-end
-
-describe Addressable::URI, "when given a mapping containing bogus values" do
-  it "should raise a TypeError" do
-    (lambda do
-      Addressable::Template.new(
-        "http://example.com/{bogus}/"
-      ).expand({
-        "bogus" => 42
-      })
-    end).should raise_error(TypeError)
   end
 end
 

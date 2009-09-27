@@ -526,6 +526,8 @@ module Addressable
     def transform_mapping(mapping, processor=nil)
       return mapping.inject({}) do |accu, pair|
         name, value = pair
+        value = value.to_s if Numeric === value
+
         unless value.respond_to?(:to_ary) || value.respond_to?(:to_str)
           raise TypeError,
             "Can't convert #{value.class} into String or Array."
