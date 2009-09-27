@@ -531,8 +531,9 @@ module Addressable
             "Can't convert #{value.class} into String or Array."
         end
 
-        value =
-          value.respond_to?(:to_ary) ? value.to_ary : value.to_str
+        name = name.to_s
+        value = value.respond_to?(:to_ary) ? value.to_ary : value.to_str
+
         # Handle unicode normalization
         if value.kind_of?(Array)
           value.map! { |val| Addressable::IDNA.unicode_normalize_kc(val) }

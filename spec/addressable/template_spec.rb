@@ -1341,6 +1341,18 @@ describe Addressable::URI, "when given a simple mapping" do
   end
 end
 
+describe Addressable::URI, "when given a mapping with symbol keys" do
+  before do
+    @mapping = { :name => "fred" }
+  end
+
+  it "should result in 'fred' when used to expand '{foo}'" do
+    Addressable::Template.new(
+      "{name}"
+    ).expand(@mapping).to_s.should == "fred"
+  end
+end
+
 describe Addressable::URI, "when given a mapping containing values " +
     "that are already percent-encoded" do
   before do
