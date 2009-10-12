@@ -1,6 +1,6 @@
 === Addressable 2.1.1
   * fixed some missing type checking
-
+  * fixed issue with unicode normalization
 === Addressable 2.1.0
   * refactored URI template support out into its own class
   * removed extract method due to being useless and unreliable
