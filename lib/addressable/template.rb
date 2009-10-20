@@ -39,7 +39,7 @@ module Addressable
       Addressable::URI::CharacterClasses::UNRESERVED
     OPERATOR_EXPANSION =
       /\{-([a-zA-Z]+)\|([#{anything}]+)\|([#{anything}]+)\}/
-    VARIABLE_EXPANSION = /\{([#{anything}]+?)(=([#{anything}]+))?\}/
+    VARIABLE_EXPANSION = /\{([#{anything}]+?)(?:=([#{anything}]+))?\}/
 
     ##
     # Raised if an invalid template value is supplied.
@@ -488,24 +488,38 @@ module Addressable
     #
     # @return [Array] The variables present in the template's pattern.
     def variables
-      @variables ||= (begin
-        result = []
-
-        expansions, expansion_regexp = parse_template_pattern(pattern)
-        expansions.each do |expansion|
-          if expansion =~ OPERATOR_EXPANSION
-            _, _, variables, _ = parse_template_expansion(expansion)
-            result.concat(variables)
-          else
-            result << expansion[VARIABLE_EXPANSION, 1]
-          end
-        end
-        result.uniq
-      end)
+      @variables ||= ordered_variable_defaults.map { |var, val| var }.uniq
     end
     alias_method :keys, :variables
 
+    ##
+    # Returns a mapping of variables to their default values specified
+    # in the template. Variables without defaults are not returned.
+    #
+    # @return [Hash] Mapping of template variables to their defaults
+    def variable_defaults
+      @variable_defaults ||= Hash[*ordered_variable_defaults.reject { |k,v| v.nil? }.flatten]
+    end
+
   private
+
+    def ordered_variable_defaults
+      @ordered_variable_defaults ||= begin
+        expansions, expansion_regexp = parse_template_pattern(pattern)
+
+        expansions.inject([]) do |result, expansion|
+          case expansion
+          when OPERATOR_EXPANSION
+            _, _, variables, mapping = parse_template_expansion(expansion)
+            result.concat variables.map { |var| [var, mapping[var]] }
+          when VARIABLE_EXPANSION
+            result << [$1, $2]
+          end
+          result
+        end
+      end
+    end
+
     ##
     # Transforms a mapping so that values can be substituted into the
     # template.

@@ -1341,6 +1341,16 @@ describe Addressable::URI, "when given a simple mapping" do
   end
 end
 
+describe Addressable::URI, "extracting defaults from a pattern" do
+  before do
+    @template = Addressable::Template.new("{foo}{bar=baz}{-opt|found|cond}")
+  end
+
+  it "should extract default value" do
+    @template.variable_defaults.should == {"bar" => "baz"}
+  end
+end
+
 describe Addressable::URI, "when given a mapping with symbol keys" do
   before do
     @mapping = { :name => "fred" }
