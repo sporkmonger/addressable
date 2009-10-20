@@ -1,7 +1,3 @@
-lib_dir = File.expand_path(File.join(File.dirname(__FILE__), "lib"))
-$:.unshift(lib_dir)
-$:.uniq!
-
 require 'rubygems'
 require 'rake'
 require 'rake/testtask'
@@ -10,7 +6,7 @@ require 'rake/packagetask'
 require 'rake/gempackagetask'
 require 'spec/rake/spectask'
 
-require File.join(File.dirname(__FILE__), 'lib/addressable', 'version')
+require File.join(File.dirname(__FILE__), 'lib', 'addressable', 'version')
 
 PKG_DISPLAY_NAME   = 'Addressable'
 PKG_NAME           = PKG_DISPLAY_NAME.downcase

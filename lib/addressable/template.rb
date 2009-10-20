@@ -22,10 +22,6 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
-$:.unshift(File.expand_path(File.join(File.dirname(__FILE__), '/..')))
-$:.uniq!
-
-require "addressable/version"
 require "addressable/uri"
 
 module Addressable

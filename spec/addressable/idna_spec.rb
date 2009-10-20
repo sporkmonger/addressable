@@ -22,9 +22,6 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
-$:.unshift(File.expand_path(File.dirname(__FILE__) + '/../../lib'))
-$:.uniq!
-
 require "addressable/idna"
 
 describe Addressable::IDNA, "when converting from unicode to ASCII" do
