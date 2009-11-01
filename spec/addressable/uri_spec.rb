@@ -3343,25 +3343,25 @@ describe Addressable::URI, "when converting a bogus path" do
   end
 end
 
-describe Addressable::URI, "when given the root directory" do
+describe Addressable::URI, "when given a UNIX root directory" do
   before do
-    if RUBY_PLATFORM =~ /mswin/
-      @path = "C:\\"
-    else
-      @path = "/"
-    end
+    @path = "/"
   end
 
-  if RUBY_PLATFORM =~ /mswin/
-    it "should convert to \'file:///c:/\'" do
-      @uri = Addressable::URI.convert_path(@path)
-      @uri.to_str.should == "file:///c:/"
-    end
-  else
-    it "should convert to \'file:///\'" do
-      @uri = Addressable::URI.convert_path(@path)
-      @uri.to_str.should == "file:///"
-    end
+  it "should convert to \'file:///\'" do
+    @uri = Addressable::URI.convert_path(@path)
+    @uri.to_str.should == "file:///"
+  end
+end
+
+describe Addressable::URI, "when given a Windows root directory" do
+  before do
+    @path = "C:\\"
+  end
+
+  it "should convert to \'file:///c:/\'" do
+    @uri = Addressable::URI.convert_path(@path)
+    @uri.to_str.should == "file:///c:/"
   end
 end
 

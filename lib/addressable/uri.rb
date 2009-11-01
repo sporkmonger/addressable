@@ -218,12 +218,15 @@ module Addressable
       path = path.to_str.strip
 
       path.gsub!(/^file:\/?\/?/, "") if path =~ /^file:\/?\/?/
-      path = "/" + path if path =~ /^([a-zA-Z])(\||:)/
+      path = "/" + path if path =~ /^([a-zA-Z])[\|:]/
       uri = self.parse(path)
 
+      puts uri.path.inspect
       if uri.scheme == nil
         # Adjust windows-style uris
-        uri.path.gsub!(/^\/?([a-zA-Z])\|(\\|\/)/, "/\\1:/")
+        uri.path.gsub!(/^\/?([a-zA-Z])[\|:][\\\/]/) do
+          "/#{$1.downcase}:/"
+        end
         uri.path.gsub!(/\\/, "/")
         if File.exists?(uri.path) &&
             File.stat(uri.path).directory?
