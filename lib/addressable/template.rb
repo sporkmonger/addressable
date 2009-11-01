@@ -154,21 +154,23 @@ module Addressable
     #
     # @param [Addressable::URI, #to_str] uri
     #   The URI to extract from.
+    #
     # @param [#restore, #match] processor
     #   A template processor object may optionally be supplied.
-    #   The object should respond to either the <tt>restore</tt> or
-    #   <tt>match</tt> messages or both.  The <tt>restore</tt> method should
-    #   take two parameters: [String] name and [String] value.  The
-    #   <tt>restore</tt> method should reverse any transformations that have
-    #   been performed on the value to ensure a valid URI.  The
-    #   <tt>match</tt> method should take a single parameter: [String] name.
-    #   The <tt>match</tt> method should return a <tt>String</tt> containing
-    #   a regular expression capture group for matching on that particular
-    #   variable.  The default value is ".*?".  The <tt>match</tt> method has
-    #   no effect on multivariate operator expansions.
+    #
+    # The object should respond to either the <tt>restore</tt> or
+    # <tt>match</tt> messages or both.  The <tt>restore</tt> method should take
+    # two parameters: [String] name and [String] value.  The <tt>restore</tt>
+    # method should reverse any transformations that have been performed on the
+    # value to ensure a valid URI.  The <tt>match</tt> method should take a
+    # single parameter: [String] name.  The <tt>match</tt> method should return
+    # a <tt>String</tt> containing a regular expression capture group for
+    # matching on that particular variable.  The default value is ".*?".  The
+    # <tt>match</tt> method has no effect on multivariate operator expansions.
+    #
     # @return [Hash, NilClass]
-    #   The <tt>Hash</tt> mapping that was extracted from the URI, or
-    #   <tt>nil</tt> if the URI didn't match the template.
+    # The <tt>Hash</tt> mapping that was extracted from the URI, or
+    # <tt>nil</tt> if the URI didn't match the template.
     #
     # @example
     #   class ExampleProcessor
@@ -212,21 +214,23 @@ module Addressable
     #
     # @param [Addressable::URI, #to_str] uri
     #   The URI to extract from.
+    #
     # @param [#restore, #match] processor
     #   A template processor object may optionally be supplied.
-    #   The object should respond to either the <tt>restore</tt> or
-    #   <tt>match</tt> messages or both.  The <tt>restore</tt> method should
-    #   take two parameters: [String] name and [String] value.  The
-    #   <tt>restore</tt> method should reverse any transformations that have
-    #   been performed on the value to ensure a valid URI.  The
-    #   <tt>match</tt> method should take a single parameter: [String] name.
-    #   The <tt>match</tt> method should return a <tt>String</tt> containing
-    #   a regular expression capture group for matching on that particular
-    #   variable.  The default value is ".*?".  The <tt>match</tt> method has
-    #   no effect on multivariate operator expansions.
+    #
+    # The object should respond to either the <tt>restore</tt> or
+    # <tt>match</tt> messages or both. The <tt>restore</tt> method should take
+    # two parameters: [String] name and [String] value. The <tt>restore</tt>
+    # method should reverse any transformations that have been performed on the
+    # value to ensure a valid URI. The <tt>match</tt> method should take a
+    # single parameter: [String] name. The <tt>match</tt> method should return
+    # a <tt>String</tt> containing a regular expression capture group for
+    # matching on that particular variable. The default value is ".*?". The
+    # <tt>match</tt> method has no effect on multivariate operator expansions.
+    #
     # @return [Hash, NilClass]
-    #   The <tt>Hash</tt> mapping that was extracted from the URI, or
-    #   <tt>nil</tt> if the URI didn't match the template.
+    # The <tt>Hash</tt> mapping that was extracted from the URI, or
+    # <tt>nil</tt> if the URI didn't match the template.
     #
     # @example
     #   class ExampleProcessor
@@ -325,19 +329,19 @@ module Addressable
     #
     # @param [Hash] mapping The mapping that corresponds to the pattern.
     # @param [#validate, #transform] processor
-    #   An optional processor object may be supplied.  The object should
-    #   respond to either the <tt>validate</tt> or <tt>transform</tt> messages
-    #   or both.  Both the <tt>validate</tt> and <tt>transform</tt> methods
-    #   should take two parameters: <tt>name</tt> and <tt>value</tt>.  The
-    #   <tt>validate</tt> method should return <tt>true</tt> or
-    #   <tt>false</tt>; <tt>true</tt> if the value of the variable is valid,
-    #   <tt>false</tt> otherwise.  An <tt>InvalidTemplateValueError</tt>
-    #   exception will be raised if the value is invalid.  The
-    #   <tt>transform</tt> method should return the transformed variable
-    #   value as a <tt>String</tt>.  If a <tt>transform</tt> method is used,
-    #   the value will not be percent encoded automatically.  Unicode
-    #   normalization will be performed both before and after sending the
-    #   value to the transform method.
+    #   An optional processor object may be supplied. 
+    #
+    # The object should respond to either the <tt>validate</tt> or
+    # <tt>transform</tt> messages or both. Both the <tt>validate</tt> and
+    # <tt>transform</tt> methods should take two parameters: <tt>name</tt> and
+    # <tt>value</tt>. The <tt>validate</tt> method should return <tt>true</tt>
+    # or <tt>false</tt>; <tt>true</tt> if the value of the variable is valid,
+    # <tt>false</tt> otherwise. An <tt>InvalidTemplateValueError</tt>
+    # exception will be raised if the value is invalid. The <tt>transform</tt>
+    # method should return the transformed variable value as a <tt>String</tt>.
+    # If a <tt>transform</tt> method is used, the value will not be percent
+    # encoded automatically. Unicode normalization will be performed both
+    # before and after sending the value to the transform method.
     #
     # @return [Addressable::Template] The partially expanded URI template.
     #
@@ -401,19 +405,19 @@ module Addressable
     #
     # @param [Hash] mapping The mapping that corresponds to the pattern.
     # @param [#validate, #transform] processor
-    #   An optional processor object may be supplied.  The object should
-    #   respond to either the <tt>validate</tt> or <tt>transform</tt> messages
-    #   or both.  Both the <tt>validate</tt> and <tt>transform</tt> methods
-    #   should take two parameters: <tt>name</tt> and <tt>value</tt>.  The
-    #   <tt>validate</tt> method should return <tt>true</tt> or
-    #   <tt>false</tt>; <tt>true</tt> if the value of the variable is valid,
-    #   <tt>false</tt> otherwise.  An <tt>InvalidTemplateValueError</tt>
-    #   exception will be raised if the value is invalid.  The
-    #   <tt>transform</tt> method should return the transformed variable
-    #   value as a <tt>String</tt>.  If a <tt>transform</tt> method is used,
-    #   the value will not be percent encoded automatically.  Unicode
-    #   normalization will be performed both before and after sending the
-    #   value to the transform method.
+    #   An optional processor object may be supplied.
+    #
+    # The object should respond to either the <tt>validate</tt> or
+    # <tt>transform</tt> messages or both. Both the <tt>validate</tt> and
+    # <tt>transform</tt> methods should take two parameters: <tt>name</tt> and
+    # <tt>value</tt>. The <tt>validate</tt> method should return <tt>true</tt>
+    # or <tt>false</tt>; <tt>true</tt> if the value of the variable is valid,
+    # <tt>false</tt> otherwise. An <tt>InvalidTemplateValueError</tt>
+    # exception will be raised if the value is invalid. The <tt>transform</tt>
+    # method should return the transformed variable value as a <tt>String</tt>.
+    # If a <tt>transform</tt> method is used, the value will not be percent
+    # encoded automatically. Unicode normalization will be performed both
+    # before and after sending the value to the transform method.
     #
     # @return [Addressable::URI] The expanded URI template.
     #
@@ -508,19 +512,19 @@ module Addressable
     #
     # @param [Hash] mapping The mapping of variables to values.
     # @param [#validate, #transform] processor
-    #   An optional processor object may be supplied.  The object should
-    #   respond to either the <tt>validate</tt> or <tt>transform</tt> messages
-    #   or both.  Both the <tt>validate</tt> and <tt>transform</tt> methods
-    #   should take two parameters: <tt>name</tt> and <tt>value</tt>.  The
-    #   <tt>validate</tt> method should return <tt>true</tt> or
-    #   <tt>false</tt>; <tt>true</tt> if the value of the variable is valid,
-    #   <tt>false</tt> otherwise.  An <tt>InvalidTemplateValueError</tt>
-    #   exception will be raised if the value is invalid.  The
-    #   <tt>transform</tt> method should return the transformed variable
-    #   value as a <tt>String</tt>.  If a <tt>transform</tt> method is used,
-    #   the value will not be percent encoded automatically.  Unicode
-    #   normalization will be performed both before and after sending the
-    #   value to the transform method.
+    #   An optional processor object may be supplied.
+    #
+    # The object should respond to either the <tt>validate</tt> or
+    # <tt>transform</tt> messages or both. Both the <tt>validate</tt> and
+    # <tt>transform</tt> methods should take two parameters: <tt>name</tt> and
+    # <tt>value</tt>. The <tt>validate</tt> method should return <tt>true</tt>
+    # or <tt>false</tt>; <tt>true</tt> if the value of the variable is valid,
+    # <tt>false</tt> otherwise. An <tt>InvalidTemplateValueError</tt> exception
+    # will be raised if the value is invalid. The <tt>transform</tt> method
+    # should return the transformed variable value as a <tt>String</tt>. If a
+    # <tt>transform</tt> method is used, the value will not be percent encoded
+    # automatically. Unicode normalization will be performed both before and
+    # after sending the value to the transform method.
     #
     # @return [Hash] The transformed mapping.
     def transform_mapping(mapping, processor=nil)
@@ -799,8 +803,8 @@ module Addressable
     # @return [Regexp]
     #   A regular expression which may be used to parse a template pattern.
     def parse_template_pattern(pattern, processor=nil)
-      # Escape the pattern.  The two gsubs restore the escaped curly braces
-      # back to their original form.  Basically, escape everything that isn't
+      # Escape the pattern. The two gsubs restore the escaped curly braces
+      # back to their original form. Basically, escape everything that isn't
       # within an expansion.
       escaped_pattern = Regexp.escape(
         pattern
@@ -822,7 +826,7 @@ module Addressable
             parse_template_expansion(expansion)
           if processor != nil && processor.respond_to?(:match)
             # We can only lookup the match values for single variable
-            # operator expansions.  Besides, ".*" is usually the only
+            # operator expansions. Besides, ".*" is usually the only
             # reasonable value for multivariate operators anyways.
             if ["prefix", "suffix", "list"].include?(operator)
               capture_group = "(#{processor.match(names.first)})"

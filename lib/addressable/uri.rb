@@ -66,8 +66,9 @@ module Addressable
     # Returns a URI object based on the parsed string.
     #
     # @param [String, Addressable::URI, #to_str] uri
-    #   The URI string to parse.  No parsing is performed if the object is
-    #   already an <tt>Addressable::URI</tt>.
+    #   The URI string to parse. 
+    # No parsing is performed if the object is already an
+    # <tt>Addressable::URI</tt>.
     #
     # @return [Addressable::URI] The parsed URI.
     def self.parse(uri)
@@ -131,16 +132,17 @@ module Addressable
     end
 
     ##
-    # Converts an input to a URI.  The input does not have to be a valid
+    # Converts an input to a URI. The input does not have to be a valid
     # URI — the method will use heuristics to guess what URI was intended.
     # This is not standards-compliant, merely user-friendly.
     #
     # @param [String, Addressable::URI, #to_str] uri
-    #   The URI string to parse.  No parsing is performed if the object is
-    #   already an <tt>Addressable::URI</tt>.
+    #   The URI string to parse.
+    # No parsing is performed if the object is already an
+    # <tt>Addressable::URI</tt>.
     # @param [Hash] hints
-    #   A <tt>Hash</tt> of hints to the heuristic parser.  Defaults to
-    #   <tt>{:scheme => "http"}</tt>.
+    #   A <tt>Hash</tt> of hints to the heuristic parser. 
+    # Defaults to <tt>{:scheme => "http"}</tt>.
     #
     # @return [Addressable::URI] The parsed URI.
     def self.heuristic_parse(uri, hints={})
@@ -184,16 +186,16 @@ module Addressable
     end
 
     ##
-    # Converts a path to a file scheme URI.  If the path supplied is
-    # relative, it will be returned as a relative URI.  If the path supplied
+    # Converts a path to a file scheme URI. If the path supplied is
+    # relative, it will be returned as a relative URI. If the path supplied
     # is actually a non-file URI, it will parse the URI as if it had been
-    # parsed with <tt>Addressable::URI.parse</tt>.  Handles all of the
+    # parsed with <tt>Addressable::URI.parse</tt>. Handles all of the
     # various Microsoft-specific formats for specifying paths.
     #
     # @param [String, Addressable::URI, #to_str] path
-    #   Typically a <tt>String</tt> path to a file or directory, but
-    #   will return a sensible return value if an absolute URI is supplied
-    #   instead.
+    #
+    # Typically a <tt>String</tt> path to a file or directory, but will return
+    # a sensible return value if an absolute URI is supplied instead.
     #
     # @return [Addressable::URI]
     #   The parsed file scheme URI or the original URI if some other URI
@@ -281,17 +283,17 @@ module Addressable
     # @param [String, #to_str] component The URI component to encode.
     #
     # @param [String, Regexp] character_class
-    #   The characters which are not percent encoded.  If a <tt>String</tt>
-    #   is passed, the <tt>String</tt> must be formatted as a regular
-    #   expression character class.  (Do not include the surrounding square
-    #   brackets.)  For example, <tt>"b-zB-Z0-9"</tt> would cause everything
-    #   but the letters 'b' through 'z' and the numbers '0' through '9' to be
-    #   percent encoded.  If a <tt>Regexp</tt> is passed, the value
-    #   <tt>/[^b-zB-Z0-9]/</tt> would have the same effect.
-    #   A set of useful <tt>String</tt> values may be found in the
-    #   <tt>Addressable::URI::CharacterClasses</tt> module.  The default value
-    #   is the reserved plus unreserved character classes specified in
-    #   <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
+    #
+    # The characters which are not percent encoded. If a <tt>String</tt> is
+    # passed, the <tt>String</tt> must be formatted as a regular expression
+    # character class. (Do not include the surrounding square brackets.)  For
+    # example, <tt>"b-zB-Z0-9"</tt> would cause everything but the letters 'b'
+    # through 'z' and the numbers '0' through '9' to be percent encoded. If a
+    # <tt>Regexp</tt> is passed, the value <tt>/[^b-zB-Z0-9]/</tt> would have
+    # the same effect. A set of useful <tt>String</tt> values may be found in
+    # the <tt>Addressable::URI::CharacterClasses</tt> module. The default
+    # value is the reserved plus unreserved character classes specified in <a
+    # href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
     #
     # @return [String] The encoded component.
     #
@@ -343,13 +345,14 @@ module Addressable
     #   The URI or component to unencode.
     #
     # @param [Class] returning
-    #   The type of object to return.  This value may only be set to
-    #   <tt>String</tt> or <tt>Addressable::URI</tt>.  All other values
-    #   are invalid.  Defaults to <tt>String</tt>.
+    #   The type of object to return.
+    # This value may only be set to <tt>String</tt> or
+    # <tt>Addressable::URI</tt>. All other values are invalid. Defaults to
+    # <tt>String</tt>.
     #
     # @return [String, Addressable::URI]
-    #   The unencoded component or URI.  The return type is determined by
-    #   the <tt>returning</tt> parameter.
+    #   The unencoded component or URI.
+    # The return type is determined by the <tt>returning</tt> parameter.
     def self.unencode(uri, returning=String)
       return nil if uri.nil?
       if !uri.respond_to?(:to_str)
@@ -384,13 +387,14 @@ module Addressable
     #   The URI to encode.
     #
     # @param [Class] returning
-    #   The type of object to return.  This value may only be set to
-    #   <tt>String</tt> or <tt>Addressable::URI</tt>.  All other values
-    #   are invalid.  Defaults to <tt>String</tt>.
+    #   The type of object to return.
+    # This value may only be set to <tt>String</tt> or
+    # <tt>Addressable::URI</tt>. All other values are invalid. Defaults to
+    # <tt>String</tt>.
     #
     # @return [String, Addressable::URI]
-    #   The encoded URI.  The return type is determined by
-    #   the <tt>returning</tt> parameter.
+    #   The encoded URI.
+    # The return type is determined by the <tt>returning</tt> parameter.
     def self.encode(uri, returning=String)
       return nil if uri.nil?
       if !uri.respond_to?(:to_str)
@@ -426,20 +430,21 @@ module Addressable
     end
 
     ##
-    # Normalizes the encoding of a URI.  Characters within a hostname are
+    # Normalizes the encoding of a URI. Characters within a hostname are
     # not percent encoded to allow for internationalized domain names.
     #
     # @param [String, Addressable::URI, #to_str] uri
     #   The URI to encode.
     #
     # @param [Class] returning
-    #   The type of object to return.  This value may only be set to
-    #   <tt>String</tt> or <tt>Addressable::URI</tt>.  All other values
-    #   are invalid.  Defaults to <tt>String</tt>.
+    #   The type of object to return.
+    # This value may only be set to <tt>String</tt> or
+    # <tt>Addressable::URI</tt>. All other values are invalid. Defaults to
+    # <tt>String</tt>.
     #
     # @return [String, Addressable::URI]
-    #   The encoded URI.  The return type is determined by
-    #   the <tt>returning</tt> parameter.
+    #   The encoded URI. 
+    # The return type is determined by the <tt>returning</tt> parameter.
     def self.normalized_encode(uri, returning=String)
       if !uri.respond_to?(:to_str)
         raise TypeError, "Can't convert #{uri.class} into String."
@@ -501,12 +506,12 @@ module Addressable
     # @option [String, #to_str] user The user component.
     # @option [String, #to_str] password The password component.
     # @option [String, #to_str] userinfo
-    #   The userinfo component.  If this is supplied, the user and password
+    #   The userinfo component. If this is supplied, the user and password
     #   components must be omitted.
     # @option [String, #to_str] host The host component.
     # @option [String, #to_str] port The port component.
     # @option [String, #to_str] authority
-    #   The authority component.  If this is supplied, the user, password,
+    #   The authority component. If this is supplied, the user, password,
     #   userinfo, host, and port components must be omitted.
     # @option [String, #to_str] path The path component.
     # @option [String, #to_str] query The query component.
@@ -927,7 +932,7 @@ module Addressable
       validate()
     end
 
-    # Returns an array of known ip-based schemes.  These schemes typically
+    # Returns an array of known ip-based schemes. These schemes typically
     # use a similar URI form:
     # //<user>:<password>@<host>:<port>/<url-path>
     def self.ip_based_schemes
@@ -935,7 +940,7 @@ module Addressable
     end
 
     # Returns a hash of common IP-based schemes and their default port
-    # numbers.  Adding new schemes to this hash, as necessary, will allow
+    # numbers. Adding new schemes to this hash, as necessary, will allow
     # for better URI normalization.
     def self.port_mapping
       @port_mapping ||= {
@@ -957,7 +962,7 @@ module Addressable
 
     ##
     # The port component for this URI.
-    # This is the port number actually given in the URI.  This does not
+    # This is the port number actually given in the URI. This does not
     # infer port numbers from default values.
     #
     # @return [Integer] The port component.
@@ -1161,8 +1166,8 @@ module Addressable
     #
     # @option [Symbol] notation
     #   May be one of <tt>:flat</tt>, <tt>:dot</tt>, or <tt>:subscript</tt>.
-    #   The <tt>:dot</tt> notation is not supported for assignment.
-    #   Default value is <tt>:subscript</tt>.
+    # The <tt>:dot</tt> notation is not supported for assignment. Default
+    # value is <tt>:subscript</tt>.
     #
     # @return [Hash] The query string parsed as a Hash object.
     #
@@ -1361,8 +1366,8 @@ module Addressable
     # Determines if the scheme indicates an IP-based protocol.
     #
     # @return [TrueClass, FalseClass]
-    #   <tt>true</tt> if the scheme indicates an IP-based protocol.
-    #   <tt>false</tt> otherwise.
+    # <tt>true</tt> if the scheme indicates an IP-based protocol.
+    # <tt>false</tt> otherwise.
     def ip_based?
       if self.scheme
         return self.class.ip_based_schemes.include?(
@@ -1375,8 +1380,7 @@ module Addressable
     # Determines if the URI is relative.
     #
     # @return [TrueClass, FalseClass]
-    #   <tt>true</tt> if the URI is relative.
-    #   <tt>false</tt> otherwise.
+    # <tt>true</tt> if the URI is relative. <tt>false</tt> otherwise.
     def relative?
       return self.scheme.nil?
     end
@@ -1385,8 +1389,7 @@ module Addressable
     # Determines if the URI is absolute.
     #
     # @return [TrueClass, FalseClass]
-    #   <tt>true</tt> if the URI is absolute.
-    #   <tt>false</tt> otherwise.
+    # <tt>true</tt> if the URI is absolute. <tt>false</tt> otherwise.
     def absolute?
       return !relative?
     end
@@ -1506,9 +1509,9 @@ module Addressable
 
     ##
     # Merges a URI with a <tt>Hash</tt> of components.
-    # This method has different behavior from <tt>join</tt>.  Any components
+    # This method has different behavior from <tt>join</tt>. Any components
     # present in the <tt>hash</tt> parameter will override the original
-    # components.  The path component is not treated specially.
+    # components. The path component is not treated specially.
     #
     # @param [Hash, Addressable::URI, #to_hash] The components to merge with.
     #
@@ -1584,8 +1587,8 @@ module Addressable
 
     ##
     # Returns the shortest normalized relative form of this URI that uses the
-    # supplied URI as a base for resolution.  Returns an absolute URI if
-    # necessary.  This is effectively the opposite of <tt>route_to</tt>.
+    # supplied URI as a base for resolution. Returns an absolute URI if
+    # necessary. This is effectively the opposite of <tt>route_to</tt>.
     #
     # @param [String, Addressable::URI, #to_str] uri The URI to route from.
     #
@@ -1642,8 +1645,8 @@ module Addressable
 
     ##
     # Returns the shortest normalized relative form of the supplied URI that
-    # uses this URI as a base for resolution.  Returns an absolute URI if
-    # necessary.  This is effectively the opposite of <tt>route_from</tt>.
+    # uses this URI as a base for resolution. Returns an absolute URI if
+    # necessary. This is effectively the opposite of <tt>route_from</tt>.
     #
     # @param [String, Addressable::URI, #to_str] uri The URI to route to.
     #
@@ -1694,7 +1697,7 @@ module Addressable
     end
 
     ##
-    # Creates a URI suitable for display to users.  If semantic attacks are
+    # Creates a URI suitable for display to users. If semantic attacks are
     # likely, the application should try to detect these and warn the user.
     # See <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>,
     # section 7.6 for more information.
@@ -1707,7 +1710,7 @@ module Addressable
     end
 
     ##
-    # Returns <tt>true</tt> if the URI objects are equal.  This method
+    # Returns <tt>true</tt> if the URI objects are equal. This method
     # normalizes both URIs before doing the comparison, and allows comparison
     # against <tt>Strings</tt>.
     #
@@ -1729,7 +1732,7 @@ module Addressable
     end
 
     ##
-    # Returns <tt>true</tt> if the URI objects are equal.  This method
+    # Returns <tt>true</tt> if the URI objects are equal. This method
     # normalizes both URIs before doing the comparison.
     #
     # @param [Object] uri The URI to compare.
@@ -1742,7 +1745,7 @@ module Addressable
     end
 
     ##
-    # Returns <tt>true</tt> if the URI objects are equal.  This method
+    # Returns <tt>true</tt> if the URI objects are equal. This method
     # does NOT normalize either URI before doing the comparison.
     #
     # @param [Object] uri The URI to compare.
@@ -1789,7 +1792,7 @@ module Addressable
       # Unfortunately, because of the memoized implementation of many of the
       # URI methods, the default freeze method will cause unexpected errors.
       # As an alternative, we freeze the string representation of the URI
-      # instead.  This should generally produce the desired effect.
+      # instead. This should generally produce the desired effect.
       self.to_s.freeze
       return self
     end
@@ -1866,7 +1869,7 @@ module Addressable
     end
 
     ##
-    # URI's are glorified <tt>Strings</tt>.  Allow implicit conversion.
+    # URI's are glorified <tt>Strings</tt>. Allow implicit conversion.
     alias_method :to_str, :to_s
 
     ##
