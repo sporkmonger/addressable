@@ -1,12 +1,14 @@
 === Addressable 2.1.2
   * added HTTP request URI methods
   * better handling of Windows file paths
+
 === Addressable 2.1.1
   * more type checking changes
   * fixed issue with unicode normalization
   * added method to find template defaults
   * symbolic keys are now allowed in template mappings
   * numeric values and symbolic values are now allowed in template mappings
+
 === Addressable 2.1.0
   * refactored URI template support out into its own class
   * removed extract method due to being useless and unreliable
