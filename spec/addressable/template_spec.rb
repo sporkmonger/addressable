@@ -1475,6 +1475,15 @@ describe Addressable::Template, "with a partially expanded template" do
     @initial_template.expand({"one" => "1", "two" => "2"}).should ==
       @partial_template.expand({"two" => "2"})
   end
+
+  it "should raise an error if the template is expanded with bogus values" do
+    (lambda do
+      @initial_template.expand({"one" => Object.new, "two" => Object.new})
+    end).should raise_error(TypeError)
+    (lambda do
+      @partial_template.expand({"two" => Object.new})
+    end).should raise_error(TypeError)
+  end
 end
 
 describe Addressable::Template, "with a partially expanded template" do
