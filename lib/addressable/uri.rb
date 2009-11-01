@@ -37,11 +37,6 @@ module Addressable
     end
 
     ##
-    # Raised if an invalid method option is supplied.
-    class InvalidOptionError < StandardError
-    end
-
-    ##
     # Container for the character classes specified in
     # <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
     module CharacterClasses
