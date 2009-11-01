@@ -1,5 +1,6 @@
 === Addressable 2.1.2
   * added HTTP request URI methods
+  * better handling of Windows file paths
 === Addressable 2.1.1
   * more type checking changes
   * fixed issue with unicode normalization
