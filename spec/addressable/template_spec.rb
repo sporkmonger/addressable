@@ -1359,6 +1359,20 @@ describe Addressable::URI, "when given a mapping with symbol keys" do
   end
 end
 
+describe Addressable::URI, "when given a mapping with bogus keys" do
+  before do
+    @mapping = { Object.new => "fred" }
+  end
+
+  it "should raise an error" do
+    (lambda do
+      Addressable::Template.new(
+        "{name}"
+      ).expand(@mapping)
+    end).should raise_error(TypeError)
+  end
+end
+
 describe Addressable::URI, "when given a mapping with numeric values" do
   before do
     @mapping = { :id => 123 }

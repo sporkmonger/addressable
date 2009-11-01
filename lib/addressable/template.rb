@@ -541,14 +541,21 @@ module Addressable
     def transform_mapping(mapping, processor=nil)
       return mapping.inject({}) do |accu, pair|
         name, value = pair
-        value = value.to_s if Numeric === value
+        value = value.to_s if Numeric === value || Symbol === value
 
         unless value.respond_to?(:to_ary) || value.respond_to?(:to_str)
           raise TypeError,
             "Can't convert #{value.class} into String or Array."
         end
 
-        name = name.to_s
+        if Symbol === name
+          name = name.to_s
+        elsif name.respond_to?(:to_str)
+          name = name.to_str
+        else
+          raise TypeError,
+            "Can't convert #{name.class} into String."
+        end
         value = value.respond_to?(:to_ary) ? value.to_ary : value.to_str
 
         # Handle unicode normalization
