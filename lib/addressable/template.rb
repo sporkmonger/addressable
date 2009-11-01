@@ -495,13 +495,13 @@ module Addressable
     #
     # @return [Hash] Mapping of template variables to their defaults
     def variable_defaults
-      @variable_defaults ||= Hash[*ordered_variable_defaults.reject { |k,v| v.nil? }.flatten]
+      @variable_defaults ||=
+        Hash[*ordered_variable_defaults.reject { |k, v| v.nil? }.flatten]
     end
 
   private
-
     def ordered_variable_defaults
-      @ordered_variable_defaults ||= begin
+      @ordered_variable_defaults ||= (begin
         expansions, expansion_regexp = parse_template_pattern(pattern)
 
         expansions.inject([]) do |result, expansion|
@@ -514,7 +514,7 @@ module Addressable
           end
           result
         end
-      end
+      end)
     end
 
     ##
