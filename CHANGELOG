@@ -1,5 +1,5 @@
 === Addressable 2.1.2
-
+  * added HTTP request URI methods
 === Addressable 2.1.1
   * more type checking changes
   * fixed issue with unicode normalization

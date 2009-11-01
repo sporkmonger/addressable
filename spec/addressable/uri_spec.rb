@@ -323,6 +323,10 @@ describe Addressable::URI, "when parsed from ''" do
     @uri.path.should == ""
   end
 
+  it "should have a request URI of '/'" do
+    @uri.request_uri.should == "/"
+  end
+
   it "should be considered relative" do
     @uri.should be_relative
   end
@@ -355,6 +359,10 @@ describe Addressable::URI, "when parsed from " +
     @uri.path.should == "/rfc/rfc1808.txt"
   end
 
+  it "should not have a request URI" do
+    @uri.request_uri.should == nil
+  end
+
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
@@ -381,6 +389,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have a path of '/rfc/rfc2396.txt'" do
     @uri.path.should == "/rfc/rfc2396.txt"
+  end
+
+  it "should have a request URI of '/rfc/rfc2396.txt'" do
+    @uri.request_uri.should == "/rfc/rfc2396.txt"
   end
 
   it "should be considered to be in normal form" do
@@ -419,6 +431,16 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have a path of '/c=GB'" do
     @uri.path.should == "/c=GB"
+  end
+
+  it "should not have a request URI" do
+    @uri.request_uri.should == nil
+  end
+
+  it "should not allow request URI assignment" do
+    (lambda do
+      @uri.request_uri = "/"
+    end).should raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should have a query of 'objectClass?one'" do
@@ -465,6 +487,10 @@ describe Addressable::URI, "when parsed from " +
     @uri.path.should == "John.Doe@example.com"
   end
 
+  it "should not have a request URI" do
+    @uri.request_uri.should == nil
+  end
+
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
@@ -489,6 +515,10 @@ describe Addressable::URI, "when parsed from " +
     @uri.path.should == "comp.infosystems.www.servers.unix"
   end
 
+  it "should not have a request URI" do
+    @uri.request_uri.should == nil
+  end
+
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
@@ -511,6 +541,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have a path of '+1-816-555-1212'" do
     @uri.path.should == "+1-816-555-1212"
+  end
+
+  it "should not have a request URI" do
+    @uri.request_uri.should == nil
   end
 
   it "should be considered to be in normal form" do
@@ -545,6 +579,10 @@ describe Addressable::URI, "when parsed from " +
     @uri.path.should == "/"
   end
 
+  it "should not have a request URI" do
+    @uri.request_uri.should == nil
+  end
+
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
@@ -569,6 +607,10 @@ describe Addressable::URI, "when parsed from " +
   it "should have a path of " +
       "'oasis:names:specification:docbook:dtd:xml:4.1.2'" do
     @uri.path.should == "oasis:names:specification:docbook:dtd:xml:4.1.2"
+  end
+
+  it "should not have a request URI" do
+    @uri.request_uri.should == nil
   end
 
   it "should be considered to be in normal form" do
@@ -637,6 +679,10 @@ describe Addressable::URI, "when parsed from " +
   it "should have no query string" do
     @uri.query.should == nil
     @uri.query_values.should == nil
+  end
+
+  it "should have a request URI of '/'" do
+    @uri.request_uri.should == "/"
   end
 
   it "should have no fragment" do
@@ -826,6 +872,51 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+# Section 5.1.2 of RFC 2616
+describe Addressable::URI, "when parsed from " +
+    "'http://www.w3.org/pub/WWW/TheProject.html'" do
+  before do
+    @uri = Addressable::URI.parse("http://www.w3.org/pub/WWW/TheProject.html")
+  end
+
+  it "should have the correct request URI" do
+    @uri.request_uri.should == "/pub/WWW/TheProject.html"
+  end
+
+  it "should have the correct request URI after assignment" do
+    @uri.request_uri = "/some/where/else.html?query?string"
+    @uri.request_uri.should == "/some/where/else.html?query?string"
+    @uri.path.should == "/some/where/else.html"
+    @uri.query.should == "query?string"
+  end
+
+  it "should have the correct request URI after assignment" do
+    @uri.request_uri = "?x=y"
+    @uri.request_uri.should == "/?x=y"
+    @uri.path.should == "/"
+    @uri.query.should == "x=y"
+  end
+
+  it "should raise an error if the request URI is set to something bogus" do
+    (lambda do
+      @uri.request_uri = 42
+    end).should raise_error(TypeError)
+  end
+
+  it "should correctly convert to a hash" do
+    @uri.to_hash.should == {
+      :scheme => "http",
+      :user => nil,
+      :password => nil,
+      :host => "www.w3.org",
+      :port => nil,
+      :path => "/pub/WWW/TheProject.html",
+      :query => nil,
+      :fragment => nil
+    }
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://example.com/'" do
   before do
@@ -869,6 +960,10 @@ describe Addressable::URI, "when parsed from " +
     @uri.password.should == nil
     @uri.user.should == nil
     @uri.to_s.should == "http://example.com/"
+  end
+
+  it "should have a request URI of '/'" do
+    @uri.request_uri.should == "/"
   end
 
   it "should correctly convert to a hash" do

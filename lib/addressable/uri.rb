@@ -1030,7 +1030,8 @@ module Addressable
     #
     # @return [String] The path component.
     def path
-      return (@path || "")
+      @path ||= ""
+      return @path
     end
 
     ##
@@ -1296,6 +1297,43 @@ module Addressable
 
       # Reset dependant values
       @normalized_query = nil
+      @uri_string = nil
+    end
+
+    ##
+    # The HTTP request URI for this URI.  This is the path and the
+    # query string.
+    #
+    # @return [String] The request URI required for an HTTP request.
+    def request_uri
+      return nil if self.absolute? && self.scheme !~ /^https?$/
+      return (
+        (self.path != "" ? self.path : "/") +
+        (self.query ? "?#{self.query}" : "")
+      )
+    end
+
+    ##
+    # Sets the HTTP request URI for this URI.
+    #
+    # @param [String, #to_str] new_request_uri The new HTTP request URI.
+    def request_uri=(new_request_uri)
+      if !new_request_uri.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{new_request_uri.class} into String."
+      end
+      if self.absolute? && self.scheme !~ /^https?$/
+        raise InvalidURIError,
+          "Cannot set an HTTP request URI for a non-HTTP URI."
+      end
+      new_request_uri = new_request_uri.to_str
+      path_component = new_request_uri[/^([^\?]*)\?(?:.*)$/, 1]
+      query_component = new_request_uri[/^(?:[^\?]*)\?(.*)$/, 1]
+      path_component = path_component.to_s
+      path_component = (path_component != "" ? path_component : "/")
+      self.path = path_component
+      self.query = query_component
+
+      # Reset dependant values
       @uri_string = nil
     end
 
