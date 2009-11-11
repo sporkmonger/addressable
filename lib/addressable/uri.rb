@@ -528,6 +528,8 @@ module Addressable
       end
 
       self.defer_validation do
+        # Bunch of crazy logic required because of the composite components
+        # like userinfo and authority.
         self.scheme = options[:scheme] if options[:scheme]
         self.user = options[:user] if options[:user]
         self.password = options[:password] if options[:password]
@@ -1572,6 +1574,8 @@ module Addressable
 
       uri = Addressable::URI.new
       uri.defer_validation do
+        # Bunch of crazy logic required because of the composite components
+        # like userinfo and authority.
         uri.scheme =
           hash.has_key?(:scheme) ? hash[:scheme] : self.scheme
         if hash.has_key?(:authority)
