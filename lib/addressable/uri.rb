@@ -546,7 +546,7 @@ module Addressable
     #
     # @return [String] The scheme component.
     def scheme
-      return @scheme
+      return @scheme ||= nil
     end
 
     ##
@@ -599,7 +599,7 @@ module Addressable
     #
     # @return [String] The user component.
     def user
-      return @user
+      return @user ||= nil
     end
 
     ##
@@ -660,7 +660,7 @@ module Addressable
     #
     # @return [String] The password component.
     def password
-      return @password
+      return @password ||= nil
     end
 
     ##
@@ -791,7 +791,7 @@ module Addressable
     #
     # @return [String] The host component.
     def host
-      return @host
+      return @host ||= nil
     end
 
     ##
@@ -1109,7 +1109,7 @@ module Addressable
     #
     # @return [String] The query component.
     def query
-      return @query
+      return @query ||= nil
     end
 
     ##
@@ -1344,7 +1344,7 @@ module Addressable
     #
     # @return [String] The fragment component.
     def fragment
-      return @fragment
+      return @fragment ||= nil
     end
 
     ##
