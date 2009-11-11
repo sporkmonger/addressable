@@ -221,7 +221,6 @@ module Addressable
       path = "/" + path if path =~ /^([a-zA-Z])[\|:]/
       uri = self.parse(path)
 
-      puts uri.path.inspect
       if uri.scheme == nil
         # Adjust windows-style uris
         uri.path.gsub!(/^\/?([a-zA-Z])[\|:][\\\/]/) do
