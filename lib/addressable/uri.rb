@@ -528,18 +528,18 @@ module Addressable
         end
       end
 
-      self.validation_deferred = true
-      self.scheme = options[:scheme] if options[:scheme]
-      self.user = options[:user] if options[:user]
-      self.password = options[:password] if options[:password]
-      self.userinfo = options[:userinfo] if options[:userinfo]
-      self.host = options[:host] if options[:host]
-      self.port = options[:port] if options[:port]
-      self.authority = options[:authority] if options[:authority]
-      self.path = options[:path] if options[:path]
-      self.query = options[:query] if options[:query]
-      self.fragment = options[:fragment] if options[:fragment]
-      self.validation_deferred = false
+      self.defer_validation do
+        self.scheme = options[:scheme] if options[:scheme]
+        self.user = options[:user] if options[:user]
+        self.password = options[:password] if options[:password]
+        self.userinfo = options[:userinfo] if options[:userinfo]
+        self.host = options[:host] if options[:host]
+        self.port = options[:port] if options[:port]
+        self.authority = options[:authority] if options[:authority]
+        self.path = options[:path] if options[:path]
+        self.query = options[:query] if options[:query]
+        self.fragment = options[:fragment] if options[:fragment]
+      end
     end
 
     ##
@@ -1572,36 +1572,36 @@ module Addressable
       end
 
       uri = Addressable::URI.new
-      uri.validation_deferred = true
-      uri.scheme =
-        hash.has_key?(:scheme) ? hash[:scheme] : self.scheme
-      if hash.has_key?(:authority)
-        uri.authority =
-          hash.has_key?(:authority) ? hash[:authority] : self.authority
+      uri.defer_validation do
+        uri.scheme =
+          hash.has_key?(:scheme) ? hash[:scheme] : self.scheme
+        if hash.has_key?(:authority)
+          uri.authority =
+            hash.has_key?(:authority) ? hash[:authority] : self.authority
+        end
+        if hash.has_key?(:userinfo)
+          uri.userinfo =
+            hash.has_key?(:userinfo) ? hash[:userinfo] : self.userinfo
+        end
+        if !hash.has_key?(:userinfo) && !hash.has_key?(:authority)
+          uri.user =
+            hash.has_key?(:user) ? hash[:user] : self.user
+          uri.password =
+            hash.has_key?(:password) ? hash[:password] : self.password
+        end
+        if !hash.has_key?(:authority)
+          uri.host =
+            hash.has_key?(:host) ? hash[:host] : self.host
+          uri.port =
+            hash.has_key?(:port) ? hash[:port] : self.port
+        end
+        uri.path =
+          hash.has_key?(:path) ? hash[:path] : self.path
+        uri.query =
+          hash.has_key?(:query) ? hash[:query] : self.query
+        uri.fragment =
+          hash.has_key?(:fragment) ? hash[:fragment] : self.fragment
       end
-      if hash.has_key?(:userinfo)
-        uri.userinfo =
-          hash.has_key?(:userinfo) ? hash[:userinfo] : self.userinfo
-      end
-      if !hash.has_key?(:userinfo) && !hash.has_key?(:authority)
-        uri.user =
-          hash.has_key?(:user) ? hash[:user] : self.user
-        uri.password =
-          hash.has_key?(:password) ? hash[:password] : self.password
-      end
-      if !hash.has_key?(:authority)
-        uri.host =
-          hash.has_key?(:host) ? hash[:host] : self.host
-        uri.port =
-          hash.has_key?(:port) ? hash[:port] : self.port
-      end
-      uri.path =
-        hash.has_key?(:path) ? hash[:path] : self.path
-      uri.query =
-        hash.has_key?(:query) ? hash[:query] : self.query
-      uri.fragment =
-        hash.has_key?(:fragment) ? hash[:fragment] : self.fragment
-      uri.validation_deferred = false
 
       return uri
     end
@@ -1861,12 +1861,12 @@ module Addressable
           "Invalid component names: #{invalid_components.inspect}."
       end
       duplicated_uri = self.dup
-      duplicated_uri.validation_deferred = true
-      components.each do |component|
-        duplicated_uri.send((component.to_s + "=").to_sym, nil)
+      duplicated_uri.defer_validation do
+        components.each do |component|
+          duplicated_uri.send((component.to_s + "=").to_sym, nil)
+        end
+        duplicated_uri.user = duplicated_uri.normalized_user
       end
-      duplicated_uri.user = duplicated_uri.normalized_user
-      duplicated_uri.validation_deferred = false
       duplicated_uri
     end
 
@@ -1931,27 +1931,20 @@ module Addressable
     end
 
     ##
-    # If URI validation needs to be disabled, this can be set to true.
+    # This method allows you to make several changes to a URI simultaneously,
+    # which separately would cause validation errors, but in conjunction,
+    # are valid.  The URI will be revalidated as soon as the entire block has
+    # been executed.
     #
-    # @return [TrueClass, FalseClass]
-    #   <tt>true</tt> if validation has been deferred,
-    #   <tt>false</tt> otherwise.
-    def validation_deferred
-      !!@validation_deferred
-    end
-
-    ##
-    # If URI validation needs to be disabled, this can be set to true.
-    #
-    # @param [TrueClass, FalseClass] new_validation_deferred
-    #   <tt>true</tt> if validation will be deferred,
-    #   <tt>false</tt> otherwise.
-    def validation_deferred=(new_validation_deferred)
-      # Check for frozenness
-      raise TypeError, "Can't modify frozen URI." if self.frozen?
-
-      @validation_deferred = new_validation_deferred
-      validate unless @validation_deferred
+    # @param [Proc] block
+    #   A set of operations to perform on a given URI.
+    def defer_validation(&block)
+      raise LocalJumpError, "No block given." unless block
+      @validation_deferred = true
+      block.call()
+      @validation_deferred = false
+      validate
+      return nil
     end
 
   private
@@ -1988,7 +1981,7 @@ module Addressable
     ##
     # Ensures that the URI is valid.
     def validate
-      return if self.validation_deferred
+      return if !!@validation_deferred
       if self.scheme != nil &&
           (self.host == nil || self.host == "") &&
           (self.path == nil || self.path == "")
