@@ -374,6 +374,71 @@ module Addressable
       alias_method :unescape_component, :unencode
     end
 
+
+    ##
+    # Normalizes the encoding of a URI component.
+    #
+    # @param [String, #to_str] component The URI component to encode.
+    #
+    # @param [String, Regexp] character_class
+    #
+    # The characters which are not percent encoded. If a <tt>String</tt> is
+    # passed, the <tt>String</tt> must be formatted as a regular expression
+    # character class. (Do not include the surrounding square brackets.)  For
+    # example, <tt>"b-zB-Z0-9"</tt> would cause everything but the letters 'b'
+    # through 'z' and the numbers '0' through '9' to be percent encoded. If a
+    # <tt>Regexp</tt> is passed, the value <tt>/[^b-zB-Z0-9]/</tt> would have
+    # the same effect. A set of useful <tt>String</tt> values may be found in
+    # the <tt>Addressable::URI::CharacterClasses</tt> module. The default
+    # value is the reserved plus unreserved character classes specified in <a
+    # href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
+    #
+    # @return [String] The normalized component.
+    #
+    # @example
+    #   Addressable::URI.normalize_component("simpl%65/%65xampl%65", "b-zB-Z")
+    #   => "simple%2Fex%61mple"
+    #   Addressable::URI.normalize_component(
+    #     "simpl%65/%65xampl%65", /[^b-zB-Z]/
+    #   )
+    #   => "simple%2Fex%61mple"
+    #   Addressable::URI.normalize_component(
+    #     "simpl%65/%65xampl%65",
+    #     Addressable::URI::CharacterClasses::UNRESERVED
+    #   )
+    #   => "simple%2Fexample"
+    def self.normalize_component(component, character_class=
+        CharacterClasses::RESERVED + CharacterClasses::UNRESERVED)
+      return nil if component.nil?
+      if !component.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{component.class} into String."
+      end
+      component = component.to_str
+      if ![String, Regexp].include?(character_class.class)
+        raise TypeError,
+          "Expected String or Regexp, got #{character_class.inspect}"
+      end
+      if character_class.kind_of?(String)
+        character_class = /[^#{character_class}]/
+      end
+      if component.respond_to?(:force_encoding)
+        # We can't perform regexps on invalid UTF sequences, but
+        # here we need to, so switch to ASCII.
+        component = component.dup
+        component.force_encoding(Encoding::ASCII_8BIT)
+      end
+      unencoded = self.unencode_component(component)
+      begin
+        encoded = self.encode_component(
+          Addressable::IDNA.unicode_normalize_kc(unencoded),
+          character_class
+        )
+      rescue ArgumentError
+        encoded = self.encode_component(unencoded)
+      end
+      return encoded
+    end
+
     ##
     # Percent encodes any special characters in the URI.
     #
@@ -561,10 +626,8 @@ module Addressable
           if self.scheme =~ /^\s*ssh\+svn\s*$/i
             "svn+ssh"
           else
-            Addressable::URI.encode_component(
-              Addressable::IDNA.unicode_normalize_kc(
-                Addressable::URI.unencode_component(
-                  self.scheme.strip.downcase)),
+            Addressable::URI.normalize_component(
+              self.scheme.strip.downcase,
               Addressable::URI::CharacterClasses::SCHEME
             )
           end
@@ -615,9 +678,8 @@ module Addressable
               (!self.password || self.password.strip == "")
             nil
           else
-            Addressable::URI.encode_component(
-              Addressable::IDNA.unicode_normalize_kc(
-                Addressable::URI.unencode_component(self.user.strip)),
+            Addressable::URI.normalize_component(
+              self.user.strip,
               Addressable::URI::CharacterClasses::UNRESERVED
             )
           end
@@ -676,9 +738,8 @@ module Addressable
               (!self.user || self.user.strip == "")
             nil
           else
-            Addressable::URI.encode_component(
-              Addressable::IDNA.unicode_normalize_kc(
-                Addressable::URI.unencode_component(self.password.strip)),
+            Addressable::URI.normalize_component(
+              self.password.strip,
               Addressable::URI::CharacterClasses::UNRESERVED
             )
           end
@@ -1044,19 +1105,14 @@ module Addressable
     # @return [String] The path component, normalized.
     def normalized_path
       @normalized_path ||= (begin
-        begin
-          result = Addressable::URI.encode_component(
-            Addressable::IDNA.unicode_normalize_kc(
-              Addressable::URI.unencode_component(self.path.strip)),
-            Addressable::URI::CharacterClasses::PATH
+        # String#split(delimeter, -1) uses the more strict splitting behavior
+        # found in Python.
+        result = (self.path.strip.split("/", -1).map do |segment|
+          Addressable::URI.normalize_component(
+            segment,
+            Addressable::URI::CharacterClasses::PCHAR
           )
-        rescue ArgumentError
-          # Likely a malformed UTF-8 character, skip unicode normalization
-          result = Addressable::URI.encode_component(
-            Addressable::URI.unencode_component(self.path.strip),
-            Addressable::URI::CharacterClasses::PATH
-          )
-        end
+        end).join("/")
         result = self.class.normalize_path(result)
         if result == "" &&
             ["http", "https", "ftp", "tftp"].include?(self.normalized_scheme)
@@ -1121,19 +1177,10 @@ module Addressable
     def normalized_query
       @normalized_query ||= (begin
         if self.query
-          begin
-            Addressable::URI.encode_component(
-              Addressable::IDNA.unicode_normalize_kc(
-                Addressable::URI.unencode_component(self.query.strip)),
-              Addressable::URI::CharacterClasses::QUERY
-            )
-          rescue ArgumentError
-            # Likely a malformed UTF-8 character, skip unicode normalization
-            Addressable::URI.encode_component(
-              Addressable::URI.unencode_component(self.query.strip),
-              Addressable::URI::CharacterClasses::QUERY
-            )
-          end
+          Addressable::URI.normalize_component(
+            self.query.strip,
+            Addressable::URI::CharacterClasses::QUERY
+          )
         else
           nil
         end
@@ -1356,19 +1403,10 @@ module Addressable
     def normalized_fragment
       @normalized_fragment ||= (begin
         if self.fragment
-          begin
-            Addressable::URI.encode_component(
-              Addressable::IDNA.unicode_normalize_kc(
-                Addressable::URI.unencode_component(self.fragment.strip)),
-              Addressable::URI::CharacterClasses::FRAGMENT
-            )
-          rescue ArgumentError
-            # Likely a malformed UTF-8 character, skip unicode normalization
-            Addressable::URI.encode_component(
-              Addressable::URI.unencode_component(self.fragment.strip),
-              Addressable::URI::CharacterClasses::FRAGMENT
-            )
-          end
+          Addressable::URI.normalize_component(
+            self.fragment.strip,
+            Addressable::URI::CharacterClasses::FRAGMENT
+          )
         else
           nil
         end

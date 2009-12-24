@@ -800,9 +800,9 @@ module Addressable
     # @return [Array]
     #   A tuple of the operator, argument, variables, and mapping.
     def parse_template_expansion(capture, mapping={})
-      operator, argument, variables = capture[1...-1].split("|")
+      operator, argument, variables = capture[1...-1].split("|", -1)
       operator.gsub!(/^\-/, "")
-      variables = variables.split(",")
+      variables = variables.split(",", -1)
       mapping = (variables.inject({}) do |accu, var|
         varname, _, vardefault = var.scan(/^(.+?)(=(.*))?$/)[0]
         accu[varname] = vardefault

@@ -1117,6 +1117,34 @@ describe Addressable::URI, "when parsed from " +
 end
 
 describe Addressable::URI, "when parsed from " +
+    "'http://example.com/path%2Fsegment/'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/path%2Fsegment/")
+  end
+
+  it "should be considered to be in normal form" do
+    @uri.normalize.should be_eql(@uri)
+  end
+
+  it "should be equal to 'http://example.com/path%2Fsegment/'" do
+    @uri.normalize.should be_eql(
+      Addressable::URI.parse("http://example.com/path%2Fsegment/")
+    )
+  end
+
+  it "should not be equal to 'http://example.com/path/segment/'" do
+    @uri.should_not ==
+      Addressable::URI.parse("http://example.com/path/segment/")
+  end
+
+  it "should not be equal to 'http://example.com/path/segment/'" do
+    @uri.normalize.should_not be_eql(
+      Addressable::URI.parse("http://example.com/path/segment/")
+    )
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/?%F6'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/?%F6")
@@ -3080,7 +3108,8 @@ describe Addressable::URI, "with a base uri of 'http://a/b/c/d;p?q'" do
   # Section 5.4.1 of RFC 3986
   it "when joined with '#s' should resolve to http://a/b/c/d;p?q#s" do
     (@uri + "#s").to_s.should == "http://a/b/c/d;p?q#s"
-    Addressable::URI.join(@uri.to_s, "#s").to_s.should == "http://a/b/c/d;p?q#s"
+    Addressable::URI.join(@uri.to_s, "#s").to_s.should ==
+      "http://a/b/c/d;p?q#s"
   end
 
   # Section 5.4.1 of RFC 3986
@@ -3177,7 +3206,8 @@ describe Addressable::URI, "with a base uri of 'http://a/b/c/d;p?q'" do
 
   it "when joined with '../.././../g' should resolve to http://a/g" do
     (@uri + "../.././../g").to_s.should == "http://a/g"
-    Addressable::URI.join(@uri.to_s, "../.././../g").to_s.should == "http://a/g"
+    Addressable::URI.join(@uri.to_s, "../.././../g").to_s.should ==
+      "http://a/g"
   end
 
   # Section 5.4.2 of RFC 3986
@@ -3482,6 +3512,71 @@ describe Addressable::URI, "when parsing a non-String object" do
     (lambda do
       Addressable::URI.heuristic_parse(42)
     end).should raise_error(TypeError, "Can't convert Fixnum into String.")
+  end
+end
+
+describe Addressable::URI, "when normalizing a non-String object" do
+  it "should correctly parse anything with a 'to_str' method" do
+    Addressable::URI.normalize_component(SuperString.new(42))
+  end
+
+  it "should raise a TypeError for objects than cannot be converted" do
+    (lambda do
+      Addressable::URI.normalize_component(42)
+    end).should raise_error(TypeError, "Can't convert Fixnum into String.")
+  end
+
+  it "should raise a TypeError for objects than cannot be converted" do
+    (lambda do
+      Addressable::URI.normalize_component("component", 42)
+    end).should raise_error(TypeError)
+  end
+end
+
+describe Addressable::URI, "when normalizing a path with an encoded slash" do
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.parse("/path%2Fsegment/").normalize.path.should ==
+      "/path%2Fsegment/"
+  end
+end
+
+describe Addressable::URI, "when normalizing a partially encoded string" do
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.normalize_component(
+      "partially % encoded%21"
+    ).should == "partially%20%25%20encoded!"
+  end
+
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.normalize_component(
+      "partially %25 encoded!"
+    ).should == "partially%20%25%20encoded!"
+  end
+end
+
+describe Addressable::URI, "when normalizing a unicode sequence" do
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.normalize_component(
+      "/C%CC%A7"
+    ).should == "/%C3%87"
+  end
+
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.normalize_component(
+      "/%C3%87"
+    ).should == "/%C3%87"
+  end
+end
+
+describe Addressable::URI, "when normalizing a multibyte string" do
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.normalize_component("günther").should ==
+      "g%C3%BCnther"
+  end
+
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.normalize_component("g%C3%BCnther").should ==
+      "g%C3%BCnther"
   end
 end
 

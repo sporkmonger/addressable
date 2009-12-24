@@ -2,6 +2,7 @@
   * added HTTP request URI methods
   * better handling of Windows file paths
   * validation_deferred boolean replaced with defer_validation block
+  * normalization of percent-encoded paths should now be correct
 
 === Addressable 2.1.1
   * more type checking changes
