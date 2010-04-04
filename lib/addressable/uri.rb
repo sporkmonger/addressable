@@ -167,11 +167,13 @@ module Addressable
       if parsed.path.include?(".")
         new_host = parsed.path[/^([^\/]+\.[^\/]*)/, 1]
         if new_host
-          new_path = parsed.path.gsub(
-            Regexp.new("^" + Regexp.escape(new_host)), "")
-          parsed.host = new_host
-          parsed.path = new_path
-          parsed.scheme = hints[:scheme] unless parsed.scheme
+          parsed.defer_validation do
+            new_path = parsed.path.gsub(
+              Regexp.new("^" + Regexp.escape(new_host)), "")
+            parsed.host = new_host
+            parsed.path = new_path
+            parsed.scheme = hints[:scheme] unless parsed.scheme
+          end
         end
       end
       return parsed
@@ -1105,8 +1107,13 @@ module Addressable
     # @return [String] The path component, normalized.
     def normalized_path
       @normalized_path ||= (begin
+        if self.scheme == nil && self.path != nil && self.path != "" &&
+            self.path =~ /^(?!\/)[^\/:]*:.*$/
+          # Relative paths with colons in the first segment are ambiguous.
+          self.path.sub!(":", "%2F")
+        end
         # String#split(delimeter, -1) uses the more strict splitting behavior
-        # found in Python.
+        # found by default in Python.
         result = (self.path.strip.split("/", -1).map do |segment|
           Addressable::URI.normalize_component(
             segment,
@@ -2035,6 +2042,11 @@ module Addressable
             self.password != nil
           raise InvalidURIError, "Hostname not supplied: '#{self.to_s}'"
         end
+      end
+      if self.path != nil && self.path != "" && self.path[0..0] != "/" &&
+          self.authority != nil
+        raise InvalidURIError,
+          "Cannot have a relative path with an authority set: '#{self.to_s}'"
       end
       return nil
     end

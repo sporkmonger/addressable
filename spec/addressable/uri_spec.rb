@@ -3865,3 +3865,50 @@ describe Addressable::URI, "when assigning query values" do
     @uri.query.should == "a=a&b[c]&b[d]=d"
   end
 end
+
+describe Addressable::URI, "when assigning path values" do
+  before do
+    @uri = Addressable::URI.new
+  end
+
+  it "should correctly assign paths containing colons" do
+    @uri.path = "acct:bob@sporkmonger.com"
+    Addressable::URI.parse(@uri.normalize.to_str).path.should == @uri.path
+    @uri.normalize.to_str.should == "acct%2Fbob@sporkmonger.com"
+  end
+
+  it "should correctly assign paths containing colons" do
+    @uri.path = "/acct:bob@sporkmonger.com"
+    @uri.authority = "example.com"
+    @uri.normalize.to_str.should == "//example.com/acct:bob@sporkmonger.com"
+  end
+
+  it "should correctly assign paths containing colons" do
+    @uri.path = "acct:bob@sporkmonger.com"
+    @uri.scheme = "something"
+    @uri.normalize.to_str.should == "something:acct:bob@sporkmonger.com"
+  end
+
+  it "should not allow relative paths to be assigned on absolute URIs" do
+    (lambda do
+      @uri.scheme = "http"
+      @uri.host = "example.com"
+      @uri.path = "acct:bob@sporkmonger.com"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should not allow relative paths to be assigned on absolute URIs" do
+    (lambda do
+      @uri.path = "acct:bob@sporkmonger.com"
+      @uri.scheme = "http"
+      @uri.host = "example.com"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should not allow relative paths to be assigned on absolute URIs" do
+    (lambda do
+      @uri.path = "uuid:0b3ecf60-3f93-11df-a9c3-001f5bfffe12"
+      @uri.scheme = "urn"
+    end).should_not raise_error(Addressable::URI::InvalidURIError)
+  end
+end
