@@ -3912,3 +3912,23 @@ describe Addressable::URI, "when assigning path values" do
     end).should_not raise_error(Addressable::URI::InvalidURIError)
   end
 end
+
+describe Addressable::URI, "when parsed from 'http://example.org'" do
+
+  before do
+    @uri = Addressable::URI.parse('http://example.org')
+    @other = Addressable::URI.parse('http://EXAMPLE.org')
+  end
+
+  it "has a hash which is distinct from the hash of the 'http::EXAMPLE.org' URI" do
+    @uri.hash.should_not == @other.hash
+  end
+
+  describe "after assigns 'EXAMPLE.org' to the host" do
+    it "has a same hash as the 'http::EXAMPLE.org' URI" do
+      @uri.host = "EXAMPLE.org"
+      @uri.hash.should == @other.hash
+    end
+  end
+
+end

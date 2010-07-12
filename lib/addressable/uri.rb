@@ -656,6 +656,7 @@ module Addressable
       # Reset dependant values
       @normalized_scheme = nil
       @uri_string = nil
+      @hash = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -716,6 +717,7 @@ module Addressable
       @authority = nil
       @normalized_user = nil
       @uri_string = nil
+      @hash = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -777,6 +779,7 @@ module Addressable
       @authority = nil
       @normalized_password = nil
       @uri_string = nil
+      @hash = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -846,6 +849,7 @@ module Addressable
       # Reset dependant values
       @authority = nil
       @uri_string = nil
+      @hash = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -901,6 +905,7 @@ module Addressable
       @authority = nil
       @normalized_host = nil
       @uri_string = nil
+      @hash = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -986,6 +991,7 @@ module Addressable
       @userinfo = nil
       @normalized_userinfo = nil
       @uri_string = nil
+      @hash = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1067,6 +1073,7 @@ module Addressable
       @inferred_port = nil
       @normalized_port = nil
       @uri_string = nil
+      @hash = nil
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1148,6 +1155,7 @@ module Addressable
       # Reset dependant values
       @normalized_path = nil
       @uri_string = nil
+      @hash = nil
     end
 
     ##
@@ -1210,6 +1218,7 @@ module Addressable
       # Reset dependant values
       @normalized_query = nil
       @uri_string = nil
+      @hash = nil
     end
 
     ##
@@ -1326,7 +1335,7 @@ module Addressable
         component = component.to_s if component.kind_of?(Symbol)
         self.class.encode_component(component, CharacterClasses::UNRESERVED)
       end
-      new_query_values.each do |key, value|
+      new_query_values.to_a.sort.each do |key, value|
         if value.kind_of?(Hash)
           stack << [key, value]
         elsif value.kind_of?(Array)
@@ -1356,6 +1365,7 @@ module Addressable
       # Reset dependant values
       @normalized_query = nil
       @uri_string = nil
+      @hash = nil
     end
 
     ##
@@ -1393,6 +1403,7 @@ module Addressable
 
       # Reset dependant values
       @uri_string = nil
+      @hash = nil
     end
 
     ##
@@ -1436,6 +1447,7 @@ module Addressable
       # Reset dependant values
       @normalized_fragment = nil
       @uri_string = nil
+      @hash = nil
 
       # Ensure we haven't created an invalid URI
       validate()
