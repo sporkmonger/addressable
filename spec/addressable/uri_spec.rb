@@ -2440,6 +2440,37 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+
+describe Addressable::URI, "when parsed from " +
+    "'http://example.com/?q&&x=b'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/?q&&x=b")
+  end
+
+  it "should have a query of 'q&&x=b'" do
+    @uri.query.should == "q&&x=b"
+  end
+
+  it "should have query_values of {'q' => true, 'x' => 'b'}" do
+    @uri.query_values.should == {'q' => true, 'x' => 'b'}
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'http://example.com/?q='" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/?q=")
+  end
+
+  it "should have a query of 'q='" do
+    @uri.query.should == "q="
+  end
+
+  it "should have query_values of {'q' => ''}" do
+    @uri.query_values.should == {'q' => ''}
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://user@example.com'" do
   before do

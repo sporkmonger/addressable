@@ -1275,8 +1275,8 @@ module Addressable
       end
       return nil if self.query == nil
       return ((self.query.split("&").map do |pair|
-        pair.split("=")
-      end).inject({}) do |accumulator, (key, value)|
+        pair.split("=", -1) if pair && pair != ""
+      end).compact.inject({}) do |accumulator, (key, value)|
         value = true if value.nil?
         key = self.class.unencode_component(key)
         if value != true
