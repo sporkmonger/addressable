@@ -1324,6 +1324,10 @@ module Addressable
     def query_values=(new_query_values)
       # Check for frozenness
       raise TypeError, "Can't modify frozen URI." if self.frozen?
+      if new_query_values == nil
+        self.query = nil
+        return nil
+      end
       if !new_query_values.respond_to?(:to_hash)
         raise TypeError, "Can't convert #{new_query_values.class} into Hash."
       end
@@ -1366,12 +1370,7 @@ module Addressable
           end
         end
       end
-      @query = buffer.chop
-
-      # Reset dependant values
-      @normalized_query = nil
-      @uri_string = nil
-      @hash = nil
+      self.query = buffer.chop
     end
 
     ##

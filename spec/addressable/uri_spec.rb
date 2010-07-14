@@ -1038,6 +1038,11 @@ describe Addressable::URI, "when parsed from " +
     @uri.hash.should == Addressable::URI.parse("http://example.com/?").hash
   end
 
+  it "should have the same hash as http://example.com/? after assignment" do
+    @uri.query_values = {}
+    @uri.hash.should == Addressable::URI.parse("http://example.com/?").hash
+  end
+
   it "should have the same hash as http://example.com/# after assignment" do
     @uri.fragment = ""
     @uri.hash.should == Addressable::URI.parse("http://example.com/#").hash
@@ -3946,6 +3951,16 @@ describe Addressable::URI, "when assigning query values" do
       :a => 'a', :b => {:c => true, :d => 'd'}
     }
     @uri.query.should == "a=a&b[c]&b[d]=d"
+  end
+
+  it "should correctly assign {}" do
+    @uri.query_values = {}
+    @uri.query.should == ''
+  end
+
+  it "should correctly assign nil" do
+    @uri.query_values = nil
+    @uri.query.should == nil
   end
 
   it "should correctly sort {'ab' => 'c', :ab => 'a', :a => 'x'}" do
