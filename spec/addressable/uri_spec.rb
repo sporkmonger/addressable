@@ -733,6 +733,27 @@ describe Addressable::URI, "when parsed from " +
     @uri.join!(@uri).to_s.should == "http://example.com"
   end
 
+  it "should be equivalent to http://EXAMPLE.com" do
+    @uri.should == Addressable::URI.parse("http://EXAMPLE.com")
+  end
+
+  it "should be equivalent to http://EXAMPLE.com:80/" do
+    @uri.should == Addressable::URI.parse("http://EXAMPLE.com:80/")
+  end
+
+  it "should have the same hash as http://example.com" do
+    @uri.hash.should == Addressable::URI.parse("http://example.com").hash
+  end
+
+  it "should have the same hash as http://EXAMPLE.com after assignment" do
+    @uri.host = "EXAMPLE.com"
+    @uri.hash.should == Addressable::URI.parse("http://EXAMPLE.com").hash
+  end
+
+  it "should have a different hash from http://EXAMPLE.com" do
+    @uri.hash.should_not == Addressable::URI.parse("http://EXAMPLE.com").hash
+  end
+
   # Section 6.2.3 of RFC 3986
   it "should be equivalent to http://example.com/" do
     @uri.should == Addressable::URI.parse("http://example.com/")
@@ -993,6 +1014,37 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have the same hash as an equal URI" do
     @uri.hash.should == Addressable::URI.parse("http://example.com/").hash
+  end
+
+  it "should be equivalent to http://EXAMPLE.com" do
+    @uri.should == Addressable::URI.parse("http://EXAMPLE.com")
+  end
+
+  it "should be equivalent to http://EXAMPLE.com:80/" do
+    @uri.should == Addressable::URI.parse("http://EXAMPLE.com:80/")
+  end
+
+  it "should have the same hash as http://example.com/" do
+    @uri.hash.should == Addressable::URI.parse("http://example.com/").hash
+  end
+
+  it "should have the same hash as http://example.com after assignment" do
+    @uri.path = ""
+    @uri.hash.should == Addressable::URI.parse("http://example.com").hash
+  end
+
+  it "should have the same hash as http://example.com/? after assignment" do
+    @uri.query = ""
+    @uri.hash.should == Addressable::URI.parse("http://example.com/?").hash
+  end
+
+  it "should have the same hash as http://example.com/# after assignment" do
+    @uri.fragment = ""
+    @uri.hash.should == Addressable::URI.parse("http://example.com/#").hash
+  end
+
+  it "should have a different hash from http://example.com" do
+    @uri.hash.should_not == Addressable::URI.parse("http://example.com").hash
   end
 end
 
@@ -3911,24 +3963,4 @@ describe Addressable::URI, "when assigning path values" do
       @uri.scheme = "urn"
     end).should_not raise_error(Addressable::URI::InvalidURIError)
   end
-end
-
-describe Addressable::URI, "when parsed from 'http://example.org'" do
-
-  before do
-    @uri = Addressable::URI.parse('http://example.org')
-    @other = Addressable::URI.parse('http://EXAMPLE.org')
-  end
-
-  it "has a hash which is distinct from the hash of the 'http::EXAMPLE.org' URI" do
-    @uri.hash.should_not == @other.hash
-  end
-
-  describe "after assigns 'EXAMPLE.org' to the host" do
-    it "has a same hash as the 'http::EXAMPLE.org' URI" do
-      @uri.host = "EXAMPLE.org"
-      @uri.hash.should == @other.hash
-    end
-  end
-
 end
