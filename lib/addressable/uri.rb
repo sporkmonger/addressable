@@ -1318,6 +1318,7 @@ module Addressable
     ##
     # Sets the query component for this URI from a Hash object.
     # This method produces a query string using the :subscript notation.
+    # An empty Hash will result in a nil query.
     #
     # @param [Hash, #to_hash] new_query_values The new query values.
     def query_values=(new_query_values)
@@ -1327,6 +1328,11 @@ module Addressable
         raise TypeError, "Can't convert #{new_query_values.class} into Hash."
       end
       new_query_values = new_query_values.to_hash
+      new_query_values = new_query_values.map do |key, value|
+        key = key.to_s if key.kind_of?(Symbol)
+        [key, value]
+      end
+      new_query_values.sort! # Useful default for OAuth and caching
 
       # Algorithm shamelessly stolen from Julien Genestoux, slightly modified
       buffer = ""
@@ -1335,7 +1341,7 @@ module Addressable
         component = component.to_s if component.kind_of?(Symbol)
         self.class.encode_component(component, CharacterClasses::UNRESERVED)
       end
-      new_query_values.to_a.sort.each do |key, value|
+      new_query_values.each do |key, value|
         if value.kind_of?(Hash)
           stack << [key, value]
         elsif value.kind_of?(Array)

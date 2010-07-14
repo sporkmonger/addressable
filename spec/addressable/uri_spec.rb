@@ -3916,6 +3916,11 @@ describe Addressable::URI, "when assigning query values" do
     }
     @uri.query.should == "a=a&b[c]&b[d]=d"
   end
+
+  it "should correctly sort {'ab' => 'c', :ab => 'a', :a => 'x'}" do
+    @uri.query_values = {'ab' => 'c', :ab => 'a', :a => 'x'}
+    @uri.query.should == "a=x&ab=a&ab=c"
+  end
 end
 
 describe Addressable::URI, "when assigning path values" do
