@@ -163,6 +163,10 @@ describe Addressable::URI, "when created from nil components" do
     @uri = Addressable::URI.new
   end
 
+  it "should have a nil site value" do
+    @uri.site.should == nil
+  end
+
   it "should have an empty path" do
     @uri.path.should == ""
   end
@@ -210,6 +214,10 @@ describe Addressable::URI, "when created from string components" do
     )
   end
 
+  it "should have a site value of 'http://example.com'" do
+    @uri.site.should == "http://example.com"
+  end
+
   it "should be equal to the equivalent parsed URI" do
     @uri.should == Addressable::URI.parse("http://example.com")
   end
@@ -252,6 +260,10 @@ describe Addressable::URI, "when created with an authority and no port" do
     @uri.port.should == nil
     @uri.inferred_port.should == nil
   end
+
+  it "should have a site value of '//user@example.com'" do
+    @uri.site.should == "//user@example.com"
+  end
 end
 
 describe Addressable::URI, "when created with both a userinfo and a user" do
@@ -264,19 +276,35 @@ end
 
 describe Addressable::URI, "when created with a path that hasn't been " +
     "prefixed with a '/' but a host specified" do
-  it "should prefix a '/' to the path" do
-    Addressable::URI.new(
+  before do
+    @uri = Addressable::URI.new(
       :scheme => "http", :host => "example.com", :path => "path"
-    ).should == Addressable::URI.parse("http://example.com/path")
+    )
+  end
+
+  it "should prefix a '/' to the path" do
+    @uri.should == Addressable::URI.parse("http://example.com/path")
+  end
+
+  it "should have a site value of 'http://example.com'" do
+    @uri.site.should == "http://example.com"
   end
 end
 
 describe Addressable::URI, "when created with a path that hasn't been " +
     "prefixed with a '/' but no host specified" do
-  it "should prefix a '/' to the path" do
-    Addressable::URI.new(
+  before do
+    @uri = Addressable::URI.new(
       :scheme => "http", :path => "path"
-    ).should == Addressable::URI.parse("http:path")
+    )
+  end
+
+  it "should not prefix a '/' to the path" do
+    @uri.should == Addressable::URI.parse("http:path")
+  end
+  
+  it "should have a site value of 'http:'" do
+    @uri.site.should == "http:"
   end
 end
 
@@ -2010,10 +2038,10 @@ describe Addressable::URI, "when parsed from " +
 end
 
 describe Addressable::URI, "when parsed from " +
-    "'ssh+svn://developername@rubyforge.org/var/svn/project'" do
+    "'ssh+svn://developername@RUBYFORGE.ORG/var/svn/project'" do
   before do
     @uri = Addressable::URI.parse(
-      "ssh+svn://developername@rubyforge.org/var/svn/project"
+      "ssh+svn://developername@RUBYFORGE.ORG/var/svn/project"
     )
   end
 
@@ -2023,6 +2051,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have a normalized scheme of 'svn+ssh'" do
     @uri.normalized_scheme.should == "svn+ssh"
+  end
+
+  it "should have a normalized site of 'svn+ssh'" do
+    @uri.normalized_site.should == "svn+ssh://developername@rubyforge.org"
   end
 
   it "should not be considered to be ip-based" do
@@ -2250,6 +2282,22 @@ describe Addressable::URI, "when parsed from " +
       "bogus%21://user:pass@example.com/path/to/resource?query=x#fragment"
     @uri.normalize.to_str.should ==
       "bogus%21://user:pass@example.com/path/to/resource?query=x#fragment"
+  end
+
+  it "should have the correct site segment after assignment" do
+    @uri.site = "https://newuser:newpass@example.com:443"
+    @uri.scheme.should == "https"
+    @uri.authority.should == "newuser:newpass@example.com:443"
+    @uri.user.should == "newuser"
+    @uri.password.should == "newpass"
+    @uri.userinfo.should == "newuser:newpass"
+    @uri.normalized_userinfo.should == "newuser:newpass"
+    @uri.host.should == "example.com"
+    @uri.port.should == 443
+    @uri.inferred_port.should == 443
+    @uri.to_s.should ==
+      "https://newuser:newpass@example.com:443" +
+      "/path/to/resource?query=x#fragment"
   end
 
   it "should have the correct authority segment after assignment" do

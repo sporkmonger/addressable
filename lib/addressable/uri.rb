@@ -58,7 +58,7 @@ module Addressable
     # Returns a URI object based on the parsed string.
     #
     # @param [String, Addressable::URI, #to_str] uri
-    #   The URI string to parse. 
+    #   The URI string to parse.
     # No parsing is performed if the object is already an
     # <tt>Addressable::URI</tt>.
     #
@@ -133,7 +133,7 @@ module Addressable
     # No parsing is performed if the object is already an
     # <tt>Addressable::URI</tt>.
     # @param [Hash] hints
-    #   A <tt>Hash</tt> of hints to the heuristic parser. 
+    #   A <tt>Hash</tt> of hints to the heuristic parser.
     # Defaults to <tt>{:scheme => "http"}</tt>.
     #
     # @return [Addressable::URI] The parsed URI.
@@ -504,7 +504,7 @@ module Addressable
     # <tt>String</tt>.
     #
     # @return [String, Addressable::URI]
-    #   The encoded URI. 
+    #   The encoded URI.
     # The return type is determined by the <tt>returning</tt> parameter.
     def self.normalized_encode(uri, returning=String)
       if !uri.respond_to?(:to_str)
@@ -1097,6 +1097,69 @@ module Addressable
           port.to_i
         end
       end)
+    end
+
+    ##
+    # The combination of components that represent a site.
+    # Combines the scheme, user, password, host, and port components.
+    # Primarily useful for HTTP and HTTPS.
+    #
+    # For example, <tt>"http://example.com/path?query"</tt> would have a
+    # <tt>site</tt> value of <tt>"http://example.com"</tt>.
+    #
+    # @return [String] The components that identify a site.
+    def site
+      @site ||= (begin
+        if self.scheme || self.authority
+          site_string = ""
+          site_string << "#{self.scheme}:" if self.scheme != nil
+          site_string << "//#{self.authority}" if self.authority != nil
+          site_string
+        else
+          nil
+        end
+      end)
+    end
+
+    ##
+    # The normalized combination of components that represent a site.
+    # Combines the scheme, user, password, host, and port components.
+    # Primarily useful for HTTP and HTTPS.
+    #
+    # For example, <tt>"http://example.com/path?query"</tt> would have a
+    # <tt>site</tt> value of <tt>"http://example.com"</tt>.
+    #
+    # @return [String] The normalized components that identify a site.
+    def normalized_site
+      @site ||= (begin
+        if self.normalized_scheme || self.normalized_authority
+          site_string = ""
+          if self.normalized_scheme != nil
+            site_string << "#{self.normalized_scheme}:"
+          end
+          if self.normalized_authority != nil
+            site_string << "//#{self.normalized_authority}"
+          end
+          site_string
+        else
+          nil
+        end
+      end)
+    end
+
+    ##
+    # Sets the site value for this URI.
+    #
+    # @param [String, #to_str] new_site The new site value.
+    def site=(new_site)
+      if !new_site.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{new_site.class} into String."
+      end
+      new_site = new_site.to_str
+      # These two regular expressions derived from the primary parsing
+      # expression
+      self.scheme = new_site[/^(?:([^:\/?#]+):)?(?:\/\/(?:[^\/?#]*))?$/, 1]
+      self.authority = new_site[/^(?:(?:[^:\/?#]+):)?(?:\/\/([^\/?#]*))?$/, 1]
     end
 
     ##
