@@ -953,6 +953,12 @@ describe Addressable::URI, "when parsed from " +
     @uri.query.should == "x=y"
   end
 
+  it "should raise an error if the site value is set to something bogus" do
+    (lambda do
+      @uri.site = 42
+    end).should raise_error(TypeError)
+  end
+
   it "should raise an error if the request URI is set to something bogus" do
     (lambda do
       @uri.request_uri = 42
