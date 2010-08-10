@@ -27,38 +27,6 @@ Ruby's standard library. It more closely conforms to the relevant RFCs and
 adds support for IRIs and URI templates.
 TEXT
 
-desc "generates .gemspec file"
-task :gemspec do
-  spec = Gem::Specification.new do |p|
-    p.name = 'addressable'
-    p.version = PKG_VERSION
-
-    p.summary = PKG_SUMMARY
-    p.description = PKG_DESCRIPTION
-
-    p.author = 'Bob Aman'
-    p.email  = 'bob@sporkmonger.com'
-    p.homepage = 'http://github.com/mislav/addressable'
-    p.rubyforge_project = nil
-
-    p.files = FileList['Rakefile', '{bin,lib,tasks,spec}/**/*', 'README*', 'LICENSE*', 'CHANGELOG*'] & `git ls-files`.split
-
-    p.executables = Dir['bin/*'].map { |f| File.basename(f) }
-
-    p.has_rdoc = true
-  end
-  
-  spec_string = spec.to_ruby
-  
-  begin
-    Thread.new { eval("$SAFE = 3\n#{spec_string}", binding) }.join 
-  rescue
-    abort "unsafe gemspec: #{$!}"
-  else
-    File.open("#{spec.name}.gemspec", 'w') { |file| file.write spec_string }
-  end
-end
-
 PKG_FILES = FileList[
     "lib/**/*", "spec/**/*", "vendor/**/*",
     "tasks/**/*", "website/**/*",

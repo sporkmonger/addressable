@@ -36,6 +36,21 @@ namespace :gem do
     p.need_zip = true
   end
 
+  desc "Generates .gemspec file"
+  task :gemspec do
+    spec_string = GEM_SPEC.to_ruby
+
+    begin
+      Thread.new { eval("$SAFE = 3\n#{spec_string}", binding) }.join
+    rescue
+      abort "unsafe gemspec: #{$!}"
+    else
+      File.open("#{GEM_SPEC.name}.gemspec", 'w') do |file|
+        file.write spec_string
+      end
+    end
+  end
+
   desc "Show information about the gem"
   task :debug do
     puts GEM_SPEC.to_ruby
