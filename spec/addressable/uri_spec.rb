@@ -175,9 +175,16 @@ describe Addressable::URI, "when created from nil components" do
     @uri.to_s.should == ""
   end
 
-  it "should still be an empty uri if the scheme is set to whitespace" do
-    @uri.scheme = "\t \n"
-    @uri.to_s.should == ""
+  it "should raise an error if the scheme is set to whitespace" do
+    (lambda do
+      @uri.scheme = "\t \n"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if the scheme is set to all digits" do
+    (lambda do
+      @uri.scheme = "123"
+    end).should raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should raise an error if set into an invalid state" do
@@ -2360,6 +2367,20 @@ describe Addressable::URI, "when parsed from " +
       "http://user:pass@example.com/newpath/to/resource?query=x#fragment"
   end
 
+  it "should have the correct scheme and authority after nil assignment" do
+    @uri.site = nil
+    @uri.scheme.should == nil
+    @uri.authority.should == nil
+    @uri.to_s.should == "/path/to/resource?query=x#fragment"
+  end
+
+  it "should have the correct scheme and authority after assignment" do
+    @uri.site = "file://"
+    @uri.scheme.should == "file"
+    @uri.authority.should == ""
+    @uri.to_s.should == "file:///path/to/resource?query=x#fragment"
+  end
+
   it "should have the correct path after nil assignment" do
     @uri.path = nil
     @uri.path.should == ""
@@ -2448,12 +2469,14 @@ describe Addressable::URI, "when parsed from " +
   it "should have the correct values after a merge" do
     @uri.merge(:authority => "foo:bar@baz:42").to_s.should ==
       "http://foo:bar@baz:42/path/to/resource?query=x#fragment"
+    # Ensure the operation was not destructive
     @uri.to_s.should ==
       "http://user:pass@example.com/path/to/resource?query=x#fragment"
   end
 
   it "should have the correct values after a destructive merge" do
     @uri.merge!(:authority => "foo:bar@baz:42")
+    # Ensure the operation was destructive
     @uri.to_s.should ==
       "http://foo:bar@baz:42/path/to/resource?query=x#fragment"
   end
@@ -2461,6 +2484,12 @@ describe Addressable::URI, "when parsed from " +
   it "should fail to merge with bogus values" do
     (lambda do
       @uri.merge(:port => "bogus")
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should fail to merge with bogus values" do
+    (lambda do
+      @uri.merge(:authority => "bar@baz:bogus")
     end).should raise_error(Addressable::URI::InvalidURIError)
   end
 
@@ -2492,7 +2521,6 @@ describe Addressable::URI, "when parsed from " +
     @uri.should == @uri.dup
   end
 end
-
 
 describe Addressable::URI, "when parsed from " +
     "'http://example.com/?q&&x=b'" do
@@ -2795,6 +2823,14 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have a host of nil" do
     @uri.host.should == nil
+  end
+
+  it "should have a site of nil" do
+    @uri.site.should == nil
+  end
+
+  it "should have a normalized_site of nil" do
+    @uri.normalized_site.should == nil
   end
 
   it "should have a path of ''" do

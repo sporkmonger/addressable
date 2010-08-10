@@ -649,8 +649,13 @@ module Addressable
 
       if new_scheme && !new_scheme.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_scheme.class} into String."
+      elsif new_scheme
+        new_scheme = new_scheme.to_str
       end
-      @scheme = new_scheme ? new_scheme.to_str : nil
+      if new_scheme && new_scheme !~ /[a-z][a-z0-9\.\+\-]*/i
+        raise InvalidURIError, "Invalid scheme format."
+      end
+      @scheme = new_scheme
       @scheme = nil if @scheme.to_s.strip == ""
 
       # Reset dependant values
@@ -1152,14 +1157,21 @@ module Addressable
     #
     # @param [String, #to_str] new_site The new site value.
     def site=(new_site)
-      if !new_site.respond_to?(:to_str)
-        raise TypeError, "Can't convert #{new_site.class} into String."
+      if new_site
+        if !new_site.respond_to?(:to_str)
+          raise TypeError, "Can't convert #{new_site.class} into String."
+        end
+        new_site = new_site.to_str
+        # These two regular expressions derived from the primary parsing
+        # expression
+        self.scheme = new_site[/^(?:([^:\/?#]+):)?(?:\/\/(?:[^\/?#]*))?$/, 1]
+        self.authority = new_site[
+          /^(?:(?:[^:\/?#]+):)?(?:\/\/([^\/?#]*))?$/, 1
+        ]
+      else
+        self.scheme = nil
+        self.authority = nil
       end
-      new_site = new_site.to_str
-      # These two regular expressions derived from the primary parsing
-      # expression
-      self.scheme = new_site[/^(?:([^:\/?#]+):)?(?:\/\/(?:[^\/?#]*))?$/, 1]
-      self.authority = new_site[/^(?:(?:[^:\/?#]+):)?(?:\/\/([^\/?#]*))?$/, 1]
     end
 
     ##
