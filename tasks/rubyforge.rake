@@ -26,7 +26,7 @@ end
 
 namespace :doc do
   desc "Publish RDoc to RubyForge"
-  task :release => ["doc:rdoc"] do
+  task :release => ["doc"] do
     require "rake/contrib/sshpublisher"
     require "yaml"
 
