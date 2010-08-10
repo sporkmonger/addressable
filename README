@@ -1,10 +1,20 @@
+== About
+
+Homepage::  Addressable[http://addressable.rubyforge.org/]
+Authors::   Bob Aman (mailto:bob@sporkmonger.com)
+Copyright:: Copyright 2010 Bob Aman
+License::   MIT
+
 Addressable is a replacement for the URI implementation that is part of
 Ruby's standard library. It more closely conforms to the relevant RFCs and
 adds support for IRIs and URI templates.  Additionally, it provides extensive
 support for URI templates.
 
-Example usage:
- 
+== Classes
+- {Addressable::URI}
+- {Addressable::Template}
+
+== Example usage
   require "addressable/uri"
 
   uri = Addressable::URI.parse("http://example.com/path/to/resource/")
