@@ -1,6 +1,9 @@
+=== Addressable 2.2.0
+- added site methods
+- improved documentation
+
 === Addressable 2.1.2
 - added HTTP request URI methods
-- added site methods
 - better handling of Windows file paths
 - validation_deferred boolean replaced with defer_validation block
 - normalization of percent-encoded paths should now be correct
