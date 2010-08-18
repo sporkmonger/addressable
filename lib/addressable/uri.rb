@@ -561,6 +561,81 @@ module Addressable
     end
 
     ##
+    # Encodes a set of key/value pairs according to the rules for the
+    # <code>application/x-www-form-urlencoded</code> MIME type.
+    #
+    # @param [#to_hash, #to_ary] form_values
+    #   The form values to encode.
+    #
+    # @param [TrueClass, FalseClass] sort
+    #   Sort the key/value pairs prior to encoding.
+    #   Defaults to <code>false</code>.
+    #
+    # @return [String]
+    #   The encoded value.
+    def self.form_encode(form_values, sort=false)
+      if form_values.respond_to?(:to_hash)
+        form_values = form_values.to_hash.to_a
+      elsif form_values.respond_to?(:to_ary)
+        form_values = form_values.to_ary
+      else
+        raise TypeError, "Can't convert #{form_values.class} into Array."
+      end
+      form_values = form_values.map do |(key, value)|
+        [key.to_s, value.to_s]
+      end
+      if sort
+        # Useful for OAuth and optimizing caching systems
+        form_values = form_values.sort
+      end
+      escaped_form_values = form_values.map do |(key, value)|
+        # Line breaks are CRLF pairs
+        [
+          self.encode_component(
+            key.gsub(/(\r\n|\n|\r)/, "\r\n"),
+            CharacterClasses::UNRESERVED
+          ).gsub("%20", "+"),
+          self.encode_component(
+            value.gsub(/(\r\n|\n|\r)/, "\r\n"),
+            CharacterClasses::UNRESERVED
+          ).gsub("%20", "+")
+        ]
+      end
+      return (escaped_form_values.map do |(key, value)|
+        "#{key}=#{value}"
+      end).join("&")
+    end
+
+    ##
+    # Decodes a <code>String</code> according to the rules for the
+    # <code>application/x-www-form-urlencoded</code> MIME type.
+    #
+    # @param [String, #to_str] encoded_value
+    #   The form values to decode.
+    #
+    # @return [Array]
+    #   The decoded values.
+    #   This is not a <code>Hash</code> because of the possibility for
+    #   duplicate keys.
+    def self.form_unencode(encoded_value)
+      if !encoded_value.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{encoded_value.class} into String."
+      end
+      encoded_value = encoded_value.to_str
+      split_values = encoded_value.split("&").map do |pair|
+        pair.split("=", 2)
+      end
+      return split_values.map do |(key, value)|
+        [
+          key ? self.unencode_component(
+            key.gsub("+", "%20")).gsub(/(\r\n|\n|\r)/, "\n") : nil,
+          value ? (self.unencode_component(
+            value.gsub("+", "%20")).gsub(/(\r\n|\n|\r)/, "\n")) : nil
+        ]
+      end
+    end
+
+    ##
     # Creates a new uri object from component parts.
     #
     # @option [String, #to_str] scheme The scheme component.

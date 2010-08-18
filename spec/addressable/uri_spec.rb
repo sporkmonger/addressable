@@ -3693,6 +3693,95 @@ describe Addressable::URI, "when parsing a non-String object" do
   end
 end
 
+describe Addressable::URI, "when form encoding a hash" do
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.form_encode(
+      {"&one" => "/1", "=two" => "?2", ":three" => "#3"}
+    ).should == "%26one=%2F1&%3Dtwo=%3F2&%3Athree=%233"
+  end
+
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.form_encode(
+      {"q" => "one two three"}
+    ).should == "q=one+two+three"
+  end
+
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.form_encode(
+      {"key" => nil}
+    ).should == "key="
+  end
+
+  it "should result in correctly encoded newlines" do
+    Addressable::URI.form_encode(
+      {"text" => "one\ntwo\rthree\r\nfour\n\r"}
+    ).should == "text=one%0D%0Atwo%0D%0Athree%0D%0Afour%0D%0A%0D%0A"
+  end
+
+  it "should result in a sorted percent encoded sequence" do
+    Addressable::URI.form_encode(
+      [["a", "1"], ["dup", "3"], ["dup", "2"]], true
+    ).should == "a=1&dup=2&dup=3"
+  end
+end
+
+describe Addressable::URI, "when form encoding a non-Array object" do
+  it "should raise a TypeError for objects than cannot be converted" do
+    (lambda do
+      Addressable::URI.form_encode(42)
+    end).should raise_error(TypeError, "Can't convert Fixnum into Array.")
+  end
+end
+
+describe Addressable::URI, "when form unencoding a string" do
+  it "should result in correct values" do
+    Addressable::URI.form_unencode(
+      "%26one=%2F1&%3Dtwo=%3F2&%3Athree=%233"
+    ).should == [["&one", "/1"], ["=two", "?2"], [":three", "#3"]]
+  end
+
+  it "should result in correct values" do
+    Addressable::URI.form_unencode(
+      "q=one+two+three"
+    ).should == [["q", "one two three"]]
+  end
+
+  it "should result in correct values" do
+    Addressable::URI.form_unencode(
+      "text=one%0D%0Atwo%0D%0Athree%0D%0Afour%0D%0A%0D%0A"
+    ).should == [["text", "one\ntwo\nthree\nfour\n\n"]]
+  end
+
+  it "should result in correct values" do
+    Addressable::URI.form_unencode(
+      "a=1&dup=2&dup=3"
+    ).should == [["a", "1"], ["dup", "2"], ["dup", "3"]]
+  end
+
+  it "should result in correct values" do
+    Addressable::URI.form_unencode(
+      "key"
+    ).should == [["key", nil]]
+  end
+
+  it "should result in correct values" do
+    Addressable::URI.form_unencode("GivenName=Ren%C3%A9").should ==
+      [["GivenName", "René"]]
+  end
+end
+
+describe Addressable::URI, "when form unencoding a non-String object" do
+  it "should correctly parse anything with a 'to_str' method" do
+    Addressable::URI.form_unencode(SuperString.new(42))
+  end
+
+  it "should raise a TypeError for objects than cannot be converted" do
+    (lambda do
+      Addressable::URI.form_unencode(42)
+    end).should raise_error(TypeError, "Can't convert Fixnum into String.")
+  end
+end
+
 describe Addressable::URI, "when normalizing a non-String object" do
   it "should correctly parse anything with a 'to_str' method" do
     Addressable::URI.normalize_component(SuperString.new(42))
@@ -3767,6 +3856,13 @@ describe Addressable::URI, "when encoding a multibyte string" do
     Addressable::URI.encode_component(
       "günther", /[^a-zA-Z0-9\:\/\?\#\[\]\@\!\$\&\'\(\)\*\+\,\;\=\-\.\_\~]/
     ).should == "g%C3%BCnther"
+  end
+end
+
+describe Addressable::URI, "when form encoding a multibyte string" do
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.form_encode({"GivenName" => "René"}).should ==
+      "GivenName=Ren%C3%A9"
   end
 end
 
