@@ -1430,7 +1430,7 @@ module Addressable
         value = true if value.nil?
         key = self.class.unencode_component(key)
         if value != true
-          value = self.class.unencode_component(value).gsub(/\+/, " ")
+          value = self.class.unencode_component(value.gsub(/\+/, " "))
         end
         if options[:notation] == :flat
           if accumulator[key]

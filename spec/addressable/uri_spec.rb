@@ -2544,6 +2544,36 @@ describe Addressable::URI, "when parsed from " +
 end
 
 describe Addressable::URI, "when parsed from " +
+    "'http://example.com/?q=a+b'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/?q=a+b")
+  end
+
+  it "should have a query of 'q=a+b'" do
+    @uri.query.should == "q=a+b"
+  end
+
+  it "should have query_values of {'q' => 'a b'}" do
+    @uri.query_values.should == {'q' => 'a b'}
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'http://example.com/?q=a%2bb'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/?q=a%2bb")
+  end
+
+  it "should have a query of 'q=a+b'" do
+    @uri.query.should == "q=a%2bb"
+  end
+
+  it "should have query_values of {'q' => 'a+b'}" do
+    @uri.query_values.should == {'q' => 'a+b'}
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/?q='" do
   before do
     @uri = Addressable::URI.parse("http://example.com/?q=")
