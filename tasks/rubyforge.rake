@@ -1,6 +1,6 @@
 namespace :gem do
   desc 'Package and upload to RubyForge'
-  task :release => ["gem:package"] do |t|
+  task :release => ["gem:package", "gem:gemspec"] do |t|
     require 'rubyforge'
 
     v = ENV['VERSION'] or abort 'Must supply VERSION=x.y.z'
