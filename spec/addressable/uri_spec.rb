@@ -3133,6 +3133,20 @@ describe Addressable::URI, "when parsed from " +
 end
 
 describe Addressable::URI, "when parsed from " +
+    "'?one=two&one=three'" do
+  before do
+    @uri = Addressable::URI.parse(
+      "?one=two&one=three"
+    )
+  end
+  
+  it "should have correct flat_array notation query values" do
+    @uri.query_values(:notation => :flat_array).should == 
+      [['one', 'two'], ['one', 'three']] 
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
     "'?one[two][three][]=four&one[two][three][]=five'" do
   before do
     @uri = Addressable::URI.parse(
@@ -4183,6 +4197,13 @@ describe Addressable::URI, "when assigning query values" do
     @uri.query_values = {'ab' => 'c', :ab => 'a', :a => 'x'}
     @uri.query.should == "a=x&ab=a&ab=c"
   end
+  
+  it "should correctly assign " +
+      "[['b', 'c'], ['b', 'a'], ['a', 'a']]" do
+    @uri.query_values = [['b', 'c'], ['b', 'a'], ['a', 'a']]
+    @uri.query.should == "a=a&b=a&b=c"
+  end
+
 end
 
 describe Addressable::URI, "when assigning path values" do
