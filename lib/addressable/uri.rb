@@ -1402,12 +1402,15 @@ module Addressable
     #     "?one[two][three][]=four&one[two][three][]=five"
     #   ).query_values
     #   #=> {"one" => {"two" => {"three" => ["four", "five"]}}}
+    #   Addressable::URI.parse(
+    #     "?one=two&one=three").query_values(:notation => :flat_array)
+    #   #=> [['one', 'two'], ['one', 'three']]
     def query_values(options={})
       defaults = {:notation => :subscript}
       options = defaults.merge(options)
-      if ![:flat, :dot, :subscript].include?(options[:notation])
+      if ![:flat, :dot, :subscript, :flat_array].include?(options[:notation])
         raise ArgumentError,
-          "Invalid notation. Must be one of: [:flat, :dot, :subscript]."
+          "Invalid notation. Must be one of: [:flat, :dot, :subscript, :flat_array]."
       end
       dehash = lambda do |hash|
         hash.each do |(key, value)|
@@ -1424,9 +1427,10 @@ module Addressable
         end
       end
       return nil if self.query == nil
+      empty_accumulator = :flat_array == options[:notation] ? [] : {}
       return ((self.query.split("&").map do |pair|
         pair.split("=", -1) if pair && pair != ""
-      end).compact.inject({}) do |accumulator, (key, value)|
+      end).compact.inject(empty_accumulator.dup) do |accumulator, (key, value)|
         value = true if value.nil?
         key = self.class.unencode_component(key)
         if value != true
@@ -1437,6 +1441,8 @@ module Addressable
             raise ArgumentError, "Key was repeated: #{key.inspect}"
           end
           accumulator[key] = value
+        elsif options[:notation] == :flat_array
+          accumulator << [key, value]
         else
           if options[:notation] == :dot
             array_value = false
@@ -1459,8 +1465,12 @@ module Addressable
           end
         end
         accumulator
-      end).inject({}) do |accumulator, (key, value)|
-        accumulator[key] = value.kind_of?(Hash) ? dehash.call(value) : value
+      end).inject(empty_accumulator.dup) do |accumulator, (key, value)|
+        if options[:notation] == :flat_array
+          accumulator << [key, value]
+        else
+          accumulator[key] = value.kind_of?(Hash) ? dehash.call(value) : value
+        end
         accumulator
       end
     end
@@ -1478,14 +1488,18 @@ module Addressable
         self.query = nil
         return nil
       end
-      if !new_query_values.respond_to?(:to_hash)
-        raise TypeError, "Can't convert #{new_query_values.class} into Hash."
+      
+      if !new_query_values.is_a?(Array)
+        if !new_query_values.respond_to?(:to_hash)
+          raise TypeError, "Can't convert #{new_query_values.class} into Hash."
+        end
+        new_query_values = new_query_values.to_hash
+        new_query_values = new_query_values.map do |key, value|
+          key = key.to_s if key.kind_of?(Symbol)
+          [key, value]
+        end
       end
-      new_query_values = new_query_values.to_hash
-      new_query_values = new_query_values.map do |key, value|
-        key = key.to_s if key.kind_of?(Symbol)
-        [key, value]
-      end
+      # new_query_values have form [['key1', 'value1'], ['key2', 'value2'], ...]
       new_query_values.sort! # Useful default for OAuth and caching
 
       # Algorithm shamelessly stolen from Julien Genestoux, slightly modified
