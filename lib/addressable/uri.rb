@@ -1430,7 +1430,7 @@ module Addressable
       return nil if self.query == nil
       empty_accumulator = :flat_array == options[:notation] ? [] : {}
       return ((self.query.split("&").map do |pair|
-        pair.split("=", -1) if pair && pair != ""
+        pair.split("=", 2) if pair && pair != ""
       end).compact.inject(empty_accumulator.dup) do |accumulator, (key, value)|
         value = true if value.nil?
         key = self.class.unencode_component(key)

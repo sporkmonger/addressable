@@ -3064,6 +3064,22 @@ describe Addressable::URI, "when parsed from '?one=1&two=2&three=3'" do
   end
 end
 
+describe Addressable::URI, "when parsed from '?one=1=uno&two=2=dos'" do
+  before do
+    @uri = Addressable::URI.parse("?one=1=uno&two=2=dos")
+  end
+
+  it "should have the correct query values" do
+    @uri.query_values.should == {"one" => "1=uno", "two" => "2=dos"}
+  end
+
+  it "should have the correct flat array notation query values" do
+    @uri.query_values(:notation => :flat_array).should == [
+      ["one", "1=uno"], ["two", "2=dos"]
+    ]
+  end
+end
+
 describe Addressable::URI, "when parsed from '?one[two][three]=four'" do
   before do
     @uri = Addressable::URI.parse("?one[two][three]=four")

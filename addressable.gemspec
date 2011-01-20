@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{addressable}
-  s.version = "2.2.2"
+  s.version = "2.2.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Bob Aman"]
@@ -13,7 +13,7 @@ adds support for IRIs and URI templates.
 }
   s.email = %q{bob@sporkmonger.com}
   s.extra_rdoc_files = ["README"]
-  s.files = ["lib/addressable", "lib/addressable/idna.rb", "lib/addressable/template.rb", "lib/addressable/uri.rb", "lib/addressable/version.rb", "spec/addressable", "spec/addressable/idna_spec.rb", "spec/addressable/template_spec.rb", "spec/addressable/uri_spec.rb", "tasks/clobber.rake", "tasks/gem.rake", "tasks/git.rake", "tasks/metrics.rake", "tasks/rdoc.rake", "tasks/rubyforge.rake", "tasks/spec.rake", "tasks/yard.rake", "website/index.html", "CHANGELOG", "LICENSE", "Rakefile", "README"]
+  s.files = ["lib/addressable/idna.rb", "lib/addressable/template.rb", "lib/addressable/uri.rb", "lib/addressable/version.rb", "spec/addressable/idna_spec.rb", "spec/addressable/template_spec.rb", "spec/addressable/uri_spec.rb", "tasks/clobber.rake", "tasks/gem.rake", "tasks/git.rake", "tasks/metrics.rake", "tasks/rdoc.rake", "tasks/rubyforge.rake", "tasks/spec.rake", "tasks/yard.rake", "website/index.html", "CHANGELOG", "LICENSE", "Rakefile", "README"]
   s.homepage = %q{http://addressable.rubyforge.org/}
   s.rdoc_options = ["--main", "README"]
   s.require_paths = ["lib"]
