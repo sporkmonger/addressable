@@ -1623,6 +1623,46 @@ describe Addressable::URI, "when parsed from " +
 end
 
 describe Addressable::URI, "when parsed from " +
+    "'http://example.com/..'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/..")
+  end
+
+  it "should have the correct port" do
+    @uri.inferred_port.should == 80
+  end
+
+  it "should not be considered to be in normal form" do
+    @uri.normalize.should_not be_eql(@uri)
+  end
+
+  it "should normalize to 'http://example.com/'" do
+    puts @uri.normalize.inspect
+    @uri.normalize.should === "http://example.com/"
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'http://example.com/../..'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/../..")
+  end
+
+  it "should have the correct port" do
+    @uri.inferred_port.should == 80
+  end
+
+  it "should not be considered to be in normal form" do
+    @uri.normalize.should_not be_eql(@uri)
+  end
+
+  it "should normalize to 'http://example.com/'" do
+    puts @uri.normalize.inspect
+    @uri.normalize.should === "http://example.com/"
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/path/to/resource/'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/path/to/resource/")

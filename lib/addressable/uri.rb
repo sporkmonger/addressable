@@ -2212,6 +2212,9 @@ module Addressable
         end
         normalized_path.gsub!(/^\.\.?\/?/, "")
         normalized_path.gsub!(/^\/\.\.?\//, "/")
+
+        # Non-standard
+        normalized_path.gsub!(/^(\/\.\.?)+\/?$/, "/")
       end until previous_state == normalized_path
       return normalized_path
     end
