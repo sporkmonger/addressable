@@ -4234,6 +4234,14 @@ describe Addressable::URI, "when assigning query values" do
     @uri.query_values = [['b', 'c'], ['b', 'a'], ['a', 'a']]
     @uri.query.should == "b=c&b=a&a=a"
   end
+
+  it "should preserve query string order" do
+    query_string = (('a'..'z').to_a.shuffle.map { |e| "#{e}=#{e}" }).join("&")
+    @uri.query = query_string
+    original_uri = @uri.to_s
+    @uri.query_values = @uri.query_values(:notation => :flat_array)
+    @uri.to_s.should == original_uri
+  end
 end
 
 describe Addressable::URI, "when assigning path values" do
