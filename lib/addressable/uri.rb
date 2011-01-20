@@ -1379,7 +1379,7 @@ module Addressable
     #   <code>:subscript</code>. The <code>:dot</code> notation is not
     #   supported for assignment. Default value is <code>:subscript</code>.
     #
-    # @return [Hash] The query string parsed as a Hash object.
+    # @return [Hash, Array] The query string parsed as a Hash or Array object.
     #
     # @example
     #   Addressable::URI.parse("?one=1&two=2&three=3").query_values
@@ -1481,7 +1481,7 @@ module Addressable
     # This method produces a query string using the :subscript notation.
     # An empty Hash will result in a nil query.
     #
-    # @param [Hash, #to_hash] new_query_values The new query values.
+    # @param [Hash, #to_hash, Array] new_query_values The new query values.
     def query_values=(new_query_values)
       # Check for frozenness
       raise TypeError, "Can't modify frozen URI." if self.frozen?
