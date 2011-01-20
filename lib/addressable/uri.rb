@@ -1410,7 +1410,8 @@ module Addressable
       options = defaults.merge(options)
       if ![:flat, :dot, :subscript, :flat_array].include?(options[:notation])
         raise ArgumentError,
-          "Invalid notation. Must be one of: [:flat, :dot, :subscript, :flat_array]."
+          "Invalid notation. Must be one of: " +
+          "[:flat, :dot, :subscript, :flat_array]."
       end
       dehash = lambda do |hash|
         hash.each do |(key, value)|
@@ -1488,19 +1489,22 @@ module Addressable
         self.query = nil
         return nil
       end
-      
+
       if !new_query_values.is_a?(Array)
         if !new_query_values.respond_to?(:to_hash)
-          raise TypeError, "Can't convert #{new_query_values.class} into Hash."
+          raise TypeError,
+            "Can't convert #{new_query_values.class} into Hash."
         end
         new_query_values = new_query_values.to_hash
         new_query_values = new_query_values.map do |key, value|
           key = key.to_s if key.kind_of?(Symbol)
           [key, value]
         end
+        # Useful default for OAuth and caching.
+        # Only to be used for non-Array inputs. Arrays should preserve order.
+        new_query_values.sort!
       end
-      # new_query_values have form [['key1', 'value1'], ['key2', 'value2'], ...]
-      new_query_values.sort! # Useful default for OAuth and caching
+      # new_query_values have form [['key1', 'value1'], ['key2', 'value2']]
 
       # Algorithm shamelessly stolen from Julien Genestoux, slightly modified
       buffer = ""

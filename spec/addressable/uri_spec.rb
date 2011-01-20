@@ -4227,13 +4227,13 @@ describe Addressable::URI, "when assigning query values" do
     @uri.query_values = {'ab' => 'c', :ab => 'a', :a => 'x'}
     @uri.query.should == "a=x&ab=a&ab=c"
   end
-  
+
   it "should correctly assign " +
       "[['b', 'c'], ['b', 'a'], ['a', 'a']]" do
+    # Order can be guaranteed in this format, so preserve it.
     @uri.query_values = [['b', 'c'], ['b', 'a'], ['a', 'a']]
-    @uri.query.should == "a=a&b=a&b=c"
+    @uri.query.should == "b=c&b=a&a=a"
   end
-
 end
 
 describe Addressable::URI, "when assigning path values" do
