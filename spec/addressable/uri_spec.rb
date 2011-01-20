@@ -3056,6 +3056,12 @@ describe Addressable::URI, "when parsed from '?one=1&two=2&three=3'" do
       @uri.query_values(:notation => :bogus)
     end).should raise_error(ArgumentError)
   end
+
+  it "should have the correct flat array notation query values" do
+    @uri.query_values(:notation => :flat_array).should == [
+      ["one", "1"], ["two", "2"], ["three", "3"]
+    ]
+  end
 end
 
 describe Addressable::URI, "when parsed from '?one[two][three]=four'" do
@@ -3071,6 +3077,12 @@ describe Addressable::URI, "when parsed from '?one[two][three]=four'" do
     @uri.query_values(:notation => :flat).should == {
       "one[two][three]" => "four"
     }
+  end
+
+  it "should have the correct flat array notation query values" do
+    @uri.query_values(:notation => :flat_array).should == [
+      ["one[two][three]", "four"]
+    ]
   end
 end
 
@@ -3089,6 +3101,12 @@ describe Addressable::URI, "when parsed from '?one.two.three=four'" do
     @uri.query_values(:notation => :flat).should == {
       "one.two.three" => "four"
     }
+  end
+
+  it "should have the correct flat array notation query values" do
+    @uri.query_values(:notation => :flat_array).should == [
+      ["one.two.three", "four"]
+    ]
   end
 end
 
@@ -3110,6 +3128,12 @@ describe Addressable::URI, "when parsed from " +
       "one[two][five]" => "six"
     }
   end
+
+  it "should have the correct flat array notation query values" do
+    @uri.query_values(:notation => :flat_array).should == [
+      ["one[two][three]", "four"], ["one[two][five]", "six"]
+    ]
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -3130,6 +3154,12 @@ describe Addressable::URI, "when parsed from " +
       "one.two.five" => "six"
     }
   end
+
+  it "should have the correct flat array notation query values" do
+    @uri.query_values(:notation => :flat_array).should == [
+      ["one.two.three", "four"], ["one.two.five", "six"]
+    ]
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -3139,7 +3169,7 @@ describe Addressable::URI, "when parsed from " +
       "?one=two&one=three"
     )
   end
-  
+
   it "should have correct flat_array notation query values" do
     @uri.query_values(:notation => :flat_array).should == 
       [['one', 'two'], ['one', 'three']] 
@@ -3164,6 +3194,13 @@ describe Addressable::URI, "when parsed from " +
     (lambda do
       @uri.query_values(:notation => :flat)
     end).should raise_error(ArgumentError)
+  end
+
+  it "should not raise an error if a key is " +
+      "repeated in the flat array notation" do
+    (lambda do
+      @uri.query_values(:notation => :flat_array)
+    end).should_not raise_error
   end
 end
 

@@ -1,3 +1,6 @@
+=== Addressable 2.2.3
+- added :flat_array notation for query strings
+
 === Addressable 2.2.2
 - fixed issue with percent escaping of '+' character in query strings
 
