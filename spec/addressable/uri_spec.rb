@@ -3183,6 +3183,36 @@ describe Addressable::URI, "when parsed from " +
 end
 
 describe Addressable::URI, "when parsed from " +
+    "'?one[two][three][1]=four&one[two][three][0]=five'" do
+  before do
+    @uri = Addressable::URI.parse(
+      "?one[two][three][1]=four&one[two][three][0]=five"
+    )
+  end
+
+  it "should have the correct subscript notation query values" do
+    @uri.query_values(:notation => :subscript).should == {
+      "one" => {"two" => {"three" => ["five", "four"]}}
+    }
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'?one[two][three][2]=four&one[two][three][1]=five'" do
+  before do
+    @uri = Addressable::URI.parse(
+      "?one[two][three][2]=four&one[two][three][1]=five"
+    )
+  end
+
+  it "should have the correct subscript notation query values" do
+    @uri.query_values(:notation => :subscript).should == {
+      "one" => {"two" => {"three" => ["five", "four"]}}
+    }
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
     "'http://www.詹姆斯.com/'" do
   before do
     @uri = Addressable::URI.parse("http://www.詹姆斯.com/")
