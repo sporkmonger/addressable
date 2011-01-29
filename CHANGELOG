@@ -1,3 +1,8 @@
+=== Addressable 2.2.4
+- added origin support from draft-ietf-websec-origin-00
+- resolved issue with attempting to navigate below root
+- fixed bug with string splitting in query strings
+
 === Addressable 2.2.3
 - added :flat_array notation for query strings
 

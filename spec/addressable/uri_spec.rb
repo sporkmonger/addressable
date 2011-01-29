@@ -271,6 +271,10 @@ describe Addressable::URI, "when created with an authority and no port" do
   it "should have a site value of '//user@example.com'" do
     @uri.site.should == "//user@example.com"
   end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
+  end
 end
 
 describe Addressable::URI, "when created with both a userinfo and a user" do
@@ -296,6 +300,10 @@ describe Addressable::URI, "when created with a path that hasn't been " +
   it "should have a site value of 'http://example.com'" do
     @uri.site.should == "http://example.com"
   end
+
+  it "should have an origin of 'http://example.com" do
+    @uri.origin.should == 'http://example.com'
+  end
 end
 
 describe Addressable::URI, "when created with a path that hasn't been " +
@@ -309,9 +317,13 @@ describe Addressable::URI, "when created with a path that hasn't been " +
   it "should not prefix a '/' to the path" do
     @uri.should == Addressable::URI.parse("http:path")
   end
-  
+
   it "should have a site value of 'http:'" do
     @uri.site.should == "http:"
+  end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
   end
 end
 
@@ -369,6 +381,10 @@ describe Addressable::URI, "when parsed from ''" do
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
+  end
 end
 
 # Section 1.1.2 of RFC 3986
@@ -400,6 +416,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
+  end
+
+  it "should have an origin of 'ftp://ftp.is.co.za'" do
+    @uri.origin.should == 'ftp://ftp.is.co.za'
   end
 end
 
@@ -442,6 +462,10 @@ describe Addressable::URI, "when parsed from " +
   it "should correctly omit components destructively" do
     @uri.omit!(:scheme)
     @uri.to_s.should == "//www.ietf.org/rfc/rfc2396.txt"
+  end
+
+  it "should have an origin of 'http://www.ietf.org'" do
+    @uri.origin.should == 'http://www.ietf.org'
   end
 end
 
@@ -501,6 +525,10 @@ describe Addressable::URI, "when parsed from " +
       @uri.omit(:authority, :path)
     end).should raise_error(Addressable::URI::InvalidURIError)
   end
+
+  it "should have an origin of 'ldap://[2001:db8::7]'" do
+    @uri.origin.should == 'ldap://[2001:db8::7]'
+  end
 end
 
 # Section 1.1.2 of RFC 3986
@@ -528,6 +556,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
+  end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
   end
 end
 
@@ -557,6 +589,10 @@ describe Addressable::URI, "when parsed from " +
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
+  end
 end
 
 # Section 1.1.2 of RFC 3986
@@ -584,6 +620,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
+  end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
   end
 end
 
@@ -621,6 +661,10 @@ describe Addressable::URI, "when parsed from " +
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
+
+  it "should have an origin of 'telnet://192.0.2.16:80'" do
+    @uri.origin.should == 'telnet://192.0.2.16:80'
+  end
 end
 
 # Section 1.1.2 of RFC 3986
@@ -650,6 +694,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
+  end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
   end
 end
 
@@ -926,6 +974,10 @@ describe Addressable::URI, "when parsed from " +
   it "should be identical to its duplicate" do
     @uri.should == @uri.dup
   end
+
+  it "should have an origin of 'http://example.com'" do
+    @uri.origin.should == 'http://example.com'
+  end
 end
 
 # Section 5.1.2 of RFC 2616
@@ -976,6 +1028,10 @@ describe Addressable::URI, "when parsed from " +
       :query => nil,
       :fragment => nil
     }
+  end
+
+  it "should have an origin of 'http://www.w3.org'" do
+    @uri.origin.should == 'http://www.w3.org'
   end
 end
 
@@ -1092,6 +1148,10 @@ describe Addressable::URI, "when parsed from " +
   it "should have a different hash from http://example.com" do
     @uri.hash.should_not == Addressable::URI.parse("http://example.com").hash
   end
+
+  it "should have an origin of 'http://example.com'" do
+    @uri.origin.should == 'http://example.com'
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -1120,6 +1180,10 @@ describe Addressable::URI, "when parsed from " +
   it "should be identical to its duplicate" do
     @uri.should == @uri.dup
   end
+
+  it "should have an origin of 'http://example.com'" do
+    @uri.origin.should == 'http://example.com'
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -1138,6 +1202,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should be identical to its duplicate" do
     @uri.should == @uri.dup
+  end
+
+  it "should have an origin of 'http://example.com'" do
+    @uri.origin.should == 'http://example.com'
   end
 end
 
@@ -1166,6 +1234,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should be identical to its duplicate" do
     @uri.should == @uri.dup
+  end
+
+  it "should have an origin of 'http://example.com'" do
+    @uri.origin.should == 'http://example.com'
   end
 end
 
@@ -1504,6 +1576,10 @@ describe Addressable::URI, "when parsed from " +
   it "should be identical to its duplicate" do
     @uri.should == @uri.dup
   end
+
+  it "should have an origin of 'http://example.com'" do
+    @uri.origin.should == 'http://example.com'
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -1601,6 +1677,10 @@ describe Addressable::URI, "when parsed from " +
   it "should be identical to its duplicate" do
     @uri.should == @uri.dup
   end
+
+  it "should have an origin of 'http://example.com:8080'" do
+    @uri.origin.should == 'http://example.com:8080'
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -1620,6 +1700,10 @@ describe Addressable::URI, "when parsed from " +
   it "should normalize to 'http://example.com/'" do
     @uri.normalize.should === "http://example.com/"
   end
+
+  it "should have an origin of 'http://example.com'" do
+    @uri.origin.should == 'http://example.com'
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -1637,7 +1721,6 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should normalize to 'http://example.com/'" do
-    puts @uri.normalize.inspect
     @uri.normalize.should === "http://example.com/"
   end
 end
@@ -1657,7 +1740,6 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should normalize to 'http://example.com/'" do
-    puts @uri.normalize.inspect
     @uri.normalize.should === "http://example.com/"
   end
 end
@@ -2185,6 +2267,10 @@ describe Addressable::URI, "when parsed from " +
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
   end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -2225,6 +2311,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should be considered to be in normal form" do
     @uri.normalize.should be_eql(@uri)
+  end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
   end
 end
 
@@ -2565,6 +2655,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should be identical to its duplicate" do
     @uri.should == @uri.dup
+  end
+
+  it "should have an origin of 'http://example.com'" do
+    @uri.origin.should == 'http://example.com'
   end
 end
 
@@ -2948,6 +3042,10 @@ describe Addressable::URI, "when parsed from " +
       @uri.route_from("http://example.com/")
     end).should raise_error(ArgumentError, /\/\/example.com\//)
   end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -2979,6 +3077,10 @@ describe Addressable::URI, "when parsed from " +
     @uri.normalize.to_s.should == "http://example.com/"
     @uri.normalize!.to_s.should == "http://example.com/"
   end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -2991,6 +3093,10 @@ describe Addressable::URI, "when parsed from " +
   it "should be equivalent to eXAMPLE://a/./b/../b/%63/%7bfoo%7d" do
     @uri.should ==
       Addressable::URI.parse("eXAMPLE://a/./b/../b/%63/%7bfoo%7d")
+  end
+
+  it "should have an origin of 'example://a'" do
+    @uri.origin.should == 'example://a'
   end
 end
 
@@ -3046,6 +3152,10 @@ describe Addressable::URI, "when parsed from " +
   it "should have no scheme" do
     @uri.scheme.should == nil
   end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -3060,6 +3170,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have a scheme of 'this'" do
     @uri.scheme.should == "this"
+  end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
   end
 end
 
@@ -3079,6 +3193,10 @@ describe Addressable::URI, "when parsed from '?'" do
 
   it "should have the correct flat notation query values" do
     @uri.query_values(:notation => :flat).should == {}
+  end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
   end
 end
 
@@ -3101,6 +3219,10 @@ describe Addressable::URI, "when parsed from '?one=1&two=2&three=3'" do
     @uri.query_values(:notation => :flat_array).should == [
       ["one", "1"], ["two", "2"], ["three", "3"]
     ]
+  end
+
+  it "should have a 'null' origin" do
+    @uri.origin.should == 'null'
   end
 end
 
@@ -3227,8 +3349,8 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should have correct flat_array notation query values" do
-    @uri.query_values(:notation => :flat_array).should == 
-      [['one', 'two'], ['one', 'three']] 
+    @uri.query_values(:notation => :flat_array).should ==
+      [['one', 'two'], ['one', 'three']]
   end
 end
 
@@ -3320,6 +3442,10 @@ describe Addressable::URI, "when parsed from " +
     Addressable::URI.normalized_encode(@uri.to_s).should ==
       "http://www.詹姆斯.com/"
   end
+
+  it "should have an origin of 'http://www.xn--8ws00zhy3a.com'" do
+    @uri.origin.should == 'http://www.xn--8ws00zhy3a.com'
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -3339,6 +3465,10 @@ describe Addressable::URI, "when parsed from " +
     Addressable::URI.normalized_encode(@uri.to_s).should ==
       "http://www.詹姆斯.com/%20some%20spaces%20/"
   end
+
+  it "should have an origin of 'http://www.xn--8ws00zhy3a.com'" do
+    @uri.origin.should == 'http://www.xn--8ws00zhy3a.com'
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -3357,6 +3487,10 @@ describe Addressable::URI, "when parsed from " +
     if display_string.respond_to?(:encoding)
       display_string.encoding.to_s.should == Encoding::UTF_8.to_s
     end
+  end
+
+  it "should have an origin of 'http://www.xn--8ws00zhy3a.com'" do
+    @uri.origin.should == 'http://www.xn--8ws00zhy3a.com'
   end
 end
 
@@ -3394,6 +3528,13 @@ describe Addressable::URI, "when parsed from a percent-encoded IRI" do
     @uri.normalize!.to_s.should ==
       "http://www.xn--n8jaaaaai5bhf7as8fsfk3jnknefdde3f" +
       "g11amb5gzdb4wi9bya3kc6lra.w3.mag.keio.ac.jp/"
+  end
+
+  it "should have the correct origin" do
+    @uri.origin.should == (
+      "http://www.xn--n8jaaaaai5bhf7as8fsfk3jnknefdde3f" +
+      "g11amb5gzdb4wi9bya3kc6lra.w3.mag.keio.ac.jp"
+    )
   end
 end
 
@@ -3727,6 +3868,11 @@ describe Addressable::URI, "when given a UNIX root directory" do
     @uri = Addressable::URI.convert_path(@path)
     @uri.to_str.should == "file:///"
   end
+
+  it "should have an origin of 'file://'" do
+    @uri = Addressable::URI.convert_path(@path)
+    @uri.origin.should == 'file://'
+  end
 end
 
 describe Addressable::URI, "when given a Windows root directory" do
@@ -3737,6 +3883,11 @@ describe Addressable::URI, "when given a Windows root directory" do
   it "should convert to \'file:///c:/\'" do
     @uri = Addressable::URI.convert_path(@path)
     @uri.to_str.should == "file:///c:/"
+  end
+
+  it "should have an origin of 'file://'" do
+    @uri = Addressable::URI.convert_path(@path)
+    @uri.origin.should == 'file://'
   end
 end
 
@@ -3749,6 +3900,11 @@ describe Addressable::URI, "when given the path '/home/user/'" do
       "\'file:///home/user/\'" do
     @uri = Addressable::URI.convert_path(@path)
     @uri.to_str.should == "file:///home/user/"
+  end
+
+  it "should have an origin of 'file://'" do
+    @uri = Addressable::URI.convert_path(@path)
+    @uri.origin.should == 'file://'
   end
 end
 
@@ -3763,6 +3919,11 @@ describe Addressable::URI, "when given the path " +
     @uri = Addressable::URI.convert_path(@path)
     @uri.to_str.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
   end
+
+  it "should have an origin of 'file://'" do
+    @uri = Addressable::URI.convert_path(@path)
+    @uri.origin.should == 'file://'
+  end
 end
 
 describe Addressable::URI, "when given the path " +
@@ -3775,6 +3936,11 @@ describe Addressable::URI, "when given the path " +
       "\'file:///c:/windows/My%20Documents%20100%20/foo.txt\'" do
     @uri = Addressable::URI.convert_path(@path)
     @uri.to_str.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
+  end
+
+  it "should have an origin of 'file://'" do
+    @uri = Addressable::URI.convert_path(@path)
+    @uri.origin.should == 'file://'
   end
 end
 
@@ -3789,6 +3955,11 @@ describe Addressable::URI, "when given the path " +
     @uri = Addressable::URI.convert_path(@path)
     @uri.to_str.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
   end
+
+  it "should have an origin of 'file://'" do
+    @uri = Addressable::URI.convert_path(@path)
+    @uri.origin.should == 'file://'
+  end
 end
 
 describe Addressable::URI, "when given the path " +
@@ -3802,6 +3973,11 @@ describe Addressable::URI, "when given the path " +
     @uri = Addressable::URI.convert_path(@path)
     @uri.to_str.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
   end
+
+  it "should have an origin of 'file://'" do
+    @uri = Addressable::URI.convert_path(@path)
+    @uri.origin.should == 'file://'
+  end
 end
 
 describe Addressable::URI, "when given the path " +
@@ -3814,6 +3990,11 @@ describe Addressable::URI, "when given the path " +
       "\'file:///c:/windows/My%20Documents%20100%20/foo.txt\'" do
     @uri = Addressable::URI.convert_path(@path)
     @uri.to_str.should == "file:///c:/windows/My%20Documents%20100%20/foo.txt"
+  end
+
+  it "should have an origin of 'file://'" do
+    @uri = Addressable::URI.convert_path(@path)
+    @uri.origin.should == 'file://'
   end
 end
 

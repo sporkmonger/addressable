@@ -1077,6 +1077,26 @@ module Addressable
       validate()
     end
 
+    ##
+    # The origin for this URI, serialized to ASCII, as per
+    # draft-ietf-websec-origin-00, section 5.2.
+    #
+    # @return [String] The serialized origin.
+    def origin
+      return (if self.scheme && self.authority
+        if self.normalized_port
+          (
+            "#{self.normalized_scheme}://#{self.normalized_host}" +
+            ":#{self.normalized_port}"
+          )
+        else
+          "#{self.normalized_scheme}://#{self.normalized_host}"
+        end
+      else
+        "null"
+      end)
+    end
+
     # Returns an array of known ip-based schemes. These schemes typically
     # use a similar URI form:
     # <code>//<user>:<password>@<host>:<port>/<url-path></code>
