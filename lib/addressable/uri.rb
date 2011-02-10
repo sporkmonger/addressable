@@ -85,7 +85,7 @@ module Addressable
 
       # This Regexp supplied as an example in RFC 3986, and it works great.
       uri_regex =
-        /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/
+        /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?((?:(?:\#\!)|[^?#])*)(\?([^#]*))?(#(.*))?$/
       scan = uri.scan(uri_regex)
       fragments = scan[0]
       scheme = fragments[1]
