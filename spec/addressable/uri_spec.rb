@@ -328,18 +328,24 @@ describe Addressable::URI, "when created with a path that hasn't been " +
 end
 
 describe Addressable::URI, "when parsed from an Addressable::URI object" do
-  it "should return the object" do
-    uri = Addressable::URI.parse("http://example.com/")
-    (lambda do
-      Addressable::URI.parse(uri).object_id.should == uri.object_id
-    end).should_not raise_error
+  it "should not have unexpected side-effects" do
+    original_uri = Addressable::URI.parse("http://example.com/")
+    new_uri = Addressable::URI.parse(original_uri)
+    new_uri.host = 'www.example.com'
+    new_uri.host.should == 'www.example.com'
+    new_uri.to_s.should == 'http://www.example.com/'
+    original_uri.host.should == 'example.com'
+    original_uri.to_s.should == 'http://example.com/'
   end
 
-  it "should return the object" do
-    uri = Addressable::URI.parse("http://example.com/")
-    (lambda do
-      Addressable::URI.heuristic_parse(uri).object_id.should == uri.object_id
-    end).should_not raise_error
+  it "should not have unexpected side-effects" do
+    original_uri = Addressable::URI.parse("http://example.com/")
+    new_uri = Addressable::URI.heuristic_parse(original_uri)
+    new_uri.host = 'www.example.com'
+    new_uri.host.should == 'www.example.com'
+    new_uri.to_s.should == 'http://www.example.com/'
+    original_uri.host.should == 'example.com'
+    original_uri.to_s.should == 'http://example.com/'
   end
 end
 
