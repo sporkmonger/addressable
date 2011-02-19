@@ -1283,7 +1283,7 @@ module Addressable
           )
         end).join("/")
 
-        result = self.class.normalize_path(result)
+        result = URI.normalize_path(result)
         if result == "" &&
             ["http", "https", "ftp", "tftp"].include?(self.normalized_scheme)
           result = "/"
