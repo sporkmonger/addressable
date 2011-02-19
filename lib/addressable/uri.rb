@@ -315,10 +315,13 @@ module Addressable
     def self.encode_component(component, character_class=
         CharacterClasses::RESERVED + CharacterClasses::UNRESERVED)
       return nil if component.nil?
-      if !component.respond_to?(:to_str)
+
+      begin
+        component = component.to_str
+      rescue TypeError, NoMethodError
         raise TypeError, "Can't convert #{component.class} into String."
-      end
-      component = component.to_str
+      end if !component.is_a? String
+
       if ![String, Regexp].include?(character_class.class)
         raise TypeError,
           "Expected String or Regexp, got #{character_class.inspect}"
@@ -361,15 +364,18 @@ module Addressable
     #   The return type is determined by the <code>returning</code> parameter.
     def self.unencode(uri, returning=String)
       return nil if uri.nil?
-      if !uri.respond_to?(:to_str)
+
+      begin
+        uri = uri.to_str
+      rescue NoMethodError, TypeError
         raise TypeError, "Can't convert #{uri.class} into String."
-      end
+      end if !uri.is_a? String
       if ![String, ::Addressable::URI].include?(returning)
         raise TypeError,
           "Expected Class (String or Addressable::URI), " +
           "got #{returning.inspect}"
       end
-      result = uri.to_str.gsub(/%[0-9a-f]{2}/i) do |sequence|
+      result = uri.gsub(/%[0-9a-f]{2}/i) do |sequence|
         sequence[1..3].to_i(16).chr
       end
       result.force_encoding("utf-8") if result.respond_to?(:force_encoding)
@@ -422,10 +428,13 @@ module Addressable
     def self.normalize_component(component, character_class=
         CharacterClasses::RESERVED + CharacterClasses::UNRESERVED)
       return nil if component.nil?
-      if !component.respond_to?(:to_str)
+
+      begin
+        component = component.to_str
+      rescue NoMethodError, TypeError
         raise TypeError, "Can't convert #{component.class} into String."
-      end
-      component = component.to_str
+      end if !component.is_a? String
+
       if ![String, Regexp].include?(character_class.class)
         raise TypeError,
           "Expected String or Regexp, got #{character_class.inspect}"
@@ -468,15 +477,19 @@ module Addressable
     #   The return type is determined by the <code>returning</code> parameter.
     def self.encode(uri, returning=String)
       return nil if uri.nil?
-      if !uri.respond_to?(:to_str)
+
+      begin
+        uri = uri.to_str
+      rescue NoMethodError, TypeError
         raise TypeError, "Can't convert #{uri.class} into String."
-      end
+      end if !uri.is_a? String
+
       if ![String, ::Addressable::URI].include?(returning)
         raise TypeError,
           "Expected Class (String or Addressable::URI), " +
           "got #{returning.inspect}"
       end
-      uri_object = uri.kind_of?(self) ? uri : self.parse(uri.to_str)
+      uri_object = uri.kind_of?(self) ? uri : self.parse(uri)
       encoded_uri = Addressable::URI.new(
         :scheme => self.encode_component(uri_object.scheme,
           Addressable::URI::CharacterClasses::SCHEME),
@@ -517,15 +530,18 @@ module Addressable
     #   The encoded URI.
     #   The return type is determined by the <code>returning</code> parameter.
     def self.normalized_encode(uri, returning=String)
-      if !uri.respond_to?(:to_str)
+      begin
+        uri = uri.to_str
+      rescue NoMethodError, TypeError
         raise TypeError, "Can't convert #{uri.class} into String."
-      end
+      end if !uri.is_a? String
+
       if ![String, ::Addressable::URI].include?(returning)
         raise TypeError,
           "Expected Class (String or Addressable::URI), " +
           "got #{returning.inspect}"
       end
-      uri_object = uri.kind_of?(self) ? uri : self.parse(uri.to_str)
+      uri_object = uri.kind_of?(self) ? uri : self.parse(uri)
       components = {
         :scheme => self.unencode_component(uri_object.scheme),
         :user => self.unencode_component(uri_object.user),
@@ -1267,6 +1283,7 @@ module Addressable
       return @path
     end
 
+    NORMPATH = /^(?!\/)[^\/:]*:.*$/
     ##
     # The path component for this URI, normalized.
     #
@@ -1274,7 +1291,7 @@ module Addressable
     def normalized_path
       @normalized_path ||= (begin
         if self.scheme == nil && self.path != nil && !self.path.empty? &&
-            self.path =~ /^(?!\/)[^\/:]*:.*$/
+            self.path =~ NORMPATH
           # Relative paths with colons in the first segment are ambiguous.
           self.path.sub!(":", "%2F")
         end
