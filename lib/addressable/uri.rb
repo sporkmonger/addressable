@@ -63,6 +63,8 @@ module Addressable
     SLASH = '/'
     EMPTYSTR = ''
 
+    URIREGEX = /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/
+
     ##
     # Returns a URI object based on the parsed string.
     #
@@ -94,9 +96,7 @@ module Addressable
       end if not uri.is_a? String
 
       # This Regexp supplied as an example in RFC 3986, and it works great.
-      uri_regex =
-        /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/
-      scan = uri.scan(uri_regex)
+      scan = uri.scan(URIREGEX)
       fragments = scan[0]
       scheme = fragments[1]
       authority = fragments[3]
