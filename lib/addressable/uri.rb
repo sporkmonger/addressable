@@ -229,7 +229,7 @@ module Addressable
       path = path.to_str.strip
 
       path.gsub!(/^file:\/?\/?/, EMPTYSTR) if path =~ /^file:\/?\/?/
-      path = "/" + path if path =~ /^([a-zA-Z])[\|:]/
+      path = SLASH + path if path =~ /^([a-zA-Z])[\|:]/
       uri = self.parse(path)
 
       if uri.scheme == nil
@@ -237,7 +237,7 @@ module Addressable
         uri.path.gsub!(/^\/?([a-zA-Z])[\|:][\\\/]/) do
           "/#{$1.downcase}:/"
         end
-        uri.path.gsub!(/\\/, "/")
+        uri.path.gsub!(/\\/, SLASH)
         if File.exists?(uri.path) &&
             File.stat(uri.path).directory?
           uri.path.gsub!(/\/$/, EMPTYSTR)
@@ -1279,17 +1279,17 @@ module Addressable
         end
         # String#split(delimeter, -1) uses the more strict splitting behavior
         # found by default in Python.
-        result = (self.path.strip.split("/", -1).map do |segment|
+        result = (self.path.strip.split(SLASH, -1).map do |segment|
           Addressable::URI.normalize_component(
             segment,
             Addressable::URI::CharacterClasses::PCHAR
           )
-        end).join("/")
+        end).join(SLASH)
 
         result = URI.normalize_path(result)
         if result.empty? &&
             ["http", "https", "ftp", "tftp"].include?(self.normalized_scheme)
-          result = "/"
+          result = SLASH
         end
         result
       end)
@@ -1304,7 +1304,7 @@ module Addressable
         raise TypeError, "Can't convert #{new_path.class} into String."
       end
       @path = (new_path || EMPTYSTR).to_str
-      if !@path.empty? && @path[0..0] != "/" && host != nil
+      if !@path.empty? && @path[0..0] != SLASH && host != nil
         @path = "/#{@path}"
       end
 
@@ -1550,7 +1550,7 @@ module Addressable
     def request_uri
       return nil if self.absolute? && self.scheme !~ /^https?$/
       return (
-        (!self.path.empty? ? self.path : "/") +
+        (!self.path.empty? ? self.path : SLASH) +
         (self.query ? "?#{self.query}" : EMPTYSTR)
       )
     end
@@ -1571,7 +1571,7 @@ module Addressable
       path_component = new_request_uri[/^([^\?]*)\?(?:.*)$/, 1]
       query_component = new_request_uri[/^(?:[^\?]*)\?(.*)$/, 1]
       path_component = path_component.to_s
-      path_component = (!path_component.empty? ? path_component : "/")
+      path_component = (!path_component.empty? ? path_component : SLASH)
       self.path = path_component
       self.query = query_component
 
@@ -1711,7 +1711,7 @@ module Addressable
               joined_query = self.query
             end
           else
-            if uri.path[0..0] == "/"
+            if uri.path[0..0] == SLASH
               joined_path = URI.normalize_path(uri.path)
             else
               base_path = self.path.dup
@@ -1722,15 +1722,15 @@ module Addressable
               #
               # Removes the right-most path segment from the base path.
               if base_path =~ /\//
-                base_path.gsub!(/\/[^\/]+$/, "/")
+                base_path.gsub!(/\/[^\/]+$/, SLASH)
               else
                 base_path = EMPTYSTR
               end
 
               # If the base path is empty and an authority segment has been
-              # defined, use a base path of "/"
+              # defined, use a base path of SLASH
               if base_path.empty? && self.authority != nil
-                base_path = "/"
+                base_path = SLASH
               end
 
               joined_path = URI.normalize_path(base_path + uri.path)
@@ -1886,7 +1886,7 @@ module Addressable
               components[:query] = nil
             end
           else
-            if uri.path != "/"
+            if uri.path != SLASH
               components[:path].gsub!(
                 Regexp.new("^" + Regexp.escape(uri.path)), EMPTYSTR)
             end
@@ -2216,7 +2216,7 @@ module Addressable
           raise InvalidURIError, "Hostname not supplied: '#{self.to_s}'"
         end
       end
-      if self.path != nil && !self.path.empty? && self.path[0..0] != "/" &&
+      if self.path != nil && !self.path.empty? && self.path[0..0] != SLASH &&
           self.authority != nil
         raise InvalidURIError,
           "Cannot have a relative path with an authority set: '#{self.to_s}'"
