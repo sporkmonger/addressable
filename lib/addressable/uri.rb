@@ -113,10 +113,10 @@ module Addressable
           user = userinfo.strip[/^([^:]*):?/, 1]
           password = userinfo.strip[/:(.*)$/, 1]
         end
-        host = authority.gsub(/^([^\[\]]*)@/, "").gsub(/:([^:@\[\]]*?)$/, "")
+        host = authority.gsub(/^([^\[\]]*)@/, EMPTYSTR).gsub(/:([^:@\[\]]*?)$/, EMPTYSTR)
         port = authority[/:([^:@\[\]]*?)$/, 1]
       end
-      if port == ""
+      if port == EMPTYSTR
         port = nil
       end
 
@@ -178,7 +178,7 @@ module Addressable
         if new_host
           parsed.defer_validation do
             new_path = parsed.path.gsub(
-              Regexp.new("^" + Regexp.escape(new_host)), "")
+              Regexp.new("^" + Regexp.escape(new_host)), EMPTYSTR)
             parsed.host = new_host
             parsed.path = new_path
             parsed.scheme = hints[:scheme] unless parsed.scheme
@@ -228,7 +228,7 @@ module Addressable
       # Otherwise, convert to a String
       path = path.to_str.strip
 
-      path.gsub!(/^file:\/?\/?/, "") if path =~ /^file:\/?\/?/
+      path.gsub!(/^file:\/?\/?/, EMPTYSTR) if path =~ /^file:\/?\/?/
       path = "/" + path if path =~ /^([a-zA-Z])[\|:]/
       uri = self.parse(path)
 
@@ -240,14 +240,14 @@ module Addressable
         uri.path.gsub!(/\\/, "/")
         if File.exists?(uri.path) &&
             File.stat(uri.path).directory?
-          uri.path.gsub!(/\/$/, "")
+          uri.path.gsub!(/\/$/, EMPTYSTR)
           uri.path = uri.path + '/'
         end
 
         # If the path is absolute, set the scheme and host.
         if uri.path =~ /^\//
           uri.scheme = "file"
-          uri.host = ""
+          uri.host = EMPTYSTR
         end
         uri.normalize!
       end
@@ -332,7 +332,7 @@ module Addressable
         component.force_encoding(Encoding::ASCII_8BIT)
       end
       return component.gsub(character_class) do |sequence|
-        (sequence.unpack('C*').map { |c| "%" + ("%02x" % c).upcase }).join("")
+        (sequence.unpack('C*').map { |c| "%" + ("%02x" % c).upcase }).join
       end
     end
 
@@ -737,7 +737,7 @@ module Addressable
         raise InvalidURIError, "Invalid scheme format."
       end
       @scheme = new_scheme
-      @scheme = nil if @scheme.to_s.strip == ""
+      @scheme = nil if @scheme.to_s.strip.empty?
 
       # Reset dependant values
       @normalized_scheme = nil
@@ -763,8 +763,8 @@ module Addressable
     def normalized_user
       @normalized_user ||= (begin
         if self.user
-          if normalized_scheme =~ /https?/ && self.user.strip == "" &&
-              (!self.password || self.password.strip == "")
+          if normalized_scheme =~ /https?/ && self.user.strip.empty? &&
+              (!self.password || self.password.strip.empty?)
             nil
           else
             Addressable::URI.normalize_component(
@@ -791,7 +791,7 @@ module Addressable
       # You can't have a nil user with a non-nil password
       @password ||= nil
       if @password != nil
-        @user = "" if @user.nil?
+        @user = EMPTYSTR if @user.nil?
       end
 
       # Reset dependant values
@@ -821,8 +821,8 @@ module Addressable
     def normalized_password
       @normalized_password ||= (begin
         if self.password
-          if normalized_scheme =~ /https?/ && self.password.strip == "" &&
-              (!self.user || self.user.strip == "")
+          if normalized_scheme =~ /https?/ && self.password.strip.empty? &&
+              (!self.user || self.user.strip.empty?)
             nil
           else
             Addressable::URI.normalize_component(
@@ -850,7 +850,7 @@ module Addressable
       @password ||= nil
       @user ||= nil
       if @password != nil
-        @user = "" if @user.nil?
+        @user = EMPTYSTR if @user.nil?
       end
 
       # Reset dependant values
@@ -947,7 +947,7 @@ module Addressable
     def normalized_host
       @normalized_host ||= (begin
         if self.host != nil
-          if self.host.strip != ""
+          if !self.host.strip.empty?
             result = ::Addressable::IDNA.to_ascii(
               self.class.unencode_component(self.host.strip.downcase)
             )
@@ -957,7 +957,7 @@ module Addressable
             end
             result
           else
-            ""
+            EMPTYSTR
           end
         else
           nil
@@ -1046,7 +1046,7 @@ module Addressable
           new_password = new_userinfo.strip[/:(.*)$/, 1]
         end
         new_host =
-          new_authority.gsub(/^([^\[\]]*)@/, "").gsub(/:([^:@\[\]]*?)$/, "")
+          new_authority.gsub(/^([^\[\]]*)@/, EMPTYSTR).gsub(/:([^:@\[\]]*?)$/, EMPTYSTR)
         new_port =
           new_authority[/:([^:@\[\]]*?)$/, 1]
       end
@@ -1262,7 +1262,7 @@ module Addressable
     #
     # @return [String] The path component.
     def path
-      @path ||= ""
+      @path ||= EMPTYSTR
       return @path
     end
 
@@ -1272,7 +1272,7 @@ module Addressable
     # @return [String] The path component, normalized.
     def normalized_path
       @normalized_path ||= (begin
-        if self.scheme == nil && self.path != nil && self.path != "" &&
+        if self.scheme == nil && self.path != nil && !self.path.empty? &&
             self.path =~ /^(?!\/)[^\/:]*:.*$/
           # Relative paths with colons in the first segment are ambiguous.
           self.path.sub!(":", "%2F")
@@ -1287,7 +1287,7 @@ module Addressable
         end).join("/")
 
         result = URI.normalize_path(result)
-        if result == "" &&
+        if result.empty? &&
             ["http", "https", "ftp", "tftp"].include?(self.normalized_scheme)
           result = "/"
         end
@@ -1303,8 +1303,8 @@ module Addressable
       if new_path && !new_path.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_path.class} into String."
       end
-      @path = (new_path || "").to_str
-      if @path != "" && @path[0..0] != "/" && host != nil
+      @path = (new_path || EMPTYSTR).to_str
+      if !@path.empty? && @path[0..0] != "/" && host != nil
         @path = "/#{@path}"
       end
 
@@ -1320,7 +1320,7 @@ module Addressable
     # @return [String] The path's basename.
     def basename
       # Path cannot be nil
-      return File.basename(self.path).gsub(/;[^\/]*$/, "")
+      return File.basename(self.path).gsub(/;[^\/]*$/, EMPTYSTR)
     end
 
     ##
@@ -1433,7 +1433,7 @@ module Addressable
       return nil if self.query == nil
       empty_accumulator = :flat_array == options[:notation] ? [] : {}
       return ((self.query.split("&").map do |pair|
-        pair.split("=", 2) if pair && pair != ""
+        pair.split("=", 2) if pair && !pair.empty?
       end).compact.inject(empty_accumulator.dup) do |accumulator, (key, value)|
         value = true if value.nil?
         key = self.class.unencode_component(key)
@@ -1550,8 +1550,8 @@ module Addressable
     def request_uri
       return nil if self.absolute? && self.scheme !~ /^https?$/
       return (
-        (self.path != "" ? self.path : "/") +
-        (self.query ? "?#{self.query}" : "")
+        (!self.path.empty? ? self.path : "/") +
+        (self.query ? "?#{self.query}" : EMPTYSTR)
       )
     end
 
@@ -1571,7 +1571,7 @@ module Addressable
       path_component = new_request_uri[/^([^\?]*)\?(?:.*)$/, 1]
       query_component = new_request_uri[/^(?:[^\?]*)\?(.*)$/, 1]
       path_component = path_component.to_s
-      path_component = (path_component != "" ? path_component : "/")
+      path_component = (!path_component.empty? ? path_component : "/")
       self.path = path_component
       self.query = query_component
 
@@ -1672,7 +1672,7 @@ module Addressable
         # Otherwise, convert to a String, then parse.
         uri = self.class.parse(uri.to_str)
       end
-      if uri.to_s == ""
+      if uri.to_s.empty?
         return self.dup
       end
 
@@ -1703,7 +1703,7 @@ module Addressable
           joined_path = self.class.normalize_path(uri.path)
           joined_query = uri.query
         else
-          if uri.path == nil || uri.path == ""
+          if uri.path == nil || uri.path.empty?
             joined_path = self.path
             if uri.query != nil
               joined_query = uri.query
@@ -1715,7 +1715,7 @@ module Addressable
               joined_path = self.class.normalize_path(uri.path)
             else
               base_path = self.path.dup
-              base_path = "" if base_path == nil
+              base_path = EMPTYSTR if base_path == nil
               base_path = self.class.normalize_path(base_path)
 
               # Section 5.2.3 of RFC 3986
@@ -1724,12 +1724,12 @@ module Addressable
               if base_path =~ /\//
                 base_path.gsub!(/\/[^\/]+$/, "/")
               else
-                base_path = ""
+                base_path = EMPTYSTR
               end
 
               # If the base path is empty and an authority segment has been
               # defined, use a base path of "/"
-              if base_path == "" && self.authority != nil
+              if base_path.empty? && self.authority != nil
                 base_path = "/"
               end
 
@@ -1888,7 +1888,7 @@ module Addressable
           else
             if uri.path != "/"
               components[:path].gsub!(
-                Regexp.new("^" + Regexp.escape(uri.path)), "")
+                Regexp.new("^" + Regexp.escape(uri.path)), EMPTYSTR)
             end
           end
         end
@@ -2204,8 +2204,8 @@ module Addressable
     def validate
       return if !!@validation_deferred
       if self.scheme != nil &&
-          (self.host == nil || self.host == "") &&
-          (self.path == nil || self.path == "")
+          (self.host == nil || self.host.empty?) &&
+          (self.path == nil || self.path.empty?)
         raise InvalidURIError,
           "Absolute URI missing hierarchical segment: '#{self.to_s}'"
       end
@@ -2216,7 +2216,7 @@ module Addressable
           raise InvalidURIError, "Hostname not supplied: '#{self.to_s}'"
         end
       end
-      if self.path != nil && self.path != "" && self.path[0..0] != "/" &&
+      if self.path != nil && !self.path.empty? && self.path[0..0] != "/" &&
           self.authority != nil
         raise InvalidURIError,
           "Cannot have a relative path with an authority set: '#{self.to_s}'"
