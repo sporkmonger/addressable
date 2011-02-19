@@ -25,6 +25,12 @@
 require "addressable/version"
 require "addressable/idna"
 
+begin
+  require "idn"
+  require "addressable/libidn_idna"
+rescue LoadError
+end
+
 module Addressable
   ##
   # This is an implementation of a URI parser based on
