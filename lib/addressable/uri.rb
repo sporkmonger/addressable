@@ -86,11 +86,12 @@ module Addressable
         uri = uri.to_s
       end
 
-      if !uri.respond_to?(:to_str)
-        raise TypeError, "Can't convert #{uri.class} into String."
-      end
       # Otherwise, convert to a String
-      uri = uri.to_str
+      begin
+        uri = uri.to_str
+      rescue TypeError, NoMethodError
+        raise TypeError, "Can't convert #{uri.class} into String."
+      end if not uri.is_a? String
 
       # This Regexp supplied as an example in RFC 3986, and it works great.
       uri_regex =
