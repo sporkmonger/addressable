@@ -949,7 +949,7 @@ module Addressable
         if self.host != nil
           if !self.host.strip.empty?
             result = ::Addressable::IDNA.to_ascii(
-              self.class.unencode_component(self.host.strip.downcase)
+              URI.unencode_component(self.host.strip.downcase)
             )
             if result[-1..-1] == "."
               # Trailing dots are unnecessary
@@ -1132,7 +1132,7 @@ module Addressable
     # @return [Integer] The port component, normalized.
     def normalized_port
       @normalized_port ||= (begin
-        if self.class.port_mapping[normalized_scheme] == self.port
+        if URI.port_mapping[normalized_scheme] == self.port
           nil
         else
           self.port
@@ -1177,7 +1177,7 @@ module Addressable
       @inferred_port ||= (begin
         if port.to_i == 0
           if scheme
-            self.class.port_mapping[scheme.strip.downcase]
+            URI.port_mapping[scheme.strip.downcase]
           else
             nil
           end
@@ -1436,9 +1436,9 @@ module Addressable
         pair.split("=", 2) if pair && !pair.empty?
       end).compact.inject(empty_accumulator.dup) do |accumulator, (key, value)|
         value = true if value.nil?
-        key = self.class.unencode_component(key)
+        key = URI.unencode_component(key)
         if value != true
-          value = self.class.unencode_component(value.gsub(/\+/, " "))
+          value = URI.unencode_component(value.gsub(/\+/, " "))
         end
         if options[:notation] == :flat
           if accumulator[key]
@@ -1512,7 +1512,7 @@ module Addressable
       stack = []
       e = lambda do |component|
         component = component.to_s if component.kind_of?(Symbol)
-        self.class.encode_component(component, CharacterClasses::UNRESERVED)
+        URI.encode_component(component, CharacterClasses::UNRESERVED)
       end
       new_query_values.each do |key, value|
         if value.kind_of?(Hash)
@@ -1632,7 +1632,7 @@ module Addressable
     #   <code>false</code> otherwise.
     def ip_based?
       if self.scheme
-        return self.class.ip_based_schemes.include?(
+        return URI.ip_based_schemes.include?(
           self.scheme.strip.downcase)
       end
       return false
@@ -1668,9 +1668,9 @@ module Addressable
       if !uri.respond_to?(:to_str)
         raise TypeError, "Can't convert #{uri.class} into String."
       end
-      if !uri.kind_of?(self.class)
+      if !uri.kind_of?(URI)
         # Otherwise, convert to a String, then parse.
-        uri = self.class.parse(uri.to_str)
+        uri = URI.parse(uri.to_str)
       end
       if uri.to_s.empty?
         return self.dup
@@ -1692,7 +1692,7 @@ module Addressable
         joined_password = uri.password
         joined_host = uri.host
         joined_port = uri.port
-        joined_path = self.class.normalize_path(uri.path)
+        joined_path = URI.normalize_path(uri.path)
         joined_query = uri.query
       else
         if uri.authority != nil
@@ -1700,7 +1700,7 @@ module Addressable
           joined_password = uri.password
           joined_host = uri.host
           joined_port = uri.port
-          joined_path = self.class.normalize_path(uri.path)
+          joined_path = URI.normalize_path(uri.path)
           joined_query = uri.query
         else
           if uri.path == nil || uri.path.empty?
@@ -1712,11 +1712,11 @@ module Addressable
             end
           else
             if uri.path[0..0] == "/"
-              joined_path = self.class.normalize_path(uri.path)
+              joined_path = URI.normalize_path(uri.path)
             else
               base_path = self.path.dup
               base_path = EMPTYSTR if base_path == nil
-              base_path = self.class.normalize_path(base_path)
+              base_path = URI.normalize_path(base_path)
 
               # Section 5.2.3 of RFC 3986
               #
@@ -1733,7 +1733,7 @@ module Addressable
                 base_path = "/"
               end
 
-              joined_path = self.class.normalize_path(base_path + uri.path)
+              joined_path = URI.normalize_path(base_path + uri.path)
             end
             joined_query = uri.query
           end
@@ -1861,7 +1861,7 @@ module Addressable
     # @return [Addressable::URI]
     #   The normalized relative URI that is equivalent to the original URI.
     def route_from(uri)
-      uri = self.class.parse(uri).normalize
+      uri = URI.parse(uri).normalize
       normalized_self = self.normalize
       if normalized_self.relative?
         raise ArgumentError, "Expected absolute URI, got: #{self.to_s}"
@@ -1919,7 +1919,7 @@ module Addressable
     # @return [Addressable::URI]
     #   The normalized relative URI that is equivalent to the supplied URI.
     def route_to(uri)
-      return self.class.parse(uri).route_from(self)
+      return URI.parse(uri).route_from(self)
     end
 
     ##
@@ -1937,7 +1937,7 @@ module Addressable
       # URI scheme.
       if normalized_scheme == "feed"
         if self.to_s =~ /^feed:\/*http:\/*/
-          return self.class.parse(
+          return URI.parse(
             self.to_s[/^feed:\/*(http:\/*.*)/, 1]
           ).normalize
         end
@@ -2008,7 +2008,7 @@ module Addressable
     #   <code>true</code> if the URIs are equivalent, <code>false</code>
     #   otherwise.
     def ==(uri)
-      return false unless uri.kind_of?(self.class)
+      return false unless uri.kind_of?(URI)
       return self.normalize.to_s == uri.normalize.to_s
     end
 
@@ -2022,7 +2022,7 @@ module Addressable
     #   <code>true</code> if the URIs are equivalent, <code>false</code>
     #   otherwise.
     def eql?(uri)
-      return false unless uri.kind_of?(self.class)
+      return false unless uri.kind_of?(URI)
       return self.to_s == uri.to_s
     end
 
@@ -2141,7 +2141,7 @@ module Addressable
     #
     # @return [String] The URI object's state, as a <code>String</code>.
     def inspect
-      sprintf("#<%s:%#0x URI:%s>", self.class.to_s, self.object_id, self.to_s)
+      sprintf("#<%s:%#0x URI:%s>", URI.to_s, self.object_id, self.to_s)
     end
 
     ##
