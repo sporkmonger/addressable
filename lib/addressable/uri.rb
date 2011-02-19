@@ -725,9 +725,6 @@ module Addressable
     #
     # @param [String, #to_str] new_scheme The new scheme component.
     def scheme=(new_scheme)
-      # Check for frozenness
-      raise TypeError, "Can't modify frozen URI." if self.frozen?
-
       if new_scheme && !new_scheme.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_scheme.class} into String."
       elsif new_scheme
@@ -783,9 +780,6 @@ module Addressable
     #
     # @param [String, #to_str] new_user The new user component.
     def user=(new_user)
-      # Check for frozenness
-      raise TypeError, "Can't modify frozen URI." if self.frozen?
-
       if new_user && !new_user.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_user.class} into String."
       end
@@ -844,9 +838,6 @@ module Addressable
     #
     # @param [String, #to_str] new_password The new password component.
     def password=(new_password)
-      # Check for frozenness
-      raise TypeError, "Can't modify frozen URI." if self.frozen?
-
       if new_password && !new_password.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_password.class} into String."
       end
@@ -913,9 +904,6 @@ module Addressable
     #
     # @param [String, #to_str] new_userinfo The new userinfo component.
     def userinfo=(new_userinfo)
-      # Check for frozenness
-      raise TypeError, "Can't modify frozen URI." if self.frozen?
-
       if new_userinfo && !new_userinfo.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_userinfo.class} into String."
       end
@@ -979,9 +967,6 @@ module Addressable
     #
     # @param [String, #to_str] new_host The new host component.
     def host=(new_host)
-      # Check for frozenness
-      raise TypeError, "Can't modify frozen URI." if self.frozen?
-
       if new_host && !new_host.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_host.class} into String."
       end
@@ -1047,9 +1032,6 @@ module Addressable
     #
     # @param [String, #to_str] new_authority The new authority component.
     def authority=(new_authority)
-      # Check for frozenness
-      raise TypeError, "Can't modify frozen URI." if self.frozen?
-
       if new_authority
         if !new_authority.respond_to?(:to_str)
           raise TypeError, "Can't convert #{new_authority.class} into String."
@@ -1160,9 +1142,6 @@ module Addressable
     #
     # @param [String, Integer, #to_s] new_port The new port component.
     def port=(new_port)
-      # Check for frozenness
-      raise TypeError, "Can't modify frozen URI." if self.frozen?
-
       if new_port != nil && new_port.respond_to?(:to_str)
         new_port = Addressable::URI.unencode_component(new_port.to_str)
       end
@@ -1303,6 +1282,7 @@ module Addressable
             Addressable::URI::CharacterClasses::PCHAR
           )
         end).join("/")
+
         result = self.class.normalize_path(result)
         if result == "" &&
             ["http", "https", "ftp", "tftp"].include?(self.normalized_scheme)
@@ -1317,9 +1297,6 @@ module Addressable
     #
     # @param [String, #to_str] new_path The new path component.
     def path=(new_path)
-      # Check for frozenness
-      raise TypeError, "Can't modify frozen URI." if self.frozen?
-
       if new_path && !new_path.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_path.class} into String."
       end
@@ -1383,9 +1360,6 @@ module Addressable
     #
     # @param [String, #to_str] new_query The new query component.
     def query=(new_query)
-      # Check for frozenness
-      raise TypeError, "Can't modify frozen URI." if self.frozen?
-
       if new_query && !new_query.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_query.class} into String."
       end
@@ -1509,8 +1483,6 @@ module Addressable
     #
     # @param [Hash, #to_hash, Array] new_query_values The new query values.
     def query_values=(new_query_values)
-      # Check for frozenness
-      raise TypeError, "Can't modify frozen URI." if self.frozen?
       if new_query_values == nil
         self.query = nil
         return nil
@@ -1635,9 +1607,6 @@ module Addressable
     #
     # @param [String, #to_str] new_fragment The new fragment component.
     def fragment=(new_fragment)
-      # Check for frozenness
-      raise TypeError, "Can't modify frozen URI." if self.frozen?
-
       if new_fragment && !new_fragment.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_fragment.class} into String."
       end
@@ -2079,28 +2048,6 @@ module Addressable
         :fragment => self.fragment ? self.fragment.dup : nil
       )
       return duplicated_uri
-    end
-
-    ##
-    # Freezes the URI object.
-    #
-    # @return [Addressable::URI] The frozen URI.
-    def freeze
-      # Unfortunately, because of the memoized implementation of many of the
-      # URI methods, the default freeze method will cause unexpected errors.
-      # As an alternative, we freeze the string representation of the URI
-      # instead. This should generally produce the desired effect.
-      self.to_s.freeze
-      return self
-    end
-
-    ##
-    # Determines if the URI is frozen.
-    #
-    # @return [TrueClass, FalseClass]
-    #   <code>true</code> if the URI is frozen, <code>false</code> otherwise.
-    def frozen?
-      self.to_s.frozen?
     end
 
     ##
