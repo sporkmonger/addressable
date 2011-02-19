@@ -60,6 +60,9 @@ module Addressable
       FRAGMENT = PCHAR + "\\/\\?"
     end
 
+    SLASH = '/'
+    EMPTYSTR = ''
+
     ##
     # Returns a URI object based on the parsed string.
     #
@@ -2165,30 +2168,34 @@ module Addressable
     # @param [String] path The path to normalize.
     #
     # @return [String] The normalized path.
+
+    PARENT1 = '.'
+    PARENT2 = '..'
+
+    NPATH1 = /\/\.\/|\/\.$/
+    NPATH2 = /\/([^\/]+)\/\.\.\/|\/([^\/]+)\/\.\.$/
+    NPATH3 = /^\.\.?\/?/
+    NPATH4 = /^\/\.\.?\/|^(\/\.\.?)+\/?$/
+
     def self.normalize_path(path)
       # Section 5.2.4 of RFC 3986
 
       return nil if path.nil?
       normalized_path = path.dup
-      previous_state = normalized_path.dup
       begin
-        previous_state = normalized_path.dup
-        normalized_path.gsub!(/\/\.\//, "/")
-        normalized_path.gsub!(/\/\.$/, "/")
-        parent = normalized_path[/\/([^\/]+)\/\.\.\//, 1]
-        if parent != "." && parent != ".."
-          normalized_path.gsub!(/\/#{parent}\/\.\.\//, "/")
-        end
-        parent = normalized_path[/\/([^\/]+)\/\.\.$/, 1]
-        if parent != "." && parent != ".."
-          normalized_path.gsub!(/\/#{parent}\/\.\.$/, "/")
-        end
-        normalized_path.gsub!(/^\.\.?\/?/, "")
-        normalized_path.gsub!(/^\/\.\.?\//, "/")
+        mod = nil
+        mod ||= normalized_path.gsub!(NPATH1, SLASH)
 
-        # Non-standard
-        normalized_path.gsub!(/^(\/\.\.?)+\/?$/, "/")
-      end until previous_state == normalized_path
+        parent = normalized_path.match(NPATH2)
+        if parent && ((parent[1] != PARENT1 && parent[1] != PARENT2) \
+                      || (parent[2] != PARENT1 && parent[2] != PARENT2))
+          mod ||= normalized_path.gsub!(/\/#{parent[1]}\/\.\.\/|(\/#{parent[2]}\/\.\.$)/, SLASH)
+        end
+
+        mod ||= normalized_path.gsub!(NPATH3, EMPTYSTR)
+        mod ||= normalized_path.gsub!(NPATH4, SLASH)
+      end until mod.nil?
+
       return normalized_path
     end
 
