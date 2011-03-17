@@ -22,6 +22,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
+require File.expand_path("#{File.dirname(__FILE__)}/spec_helper")
 require "addressable/template"
 
 if !"".respond_to?("force_encoding")

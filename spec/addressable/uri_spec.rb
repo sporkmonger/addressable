@@ -22,6 +22,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
+require File.expand_path("#{File.dirname(__FILE__)}/spec_helper")
 require "addressable/uri"
 
 if !"".respond_to?("force_encoding")
@@ -1449,6 +1450,78 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have a query string of 'q=string'" do
     @uri.query.should == "q=string"
+  end
+
+  it "should have a query values of of {q => string}" do
+    @uri.query_values.should == {
+      'q' => "string"
+    }
+  end
+
+  it "should have no fragment" do
+    @uri.fragment.should == nil
+  end
+
+  it "should be considered absolute" do
+    @uri.should be_absolute
+  end
+
+  it "should not be considered relative" do
+    @uri.should_not be_relative
+  end
+
+  it "should be considered to be in normal form" do
+    @uri.normalize.should be_eql(@uri)
+  end
+
+  it "should be identical to its duplicate" do
+    @uri.should == @uri.dup
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'http://example.com/?&q=string'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/?&q=string")
+  end
+
+  it "should use the 'http' scheme" do
+    @uri.scheme.should == "http"
+  end
+
+  it "should have an authority segment of 'example.com'" do
+    @uri.authority.should == "example.com"
+  end
+
+  it "should have a host of 'example.com'" do
+    @uri.host.should == "example.com"
+  end
+
+  it "should have no username" do
+    @uri.user.should == nil
+  end
+
+  it "should have no password" do
+    @uri.password.should == nil
+  end
+
+  it "should use port 80" do
+    @uri.inferred_port.should == 80
+  end
+
+  it "should have a path of '/'" do
+    @uri.path.should == "/"
+  end
+
+  it "should have a query string of 'q=string'" do
+    @uri.query.should == "&q=string"
+  end
+
+  it "should have a query values of of {q => string, nil => true}" do
+    @uri.query_values.should == {
+      'q' => "string",
+      nil => true
+    }
   end
 
   it "should have no fragment" do
