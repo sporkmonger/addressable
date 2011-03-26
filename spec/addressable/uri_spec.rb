@@ -2669,6 +2669,26 @@ describe Addressable::URI, "when parsed from " +
 end
 
 describe Addressable::URI, "when parsed from " +
+  "'http://example.com/search?q=Q%26A'" do
+
+  before do
+    @uri = Addressable::URI.parse("http://example.com/search?q=Q%26A")
+  end
+
+  it "should have a query of 'q=Q%26A'" do
+    @uri.query.should == "q=Q%26A"
+  end
+
+  it "should have query_values of {'q' => 'Q&A'}" do
+    @uri.query_values.should == { 'q' => 'Q&A' }
+  end
+
+  it "should normalize to the original uri (with the ampersand properly percent-encoded)" do
+    @uri.normalize.to_s.should == "http://example.com/search?q=Q%26A"
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/?q&&x=b'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/?q&&x=b")
