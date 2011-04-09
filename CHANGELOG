@@ -1,6 +1,7 @@
 === Addressable 2.2.5
 - 'parsing' a pre-parsed URI object is now a dup operation
 - introduced conditional support for libidn
+- fixed normalization issue on ampersands in query strings
 - added additional tests around handling of query strings
 
 === Addressable 2.2.4
