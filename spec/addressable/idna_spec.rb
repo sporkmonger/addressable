@@ -22,9 +22,12 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
+# Have to use RubyGems to load the idn gem.
+require "rubygems"
+
 require "addressable/idna"
 
-describe Addressable::IDNA, "when converting from unicode to ASCII" do
+shared_examples_for "converting from unicode to ASCII" do
   it "should convert 'www.google.com' correctly" do
     Addressable::IDNA.to_ascii("www.google.com").should == "www.google.com"
   end
@@ -131,7 +134,7 @@ describe Addressable::IDNA, "when converting from unicode to ASCII" do
   end
 end
 
-describe Addressable::IDNA, "when converting from ASCII to unicode" do
+shared_examples_for "converting from ASCII to unicode" do
   it "should convert 'www.google.com' correctly" do
     Addressable::IDNA.to_unicode("www.google.com").should == "www.google.com"
   end
@@ -191,4 +194,24 @@ describe Addressable::IDNA, "when converting from ASCII to unicode" do
       "xn--4ud"
     ).should == "\341\206\265"
   end
+end
+
+describe Addressable::IDNA, "when using the pure-Ruby implementation" do
+  before do
+    Addressable.send(:remove_const, :IDNA)
+    load "addressable/idna/pure.rb"
+  end
+
+  it_should_behave_like "converting from unicode to ASCII"
+  it_should_behave_like "converting from ASCII to unicode"
+end
+
+describe Addressable::IDNA, "when using the native-code implementation" do
+  before do
+    Addressable.send(:remove_const, :IDNA)
+    load "addressable/idna/native.rb"
+  end
+
+  it_should_behave_like "converting from unicode to ASCII"
+  it_should_behave_like "converting from ASCII to unicode"
 end

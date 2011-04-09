@@ -22,14 +22,9 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
+
 require "addressable/version"
 require "addressable/idna"
-
-begin
-  require "idn"
-  require "addressable/libidn_idna"
-rescue LoadError
-end
 
 module Addressable
   ##
