@@ -1,5 +1,7 @@
 === Addressable 2.2.5
 - 'parsing' a pre-parsed URI object is now a dup operation
+- introduced conditional support for libidn
+- added additional tests around handling of query strings
 
 === Addressable 2.2.4
 - added origin support from draft-ietf-websec-origin-00
