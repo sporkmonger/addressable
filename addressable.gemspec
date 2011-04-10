@@ -12,10 +12,10 @@ Ruby's standard library. It more closely conforms to the relevant RFCs and
 adds support for IRIs and URI templates.
 }
   s.email = %q{bob@sporkmonger.com}
-  s.extra_rdoc_files = ["README"]
-  s.files = ["lib/addressable/idna/native.rb", "lib/addressable/idna/pure.rb", "lib/addressable/idna.rb", "lib/addressable/template.rb", "lib/addressable/uri.rb", "lib/addressable/version.rb", "spec/addressable/idna_spec.rb", "spec/addressable/template_spec.rb", "spec/addressable/uri_spec.rb", "tasks/clobber.rake", "tasks/gem.rake", "tasks/git.rake", "tasks/metrics.rake", "tasks/rdoc.rake", "tasks/rubyforge.rake", "tasks/spec.rake", "tasks/yard.rake", "website/index.html", "CHANGELOG", "LICENSE", "Rakefile", "README"]
+  s.extra_rdoc_files = ["README.md"]
+  s.files = ["lib/addressable/idna/native.rb", "lib/addressable/idna/pure.rb", "lib/addressable/idna.rb", "lib/addressable/template.rb", "lib/addressable/uri.rb", "lib/addressable/version.rb", "spec/addressable/idna_spec.rb", "spec/addressable/template_spec.rb", "spec/addressable/uri_spec.rb", "tasks/clobber.rake", "tasks/gem.rake", "tasks/git.rake", "tasks/metrics.rake", "tasks/rdoc.rake", "tasks/rubyforge.rake", "tasks/spec.rake", "tasks/yard.rake", "website/index.html", "CHANGELOG", "LICENSE", "Rakefile", "README.md"]
   s.homepage = %q{http://addressable.rubyforge.org/}
-  s.rdoc_options = ["--main", "README"]
+  s.rdoc_options = ["--main", "README.md"]
   s.require_paths = ["lib"]
   s.rubyforge_project = %q{addressable}
   s.rubygems_version = %q{1.3.7}

@@ -10,7 +10,7 @@ begin
       yardoc.name = "yard"
       yardoc.options = ["--verbose", "--markup", "markdown"]
       yardoc.files = FileList[
-        "lib/**/*.rb", "ext/**/*.c", "README", "CHANGELOG", "LICENSE"
+        "lib/**/*.rb", "ext/**/*.c", "README.md", "CHANGELOG", "LICENSE"
       ].exclude(/idna/)
     end
   end
