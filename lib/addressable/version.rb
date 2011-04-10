@@ -25,7 +25,7 @@
 # Used to prevent the class/module from being loaded more than once
 if !defined?(Addressable::VERSION)
   module Addressable
-    module VERSION #:nodoc:
+    module VERSION
       MAJOR = 2
       MINOR = 2
       TINY  = 5

@@ -8,10 +8,10 @@ begin
     desc "Generate Yardoc documentation"
     YARD::Rake::YardocTask.new do |yardoc|
       yardoc.name = "yard"
-      yardoc.options = ["--verbose"]
-      yardoc.files = [
+      yardoc.options = ["--verbose", "--markup", "markdown"]
+      yardoc.files = FileList[
         "lib/**/*.rb", "ext/**/*.c", "README", "CHANGELOG", "LICENSE"
-      ]
+      ].exclude(/idna/)
     end
   end
 

@@ -63,7 +63,7 @@ module Addressable
       #
       # @param [Addressable::URI] uri
       #   The URI that the template was matched against.
-      def initialize(uri, template, mapping) # :nodoc:
+      def initialize(uri, template, mapping)
         @uri = uri.dup.freeze
         @template = template
         @mapping = mapping.dup.freeze
@@ -154,20 +154,22 @@ module Addressable
     #
     # @param [#restore, #match] processor
     #   A template processor object may optionally be supplied.
-    #
-    # The object should respond to either the <tt>restore</tt> or
-    # <tt>match</tt> messages or both.  The <tt>restore</tt> method should take
-    # two parameters: [String] name and [String] value.  The <tt>restore</tt>
-    # method should reverse any transformations that have been performed on the
-    # value to ensure a valid URI.  The <tt>match</tt> method should take a
-    # single parameter: [String] name.  The <tt>match</tt> method should return
-    # a <tt>String</tt> containing a regular expression capture group for
-    # matching on that particular variable.  The default value is ".*?".  The
-    # <tt>match</tt> method has no effect on multivariate operator expansions.
+    #   
+    #   The object should respond to either the <tt>restore</tt> or
+    #   <tt>match</tt> messages or both. The <tt>restore</tt> method should
+    #   take two parameters: `[String] name` and `[String] value`.
+    #   The <tt>restore</tt> method should reverse any transformations that
+    #   have been performed on the value to ensure a valid URI.
+    #   The <tt>match</tt> method should take a single
+    #   parameter: `[String] name`.  The <tt>match</tt> method should return
+    #   a <tt>String</tt> containing a regular expression capture group for
+    #   matching on that particular variable. The default value is `".*?"`.
+    #   The <tt>match</tt> method has no effect on multivariate operator
+    #   expansions.
     #
     # @return [Hash, NilClass]
-    # The <tt>Hash</tt> mapping that was extracted from the URI, or
-    # <tt>nil</tt> if the URI didn't match the template.
+    #   The <tt>Hash</tt> mapping that was extracted from the URI, or
+    #   <tt>nil</tt> if the URI didn't match the template.
     #
     # @example
     #   class ExampleProcessor
@@ -214,20 +216,22 @@ module Addressable
     #
     # @param [#restore, #match] processor
     #   A template processor object may optionally be supplied.
-    #
-    # The object should respond to either the <tt>restore</tt> or
-    # <tt>match</tt> messages or both. The <tt>restore</tt> method should take
-    # two parameters: [String] name and [String] value. The <tt>restore</tt>
-    # method should reverse any transformations that have been performed on the
-    # value to ensure a valid URI. The <tt>match</tt> method should take a
-    # single parameter: [String] name. The <tt>match</tt> method should return
-    # a <tt>String</tt> containing a regular expression capture group for
-    # matching on that particular variable. The default value is ".*?". The
-    # <tt>match</tt> method has no effect on multivariate operator expansions.
+    #   
+    #   The object should respond to either the <tt>restore</tt> or
+    #   <tt>match</tt> messages or both. The <tt>restore</tt> method should
+    #   take two parameters: `[String] name` and `[String] value`.
+    #   The <tt>restore</tt> method should reverse any transformations that
+    #   have been performed on the value to ensure a valid URI.
+    #   The <tt>match</tt> method should take a single
+    #   parameter: `[String] name`. The <tt>match</tt> method should return
+    #   a <tt>String</tt> containing a regular expression capture group for
+    #   matching on that particular variable. The default value is `".*?"`.
+    #   The <tt>match</tt> method has no effect on multivariate operator
+    #   expansions.
     #
     # @return [Hash, NilClass]
-    # The <tt>Hash</tt> mapping that was extracted from the URI, or
-    # <tt>nil</tt> if the URI didn't match the template.
+    #   The <tt>Hash</tt> mapping that was extracted from the URI, or
+    #   <tt>nil</tt> if the URI didn't match the template.
     #
     # @example
     #   class ExampleProcessor

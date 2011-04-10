@@ -24,8 +24,6 @@
 
 
 module Addressable
-  # A pure Ruby implementation of IDNA.  C was eschewed for the sake of JRuby,
-  # and because performance is largely irrelevant here.
   module IDNA
     # This module is loosely based on idn_actionmailer by Mick Staugaard,
     # the unicode library by Yoshida Masato, and the punycode implementation
@@ -40,7 +38,6 @@ module Addressable
     # http://www.yoshidam.net/Ruby.html#unicode
     # http://rubyforge.org/frs/?group_id=2550
 
-    # :stopdoc:
 
     ACE_PREFIX = "xn--"
 

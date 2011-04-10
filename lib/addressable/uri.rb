@@ -26,6 +26,8 @@
 require "addressable/version"
 require "addressable/idna"
 
+##
+# Addressable is a library for processing links and URIs.
 module Addressable
   ##
   # This is an implementation of a URI parser based on
@@ -398,10 +400,10 @@ module Addressable
     #   is passed, the <code>String</code> must be formatted as a regular
     #   expression character class. (Do not include the surrounding square
     #   brackets.)  For example, <code>"b-zB-Z0-9"</code> would cause
-    #   everything but the letters 'b' through 'z' and the numbers '0' through
-    #  '9' to be percent encoded. If a <code>Regexp</code> is passed, the
-    #   value <code>/[^b-zB-Z0-9]/</code> would have the same effect. A set of
-    #   useful <code>String</code> values may be found in the
+    #   everything but the letters 'b' through 'z' and the numbers '0'
+    #   through '9' to be percent encoded. If a <code>Regexp</code> is passed,
+    #   the value <code>/[^b-zB-Z0-9]/</code> would have the same effect. A
+    #   set of useful <code>String</code> values may be found in the
     #   <code>Addressable::URI::CharacterClasses</code> module. The default
     #   value is the reserved plus unreserved character classes specified in
     #   <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
