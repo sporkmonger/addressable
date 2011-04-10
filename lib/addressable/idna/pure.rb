@@ -301,7 +301,7 @@ module Addressable
     (class <<self; private :lookup_unicode_lowercase; end)
 
     def self.lookup_unicode_composition(unpacked)
-      return COMPOSITION_TABLE[unpacked.pack("C*")]
+      return COMPOSITION_TABLE[unpacked]
     end
     (class <<self; private :lookup_unicode_composition; end)
 
@@ -4567,7 +4567,7 @@ module Addressable
       exclusion = data[UNICODE_DATA_EXCLUSION]
 
       if canonical && exclusion == 0
-        COMPOSITION_TABLE[canonical] = codepoint
+        COMPOSITION_TABLE[canonical.unpack("C*")] = codepoint
       end
     end
 
