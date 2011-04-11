@@ -55,6 +55,22 @@ module Addressable
 
     URIREGEX = /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/
 
+    PORT_MAPPING = {
+      "http" => 80,
+      "https" => 443,
+      "ftp" => 21,
+      "tftp" => 69,
+      "sftp" => 22,
+      "ssh" => 22,
+      "svn+ssh" => 22,
+      "telnet" => 23,
+      "nntp" => 119,
+      "gopher" => 70,
+      "wais" => 210,
+      "ldap" => 389,
+      "prospero" => 1525
+    }
+
     ##
     # Returns a URI object based on the parsed string.
     #
@@ -702,11 +718,31 @@ module Addressable
     end
 
     ##
+    # Freeze URI, initializing instance variables.
+    #
+    # @return [Addressable::URI] The frozen URI object.
+    def freeze
+      self.normalized_scheme
+      self.normalized_user
+      self.normalized_password
+      self.normalized_userinfo
+      self.normalized_host
+      self.normalized_port
+      self.normalized_authority
+      self.normalized_site
+      self.normalized_path
+      self.normalized_query
+      self.normalized_fragment
+      self.hash
+      super
+    end
+
+    ##
     # The scheme component for this URI.
     #
     # @return [String] The scheme component.
     def scheme
-      return @scheme ||= nil
+      return instance_variable_defined?(:@scheme) ? @scheme : nil
     end
 
     ##
@@ -714,18 +750,14 @@ module Addressable
     #
     # @return [String] The scheme component, normalized.
     def normalized_scheme
-      @normalized_scheme ||= (begin
-        if self.scheme != nil
-          if self.scheme =~ /^\s*ssh\+svn\s*$/i
-            "svn+ssh"
-          else
-            Addressable::URI.normalize_component(
-              self.scheme.strip.downcase,
-              Addressable::URI::CharacterClasses::SCHEME
-            )
-          end
+      self.scheme && @normalized_scheme ||= (begin
+        if self.scheme =~ /^\s*ssh\+svn\s*$/i
+          "svn+ssh"
         else
-          nil
+          Addressable::URI.normalize_component(
+            self.scheme.strip.downcase,
+            Addressable::URI::CharacterClasses::SCHEME
+          )
         end
       end)
     end
@@ -760,7 +792,7 @@ module Addressable
     #
     # @return [String] The user component.
     def user
-      return @user ||= nil
+      return instance_variable_defined?(:@user) ? @user : nil
     end
 
     ##
@@ -768,19 +800,15 @@ module Addressable
     #
     # @return [String] The user component, normalized.
     def normalized_user
-      @normalized_user ||= (begin
-        if self.user
-          if normalized_scheme =~ /https?/ && self.user.strip.empty? &&
-              (!self.password || self.password.strip.empty?)
-            nil
-          else
-            Addressable::URI.normalize_component(
-              self.user.strip,
-              Addressable::URI::CharacterClasses::UNRESERVED
-            )
-          end
-        else
+      self.user && @normalized_user ||= (begin
+        if normalized_scheme =~ /https?/ && self.user.strip.empty? &&
+            (!self.password || self.password.strip.empty?)
           nil
+        else
+          Addressable::URI.normalize_component(
+            self.user.strip,
+            Addressable::URI::CharacterClasses::UNRESERVED
+          )
         end
       end)
     end
@@ -796,8 +824,7 @@ module Addressable
       @user = new_user ? new_user.to_str : nil
 
       # You can't have a nil user with a non-nil password
-      @password ||= nil
-      if @password != nil
+      if password != nil
         @user = EMPTYSTR if @user.nil?
       end
 
@@ -818,7 +845,7 @@ module Addressable
     #
     # @return [String] The password component.
     def password
-      return @password ||= nil
+      return instance_variable_defined?(:@password) ? @password : nil
     end
 
     ##
@@ -826,19 +853,15 @@ module Addressable
     #
     # @return [String] The password component, normalized.
     def normalized_password
-      @normalized_password ||= (begin
-        if self.password
-          if normalized_scheme =~ /https?/ && self.password.strip.empty? &&
-              (!self.user || self.user.strip.empty?)
-            nil
-          else
-            Addressable::URI.normalize_component(
-              self.password.strip,
-              Addressable::URI::CharacterClasses::UNRESERVED
-            )
-          end
-        else
+      self.password && @normalized_password ||= (begin
+        if self.normalized_scheme =~ /https?/ && self.password.strip.empty? &&
+            (!self.user || self.user.strip.empty?)
           nil
+        else
+          Addressable::URI.normalize_component(
+            self.password.strip,
+            Addressable::URI::CharacterClasses::UNRESERVED
+          )
         end
       end)
     end
@@ -878,7 +901,7 @@ module Addressable
     #
     # @return [String] The userinfo component.
     def userinfo
-      @userinfo ||= (begin
+      (self.user || self.password) && @userinfo ||= (begin
         current_user = self.user
         current_password = self.password
         if !current_user && !current_password
@@ -896,7 +919,7 @@ module Addressable
     #
     # @return [String] The userinfo component, normalized.
     def normalized_userinfo
-      @normalized_userinfo ||= (begin
+      self.userinfo && @normalized_userinfo ||= (begin
         current_user = self.normalized_user
         current_password = self.normalized_password
         if !current_user && !current_password
@@ -944,7 +967,7 @@ module Addressable
     #
     # @return [String] The host component.
     def host
-      return @host ||= nil
+      return instance_variable_defined?(:@host) ? @host : nil
     end
 
     ##
@@ -952,7 +975,7 @@ module Addressable
     #
     # @return [String] The host component, normalized.
     def normalized_host
-      @normalized_host ||= (begin
+      self.host && @normalized_host ||= (begin
         if self.host != nil
           if !self.host.strip.empty?
             result = ::Addressable::IDNA.to_ascii(
@@ -998,20 +1021,16 @@ module Addressable
     #
     # @return [String] The authority component.
     def authority
-      @authority ||= (begin
-        if self.host.nil?
-          nil
-        else
-          authority = ""
-          if self.userinfo != nil
-            authority << "#{self.userinfo}@"
-          end
-          authority << self.host
-          if self.port != nil
-            authority << ":#{self.port}"
-          end
-          authority
+      self.host && @authority ||= (begin
+        authority = ""
+        if self.userinfo != nil
+          authority << "#{self.userinfo}@"
         end
+        authority << self.host
+        if self.port != nil
+          authority << ":#{self.port}"
+        end
+        authority
       end)
     end
 
@@ -1020,20 +1039,16 @@ module Addressable
     #
     # @return [String] The authority component, normalized.
     def normalized_authority
-      @normalized_authority ||= (begin
-        if self.normalized_host.nil?
-          nil
-        else
-          authority = ""
-          if self.normalized_userinfo != nil
-            authority << "#{self.normalized_userinfo}@"
-          end
-          authority << self.normalized_host
-          if self.normalized_port != nil
-            authority << ":#{self.normalized_port}"
-          end
-          authority
+      self.authority && @normalized_authority ||= (begin
+        authority = ""
+        if self.normalized_userinfo != nil
+          authority << "#{self.normalized_userinfo}@"
         end
+        authority << self.normalized_host
+        if self.normalized_port != nil
+          authority << ":#{self.normalized_port}"
+        end
+        authority
       end)
     end
 
@@ -1065,7 +1080,6 @@ module Addressable
       self.port = defined?(new_port) ? new_port : nil
 
       # Reset dependant values
-      @inferred_port = nil
       @userinfo = nil
       @normalized_userinfo = nil
       @uri_string = nil
@@ -1106,21 +1120,7 @@ module Addressable
     # numbers. Adding new schemes to this hash, as necessary, will allow
     # for better URI normalization.
     def self.port_mapping
-      @port_mapping ||= {
-        "http" => 80,
-        "https" => 443,
-        "ftp" => 21,
-        "tftp" => 69,
-        "sftp" => 22,
-        "ssh" => 22,
-        "svn+ssh" => 22,
-        "telnet" => 23,
-        "nntp" => 119,
-        "gopher" => 70,
-        "wais" => 210,
-        "ldap" => 389,
-        "prospero" => 1525
-      }
+      PORT_MAPPING
     end
 
     ##
@@ -1130,7 +1130,7 @@ module Addressable
     #
     # @return [Integer] The port component.
     def port
-      return @port ||= nil
+      return instance_variable_defined?(:@port) ? @port : nil
     end
 
     ##
@@ -1138,13 +1138,11 @@ module Addressable
     #
     # @return [Integer] The port component, normalized.
     def normalized_port
-      @normalized_port ||= (begin
-        if URI.port_mapping[normalized_scheme] == self.port
-          nil
-        else
-          self.port
-        end
-      end)
+      if URI.port_mapping[self.normalized_scheme] == self.port
+        nil
+      else
+        self.port
+      end
     end
 
     ##
@@ -1165,7 +1163,6 @@ module Addressable
 
       # Reset dependant values
       @authority = nil
-      @inferred_port = nil
       @normalized_port = nil
       @uri_string = nil
       @hash = nil
@@ -1181,17 +1178,15 @@ module Addressable
     #
     # @return [Integer] The inferred port component.
     def inferred_port
-      @inferred_port ||= (begin
-        if port.to_i == 0
-          if scheme
-            URI.port_mapping[scheme.strip.downcase]
-          else
-            nil
-          end
+      if self.port.to_i == 0
+        if self.scheme
+          URI.port_mapping[self.scheme.strip.downcase]
         else
-          port.to_i
+          nil
         end
-      end)
+      else
+        self.port.to_i
+      end
     end
 
     ##
@@ -1204,15 +1199,11 @@ module Addressable
     #
     # @return [String] The components that identify a site.
     def site
-      @site ||= (begin
-        if self.scheme || self.authority
-          site_string = ""
-          site_string << "#{self.scheme}:" if self.scheme != nil
-          site_string << "//#{self.authority}" if self.authority != nil
-          site_string
-        else
-          nil
-        end
+      (self.scheme || self.authority) && @site ||= (begin
+        site_string = ""
+        site_string << "#{self.scheme}:" if self.scheme != nil
+        site_string << "//#{self.authority}" if self.authority != nil
+        site_string
       end)
     end
 
@@ -1226,19 +1217,15 @@ module Addressable
     #
     # @return [String] The normalized components that identify a site.
     def normalized_site
-      @site ||= (begin
-        if self.normalized_scheme || self.normalized_authority
-          site_string = ""
-          if self.normalized_scheme != nil
-            site_string << "#{self.normalized_scheme}:"
-          end
-          if self.normalized_authority != nil
-            site_string << "//#{self.normalized_authority}"
-          end
-          site_string
-        else
-          nil
+      self.site && @normalized_site ||= (begin
+        site_string = ""
+        if self.normalized_scheme != nil
+          site_string << "#{self.normalized_scheme}:"
         end
+        if self.normalized_authority != nil
+          site_string << "//#{self.normalized_authority}"
+        end
+        site_string
       end)
     end
 
@@ -1269,8 +1256,7 @@ module Addressable
     #
     # @return [String] The path component.
     def path
-      @path ||= EMPTYSTR
-      return @path
+      return instance_variable_defined?(:@path) ? @path : EMPTYSTR
     end
 
     NORMPATH = /^(?!\/)[^\/:]*:.*$/
@@ -1283,7 +1269,7 @@ module Addressable
         if self.scheme == nil && self.path != nil && !self.path.empty? &&
             self.path =~ NORMPATH
           # Relative paths with colons in the first segment are ambiguous.
-          self.path.sub!(":", "%2F")
+          self.path.sub(":", "%2F")
         end
         # String#split(delimeter, -1) uses the more strict splitting behavior
         # found by default in Python.
@@ -1346,7 +1332,7 @@ module Addressable
     #
     # @return [String] The query component.
     def query
-      return @query ||= nil
+      return instance_variable_defined?(:@query) ? @query : nil
     end
 
     ##
@@ -1354,17 +1340,13 @@ module Addressable
     #
     # @return [String] The query component, normalized.
     def normalized_query
-      @normalized_query ||= (begin
-        if self.query
-          (self.query.split("&", -1).map do |pair|
-            Addressable::URI.normalize_component(
-              pair,
-              Addressable::URI::CharacterClasses::QUERY.sub("\\&", "")
-            )
-          end).join("&")
-        else
-          nil
-        end
+      self.query && @normalized_query ||= (begin
+        (self.query.split("&", -1).map do |pair|
+          Addressable::URI.normalize_component(
+            pair,
+            Addressable::URI::CharacterClasses::QUERY.sub("\\&", "")
+          )
+        end).join("&")
       end)
     end
 
@@ -1595,7 +1577,7 @@ module Addressable
     #
     # @return [String] The fragment component.
     def fragment
-      return @fragment ||= nil
+      return instance_variable_defined?(:@fragment) ? @fragment : nil
     end
 
     ##
@@ -1603,15 +1585,11 @@ module Addressable
     #
     # @return [String] The fragment component, normalized.
     def normalized_fragment
-      @normalized_fragment ||= (begin
-        if self.fragment
-          Addressable::URI.normalize_component(
-            self.fragment.strip,
-            Addressable::URI::CharacterClasses::FRAGMENT
-          )
-        else
-          nil
-        end
+      self.fragment && @normalized_fragment ||= (begin
+        Addressable::URI.normalize_component(
+          self.fragment.strip,
+          Addressable::URI::CharacterClasses::FRAGMENT
+        )
       end)
     end
 
