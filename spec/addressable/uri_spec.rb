@@ -4354,6 +4354,17 @@ describe Addressable::URI, "when given the input " +
   end
 end
 
+describe Addressable::URI, "when given the input " +
+    "'https://example.com/'" do
+  before do
+    @input = "https://example.com/"
+  end
+
+  it "should heuristically parse to 'https://example.com/'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    @uri.to_s.should == "https://example.com/"
+  end
+end
 
 describe Addressable::URI, "when given the input " +
     "'http:example.com/'" do
@@ -4370,6 +4381,24 @@ describe Addressable::URI, "when given the input " +
       "even with a scheme hint of 'ftp'" do
     @uri = Addressable::URI.heuristic_parse(@input, {:scheme => 'ftp'})
     @uri.to_s.should == "http://example.com/"
+  end
+end
+
+describe Addressable::URI, "when given the input " +
+    "'https:example.com/'" do
+  before do
+    @input = "https:example.com/"
+  end
+
+  it "should heuristically parse to 'https://example.com/'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    @uri.to_s.should == "https://example.com/"
+  end
+
+  it "should heuristically parse to 'https://example.com/' " +
+      "even with a scheme hint of 'ftp'" do
+    @uri = Addressable::URI.heuristic_parse(@input, {:scheme => 'ftp'})
+    @uri.to_s.should == "https://example.com/"
   end
 end
 
