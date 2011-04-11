@@ -1266,10 +1266,10 @@ module Addressable
     # @return [String] The path component, normalized.
     def normalized_path
       @normalized_path ||= (begin
-        path = self.path
-        if self.scheme == nil && path != nil && !self.path.empty? && path =~ NORMPATH
+        path = self.path.to_s
+        if self.scheme == nil && path =~ NORMPATH
           # Relative paths with colons in the first segment are ambiguous.
-          path.sub!(":", "%2F")
+          path = path.sub(":", "%2F")
         end
         # String#split(delimeter, -1) uses the more strict splitting behavior
         # found by default in Python.
