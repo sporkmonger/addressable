@@ -1266,14 +1266,14 @@ module Addressable
     # @return [String] The path component, normalized.
     def normalized_path
       @normalized_path ||= (begin
-        if self.scheme == nil && self.path != nil && !self.path.empty? &&
-            self.path =~ NORMPATH
+        path = self.path
+        if self.scheme == nil && path != nil && !self.path.empty? && path =~ NORMPATH
           # Relative paths with colons in the first segment are ambiguous.
-          self.path.sub(":", "%2F")
+          path.sub!(":", "%2F")
         end
         # String#split(delimeter, -1) uses the more strict splitting behavior
         # found by default in Python.
-        result = (self.path.strip.split(SLASH, -1).map do |segment|
+        result = (path.strip.split(SLASH, -1).map do |segment|
           Addressable::URI.normalize_component(
             segment,
             Addressable::URI::CharacterClasses::PCHAR
