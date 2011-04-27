@@ -2063,6 +2063,11 @@ module Addressable
       return duplicated_uri
     end
 
+    def freeze
+      to_s
+      super
+    end
+
     ##
     # Omits components from a URI.
     #

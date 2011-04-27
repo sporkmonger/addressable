@@ -166,6 +166,11 @@ describe Addressable::URI, "when created from nil components" do
     @uri.to_s.should == ""
   end
 
+  it "should be an empty uri if the object is frozen" do
+    @uri.freeze
+    @uri.to_s.should == ""
+  end
+
   it "should raise an error if the scheme is set to whitespace" do
     (lambda do
       @uri.scheme = "\t \n"
