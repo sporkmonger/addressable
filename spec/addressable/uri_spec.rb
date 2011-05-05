@@ -3490,6 +3490,20 @@ describe Addressable::URI, "when parsed from " +
 end
 
 describe Addressable::URI, "when parsed from " +
+  "'http://liveandcode.com/a/../?  '" do
+  before do
+    @uri = Addressable::URI.parse(
+      "http://liveandcode.com/a/../?  "
+    )
+  end
+
+  it "should normalize to 'http://liveandcode.com/'" do
+    @uri.normalize.should ==
+      Addressable::URI.parse('http://liveandcode.com/')
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
     "'http://www.詹姆斯.com/'" do
   before do
     @uri = Addressable::URI.parse("http://www.詹姆斯.com/")
