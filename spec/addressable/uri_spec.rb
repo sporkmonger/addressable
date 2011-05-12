@@ -3954,15 +3954,15 @@ describe Addressable::URI, "when given a Windows root directory" do
   end
 end
 
-describe Addressable::URI, "when given the path '/home/user/'" do
+describe Addressable::URI, "when given the path '/one/two/'" do
   before do
-    @path = '/home/user/'
+    @path = '/one/two/'
   end
 
   it "should convert to " +
-      "\'file:///home/user/\'" do
+      "\'file:///one/two/\'" do
     @uri = Addressable::URI.convert_path(@path)
-    @uri.to_str.should == "file:///home/user/"
+    @uri.to_str.should == "file:///one/two/"
   end
 
   it "should have an origin of 'file://'" do
