@@ -1,3 +1,7 @@
+## Addressable 2.2.6
+- changed the way ambiguous paths are handled
+- fixed bug with frozen URIs
+
 ## Addressable 2.2.5
 - 'parsing' a pre-parsed URI object is now a dup operation
 - introduced conditional support for libidn
