@@ -2089,6 +2089,11 @@ module Addressable
     #
     # @return [String] The URI's <code>String</code> representation.
     def to_s
+      if self.scheme == nil && self.path != nil && !self.path.empty? &&
+          self.path =~ NORMPATH
+        raise InvalidURIError,
+          "Cannot assemble URI string with ambiguous path: '#{self.path}'"
+      end
       @uri_string ||= (begin
         uri_string = ""
         uri_string << "#{self.scheme}:" if self.scheme != nil

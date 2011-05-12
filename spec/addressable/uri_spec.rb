@@ -4592,8 +4592,11 @@ describe Addressable::URI, "when assigning path values" do
 
   it "should correctly assign paths containing colons" do
     @uri.path = "acct:bob@sporkmonger.com"
-    Addressable::URI.parse(@uri.normalize.to_str).path.should == @uri.path
+    @uri.path.should == "acct:bob@sporkmonger.com"
     @uri.normalize.to_str.should == "acct%2Fbob@sporkmonger.com"
+    (lambda { @uri.to_s }).should raise_error(
+      Addressable::URI::InvalidURIError
+    )
   end
 
   it "should correctly assign paths containing colons" do

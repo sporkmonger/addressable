@@ -1166,11 +1166,11 @@ describe Addressable::URI, "when given the mapping supplied in " +
 
   it "should result in ':%E1%B9%A1:%E1%B9%A1:' " +
       "when used to expand '{-neg|:|corge}{-suffix|:|plugh}'" do
+    # Note: We need to check the path, because technically, this is an
+    # invalid URI.
     Addressable::Template.new(
       "{-neg|:|corge}{-suffix|:|plugh}"
-    ).expand(
-      @mapping
-    ).to_s.should == ":%E1%B9%A1:%E1%B9%A1:"
+    ).expand(@mapping).path.should == ":%E1%B9%A1:%E1%B9%A1:"
   end
 
   it "should result in '../ben%20%26%20jerrys/' " +
@@ -1193,11 +1193,11 @@ describe Addressable::URI, "when given the mapping supplied in " +
 
   it "should result in ':200:' " +
       "when used to expand ':{1-a_b.c}:'" do
+    # Note: We need to check the path, because technically, this is an
+    # invalid URI.
     Addressable::Template.new(
       ":{1-a_b.c}:"
-    ).expand(
-      @mapping
-    ).to_s.should == ":200:"
+    ).expand(@mapping).path.should == ":200:"
   end
 end
 
