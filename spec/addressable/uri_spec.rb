@@ -206,6 +206,108 @@ describe Addressable::URI, "when created from nil components" do
   end
 end
 
+describe Addressable::URI, "when frozen" do
+  before do
+    @uri = Addressable::URI.new.freeze
+  end
+
+  it "returns nil for #scheme" do
+    @uri.scheme.should == nil
+  end
+
+  it "returns nil for #normalized_scheme" do
+    @uri.normalized_scheme.should == nil
+  end
+
+  it "returns nil for #user" do
+    @uri.user .should == nil
+  end
+
+  it "returns nil for #normalized_user" do
+    @uri.normalized_user.should == nil
+  end
+
+  it "returns nil for #password" do
+    @uri.password.should == nil
+  end
+
+  it "returns nil for #normalized_password" do
+    @uri.normalized_password.should == nil
+  end
+
+  it "returns nil for #userinfo" do
+    @uri.userinfo.should == nil
+  end
+
+  it "returns nil for #normalized_userinfo" do
+    @uri.normalized_userinfo.should == nil
+  end
+
+  it "returns nil for #host" do
+    @uri.host.should == nil
+  end
+
+  it "returns nil for #normalized_host" do
+    @uri.normalized_host.should == nil
+  end
+
+  it "returns nil for #authority" do
+    @uri.authority.should == nil
+  end
+
+  it "returns nil for #normalized_authority" do
+    @uri.normalized_authority.should == nil
+  end
+
+  it "returns nil for #port" do
+    @uri.port.should == nil
+  end
+
+  it "returns nil for #normalized_port" do
+    @uri.normalized_port.should == nil
+  end
+
+  it "returns nil for #site" do
+    @uri.site.should == nil
+  end
+
+  it "returns nil for #normalized_site" do
+    @uri.normalized_site.should == nil
+  end
+
+  it "returns '' for #path" do
+    @uri.path.should == ''
+  end
+
+  it "returns '' for #normalized_path" do
+    @uri.normalized_path.should == ''
+  end
+
+  it "returns nil for #query" do
+    @uri.query.should == nil
+  end
+
+  it "returns nil for #normalized_query" do
+    @uri.normalized_query.should == nil
+  end
+
+  it "returns nil for #fragment" do
+    @uri.fragment.should == nil
+  end
+
+  it "returns nil for #normalized_fragment" do
+    @uri.normalized_fragment.should == nil
+  end
+
+  it "returns #hash" do
+    @uri.hash.should_not be nil
+  end
+
+  it "returns #to_s" do
+    @uri.to_s.should == ''
+  end
+end
+
 describe Addressable::URI, "when created from string components" do
   before do
     @uri = Addressable::URI.new(
@@ -4632,107 +4734,5 @@ describe Addressable::URI, "when assigning path values" do
       @uri.path = "uuid:0b3ecf60-3f93-11df-a9c3-001f5bfffe12"
       @uri.scheme = "urn"
     end).should_not raise_error(Addressable::URI::InvalidURIError)
-  end
-end
-
-describe Addressable::URI, "when frozen" do
-  before do
-    @uri = Addressable::URI.new.freeze
-  end
-
-  it "returns nil for #scheme" do
-    @uri.scheme.should == nil
-  end
-
-  it "returns nil for #normalized_scheme" do
-    @uri.normalized_scheme.should == nil
-  end
-
-  it "returns nil for #user" do
-    @uri.user .should == nil
-  end
-
-  it "returns nil for #normalized_user" do
-    @uri.normalized_user.should == nil
-  end
-
-  it "returns nil for #password" do
-    @uri.password.should == nil
-  end
-
-  it "returns nil for #normalized_password" do
-    @uri.normalized_password.should == nil
-  end
-
-  it "returns nil for #userinfo" do
-    @uri.userinfo.should == nil
-  end
-
-  it "returns nil for #normalized_userinfo" do
-    @uri.normalized_userinfo.should == nil
-  end
-
-  it "returns nil for #host" do
-    @uri.host.should == nil
-  end
-
-  it "returns nil for #normalized_host" do
-    @uri.normalized_host.should == nil
-  end
-
-  it "returns nil for #authority" do
-    @uri.authority.should == nil
-  end
-
-  it "returns nil for #normalized_authority" do
-    @uri.normalized_authority.should == nil
-  end
-
-  it "returns nil for #port" do
-    @uri.port.should == nil
-  end
-
-  it "returns nil for #normalized_port" do
-    @uri.normalized_port.should == nil
-  end
-
-  it "returns nil for #site" do
-    @uri.site.should == nil
-  end
-
-  it "returns nil for #normalized_site" do
-    @uri.normalized_site.should == nil
-  end
-
-  it "returns '' for #path" do
-    @uri.path.should == ''
-  end
-
-  it "returns '' for #normalized_path" do
-    @uri.normalized_path.should == ''
-  end
-
-  it "returns nil for #query" do
-    @uri.query.should == nil
-  end
-
-  it "returns nil for #normalized_query" do
-    @uri.normalized_query.should == nil
-  end
-
-  it "returns nil for #fragment" do
-    @uri.fragment.should == nil
-  end
-
-  it "returns nil for #normalized_fragment" do
-    @uri.normalized_fragment.should == nil
-  end
-
-  it "returns #hash" do
-    @uri.hash.should_not be nil
-  end
-
-  it "returns #to_s" do
-    @uri.to_s.should == ''
   end
 end
