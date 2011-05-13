@@ -1,6 +1,7 @@
 ## Addressable 2.2.6
 - changed the way ambiguous paths are handled
 - fixed bug with frozen URIs
+- https supported in heuristic parsing
 
 ## Addressable 2.2.5
 - 'parsing' a pre-parsed URI object is now a dup operation
