@@ -169,6 +169,8 @@ module Addressable
       case uri
       when /^http:\/+/
         uri.gsub!(/^http:\/+/, "http://")
+      when /^https:\/+/
+        uri.gsub!(/^https:\/+/, "https://")
       when /^feed:\/+http:\/+/
         uri.gsub!(/^feed:\/+http:\/+/, "feed:http://")
       when /^feed:\/+/
