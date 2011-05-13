@@ -903,12 +903,10 @@ module Addressable
     #
     # @return [String] The userinfo component.
     def userinfo
-      (self.user || self.password) && @userinfo ||= (begin
-        current_user = self.user
-        current_password = self.password
-        if !current_user && !current_password
-          nil
-        elsif current_user && current_password
+      current_user = self.user
+      current_password = self.password
+      (current_user || current_password) && @userinfo ||= (begin
+        if current_user && current_password
           "#{current_user}:#{current_password}"
         elsif current_user && !current_password
           "#{current_user}"
