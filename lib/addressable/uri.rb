@@ -1498,38 +1498,9 @@ module Addressable
         new_query_values.sort!
       end
       # new_query_values have form [['key1', 'value1'], ['key2', 'value2']]
-
-      # Algorithm shamelessly stolen from Julien Genestoux, slightly modified
       buffer = ""
-      stack = []
-      e = lambda do |component|
-        component = component.to_s if component.kind_of?(Symbol)
-        URI.encode_component(component, CharacterClasses::UNRESERVED)
-      end
-      new_query_values.each do |key, value|
-        if value.kind_of?(Hash)
-          stack << [key, value]
-        elsif value.kind_of?(Array)
-          stack << [
-            key,
-            value.inject({}) { |accu, x| accu[accu.size.to_s] = x; accu }
-          ]
-        elsif value == true
-          buffer << "#{e.call(key)}&"
-        else
-          buffer << "#{e.call(key)}=#{e.call(value)}&"
-        end
-      end
-      stack.each do |(parent, hash)|
-        (hash.sort_by { |key| key.to_s }).each do |(key, value)|
-          if value.kind_of?(Hash)
-            stack << ["#{parent}[#{key}]", value]
-          elsif value == true
-            buffer << "#{parent}[#{e.call(key)}]&"
-          else
-            buffer << "#{parent}[#{e.call(key)}]=#{e.call(value)}&"
-          end
-        end
+      new_query_values.each do |parent, value|
+        buffer << "#{to_query(encode_uri_component(parent), value)}&"
       end
       self.query = buffer.chop
     end
@@ -2239,6 +2210,48 @@ module Addressable
       @query = uri.query
       @fragment = uri.fragment
       return self
+    end
+
+    ##
+    # Joins and converts parent and value into a properly encoded and ordered URL query.
+    #
+    # @param [String] parent an URI encoded component.
+    # @param [Array, Hash, Symbol, #to_str] value
+    #
+    # @return [String] a properly escaped and ordered URL query.
+    def to_query(parent, value)
+      if value.is_a?(Hash)
+        value = value.map{ |key, value| [encode_uri_component(key), value] }
+        value.sort!
+        buffer = ""
+        value.each do |key, val|
+          new_parent = "#{parent}[#{key}]"
+          buffer << "#{to_query(new_parent, val)}&"
+        end
+        buffer.chop
+      elsif value.is_a?(Array)
+        buffer = ""
+        value.each_with_index do |val, i|
+          new_parent = "#{parent}[#{i}]"
+          buffer << "#{to_query(new_parent, val)}&"
+        end
+        buffer.chop
+      elsif value == true
+        parent
+      else
+        "#{parent}=#{encode_uri_component(value)}"
+      end
+    end
+
+    ##
+    # Encodes URI component
+    #
+    # @param [Symbol, #to_str] component to be URI encoded
+    #
+    # @return [String] an URI encoded component.
+    def encode_uri_component(component)
+      component = component.to_s if component.kind_of?(Symbol)
+      URI.encode_component(component, CharacterClasses::UNRESERVED)
     end
   end
 end

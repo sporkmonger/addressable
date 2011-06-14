@@ -13,7 +13,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-
 require "addressable/uri"
 
 if !"".respond_to?("force_encoding")
@@ -4653,6 +4652,16 @@ describe Addressable::URI, "when assigning query values" do
     @uri.query.should == "a=a&b[0]=c&b[1]=d&b[2]=e"
   end
 
+  it "should correctly assign {'a' => {'b' => [ 'c']}}" do
+    @uri.query_values = { 'a' => {'b' => [ 'c'] } }
+    @uri.query.should == "a[b][0]=c"
+  end
+
+  it "should correctly assign {:b => '2', :a => {:c => '1'}}" do
+    @uri.query_values = {:b => '2', :a => { :c => '1' }}
+    @uri.query.should == "a[c]=1&b=2"
+  end
+
   it "should correctly assign " +
       "{:a => 'a', :b => [{:c => 'c', :d => 'd'}, {:e => 'e', :f => 'f'}]}" do
     @uri.query_values = {
@@ -4683,6 +4692,16 @@ describe Addressable::URI, "when assigning query values" do
       :a => 'a', :b => {:c => true, :d => 'd'}
     }
     @uri.query.should == "a=a&b[c]&b[d]=d"
+  end
+
+  it "should correctly assign " +
+  "{:z => '1', :f => ['2', {'999.1' => ['3','4']}, ['h', 'i']], :a => {:b => ['c', 'd'], :e => true, :y => '0.5'}}" do
+    @uri.query_values = {
+      :z => '1',
+      :f => [ '2', {'999.1' => ['3','4']}, ['h', 'i'] ],
+      :a => { :b => ['c', 'd'], :e => true, :y => '0.5' }
+    }
+    @uri.query.should == "a[b][0]=c&a[b][1]=d&a[e]&a[y]=0.5&f[0]=2&f[1][999.1][0]=3&f[1][999.1][1]=4&f[2][0]=h&f[2][1]=i&z=1"
   end
 
   it "should correctly assign {}" do
