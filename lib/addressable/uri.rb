@@ -2250,7 +2250,7 @@ module Addressable
     #
     # @return [String] an URI encoded component.
     def encode_uri_component(component)
-      component = component.to_s if component.kind_of?(Symbol)
+      component = component.to_s if component.kind_of?(Symbol) || component.kind_of?(Numeric)
       URI.encode_component(component, CharacterClasses::UNRESERVED)
     end
   end

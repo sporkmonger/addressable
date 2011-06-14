@@ -4694,12 +4694,17 @@ describe Addressable::URI, "when assigning query values" do
     @uri.query.should == "a=a&b[c]&b[d]=d"
   end
 
+  it "should correctly assign {:a => 1, :b => 1.5}" do
+    @uri.query_values = { :a => 1, :b => 1.5 }
+    @uri.query.should == "a=1&b=1.5"
+  end
+
   it "should correctly assign " +
-  "{:z => '1', :f => ['2', {'999.1' => ['3','4']}, ['h', 'i']], :a => {:b => ['c', 'd'], :e => true, :y => '0.5'}}" do
+  "{:z => 1, :f => [2, {999.1 => [3,'4']}, ['h', 'i']], :a => {:b => ['c', 'd'], :e => true, :y => 0.5}}" do
     @uri.query_values = {
-      :z => '1',
-      :f => [ '2', {'999.1' => ['3','4']}, ['h', 'i'] ],
-      :a => { :b => ['c', 'd'], :e => true, :y => '0.5' }
+      :z => 1,
+      :f => [ 2, {999.1 => [3,'4']}, ['h', 'i'] ],
+      :a => { :b => ['c', 'd'], :e => true, :y => 0.5 }
     }
     @uri.query.should == "a[b][0]=c&a[b][1]=d&a[e]&a[y]=0.5&f[0]=2&f[1][999.1][0]=3&f[1][999.1][1]=4&f[2][0]=h&f[2][1]=i&z=1"
   end
