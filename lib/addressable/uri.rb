@@ -1501,13 +1501,55 @@ module Addressable
         # Only to be used for non-Array inputs. Arrays should preserve order.
         new_query_values.sort!
       end
+
+      ##
+      # Joins and converts parent and value into a properly encoded and
+      # ordered URL query.
+      #
+      # @private
+      # @param [String] parent an URI encoded component.
+      # @param [Array, Hash, Symbol, #to_str] value
+      #
+      # @return [String] a properly escaped and ordered URL query.
+      to_query = lambda do |parent, value|
+        if value.is_a?(Hash)
+          value = value.map do |key, value|
+            [
+              URI.encode_component(key, CharacterClasses::UNRESERVED),
+              value
+            ]
+          end
+          value.sort!
+          buffer = ""
+          value.each do |key, val|
+            new_parent = "#{parent}[#{key}]"
+            buffer << "#{to_query.call(new_parent, val)}&"
+          end
+          return buffer.chop
+        elsif value.is_a?(Array)
+          buffer = ""
+          value.each_with_index do |val, i|
+            new_parent = "#{parent}[#{i}]"
+            buffer << "#{to_query.call(new_parent, val)}&"
+          end
+          return buffer.chop
+        elsif value == true
+          return parent
+        else
+          encoded_value = URI.encode_component(
+            value, CharacterClasses::UNRESERVED
+          )
+          return "#{parent}=#{encoded_value}"
+        end
+      end
+
       # new_query_values have form [['key1', 'value1'], ['key2', 'value2']]
       buffer = ""
       new_query_values.each do |parent, value|
         encoded_parent = URI.encode_component(
           parent, CharacterClasses::UNRESERVED
         )
-        buffer << "#{self.class.to_query(encoded_parent, value)}&"
+        buffer << "#{to_query.call(encoded_parent, value)}&"
       end
       self.query = buffer.chop
     end
@@ -2217,47 +2259,6 @@ module Addressable
       @query = uri.query
       @fragment = uri.fragment
       return self
-    end
-
-    ##
-    # Joins and converts parent and value into a properly encoded and
-    # ordered URL query.
-    #
-    # @private
-    # @param [String] parent an URI encoded component.
-    # @param [Array, Hash, Symbol, #to_str] value
-    #
-    # @return [String] a properly escaped and ordered URL query.
-    def self.to_query(parent, value)
-      if value.is_a?(Hash)
-        value = value.map do |key, value|
-          [
-            self.encode_component(key, CharacterClasses::UNRESERVED),
-            value
-          ]
-        end
-        value.sort!
-        buffer = ""
-        value.each do |key, val|
-          new_parent = "#{parent}[#{key}]"
-          buffer << "#{self.to_query(new_parent, val)}&"
-        end
-        return buffer.chop
-      elsif value.is_a?(Array)
-        buffer = ""
-        value.each_with_index do |val, i|
-          new_parent = "#{parent}[#{i}]"
-          buffer << "#{self.to_query(new_parent, val)}&"
-        end
-        return buffer.chop
-      elsif value == true
-        return parent
-      else
-        encoded_value = self.encode_component(
-          value, CharacterClasses::UNRESERVED
-        )
-        return "#{parent}=#{encoded_value}"
-      end
     end
   end
 end
