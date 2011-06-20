@@ -1,3 +1,6 @@
+## Addressable 2.2.7
+- fixed issues related to Addressable::URI#query_values=
+
 ## Addressable 2.2.6
 - changed the way ambiguous paths are handled
 - fixed bug with frozen URIs
