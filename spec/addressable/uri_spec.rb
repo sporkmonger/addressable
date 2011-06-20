@@ -2776,7 +2776,8 @@ describe Addressable::URI, "when parsed from " +
     @uri.query_values.should == { 'q' => 'Q&A' }
   end
 
-  it "should normalize to the original uri (with the ampersand properly percent-encoded)" do
+  it "should normalize to the original uri " +
+      "(with the ampersand properly percent-encoded)" do
     @uri.normalize.to_s.should == "http://example.com/search?q=Q%26A"
   end
 end
@@ -4421,25 +4422,25 @@ end
 describe Addressable::URI, "when encoding a bogus object" do
   it "should raise a TypeError" do
     (lambda do
-      Addressable::URI.encode(42)
+      Addressable::URI.encode(Object.new)
     end).should raise_error(TypeError)
   end
 
   it "should raise a TypeError" do
     (lambda do
-      Addressable::URI.normalized_encode(42)
+      Addressable::URI.normalized_encode(Object.new)
     end).should raise_error(TypeError)
   end
 
   it "should raise a TypeError" do
     (lambda do
-      Addressable::URI.encode_component("günther", 42)
+      Addressable::URI.encode_component("günther", Object.new)
     end).should raise_error(TypeError)
   end
 
   it "should raise a TypeError" do
     (lambda do
-      Addressable::URI.encode_component(42)
+      Addressable::URI.encode_component(Object.new)
     end).should raise_error(TypeError)
   end
 end
@@ -4456,7 +4457,9 @@ describe Addressable::URI, "when given the input " +
   end
 
   it "should not raise error when frozen" do
-    lambda {Addressable::URI.heuristic_parse(@input).freeze.to_s}.should_not raise_error
+    (lambda do
+      Addressable::URI.heuristic_parse(@input).freeze.to_s
+    end).should_not raise_error
   end
 end
 
@@ -4663,7 +4666,8 @@ describe Addressable::URI, "when assigning query values" do
   end
 
   it "should correctly assign " +
-      "{:a => 'a', :b => [{:c => 'c', :d => 'd'}, {:e => 'e', :f => 'f'}]}" do
+      "{:a => 'a', :b => [{:c => 'c', :d => 'd'}, " +
+      "{:e => 'e', :f => 'f'}]}" do
     @uri.query_values = {
       :a => "a", :b => [{:c => "c", :d => "d"}, {:e => "e", :f => "f"}]
     }
@@ -4671,7 +4675,8 @@ describe Addressable::URI, "when assigning query values" do
   end
 
   it "should correctly assign " +
-      "{:a => 'a', :b => [{:c => true, :d => 'd'}, {:e => 'e', :f => 'f'}]}" do
+      "{:a => 'a', :b => [{:c => true, :d => 'd'}, " +
+      "{:e => 'e', :f => 'f'}]}" do
     @uri.query_values = {
       :a => 'a', :b => [{:c => true, :d => 'd'}, {:e => 'e', :f => 'f'}]
     }
@@ -4700,13 +4705,17 @@ describe Addressable::URI, "when assigning query values" do
   end
 
   it "should correctly assign " +
-  "{:z => 1, :f => [2, {999.1 => [3,'4']}, ['h', 'i']], :a => {:b => ['c', 'd'], :e => true, :y => 0.5}}" do
+      "{:z => 1, :f => [2, {999.1 => [3,'4']}, ['h', 'i']], " +
+      ":a => {:b => ['c', 'd'], :e => true, :y => 0.5}}" do
     @uri.query_values = {
       :z => 1,
       :f => [ 2, {999.1 => [3,'4']}, ['h', 'i'] ],
       :a => { :b => ['c', 'd'], :e => true, :y => 0.5 }
     }
-    @uri.query.should == "a[b][0]=c&a[b][1]=d&a[e]&a[y]=0.5&f[0]=2&f[1][999.1][0]=3&f[1][999.1][1]=4&f[2][0]=h&f[2][1]=i&z=1"
+    @uri.query.should == (
+      "a[b][0]=c&a[b][1]=d&a[e]&a[y]=0.5&f[0]=2&" +
+      "f[1][999.1][0]=3&f[1][999.1][1]=4&f[2][0]=h&f[2][1]=i&z=1"
+    )
   end
 
   it "should correctly assign {}" do

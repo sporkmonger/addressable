@@ -325,7 +325,11 @@ module Addressable
       return nil if component.nil?
 
       begin
-        component = component.to_str
+        if component.kind_of?(Symbol) || component.kind_of?(Numeric)
+          component = component.to_s
+        else
+          component = component.to_str
+        end
       rescue TypeError, NoMethodError
         raise TypeError, "Can't convert #{component.class} into String."
       end if !component.is_a? String
@@ -1500,7 +1504,10 @@ module Addressable
       # new_query_values have form [['key1', 'value1'], ['key2', 'value2']]
       buffer = ""
       new_query_values.each do |parent, value|
-        buffer << "#{to_query(encode_uri_component(parent), value)}&"
+        encoded_parent = URI.encode_component(
+          parent, CharacterClasses::UNRESERVED
+        )
+        buffer << "#{self.class.to_query(encoded_parent, value)}&"
       end
       self.query = buffer.chop
     end
@@ -2213,45 +2220,44 @@ module Addressable
     end
 
     ##
-    # Joins and converts parent and value into a properly encoded and ordered URL query.
+    # Joins and converts parent and value into a properly encoded and
+    # ordered URL query.
     #
+    # @private
     # @param [String] parent an URI encoded component.
     # @param [Array, Hash, Symbol, #to_str] value
     #
     # @return [String] a properly escaped and ordered URL query.
-    def to_query(parent, value)
+    def self.to_query(parent, value)
       if value.is_a?(Hash)
-        value = value.map{ |key, value| [encode_uri_component(key), value] }
+        value = value.map do |key, value|
+          [
+            self.encode_component(key, CharacterClasses::UNRESERVED),
+            value
+          ]
+        end
         value.sort!
         buffer = ""
         value.each do |key, val|
           new_parent = "#{parent}[#{key}]"
-          buffer << "#{to_query(new_parent, val)}&"
+          buffer << "#{self.to_query(new_parent, val)}&"
         end
-        buffer.chop
+        return buffer.chop
       elsif value.is_a?(Array)
         buffer = ""
         value.each_with_index do |val, i|
           new_parent = "#{parent}[#{i}]"
-          buffer << "#{to_query(new_parent, val)}&"
+          buffer << "#{self.to_query(new_parent, val)}&"
         end
-        buffer.chop
+        return buffer.chop
       elsif value == true
-        parent
+        return parent
       else
-        "#{parent}=#{encode_uri_component(value)}"
+        encoded_value = self.encode_component(
+          value, CharacterClasses::UNRESERVED
+        )
+        return "#{parent}=#{encoded_value}"
       end
-    end
-
-    ##
-    # Encodes URI component
-    #
-    # @param [Symbol, #to_str] component to be URI encoded
-    #
-    # @return [String] an URI encoded component.
-    def encode_uri_component(component)
-      component = component.to_s if component.kind_of?(Symbol) || component.kind_of?(Numeric)
-      URI.encode_component(component, CharacterClasses::UNRESERVED)
     end
   end
 end
