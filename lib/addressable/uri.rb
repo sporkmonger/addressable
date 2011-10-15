@@ -1514,10 +1514,10 @@ module Addressable
       # @return [String] a properly escaped and ordered URL query.
       to_query = lambda do |parent, value|
         if value.is_a?(Hash)
-          value = value.map do |key, value|
+          value = value.map do |key, val|
             [
               URI.encode_component(key, CharacterClasses::UNRESERVED),
-              value
+              val
             ]
           end
           value.sort!
