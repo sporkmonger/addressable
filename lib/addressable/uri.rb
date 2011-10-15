@@ -719,6 +719,7 @@ module Addressable
         self.authority = options[:authority] if options[:authority]
         self.path = options[:path] if options[:path]
         self.query = options[:query] if options[:query]
+        self.query_values = options[:query_values] if options[:query_values]
         self.fragment = options[:fragment] if options[:fragment]
       end
     end
@@ -2202,7 +2203,7 @@ module Addressable
         parent = normalized_path.match(NPATH2)
         if parent && ((parent[1] != PARENT1 && parent[1] != PARENT2) \
                       || (parent[2] != PARENT1 && parent[2] != PARENT2))
-          mod ||= normalized_path.gsub!(/\/#{parent[1]}\/\.\.\/|(\/#{parent[2]}\/\.\.$)/, SLASH)
+          mod ||= normalized_path.gsub!(/\/#{Regexp.escape(parent[1].to_s)}\/\.\.\/|(\/#{Regexp.escape(parent[2].to_s)}\/\.\.$)/, SLASH)
         end
 
         mod ||= normalized_path.gsub!(NPATH3, EMPTYSTR)
