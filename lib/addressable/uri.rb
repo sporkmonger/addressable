@@ -1428,8 +1428,8 @@ module Addressable
           end
         end
         if hash != {} && hash.keys.all? { |key| key =~ /^\d+$/ }
-          hash.keys.sort.inject([]) do |accu, key|
-            accu << hash[key]; accu
+          hash.sort.inject([]) do |accu, (_, value)|
+            accu << value; accu
           end
         else
           hash
