@@ -1,8 +1,10 @@
 # -*- encoding: utf-8 -*-
 
+require File.join(File.dirname(File.expand_path(__FILE__)), 'lib', 'addressable', 'version')
+
 Gem::Specification.new do |s|
   s.name = %q{addressable}
-  s.version = "2.2.5"
+  s.version = Addressable::VERSION::STRING
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Bob Aman"]
