@@ -19,6 +19,13 @@ namespace :spec do
 
   Spec::Rake::SpecTask.new(:normal) do |t|
     t.libs = %w[lib spec]
+    t.spec_files = FileList['spec/**/*_spec.rb'].exclude(/compat/)
+    t.spec_opts = ['--color', '--format', 'specdoc']
+    t.rcov = false
+  end
+
+  Spec::Rake::SpecTask.new(:all) do |t|
+    t.libs = %w[lib spec]
     t.spec_files = FileList['spec/**/*_spec.rb']
     t.spec_opts = ['--color', '--format', 'specdoc']
     t.rcov = false
