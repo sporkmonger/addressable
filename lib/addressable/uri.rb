@@ -1021,6 +1021,14 @@ module Addressable
     end
 
     ##
+    # @see Addressable::URI#host
+    alias_method :hostname, :host
+
+    ##
+    # @see Addressable::URI#host=
+    alias_method :hostname=, :host=
+
+    ##
     # The authority component for this URI.
     # Combines the user, password, host, and port components.
     #
