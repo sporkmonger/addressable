@@ -127,7 +127,7 @@ module Addressable
         port = nil
       end
 
-      return Addressable::URI.new(
+      return new(
         :scheme => scheme,
         :user => user,
         :password => password,
