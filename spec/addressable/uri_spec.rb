@@ -4769,7 +4769,7 @@ describe Addressable::URI, "when assigning query values" do
   end
 
   it "should correctly assign " +
-      "{:a => 'a', :b => {:c => true, :d => 'd'}, :e => []}" do
+      "{:a => 'a', :b => {:c => true, :d => 'd'}}" do
     @uri.query_values = {
       :a => 'a', :b => {:c => true, :d => 'd'}
     }
