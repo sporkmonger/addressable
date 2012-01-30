@@ -1013,11 +1013,11 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should have the correct password after assignment" do
-    @uri.password = "secret@123!"
-    @uri.password.should == "secret@123!"
-    @uri.normalized_password.should == "secret%40123%21"
+    @uri.password = "#secret@123!"
+    @uri.password.should == "#secret@123!"
+    @uri.normalized_password.should == "%23secret%40123%21"
     @uri.user.should == ""
-    @uri.normalize.to_s.should == "http://:secret%40123%21@example.com/"
+    @uri.normalize.to_s.should == "http://:%23secret%40123%21@example.com/"
     @uri.omit(:password).to_s.should == "http://example.com"
   end
 
