@@ -19,10 +19,15 @@ namespace :git do
       v = ENV["VERSION"] or abort "Must supply VERSION=x.y.z"
       abort "Versions don't match #{v} vs #{PKG_VERSION}" if v != PKG_VERSION
 
+      git_status = `git status`
+      if git_status !~ /nothing to commit \(working directory clean\)/
+        abort "Working directory isn't clean."
+      end
+
       tag = "#{PKG_NAME}-#{PKG_VERSION}"
       msg = "Release #{PKG_NAME}-#{PKG_VERSION}"
 
-      existing_tags = `git tag -l instrument-*`.split("\n")
+      existing_tags = `git tag -l #{PKG_NAME}-*`.split('\n')
       if existing_tags.include?(tag)
         warn("Tag already exists, deleting...")
         unless system "git tag -d #{tag}"
