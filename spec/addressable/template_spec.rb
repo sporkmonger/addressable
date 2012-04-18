@@ -14,6 +14,7 @@
 #    limitations under the License.
 
 
+require File.expand_path("#{File.dirname(__FILE__)}/spec_helper")
 require "addressable/template"
 
 if !"".respond_to?("force_encoding")

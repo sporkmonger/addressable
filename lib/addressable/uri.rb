@@ -1458,7 +1458,7 @@ module Addressable
             subkeys = key.split(".")
           elsif options[:notation] == :subscript
             array_value = !!(key =~ /\[\]$/)
-            subkeys = key.split(/[\[\]]+/)
+            subkeys = key ? key.split(/[\[\]]+/) : []
           end
           current_hash = accumulator
           for i in 0...(subkeys.size - 1)

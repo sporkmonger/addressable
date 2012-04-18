@@ -17,6 +17,7 @@
 # Have to use RubyGems to load the idn gem.
 require "rubygems"
 
+require File.expand_path("#{File.dirname(__FILE__)}/spec_helper")
 require "addressable/idna"
 
 shared_examples_for "converting from unicode to ASCII" do
