@@ -4302,6 +4302,12 @@ describe Addressable::URI, "when form encoding a hash" do
     ).should == "key="
   end
 
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.form_encode(
+      {"q" => ["one", "two", "three"]}
+    ).should == "q=one&q=two&q=three"
+  end
+
   it "should result in correctly encoded newlines" do
     Addressable::URI.form_encode(
       {"text" => "one\ntwo\rthree\r\nfour\n\r"}

@@ -619,9 +619,20 @@ module Addressable
       else
         raise TypeError, "Can't convert #{form_values.class} into Array."
       end
-      form_values = form_values.map do |(key, value)|
-        [key.to_s, value.to_s]
+
+      result = []
+      form_values.each do |elem|
+        key, value = elem
+        if value.kind_of?(Array)
+          value.each do |v|
+            result << [key.to_s, v.to_s]
+          end
+        else
+          result << [key.to_s, value.to_s]
+        end
       end
+      form_values = result
+
       if sort
         # Useful for OAuth and optimizing caching systems
         form_values = form_values.sort
