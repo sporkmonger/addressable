@@ -4286,7 +4286,7 @@ end
 describe Addressable::URI, "when form encoding a hash" do
   it "should result in correct percent encoded sequence" do
     Addressable::URI.form_encode(
-      {"&one" => "/1", "=two" => "?2", ":three" => "#3"}
+      [["&one", "/1"], ["=two", "?2"], [":three", "#3"]]
     ).should == "%26one=%2F1&%3Dtwo=%3F2&%3Athree=%233"
   end
 
