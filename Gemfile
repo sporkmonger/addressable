@@ -9,8 +9,6 @@ group :test, :development do
   gem 'rspec'
 end
 
-platforms :mri_18 do
-  gem 'idn', :platform => :mri
-end
+gem 'idn', :platform => :mri_18
 
 gemspec
