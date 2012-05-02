@@ -4,6 +4,7 @@ group :development do
   gem 'launchy'
   gem 'yard'
   gem 'redcarpet'
+  gem 'rubyforge'
 end
 
 group :test, :development do
