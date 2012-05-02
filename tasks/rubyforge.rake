@@ -13,7 +13,7 @@ namespace :gem do
     rf.login
 
     c = rf.userconfig
-    changelog = File.open("CHANGELOG") { |file| file.read }
+    changelog = File.open("CHANGELOG.md") { |file| file.read }
     c['release_changes'] = changelog
     c['preformatted'] = true
 
