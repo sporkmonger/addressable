@@ -70,10 +70,14 @@ support for URI templates.
 
 # Install
 
-* sudo gem install addressable
+    $ sudo gem install addressable
 
 You may optionally turn on native IDN support by installing libidn and the
 idn gem:
 
-* brew install libidn
-* sudo gem install idn
+    $ sudo apt-get install idn # Debian/Ubuntu
+    $ sudo brew install libidn # OS X
+    $ sudo gem install idn
+
+**NOTE:** Native IDN support appears to be broken in Ruby 1.9.x. The IDN gem
+hasn't been updated in years.
