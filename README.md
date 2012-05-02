@@ -7,6 +7,9 @@
   <dt>License</dt><dd>Apache 2.0</dd>
 </dl>
 
+[![Build Status](https://secure.travis-ci.org/sporkmonger/addressable.png)](http://travis-ci.org/sporkmonger/addressable)
+[![Dependency Status](https://gemnasium.com/sporkmonger/addressable.png)](https://gemnasium.com/sporkmonger/addressable)
+
 # Description
 
 Addressable is a replacement for the URI implementation that is part of
