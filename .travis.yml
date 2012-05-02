@@ -8,3 +8,6 @@ rvm:
   - rbx
   - ree
 script: "bundle exec rake"
+before_install:
+ - sudo apt-get update
+ - sudo apt-get install idn
