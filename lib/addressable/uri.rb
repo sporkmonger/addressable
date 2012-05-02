@@ -620,18 +620,16 @@ module Addressable
         raise TypeError, "Can't convert #{form_values.class} into Array."
       end
 
-      result = []
-      form_values.each do |elem|
-        key, value = elem
+      form_values = form_values.inject([]) do |accu, (key, value)|
         if value.kind_of?(Array)
           value.each do |v|
-            result << [key.to_s, v.to_s]
+            accu << [key.to_s, v.to_s]
           end
         else
-          result << [key.to_s, value.to_s]
+          accu << [key.to_s, value.to_s]
         end
+        accu
       end
-      form_values = result
 
       if sort
         # Useful for OAuth and optimizing caching systems
