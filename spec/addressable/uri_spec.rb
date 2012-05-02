@@ -167,6 +167,10 @@ describe Addressable::URI, "when created from nil components" do
     @uri.to_s.should == ""
   end
 
+  it "should have a nil default port" do
+    @uri.default_port.should == nil
+  end
+
   it "should raise an error if the scheme is set to whitespace" do
     (lambda do
       @uri.scheme = "\t \n"
@@ -267,6 +271,10 @@ describe Addressable::URI, "when frozen" do
     @uri.normalized_port.should == nil
   end
 
+  it "returns nil for #default_port" do
+    @uri.default_port.should == nil
+  end
+
   it "returns nil for #site" do
     @uri.site.should == nil
   end
@@ -359,6 +367,7 @@ describe Addressable::URI, "when created with an authority and no port" do
 
   it "should not infer a port" do
     @uri.port.should == nil
+    @uri.default_port.should == nil
     @uri.inferred_port.should == nil
   end
 
@@ -506,6 +515,10 @@ describe Addressable::URI, "when parsed from " +
     @uri.host.should == "ftp.is.co.za"
   end
 
+  it "should have inferred_port of 21" do
+    @uri.inferred_port.should == 21
+  end
+
   it "should have a path of '/rfc/rfc1808.txt'" do
     @uri.path.should == "/rfc/rfc1808.txt"
   end
@@ -540,6 +553,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have a host of 'www.ietf.org'" do
     @uri.host.should == "www.ietf.org"
+  end
+
+  it "should have inferred_port of 80" do
+    @uri.inferred_port.should == 80
   end
 
   it "should have a path of '/rfc/rfc2396.txt'" do
@@ -586,6 +603,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have a host of '[2001:db8::7]'" do
     @uri.host.should == "[2001:db8::7]"
+  end
+
+  it "should have inferred_port of 389" do
+    @uri.inferred_port.should == 389
   end
 
   it "should have a path of '/c=GB'" do
@@ -646,6 +667,10 @@ describe Addressable::URI, "when parsed from " +
     @uri.should_not be_ip_based
   end
 
+  it "should not have an inferred_port" do
+    @uri.inferred_port.should == nil
+  end
+
   it "should have a path of 'John.Doe@example.com'" do
     @uri.path.should == "John.Doe@example.com"
   end
@@ -672,6 +697,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should use the 'news' scheme" do
     @uri.scheme.should == "news"
+  end
+
+  it "should not have an inferred_port" do
+    @uri.inferred_port.should == nil
   end
 
   it "should not be considered to be ip-based" do
@@ -710,6 +739,10 @@ describe Addressable::URI, "when parsed from " +
     @uri.should_not be_ip_based
   end
 
+  it "should not have an inferred_port" do
+    @uri.inferred_port.should == nil
+  end
+
   it "should have a path of '+1-816-555-1212'" do
     @uri.path.should == "+1-816-555-1212"
   end
@@ -742,8 +775,16 @@ describe Addressable::URI, "when parsed from " +
     @uri.host.should == "192.0.2.16"
   end
 
-  it "should have a port of '80'" do
+  it "should have a port of 80" do
     @uri.port.should == 80
+  end
+
+  it "should have a inferred_port of 80" do
+    @uri.inferred_port.should == 80
+  end
+
+  it "should have a default_port of 23" do
+    @uri.default_port.should == 23
   end
 
   it "should be considered to be ip-based" do
@@ -777,6 +818,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should use the 'urn' scheme" do
     @uri.scheme.should == "urn"
+  end
+
+  it "should not have an inferred_port" do
+    @uri.inferred_port.should == nil
   end
 
   it "should not be considered to be ip-based" do
@@ -1593,6 +1638,10 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should use port 80" do
+    @uri.inferred_port.should == 80
+  end
+
+  it "should have explicit port 80" do
     @uri.port.should == 80
   end
 
@@ -1709,7 +1758,15 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should use port 8080" do
+    @uri.inferred_port.should == 8080
+  end
+
+  it "should have explicit port 8080" do
     @uri.port.should == 8080
+  end
+
+  it "should have default port 80" do
+    @uri.default_port.should == 80
   end
 
   it "should have a path of '/'" do
@@ -3037,6 +3094,10 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have a host of 'example.com'" do
     @uri.host.should == "example.com"
+  end
+
+  it "should have default_port 80" do
+    @uri.default_port.should == 80
   end
 
   it "should use port 80" do
