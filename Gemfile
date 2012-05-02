@@ -9,7 +9,7 @@ group :test, :development do
   gem 'rspec'
 end
 
-platforms :mri do
+platforms :mri_18 do
   gem 'idn', :platform => :mri
 end
 
