@@ -1920,6 +1920,51 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+describe Addressable::URI, "when parsed from '/a/b/c/./../../g'" do
+  before do
+    @uri = Addressable::URI.parse("/a/b/c/./../../g")
+  end
+
+  it "should not be considered to be in normal form" do
+    @uri.normalize.should_not be_eql(@uri)
+  end
+
+  # Section 5.2.4 of RFC 3986
+  it "should normalize to '/a/g'" do
+    @uri.normalize.should === "/a/g"
+  end
+end
+
+describe Addressable::URI, "when parsed from 'mid/content=5/../6'" do
+  before do
+    @uri = Addressable::URI.parse("mid/content=5/../6")
+  end
+
+  it "should not be considered to be in normal form" do
+    @uri.normalize.should_not be_eql(@uri)
+  end
+
+  # Section 5.2.4 of RFC 3986
+  it "should normalize to 'mid/6'" do
+    @uri.normalize.should === "mid/6"
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'http://www.example.com///../'" do
+  before do
+    @uri = Addressable::URI.parse('http://www.example.com///../')
+  end
+
+  it "should not be considered to be in normal form" do
+    @uri.normalize.should_not be_eql(@uri)
+  end
+
+  it "should normalize to 'http://www.example.com//'" do
+    @uri.normalize.should === "http://www.example.com//"
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://example.com/path/to/resource/'" do
   before do
