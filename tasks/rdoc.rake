@@ -1,4 +1,4 @@
-require "rake/rdoctask"
+require "rdoc/task"
 
 namespace :doc do
   desc "Generate RDoc documentation"

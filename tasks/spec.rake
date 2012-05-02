@@ -1,3 +1,5 @@
+require "spec/rake/spectask"
+
 namespace :spec do
   Spec::Rake::SpecTask.new(:rcov) do |t|
     t.libs = %w[lib spec]
