@@ -51,7 +51,7 @@ module Addressable
     end
 
     SLASH = '/'
-    EMPTYSTR = ''
+    EMPTY_STR = ''
 
     URIREGEX = /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/
 
@@ -120,10 +120,10 @@ module Addressable
           user = userinfo.strip[/^([^:]*):?/, 1]
           password = userinfo.strip[/:(.*)$/, 1]
         end
-        host = authority.gsub(/^([^\[\]]*)@/, EMPTYSTR).gsub(/:([^:@\[\]]*?)$/, EMPTYSTR)
+        host = authority.gsub(/^([^\[\]]*)@/, EMPTY_STR).gsub(/:([^:@\[\]]*?)$/, EMPTY_STR)
         port = authority[/:([^:@\[\]]*?)$/, 1]
       end
-      if port == EMPTYSTR
+      if port == EMPTY_STR
         port = nil
       end
 
@@ -187,7 +187,7 @@ module Addressable
         if new_host
           parsed.defer_validation do
             new_path = parsed.path.gsub(
-              Regexp.new("^" + Regexp.escape(new_host)), EMPTYSTR)
+              Regexp.new("^" + Regexp.escape(new_host)), EMPTY_STR)
             parsed.host = new_host
             parsed.path = new_path
             parsed.scheme = hints[:scheme] unless parsed.scheme
@@ -237,7 +237,7 @@ module Addressable
       # Otherwise, convert to a String
       path = path.to_str.strip
 
-      path.gsub!(/^file:\/?\/?/, EMPTYSTR) if path =~ /^file:\/?\/?/
+      path.gsub!(/^file:\/?\/?/, EMPTY_STR) if path =~ /^file:\/?\/?/
       path = SLASH + path if path =~ /^([a-zA-Z])[\|:]/
       uri = self.parse(path)
 
@@ -249,14 +249,14 @@ module Addressable
         uri.path.gsub!(/\\/, SLASH)
         if File.exists?(uri.path) &&
             File.stat(uri.path).directory?
-          uri.path.gsub!(/\/$/, EMPTYSTR)
+          uri.path.gsub!(/\/$/, EMPTY_STR)
           uri.path = uri.path + '/'
         end
 
         # If the path is absolute, set the scheme and host.
         if uri.path =~ /^\//
           uri.scheme = "file"
-          uri.host = EMPTYSTR
+          uri.host = EMPTY_STR
         end
         uri.normalize!
       end
@@ -841,7 +841,7 @@ module Addressable
 
       # You can't have a nil user with a non-nil password
       if password != nil
-        @user = EMPTYSTR if @user.nil?
+        @user = EMPTY_STR if @user.nil?
       end
 
       # Reset dependant values
@@ -896,7 +896,7 @@ module Addressable
       @password ||= nil
       @user ||= nil
       if @password != nil
-        @user = EMPTYSTR if @user.nil?
+        @user = EMPTY_STR if @user.nil?
       end
 
       # Reset dependant values
@@ -1001,7 +1001,7 @@ module Addressable
             end
             result
           else
-            EMPTYSTR
+            EMPTY_STR
           end
         else
           nil
@@ -1090,7 +1090,7 @@ module Addressable
           new_password = new_userinfo.strip[/:(.*)$/, 1]
         end
         new_host =
-          new_authority.gsub(/^([^\[\]]*)@/, EMPTYSTR).gsub(/:([^:@\[\]]*?)$/, EMPTYSTR)
+          new_authority.gsub(/^([^\[\]]*)@/, EMPTY_STR).gsub(/:([^:@\[\]]*?)$/, EMPTY_STR)
         new_port =
           new_authority[/:([^:@\[\]]*?)$/, 1]
       end
@@ -1278,7 +1278,7 @@ module Addressable
     #
     # @return [String] The path component.
     def path
-      return instance_variable_defined?(:@path) ? @path : EMPTYSTR
+      return instance_variable_defined?(:@path) ? @path : EMPTY_STR
     end
 
     NORMPATH = /^(?!\/)[^\/:]*:.*$/
@@ -1319,7 +1319,7 @@ module Addressable
       if new_path && !new_path.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_path.class} into String."
       end
-      @path = (new_path || EMPTYSTR).to_str
+      @path = (new_path || EMPTY_STR).to_str
       if !@path.empty? && @path[0..0] != SLASH && host != nil
         @path = "/#{@path}"
       end
@@ -1336,7 +1336,7 @@ module Addressable
     # @return [String] The path's basename.
     def basename
       # Path cannot be nil
-      return File.basename(self.path).gsub(/;[^\/]*$/, EMPTYSTR)
+      return File.basename(self.path).gsub(/;[^\/]*$/, EMPTY_STR)
     end
 
     ##
@@ -1581,7 +1581,7 @@ module Addressable
       return nil if self.absolute? && self.scheme !~ /^https?$/
       return (
         (!self.path.empty? ? self.path : SLASH) +
-        (self.query ? "?#{self.query}" : EMPTYSTR)
+        (self.query ? "?#{self.query}" : EMPTY_STR)
       )
     end
 
@@ -1741,7 +1741,7 @@ module Addressable
               joined_path = URI.normalize_path(uri.path)
             else
               base_path = self.path.dup
-              base_path = EMPTYSTR if base_path == nil
+              base_path = EMPTY_STR if base_path == nil
               base_path = URI.normalize_path(base_path)
 
               # Section 5.2.3 of RFC 3986
@@ -1750,7 +1750,7 @@ module Addressable
               if base_path =~ /\//
                 base_path.gsub!(/\/[^\/]+$/, SLASH)
               else
-                base_path = EMPTYSTR
+                base_path = EMPTY_STR
               end
 
               # If the base path is empty and an authority segment has been
@@ -1914,7 +1914,7 @@ module Addressable
           else
             if uri.path != SLASH
               components[:path].gsub!(
-                Regexp.new("^" + Regexp.escape(uri.path)), EMPTYSTR)
+                Regexp.new("^" + Regexp.escape(uri.path)), EMPTY_STR)
             end
           end
         end
@@ -2193,21 +2193,20 @@ module Addressable
     end
 
   private
+    SELF_REF = '.'
+    PARENT = '..'
+
+    RULE_2A = /\/\.\/|\/\.$/
+    RULE_2B_2C = /\/([^\/]*)\/\.\.\/|\/([^\/]*)\/\.\.$/
+    RULE_2D = /^\.\.?\/?/
+    RULE_PREFIXED_PARENT = /^\/\.\.?\/|^(\/\.\.?)+\/?$/
+
     ##
     # Resolves paths to their simplest form.
     #
     # @param [String] path The path to normalize.
     #
     # @return [String] The normalized path.
-
-    PARENT1 = '.'
-    PARENT2 = '..'
-
-    NPATH1 = /\/\.\/|\/\.$/
-    NPATH2 = /\/([^\/]+)\/\.\.\/|\/([^\/]+)\/\.\.$/
-    NPATH3 = /^\.\.?\/?/
-    NPATH4 = /^\/\.\.?\/|^(\/\.\.?)+\/?$/
-
     def self.normalize_path(path)
       # Section 5.2.4 of RFC 3986
 
@@ -2215,16 +2214,23 @@ module Addressable
       normalized_path = path.dup
       begin
         mod = nil
-        mod ||= normalized_path.gsub!(NPATH1, SLASH)
+        mod ||= normalized_path.gsub!(RULE_2A, SLASH)
 
-        parent = normalized_path.match(NPATH2)
-        if parent && ((parent[1] != PARENT1 && parent[1] != PARENT2) \
-                      || (parent[2] != PARENT1 && parent[2] != PARENT2))
-          mod ||= normalized_path.gsub!(/\/#{Regexp.escape(parent[1].to_s)}\/\.\.\/|(\/#{Regexp.escape(parent[2].to_s)}\/\.\.$)/, SLASH)
+        pair = normalized_path.match(RULE_2B_2C)
+        parent, current = pair[1], pair[2] if pair
+        if pair && ((parent != SELF_REF && parent != PARENT) ||
+            (current != SELF_REF && current != PARENT))
+          mod ||= normalized_path.gsub!(
+            Regexp.new(
+              "/#{Regexp.escape(parent.to_s)}/\\.\\./|" +
+              "(/#{Regexp.escape(current.to_s)}/\\.\\.$)"
+            ), SLASH
+          )
         end
 
-        mod ||= normalized_path.gsub!(NPATH3, EMPTYSTR)
-        mod ||= normalized_path.gsub!(NPATH4, SLASH)
+        mod ||= normalized_path.gsub!(RULE_2D, EMPTY_STR)
+        # Non-standard, removes prefixed dotted segments from path.
+        mod ||= normalized_path.gsub!(RULE_PREFIXED_PARENT, SLASH)
       end until mod.nil?
 
       return normalized_path
