@@ -6,8 +6,8 @@ group :development do
 end
 
 group :test, :development do
-  gem 'rake'
-  gem 'rspec'
+  gem 'rake', '>= 0.7.3'
+  gem 'rspec', '>= 2.9.0'
 end
 
 gem 'idn', :platform => :mri_18
