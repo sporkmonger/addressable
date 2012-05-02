@@ -3,6 +3,7 @@ source 'https://rubygems.org'
 group :development do
   gem 'launchy'
   gem 'yard'
+  gem 'redcarpet'
 end
 
 group :test, :development do
