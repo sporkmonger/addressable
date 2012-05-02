@@ -4818,7 +4818,7 @@ describe Addressable::URI, "when assigning query values" do
   end
 
   it "should preserve query string order" do
-    query_string = (('a'..'z').to_a.shuffle.map { |e| "#{e}=#{e}" }).join("&")
+    query_string = (('a'..'z').to_a.reverse.map { |e| "#{e}=#{e}" }).join("&")
     @uri.query = query_string
     original_uri = @uri.to_s
     @uri.query_values = @uri.query_values(:notation => :flat_array)
