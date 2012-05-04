@@ -16,9 +16,6 @@
 #++
 
 
-require 'yaml'
-
-
 module Addressable
   module IDNA
     # This module is loosely based on idn_actionmailer by Mick Staugaard,
@@ -36,7 +33,7 @@ module Addressable
 
 
     UNICODE_TABLE = File.expand_path(
-      File.join(File.dirname(__FILE__), '../../..', 'data/unicode.yaml')
+      File.join(File.dirname(__FILE__), '../../..', 'data/unicode.data')
     )
 
     ACE_PREFIX = "xn--"
@@ -323,7 +320,7 @@ module Addressable
     # This is a sparse Unicode table.  Codepoints without entries are
     # assumed to have the value: [0, 0, nil, nil, nil, nil, nil]
     UNICODE_DATA = File.open(UNICODE_TABLE, "r") do |file|
-      YAML.load(file.read)
+      Marshal.load(file.read)
     end
 
     COMPOSITION_TABLE = {}
