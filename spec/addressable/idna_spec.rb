@@ -196,6 +196,21 @@ describe Addressable::IDNA, "when using the pure-Ruby implementation" do
 
   it_should_behave_like "converting from unicode to ASCII"
   it_should_behave_like "converting from ASCII to unicode"
+
+  begin
+    require "fiber"
+
+    it "should not blow up inside fibers" do
+      f = Fiber.new do
+        Addressable.send(:remove_const, :IDNA)
+        load "addressable/idna/pure.rb"
+      end
+      f.resume
+    end
+  rescue LoadError
+    # Fibers aren't supported in this version of Ruby, skip this test.
+    warn('Fibers unsupported.')
+  end
 end
 
 begin
