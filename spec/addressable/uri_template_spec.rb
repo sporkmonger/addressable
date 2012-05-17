@@ -43,6 +43,66 @@ describe "Level 2" do
   end
 end
 
+describe "Level 3" do
+  subject{
+    {
+      :var => "value",
+      :hello => "Hello World!",
+      :empty => "",
+      :path => "/foo/bar",
+      :x => "1024",
+      :y => "768"
+    }
+  }
+  context "Operator nil (multiple vars):" do
+    it_behaves_like 'expands', {
+      'map?{x,y}' => 'map?1024,768',
+      '{x,hello,y}' => '1024,Hello%20World%21,768'
+    }
+  end
+  context "Operator + (multiple vars):" do
+    it_behaves_like 'expands', {
+      '{+x,hello,y}' => '1024,Hello%20World!,768',
+      '{+path,x}/here' => '/foo/bar,1024/here',
+    }
+  end
+  context "Operator # (multiple vars):" do
+    it_behaves_like 'expands', {
+      '{#x,hello,y}' => '#1024,Hello%20World!,768',
+      '{#path,x}/here' => '#/foo/bar,1024/here',
+    }
+  end
+  context "Operator ." do
+    it_behaves_like 'expands', {
+      'X{.var}' => 'X.value',
+      'X{.x,y}' => 'X.1024.768',
+    }
+  end
+  context "Operator /" do
+    it_behaves_like 'expands', {
+      '{/var}' => '/value',
+      '{/var,x}/here' => '/value/1024/here',
+    }
+  end
+  context "Operator ;" do
+    it_behaves_like 'expands', {
+      '{;x,y}' => ';x=1024;y=768',
+      '{;x,y,empty}' => ';x=1024;y=768;empty',
+    }
+  end
+  context "Operator ?" do
+    it_behaves_like 'expands', {
+      '{?x,y}' => '?x=1024&y=768',
+      '{?x,y,empty}' => '?x=1024&y=768&empty=',
+    }
+  end
+  context "Operator &" do
+    it_behaves_like 'expands', {
+      '?fixed=yes{&x}' => '?fixed=yes&x=1024',
+      '{&x,y,empty}' => '&x=1024&y=768&empty=',
+    }
+  end
+end
 
 
 describe Addressable::UriTemplate do

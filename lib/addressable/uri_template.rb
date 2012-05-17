@@ -299,19 +299,9 @@ module Addressable
     #   #=> Addressable::Template::InvalidTemplateValueError
     def expand(mapping, processor=nil)
       result = self.pattern.dup
-      mapping = mapping.inject({}){|acc, (k,v)| acc[k.to_s] = v; acc }
+      mapping = normalize_keys(mapping)
       result.gsub!( EXPRESSION ) do |capture|
-        _, operator, varlist = *capture.match(EXPRESSION)
-        name = varlist[VARSPEC, 1]
-        mapped = mapping[name]
-        case operator
-        when ?+
-          transform_mapped(mapped, true, processor)
-        when ?#
-          "#" + transform_mapped(mapped, true, processor)
-        when nil
-          transform_mapped(mapped, false, processor)
-        end
+        transform_capture(mapping, capture, processor)
 
         # if capture =~ OPERATOR_EXPANSION
           # operator, argument, variables, default_mapping =
@@ -366,66 +356,117 @@ module Addressable
     # after sending the value to the transform method.
     #
     # @return [Object] The transformed mapped value
-    def transform_mapped(mapped, allow_reserved = false, processor=nil)
-      value = mapped
-      value = value.to_s if Numeric === value || Symbol === value
+    def transform_capture(mapping, capture, processor=nil)
+      _, operator, varlist = *capture.match(EXPRESSION)
+      return_value = varlist.split(',').inject({}) do |acc, varspec|
+        name = varspec[VARSPEC, 1]
+        value = mapping[name]
+        allow_reserved = %w(+ #).include?(operator)
+        value = value.to_s if Numeric === value || Symbol === value
 
-      unless value.respond_to?(:to_ary) || value.respond_to?(:to_str)
-        raise TypeError,
-          "Can't convert #{value.class} into String or Array."
-      end
-
-      value = value.respond_to?(:to_ary) ? value.to_ary : value.to_str
-
-      # Handle unicode normalization
-      if value.kind_of?(Array)
-        value.map! { |val| Addressable::IDNA.unicode_normalize_kc(val) }
-      else
-        value = Addressable::IDNA.unicode_normalize_kc(value)
-      end
-
-      if processor == nil || !processor.respond_to?(:transform)
-        # Handle percent escaping
-        if allow_reserved
-          encode_map =
-            Addressable::URI::CharacterClasses::RESERVED +
-            Addressable::URI::CharacterClasses::UNRESERVED
-        else
-          encode_map = Addressable::URI::CharacterClasses::UNRESERVED
+        unless value.respond_to?(:to_ary) || value.respond_to?(:to_str)
+          raise TypeError,
+            "Can't convert #{value.class} into String or Array."
         end
+
+        value = value.respond_to?(:to_ary) ? value.to_ary : value.to_str
+
+        # Handle unicode normalization
         if value.kind_of?(Array)
-          transformed_value = value.map do |val|
-            Addressable::URI.encode_component( val, encode_map)
-          end
+          value.map! { |val| Addressable::IDNA.unicode_normalize_kc(val) }
         else
-          transformed_value = Addressable::URI.encode_component(
-            value, encode_map)
+          value = Addressable::IDNA.unicode_normalize_kc(value)
         end
-      end
 
-      # Process, if we've got a processor
-      if processor != nil
-        if processor.respond_to?(:validate)
-          if !processor.validate(name, value)
-            display_value = value.kind_of?(Array) ? value.inspect : value
-            raise InvalidTemplateValueError,
-              "#{name}=#{display_value} is an invalid template value."
+        if processor == nil || !processor.respond_to?(:transform)
+          # Handle percent escaping
+          if allow_reserved
+            encode_map =
+              Addressable::URI::CharacterClasses::RESERVED +
+              Addressable::URI::CharacterClasses::UNRESERVED
+          else
+            encode_map = Addressable::URI::CharacterClasses::UNRESERVED
           end
-        end
-        if processor.respond_to?(:transform)
-          transformed_value = processor.transform(name, value)
-          if transformed_value.kind_of?(Array)
-            transformed_value.map! do |val|
-              Addressable::IDNA.unicode_normalize_kc(val)
+          if value.kind_of?(Array)
+            transformed_value = value.map do |val|
+              Addressable::URI.encode_component( val, encode_map)
             end
           else
-            transformed_value =
-              Addressable::IDNA.unicode_normalize_kc(transformed_value)
+            transformed_value = Addressable::URI.encode_component(
+              value, encode_map)
           end
         end
-      end
 
-      transformed_value
+        # Process, if we've got a processor
+        if processor != nil
+          if processor.respond_to?(:validate)
+            if !processor.validate(name, value)
+              display_value = value.kind_of?(Array) ? value.inspect : value
+              raise InvalidTemplateValueError,
+                "#{name}=#{display_value} is an invalid template value."
+            end
+          end
+          if processor.respond_to?(:transform)
+            transformed_value = processor.transform(name, value)
+            if transformed_value.kind_of?(Array)
+              transformed_value.map! do |val|
+                Addressable::IDNA.unicode_normalize_kc(val)
+              end
+            else
+              transformed_value =
+                Addressable::IDNA.unicode_normalize_kc(transformed_value)
+            end
+          end
+        end
+        acc[name] = transformed_value
+        acc
+      end
+      case operator
+      when ?.
+        ?. + return_value.values.join('.')
+      when ?/
+        ?/ + return_value.values.join('/')
+      when ?#
+        ?# + return_value.values.join(',')
+      when ?&
+        ?& + return_value.map{|k,v|
+          "#{k}=#{v}"
+        }.join('&')
+      when ??
+        ?? + return_value.map{|k,v|
+          "#{k}=#{v}"
+        }.join('&')
+      when ?;
+        return_value.map{|k,v|
+          v && v != '' ?  ";#{k}=#{v}" : ";#{k}"
+        }.join
+      else
+        return_value.values.join(',')
+      end
+    end
+
+
+    ##
+    # Generates a hash with string keys
+    #
+    # @param [Hash] mapping A mapping hash to normalize
+    #
+    # @return [Hash]
+    #   A hash with stringified keys
+    def normalize_keys(mapping)
+      return mapping.inject({}) do |accu, pair|
+        name, value = pair
+        if Symbol === name
+          name = name.to_s
+        elsif name.respond_to?(:to_str)
+          name = name.to_str
+        else
+          raise TypeError,
+            "Can't convert #{name.class} into String."
+        end
+        accu[name] = value
+        accu
+      end
     end
 
     ##
