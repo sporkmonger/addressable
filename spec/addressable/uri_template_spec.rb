@@ -389,110 +389,276 @@ describe "Expansion" do
   end
 end
 
+class ExampleProcessor
+  def self.restore(name, value)
+    return value.gsub(/-/, " ") if name == "query"
+    return value
+  end
+
+  def self.match(name)
+    return ".*?" if name == "first"
+    return ".*"
+  end
+  def self.validate(name, value)
+    return !!(value =~ /^[\w ]+$/) if name == "query"
+    return true
+  end
+
+  def self.transform(name, value)
+    return value.gsub(/ /, "+") if name == "query"
+    return value
+  end
+end
 
 
 describe Addressable::UriTemplate do
-  describe "Level 1:" do
-    subject { Addressable::UriTemplate.new("foo{foo}/{bar}baz") }
-    it "can match" do
-      data = subject.match("foofoo/bananabaz")
-      data.mapping["foo"].should == "foo"
-      data.mapping["bar"].should == "banana"
+  describe "Matching" do
+    let(:uri){
+      Addressable::URI.parse(
+        "http://example.com/search/an-example-search-query/"
+      )
+    }
+    let(:uri2){
+      Addressable::URI.parse("http://example.com/a/b/c/")
+    }
+    let(:uri3){
+      Addressable::URI.parse("http://example.com/;a=1;b=2;c=3;first=foo")
+    }
+    let(:uri4){
+      Addressable::URI.parse("http://example.com/?a=1&b=2&c=3&first=foo")
+    }
+    context "first uri with ExampleProcessor" do
+      subject{
+        match = Addressable::UriTemplate.new(
+          "http://example.com/search/{query}/"
+        ).match(uri, ExampleProcessor)
+      }
+      its(:variables){ should == ["query"]}
+      its(:captures){ should == ["an example search query"]}
     end
-    it "lists vars" do
-      subject.variables.should == ["foo", "bar"]
+    context "second uri with ExampleProcessor" do
+      subject{
+        match = Addressable::UriTemplate.new(
+          "http://example.com/{first}/{+second}/"
+        ).match(uri2, ExampleProcessor)
+      }
+      its(:variables){ should == ["first", "second"]}
+      its(:captures){ should == ["a", "b/c"] }
+    end
+    context "second uri" do
+      subject{
+        match = Addressable::UriTemplate.new(
+          "http://example.com/{first}{/second*}/"
+        ).match(uri2)
+      }
+      its(:variables){ should == ["first", "second"]}
+      its(:captures){ should == ["a", ["b","c"]] }
+    end
+    context "third uri" do
+      subject{
+        match = Addressable::UriTemplate.new(
+          "http://example.com/{;hash*,first}"
+        ).match(uri3)
+      }
+      its(:variables){ should == ["hash", "first"]}
+      its(:captures){ should == [{"a" => "1", "b" => "2", "c" => "3"}, "foo"] }
+    end
+    context "fourth uri" do
+      subject{
+        match = Addressable::UriTemplate.new(
+          "http://example.com/{?hash*,first}"
+        ).match(uri4)
+      }
+      its(:variables){ should == ["hash", "first"]}
+      its(:captures){ should == [{"a" => "1", "b" => "2", "c" => "3"}, "foo"] }
     end
   end
-
-  describe "Level 2:" do
-    subject { Addressable::UriTemplate.new("foo{+foo}{#bar}baz") }
-    it "can match" do
-      data = subject.match("foo/test/banana#bazbaz")
-      data.mapping["foo"].should == "/test/banana"
-      data.mapping["bar"].should == "baz"
+  describe "Partial expand" do
+    context "partial_expand with two simple values" do
+      subject{
+        Addressable::UriTemplate.new("http://example.com/{one}/{two}/")
+      }
+      it "builds a new pattern" do
+        subject.partial_expand("one" => "1").pattern.should ==
+          "http://example.com/1/{two}/"
+      end
     end
-    it "lists vars" do
-      subject.variables.should == ["foo", "bar"]
+    context "partial_expand query with missing param in middle" do
+      subject{
+        Addressable::UriTemplate.new("http://example.com/{?one,two,three}/")
+      }
+      it "builds a new pattern" do
+        subject.partial_expand("one" => "1", "three" => "3").pattern.should ==
+          "http://example.com/?one=1{&two}&three=3/"
+      end
+    end
+    context "partial_expand with query string" do
+      subject{
+        Addressable::UriTemplate.new("http://example.com/{?two,one}/")
+      }
+      it "builds a new pattern" do
+        subject.partial_expand("one" => "1").pattern.should ==
+          "http://example.com/{?two}&one=1/"
+      end
+    end
+    context "partial_expand with path operator" do
+      subject{
+        Addressable::UriTemplate.new("http://example.com{/one,two}/")
+      }
+      it "builds a new pattern" do
+        subject.partial_expand("one" => "1").pattern.should ==
+          "http://example.com/1{/two}/"
+      end
     end
   end
+  describe "Expand" do
+    context "expand with a processor" do
+      subject{
+        Addressable::UriTemplate.new("http://example.com/search/{query}/")
+      }
+      it "processes spaces" do
+        subject.expand({"query" => "an example search query"},
+                      ExampleProcessor).to_str.should ==
+          "http://example.com/search/an+example+search+query/"
+      end
+      it "validates" do
+        lambda{
+          subject.expand({"query" => "Bogus!"},
+                      ExampleProcessor).to_str
+        }.should raise_error(Addressable::Template::InvalidTemplateValueError)
+      end
+    end
+    context "partial_expand query with missing param in middle" do
+      subject{
+        Addressable::UriTemplate.new("http://example.com/{?one,two,three}/")
+      }
+      it "builds a new pattern" do
+        subject.partial_expand("one" => "1", "three" => "3").pattern.should ==
+          "http://example.com/?one=1{&two}&three=3/"
+      end
+    end
+    context "partial_expand with query string" do
+      subject{
+        Addressable::UriTemplate.new("http://example.com/{?two,one}/")
+      }
+      it "builds a new pattern" do
+        subject.partial_expand("one" => "1").pattern.should ==
+          "http://example.com/{?two}&one=1/"
+      end
+    end
+    context "partial_expand with path operator" do
+      subject{
+        Addressable::UriTemplate.new("http://example.com{/one,two}/")
+      }
+      it "builds a new pattern" do
+        subject.partial_expand("one" => "1").pattern.should ==
+          "http://example.com/1{/two}/"
+      end
+    end
+  end
+  context "Matching with operators" do
+    describe "Level 1:" do
+      subject { Addressable::UriTemplate.new("foo{foo}/{bar}baz") }
+      it "can match" do
+        data = subject.match("foofoo/bananabaz")
+        data.mapping["foo"].should == "foo"
+        data.mapping["bar"].should == "banana"
+      end
+      it "lists vars" do
+        subject.variables.should == ["foo", "bar"]
+      end
+    end
 
-  describe "Level 3:" do
-    context "no operator" do
-      subject { Addressable::UriTemplate.new("foo{foo,bar}baz") }
+    describe "Level 2:" do
+      subject { Addressable::UriTemplate.new("foo{+foo}{#bar}baz") }
       it "can match" do
-        data = subject.match("foofoo,barbaz")
-        data.mapping["foo"].should == "foo"
-        data.mapping["bar"].should == "bar"
+        data = subject.match("foo/test/banana#bazbaz")
+        data.mapping["foo"].should == "/test/banana"
+        data.mapping["bar"].should == "baz"
       end
       it "lists vars" do
         subject.variables.should == ["foo", "bar"]
       end
     end
-    context "+ operator" do
-      subject { Addressable::UriTemplate.new("foo{+foo,bar}baz") }
-      it "can match" do
-        data = subject.match("foofoo/bar,barbaz")
-        data.mapping["foo"].should == "foo/bar"
-        data.mapping["bar"].should == "bar"
+
+    describe "Level 3:" do
+      context "no operator" do
+        subject { Addressable::UriTemplate.new("foo{foo,bar}baz") }
+        it "can match" do
+          data = subject.match("foofoo,barbaz")
+          data.mapping["foo"].should == "foo"
+          data.mapping["bar"].should == "bar"
+        end
+        it "lists vars" do
+          subject.variables.should == ["foo", "bar"]
+        end
       end
-      it "lists vars" do
-        subject.variables.should == ["foo", "bar"]
+      context "+ operator" do
+        subject { Addressable::UriTemplate.new("foo{+foo,bar}baz") }
+        it "can match" do
+          data = subject.match("foofoo/bar,barbaz")
+          data.mapping["foo"].should == "foo/bar"
+          data.mapping["bar"].should == "bar"
+        end
+        it "lists vars" do
+          subject.variables.should == ["foo", "bar"]
+        end
       end
-    end
-    context ". operator" do
-      subject { Addressable::UriTemplate.new("foo{.foo,bar}baz") }
-      it "can match" do
-        data = subject.match("foo.foo.barbaz")
-        data.mapping["foo"].should == "foo"
-        data.mapping["bar"].should == "bar"
+      context ". operator" do
+        subject { Addressable::UriTemplate.new("foo{.foo,bar}baz") }
+        it "can match" do
+          data = subject.match("foo.foo.barbaz")
+          data.mapping["foo"].should == "foo"
+          data.mapping["bar"].should == "bar"
+        end
+        it "lists vars" do
+          subject.variables.should == ["foo", "bar"]
+        end
       end
-      it "lists vars" do
-        subject.variables.should == ["foo", "bar"]
+      context "/ operator" do
+        subject { Addressable::UriTemplate.new("foo{/foo,bar}baz") }
+        it "can match" do
+          data = subject.match("foo/foo/barbaz")
+          data.mapping["foo"].should == "foo"
+          data.mapping["bar"].should == "bar"
+        end
+        it "lists vars" do
+          subject.variables.should == ["foo", "bar"]
+        end
       end
-    end
-    context "/ operator" do
-      subject { Addressable::UriTemplate.new("foo{/foo,bar}baz") }
-      it "can match" do
-        data = subject.match("foofoo/barbaz")
-        data.mapping["foo"].should == "foo"
-        data.mapping["bar"].should == "bar"
+      context "; operator" do
+        subject { Addressable::UriTemplate.new("foo{;foo,bar,baz}baz") }
+        it "can match" do
+          data = subject.match("foo;foo=bar%20baz;bar=foo;bazbaz")
+          data.mapping["foo"].should == "bar baz"
+          data.mapping["bar"].should == "foo"
+          data.mapping["baz"].should == ""
+        end
+        it "lists vars" do
+          subject.variables.should == %w(foo bar baz)
+        end
       end
-      it "lists vars" do
-        subject.variables.should == ["foo", "bar"]
+      context "? operator" do
+        subject { Addressable::UriTemplate.new("foo{?foo,bar}baz") }
+        it "can match" do
+          data = subject.match("foo?foo=bar%20baz&bar=foobaz")
+          data.mapping["foo"].should == "bar baz"
+          data.mapping["bar"].should == "foo"
+        end
+        it "lists vars" do
+          subject.variables.should == %w(foo bar)
+        end
       end
-    end
-    context "; operator" do
-      subject { Addressable::UriTemplate.new("foo{;foo,bar,baz}baz") }
-      it "can match" do
-        data = subject.match("foo;foo=bar%20baz;bar=foo;bazbaz")
-        data.mapping["foo"].should == "bar baz"
-        data.mapping["bar"].should == "foo"
-        data.mapping["baz"].should == ""
-      end
-      it "lists vars" do
-        subject.variables.should == %w(foo bar baz)
-      end
-    end
-    context "? operator" do
-      subject { Addressable::UriTemplate.new("foo{?foo,bar}baz") }
-      it "can match" do
-        data = subject.match("foo?foo=bar%20baz&bar=foobaz")
-        data.mapping["foo"].should == "bar baz"
-        data.mapping["bar"].should == "foo"
-      end
-      it "lists vars" do
-        subject.variables.should == %w(foo bar)
-      end
-    end
-    context "& operator" do
-      subject { Addressable::UriTemplate.new("foo{&foo,bar}baz") }
-      it "can match" do
-        data = subject.match("foo&foo=bar%20baz&bar=foobaz")
-        data.mapping["foo"].should == "bar baz"
-        data.mapping["bar"].should == "foo"
-      end
-      it "lists vars" do
-        subject.variables.should == %w(foo bar)
+      context "& operator" do
+        subject { Addressable::UriTemplate.new("foo{&foo,bar}baz") }
+        it "can match" do
+          data = subject.match("foo&foo=bar%20baz&bar=foobaz")
+          data.mapping["foo"].should == "bar baz"
+          data.mapping["bar"].should == "foo"
+        end
+        it "lists vars" do
+          subject.variables.should == %w(foo bar)
+        end
       end
     end
   end

@@ -23,7 +23,7 @@ require "addressable/template"
 module Addressable
   ##
   # This is an implementation of a URI template based on
-  # <a href="http://tinyurl.com/uritemplatedraft03">URI Template draft 03</a>.
+  # RFC 6570 (http://tools.ietf.org/html/rfc6570).
   class UriTemplate < Template
     # Constants used throughout the template code.
     anything =
@@ -59,9 +59,8 @@ module Addressable
       /\{([#{operator}])?(#{varspec}(?:,#{varspec})*)\}/
 
 
-    OPERATOR_EXPANSION =
-      /\{-([a-zA-Z]+)\|([#{anything}]+)\|([#{anything}]+)\}/
-    VARIABLE_EXPANSION = /\{([#{anything}]+?)(?:=([#{anything}]+))?\}/
+    LEADERS = {?? => ??, ?/ => ?/, ?# => ?#, ?. => ?., ?; => ?;, ?& => ?&}
+    JOINERS = {?? => ?&, ?. => ?., ?; => ?;, ?& => ?&, ?/ => ?/}
 
 
     ##
@@ -105,7 +104,7 @@ module Addressable
     #   uri = Addressable::URI.parse(
     #     "http://example.com/search/an+example+search+query/"
     #   )
-    #   match = Addressable::Template.new(
+    #   match = Addressable::UriTemplate.new(
     #     "http://example.com/search/{query}/"
     #   ).match(uri, ExampleProcessor)
     #   match.variables
@@ -114,8 +113,8 @@ module Addressable
     #   #=> ["an example search query"]
     #
     #   uri = Addressable::URI.parse("http://example.com/a/b/c/")
-    #   match = Addressable::Template.new(
-    #     "http://example.com/{first}/{second}/"
+    #   match = Addressable::UriTemplate.new(
+    #     "http://example.com/{first}/{+second}/"
     #   ).match(uri, ExampleProcessor)
     #   match.variables
     #   #=> ["first", "second"]
@@ -123,8 +122,8 @@ module Addressable
     #   #=> ["a", "b/c"]
     #
     #   uri = Addressable::URI.parse("http://example.com/a/b/c/")
-    #   match = Addressable::Template.new(
-    #     "http://example.com/{first}/{-list|/|second}/"
+    #   match = Addressable::UriTemplate.new(
+    #     "http://example.com/{first}{/second*}/"
     #   ).match(uri)
     #   match.variables
     #   #=> ["first", "second"]
@@ -146,20 +145,42 @@ module Addressable
         expansions.each do |expansion|
           _, operator, varlist = *expansion.match(EXPRESSION)
           varlist.split(',').each do |varspec|
+            _, name, modifier = *varspec.match(VARSPEC)
             case operator
             when nil, ?+, ?#, ?/, ?.
               unparsed_value = unparsed_values[index]
               name = varspec[VARSPEC, 1]
               value = unparsed_value
+              value = value.split(JOINERS[operator]) if modifier == ?*
             when ?;, ??, ?&
-              name, value = unparsed_values[index].split('=')
-              value = "" if value.nil?
+              if modifier == ?*
+                value = unparsed_values[index].split(JOINERS[operator])
+                value = value.inject({}) do |acc, v|
+                  key, val = v.split('=')
+                  val = "" if val.nil?
+                  acc[key] = val
+                  acc
+                end
+              else
+                name, value = unparsed_values[index].split('=')
+                value = "" if value.nil?
+              end
             end
             if processor != nil && processor.respond_to?(:restore)
               value = processor.restore(name, value)
             end
             if processor == nil
-              value = Addressable::URI.unencode_component(value)
+              if value.is_a?(Hash)
+                value = value.inject({}){|acc, (k, v)|
+                  acc[Addressable::URI.unencode_component(k)] =
+                    Addressable::URI.unencode_component(v)
+                  acc
+                }
+              elsif value.is_a?(Array)
+                value = value.map{|v| Addressable::URI.unencode_component(v) }
+              else
+                value = Addressable::URI.unencode_component(value)
+              end
             end
             if mapping[name] == nil || mapping[name] == value
               mapping[name] = value
@@ -194,46 +215,29 @@ module Addressable
     # encoded automatically. Unicode normalization will be performed both
     # before and after sending the value to the transform method.
     #
-    # @return [Addressable::Template] The partially expanded URI template.
+    # @return [Addressable::UriTemplate] The partially expanded URI template.
     #
     # @example
-    #   Addressable::Template.new(
+    #   Addressable::UriTemplate.new(
     #     "http://example.com/{one}/{two}/"
     #   ).partial_expand({"one" => "1"}).pattern
     #   #=> "http://example.com/1/{two}/"
     #
-    #   Addressable::Template.new(
-    #     "http://example.com/search/{-list|+|query}/"
-    #   ).partial_expand(
-    #     {"query" => "an example search query".split(" ")}
-    #   ).pattern
-    #   #=> "http://example.com/search/an+example+search+query/"
-    #
-    #   Addressable::Template.new(
-    #     "http://example.com/{-join|&|one,two}/"
+    #   Addressable::UriTemplate.new(
+    #     "http://example.com/{?one,two}/"
     #   ).partial_expand({"one" => "1"}).pattern
-    #   #=> "http://example.com/?one=1{-prefix|&two=|two}"
+    #   #=> "http://example.com/?one=1{&two}/"
     #
-    #   Addressable::Template.new(
-    #     "http://example.com/{-join|&|one,two,three}/"
+    #   Addressable::UriTemplate.new(
+    #     "http://example.com/{?one,two,three}/"
     #   ).partial_expand({"one" => "1", "three" => 3}).pattern
-    #   #=> "http://example.com/?one=1{-prefix|&two=|two}&three=3"
+    #   #=> "http://example.com/?one=1{&two}&three=3"
     def partial_expand(mapping, processor=nil)
       result = self.pattern.dup
       result.gsub!( EXPRESSION ) do |capture|
-        _, operator, varlist = *capture.match(EXPRESSION)
-        case operator
-        when nil
-          name = varlist[VARSPEC, 1]
-          val = mapping[name]
-          if val
-            transform_mapped(val, processor)
-          else
-            capture
-          end
-        end
+        transform_partial_capture(mapping, capture, processor)
       end
-      return Addressable::Template.new(result)
+      return Addressable::UriTemplate.new(result)
     end
 
     ##
@@ -270,7 +274,7 @@ module Addressable
     #     end
     #   end
     #
-    #   Addressable::Template.new(
+    #   Addressable::UriTemplate.new(
     #     "http://example.com/search/{query}/"
     #   ).expand(
     #     {"query" => "an example search query"},
@@ -278,14 +282,14 @@ module Addressable
     #   ).to_str
     #   #=> "http://example.com/search/an+example+search+query/"
     #
-    #   Addressable::Template.new(
-    #     "http://example.com/search/{-list|+|query}/"
+    #   Addressable::UriTemplate.new(
+    #     "http://example.com/search/{query}/"
     #   ).expand(
-    #     {"query" => "an example search query".split(" ")}
+    #     {"query" => "an example search query"}
     #   ).to_str
-    #   #=> "http://example.com/search/an+example+search+query/"
+    #   #=> "http://example.com/search/an%20example%20search%20query/"
     #
-    #   Addressable::Template.new(
+    #   Addressable::UriTemplate.new(
     #     "http://example.com/search/{query}/"
     #   ).expand(
     #     {"query" => "bogus!"},
@@ -315,13 +319,32 @@ module Addressable
       )
     end
 
+
+    def transform_partial_capture(mapping, capture, processor = nil)
+      _, operator, varlist = *capture.match(EXPRESSION)
+      is_first = true
+      varlist.split(',').inject('') do |acc, varspec|
+        _, name, modifier = *varspec.match(VARSPEC)
+        value = mapping[name]
+        if value
+          operator = ?& if !is_first && operator == ??
+          acc << transform_capture(mapping, "{#{operator}#{varspec}}", processor)
+        else
+          operator = ?& if !is_first && operator == ??
+          acc << "{#{operator}#{varspec}}"
+        end
+        is_first = false
+        acc
+      end
+    end
+
     ##
     # Transforms a mapped value so that values can be substituted into the
     # template.
     #
-    # @param [Object] mapped A value to map
-    # @param [Boolean] allow_reserved Allow reserved charaters?
-    #   Defaults to false
+    # @param [Hash] mapping The mapping to replace captures
+    # @param [String] capture
+    #   The expression to replace
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
     #
@@ -392,7 +415,9 @@ module Addressable
                   }"
                 end
               end
-              transformed_value = transformed_value.join(',') unless modifier == "*"
+              unless modifier == "*"
+                transformed_value = transformed_value.join(',')
+              end
             else
               if length
                 transformed_value = Addressable::URI.encode_component(
@@ -423,33 +448,23 @@ module Addressable
         acc
       end
       return "" if return_value.empty?
+      join_values(operator, return_value)
+    end
+
+    def join_values(operator, return_value)
+      leader = LEADERS.fetch(operator, '')
+      joiner = JOINERS.fetch(operator, ',')
       case operator
-      when ?.
-        ?. + return_value.map{|k,v| v}.join('.')
-      when ?/
-        ?/ + return_value.map{|k,v| v}.join('/')
-      when ?#
-        ?# + return_value.map{|k,v| v}.join(',')
-      when ?&
-        ?& + return_value.map{|k,v|
+      when ?&, ??
+        leader + return_value.map{|k,v|
           if v.is_a?(Array) && v.first =~ /=/
-            v.join("&")
+            v.join(joiner)
           elsif v.is_a?(Array)
-            v.map{|v| "#{k}=#{v}"}.join("&")
+            v.map{|v| "#{k}=#{v}"}.join(joiner)
           else
             "#{k}=#{v}"
           end
-        }.join('&')
-      when ??
-        ?? + return_value.map{|k,v|
-          if v.is_a?(Array) && v.first =~ /=/
-            v.join("&")
-          elsif v.is_a?(Array)
-            v.map{|v| "#{k}=#{v}"}.join("&")
-          else
-            "#{k}=#{v}"
-          end
-        }.join('&')
+        }.join(joiner)
       when ?;
         return_value.map{|k,v|
           if v.is_a?(Array) && v.first =~ /=/
@@ -461,7 +476,7 @@ module Addressable
           end
         }.join
       else
-        return_value.map{|k,v| v}.join(',')
+        leader + return_value.map{|k,v| v}.join(joiner)
       end
     end
 
@@ -534,40 +549,38 @@ module Addressable
 
         expansions << expansion
         _, operator, varlist = *expansion.match(EXPRESSION)
-        case operator
-        when ?+
-          varlist.split(',').map do |varspec|
-            "(#{ RESERVED }*?)"
-          end.join(',')
-        when ?#
-          ?# + varlist.split(',').map do |varspec|
-            "(#{ RESERVED }*?)"
-          end.join(',')
-        when ?/
-          varlist.split(',').map do |varspec|
-            "(#{ UNRESERVED }*?)"
-          end.join('/?')
-        when ?.
-          '\.' + varlist.split(',').map do |varspec|
-            "(#{ UNRESERVED.gsub('\.', '') }*?)"
-          end.join('\.?')
-        when ?;
-          ?; + varlist.split(',').map do |varspec|
-            "(#{ UNRESERVED }*=?#{ UNRESERVED }*?)"
-          end.join(';?')
-        when ??
-          '\?' + varlist.split(',').map do |varspec|
-            "(#{ UNRESERVED }*=#{ UNRESERVED }*?)"
-          end.join('&')
-        when ?&
-          '&' + varlist.split(',').map do |varspec|
-            "(#{ UNRESERVED }*=#{ UNRESERVED }*?)"
-          end.join('&')
-        else
-          varlist.split(',').map do |varspec|
-            "(#{ UNRESERVED }*?)"
-          end.join(',')
-        end
+        leader = Regexp.escape(LEADERS.fetch(operator, ''))
+        joiner = Regexp.escape(JOINERS.fetch(operator, ','))
+        leader + varlist.split(',').map do |varspec|
+          _, name, modifier = *varspec.match(VARSPEC)
+          if processor != nil && processor.respond_to?(:match)
+            "(#{ processor.match(name) })"
+          else
+            group = case operator
+            when ?+
+              "#{ RESERVED }*?"
+            when ?#
+              "#{ RESERVED }*?"
+            when ?/
+              "#{ UNRESERVED }*?"
+            when ?.
+              "#{ UNRESERVED.gsub('\.', '') }*?"
+            when ?;
+              "#{ UNRESERVED }*=?#{ UNRESERVED }*?"
+            when ??
+              "#{ UNRESERVED }*=#{ UNRESERVED }*?"
+            when ?&
+              "#{ UNRESERVED }*=#{ UNRESERVED }*?"
+            else
+              "#{ UNRESERVED }*?"
+            end
+            if modifier == ?*
+              "(#{group}(?:#{joiner}?#{group})*)"
+            else
+              "(#{group})"
+            end
+          end
+        end.join(joiner)
       end
 
       # Ensure that the regular expression matches the whole URI.
