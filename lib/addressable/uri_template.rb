@@ -154,6 +154,9 @@ module Addressable
               if processor != nil && processor.respond_to?(:restore)
                 value = processor.restore(name, value)
               end
+              if processor == nil && !%w(+ #).include?(operator)
+                value = Addressable::URI.unencode_component(value)
+              end
               if mapping[name] == nil || mapping[name] == value
                 mapping[name] = value
               else
@@ -167,6 +170,9 @@ module Addressable
               value = "" if value.nil?
               if processor != nil && processor.respond_to?(:restore)
                 value = processor.restore(name, value)
+              end
+              if processor == nil
+                value = Addressable::URI.unencode_component(value)
               end
               if mapping[name] == nil || mapping[name] == value
                 mapping[name] = value

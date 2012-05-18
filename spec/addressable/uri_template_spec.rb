@@ -179,7 +179,7 @@ describe Addressable::UriTemplate do
       subject { Addressable::UriTemplate.new("foo{;foo,bar,baz}baz") }
       it "can match" do
         data = subject.match("foo;foo=bar%20baz;bar=foo;bazbaz")
-        data.mapping["foo"].should == "bar%20baz"
+        data.mapping["foo"].should == "bar baz"
         data.mapping["bar"].should == "foo"
         data.mapping["baz"].should == ""
       end
@@ -191,7 +191,7 @@ describe Addressable::UriTemplate do
       subject { Addressable::UriTemplate.new("foo{?foo,bar}baz") }
       it "can match" do
         data = subject.match("foo?foo=bar%20baz&bar=foobaz")
-        data.mapping["foo"].should == "bar%20baz"
+        data.mapping["foo"].should == "bar baz"
         data.mapping["bar"].should == "foo"
       end
       it "lists vars" do
@@ -202,7 +202,7 @@ describe Addressable::UriTemplate do
       subject { Addressable::UriTemplate.new("foo{&foo,bar}baz") }
       it "can match" do
         data = subject.match("foo&foo=bar%20baz&bar=foobaz")
-        data.mapping["foo"].should == "bar%20baz"
+        data.mapping["foo"].should == "bar baz"
         data.mapping["bar"].should == "foo"
       end
       it "lists vars" do
