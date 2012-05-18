@@ -39,6 +39,10 @@ module Addressable
       "(?:(?:[#{variable_char_class}]|%[a-fA-F0-9][a-fA-F0-9])+)"
     RESERVED =
       "(?:[#{anything}]|%[a-fA-F0-9][a-fA-F0-9])"
+    UNRESERVED =
+      "(?:[#{
+        Addressable::URI::CharacterClasses::UNRESERVED
+      }]|%[a-fA-F0-9][a-fA-F0-9])"
     variable =
       "(?:#{var_char}(?:\\.?#{var_char})*)"
     varspec =
@@ -137,21 +141,39 @@ module Addressable
 
       if uri.to_str == pattern
         return Addressable::Template::MatchData.new(uri, self, mapping)
-      elsif expansions.size > 0 && expansions.size == unparsed_values.size
-        expansions.each_with_index do |expansion, index|
-          unparsed_value = unparsed_values[index]
+      elsif expansions.size > 0
+        index = 0
+        expansions.each do |expansion|
           _, operator, varlist = *expansion.match(EXPRESSION)
           case operator
-          when nil, ?+, ?#
-            name = varlist[VARSPEC, 1]
-            value = unparsed_value
-            if processor != nil && processor.respond_to?(:restore)
-              value = processor.restore(name, value)
+          when nil, ?+, ?#, ?/, ?.
+            varlist.split(',').each do |varspec|
+              unparsed_value = unparsed_values[index]
+              name = varspec[VARSPEC, 1]
+              value = unparsed_value
+              if processor != nil && processor.respond_to?(:restore)
+                value = processor.restore(name, value)
+              end
+              if mapping[name] == nil || mapping[name] == value
+                mapping[name] = value
+              else
+                return nil
+              end
+              index = index + 1
             end
-            if mapping[name] == nil || mapping[name] == value
-              mapping[name] = value
-            else
-              return nil
+          when ?;, ??, ?&
+            varlist.split(',').each do |varspec|
+              name, value = unparsed_values[index].split('=')
+              value = "" if value.nil?
+              if processor != nil && processor.respond_to?(:restore)
+                value = processor.restore(name, value)
+              end
+              if mapping[name] == nil || mapping[name] == value
+                mapping[name] = value
+              else
+                return nil
+              end
+              index = index + 1
             end
           end
           # if expansion =~ OPERATOR_EXPANSION
@@ -328,8 +350,10 @@ module Addressable
         expansions, expansion_regexp = parse_template_pattern(pattern)
         expansions.map do |capture|
           _, operator, varlist = *capture.match(EXPRESSION)
-          name = varlist[VARSPEC, 1]
-        end
+          varlist.split(',').map do |varspec|
+            name = varspec[VARSPEC, 1]
+          end
+        end.flatten
       )
     end
 
@@ -497,24 +521,42 @@ module Addressable
         _, operator, varlist = *expansion.match(EXPRESSION)
         case operator
         when ?+
-          capture_group = "(#{ RESERVED }*?)"
+          varlist.split(',').map do |varspec|
+            "(#{ RESERVED }*?)"
+          end.join(',')
         when ?#
-          capture_group = "#(#{ RESERVED }*?)"
+          ?# + varlist.split(',').map do |varspec|
+            "(#{ RESERVED }*?)"
+          end.join(',')
+        when ?/
+          varlist.split(',').map do |varspec|
+            "(#{ UNRESERVED }*?)"
+          end.join('/?')
+        when ?.
+          '\.' + varlist.split(',').map do |varspec|
+            "(#{ UNRESERVED.gsub('\.', '') }*?)"
+          end.join('\.?')
+        when ?;
+          ?; + varlist.split(',').map do |varspec|
+            "(#{ UNRESERVED }*=?#{ UNRESERVED }*?)"
+          end.join(';?')
+        when ??
+          '\?' + varlist.split(',').map do |varspec|
+            "(#{ UNRESERVED }*=#{ UNRESERVED }*?)"
+          end.join('&')
+        when ?&
+          '&' + varlist.split(',').map do |varspec|
+            "(#{ UNRESERVED }*=#{ UNRESERVED }*?)"
+          end.join('&')
         else
-          capture_group = "([#{
-            Addressable::URI::CharacterClasses::UNRESERVED
-          }]*?)"
+          varlist.split(',').map do |varspec|
+            "(#{ UNRESERVED }*?)"
+          end.join(',')
         end
-        if processor != nil && processor.respond_to?(:match)
-          name = expansion[VARSPEC, 1]
-          capture_group = "(#{processor.match(name)})"
-        end
-        capture_group
       end
 
       # Ensure that the regular expression matches the whole URI.
       regexp_string = "^#{regexp_string}$"
-
       return expansions, Regexp.new(regexp_string)
     end
 

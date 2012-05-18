@@ -130,6 +130,87 @@ describe Addressable::UriTemplate do
     end
   end
 
+  describe "Level 3:" do
+    context "no operator" do
+      subject { Addressable::UriTemplate.new("foo{foo,bar}baz") }
+      it "can match" do
+        data = subject.match("foofoo,barbaz")
+        data.mapping["foo"].should == "foo"
+        data.mapping["bar"].should == "bar"
+      end
+      it "lists vars" do
+        subject.variables.should == ["foo", "bar"]
+      end
+    end
+    context "+ operator" do
+      subject { Addressable::UriTemplate.new("foo{+foo,bar}baz") }
+      it "can match" do
+        data = subject.match("foofoo/bar,barbaz")
+        data.mapping["foo"].should == "foo/bar"
+        data.mapping["bar"].should == "bar"
+      end
+      it "lists vars" do
+        subject.variables.should == ["foo", "bar"]
+      end
+    end
+    context ". operator" do
+      subject { Addressable::UriTemplate.new("foo{.foo,bar}baz") }
+      it "can match" do
+        data = subject.match("foo.foo.barbaz")
+        data.mapping["foo"].should == "foo"
+        data.mapping["bar"].should == "bar"
+      end
+      it "lists vars" do
+        subject.variables.should == ["foo", "bar"]
+      end
+    end
+    context "/ operator" do
+      subject { Addressable::UriTemplate.new("foo{/foo,bar}baz") }
+      it "can match" do
+        data = subject.match("foofoo/barbaz")
+        data.mapping["foo"].should == "foo"
+        data.mapping["bar"].should == "bar"
+      end
+      it "lists vars" do
+        subject.variables.should == ["foo", "bar"]
+      end
+    end
+    context "; operator" do
+      subject { Addressable::UriTemplate.new("foo{;foo,bar,baz}baz") }
+      it "can match" do
+        data = subject.match("foo;foo=bar%20baz;bar=foo;bazbaz")
+        data.mapping["foo"].should == "bar%20baz"
+        data.mapping["bar"].should == "foo"
+        data.mapping["baz"].should == ""
+      end
+      it "lists vars" do
+        subject.variables.should == %w(foo bar baz)
+      end
+    end
+    context "? operator" do
+      subject { Addressable::UriTemplate.new("foo{?foo,bar}baz") }
+      it "can match" do
+        data = subject.match("foo?foo=bar%20baz&bar=foobaz")
+        data.mapping["foo"].should == "bar%20baz"
+        data.mapping["bar"].should == "foo"
+      end
+      it "lists vars" do
+        subject.variables.should == %w(foo bar)
+      end
+    end
+    context "& operator" do
+      subject { Addressable::UriTemplate.new("foo{&foo,bar}baz") }
+      it "can match" do
+        data = subject.match("foo&foo=bar%20baz&bar=foobaz")
+        data.mapping["foo"].should == "bar%20baz"
+        data.mapping["bar"].should == "foo"
+      end
+      it "lists vars" do
+        subject.variables.should == %w(foo bar)
+      end
+    end
+  end
+
   context "support regexes:" do
     context "EXPRESSION" do
       subject { Addressable::UriTemplate::EXPRESSION }
