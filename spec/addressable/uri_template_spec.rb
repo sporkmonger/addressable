@@ -389,7 +389,7 @@ describe "Expansion" do
   end
 end
 
-class ExampleProcessor
+class ExampleTwoProcessor
   def self.restore(name, value)
     return value.gsub(/-/, " ") if name == "query"
     return value
@@ -427,20 +427,20 @@ describe Addressable::UriTemplate do
     let(:uri4){
       Addressable::URI.parse("http://example.com/?a=1&b=2&c=3&first=foo")
     }
-    context "first uri with ExampleProcessor" do
+    context "first uri with ExampleTwoProcessor" do
       subject{
         match = Addressable::UriTemplate.new(
           "http://example.com/search/{query}/"
-        ).match(uri, ExampleProcessor)
+        ).match(uri, ExampleTwoProcessor)
       }
       its(:variables){ should == ["query"]}
       its(:captures){ should == ["an example search query"]}
     end
-    context "second uri with ExampleProcessor" do
+    context "second uri with ExampleTwoProcessor" do
       subject{
         match = Addressable::UriTemplate.new(
           "http://example.com/{first}/{+second}/"
-        ).match(uri2, ExampleProcessor)
+        ).match(uri2, ExampleTwoProcessor)
       }
       its(:variables){ should == ["first", "second"]}
       its(:captures){ should == ["a", "b/c"] }
@@ -518,13 +518,13 @@ describe Addressable::UriTemplate do
       }
       it "processes spaces" do
         subject.expand({"query" => "an example search query"},
-                      ExampleProcessor).to_str.should ==
+                      ExampleTwoProcessor).to_str.should ==
           "http://example.com/search/an+example+search+query/"
       end
       it "validates" do
         lambda{
           subject.expand({"query" => "Bogus!"},
-                      ExampleProcessor).to_str
+                      ExampleTwoProcessor).to_str
         }.should raise_error(Addressable::Template::InvalidTemplateValueError)
       end
     end
