@@ -357,103 +357,93 @@ module Addressable
       return_value = varlist.split(',').inject([]) do |acc, varspec|
         _, name, modifier = *varspec.match(VARSPEC)
         value = mapping[name]
-        allow_reserved = %w(+ #).include?(operator)
-        value = value.to_s if Numeric === value || Symbol === value
-        length = modifier.gsub(':', '').to_i if modifier =~ /^:\d+/
+        unless value == nil || value == {}
+          allow_reserved = %w(+ #).include?(operator)
+          value = value.to_s if Numeric === value || Symbol === value
+          length = modifier.gsub(':', '').to_i if modifier =~ /^:\d+/
 
-        unless (Hash === value) ||
-          value.respond_to?(:to_ary) || value.respond_to?(:to_str)
-          raise TypeError,
-            "Can't convert #{value.class} into String or Array."
-        end
-
-        unless Hash === value
-          value = value.respond_to?(:to_ary) ? value.to_ary : value.to_str
-        end
-
-        # Handle unicode normalization
-        if value.kind_of?(Array)
-          value.map! { |val| Addressable::IDNA.unicode_normalize_kc(val) }
-        elsif value.kind_of?(Hash)
-          value = value.inject({}) { |acc, (k, v)|
-            acc[Addressable::IDNA.unicode_normalize_kc(k)] =
-              Addressable::IDNA.unicode_normalize_kc(v)
-            acc
-          }
-        else
-          value = Addressable::IDNA.unicode_normalize_kc(value)
-        end
-
-        if processor == nil || !processor.respond_to?(:transform)
-          # Handle percent escaping
-          if allow_reserved
-            encode_map =
-              Addressable::URI::CharacterClasses::RESERVED +
-              Addressable::URI::CharacterClasses::UNRESERVED
-          else
-            encode_map = Addressable::URI::CharacterClasses::UNRESERVED
+          unless (Hash === value) ||
+            value.respond_to?(:to_ary) || value.respond_to?(:to_str)
+            raise TypeError,
+              "Can't convert #{value.class} into String or Array."
           end
-          if value.kind_of?(Array)
-            transformed_value = value.map do |val|
+
+          value = normalize_value(value)
+
+          if processor == nil || !processor.respond_to?(:transform)
+            # Handle percent escaping
+            if allow_reserved
+              encode_map =
+                Addressable::URI::CharacterClasses::RESERVED +
+                Addressable::URI::CharacterClasses::UNRESERVED
+            else
+              encode_map = Addressable::URI::CharacterClasses::UNRESERVED
+            end
+            if value.kind_of?(Array)
+              transformed_value = value.map do |val|
+                if length
+                  Addressable::URI.encode_component(val[0...length], encode_map)
+                else
+                  Addressable::URI.encode_component(val, encode_map)
+                end
+              end
+              unless modifier == "*"
+                transformed_value = transformed_value.join(',')
+              end
+            elsif value.kind_of?(Hash)
+              transformed_value = value.map do |key, val|
+                if modifier == "*"
+                  "#{
+                    Addressable::URI.encode_component( key, encode_map)
+                  }=#{
+                    Addressable::URI.encode_component( val, encode_map)
+                  }"
+                else
+                  "#{
+                    Addressable::URI.encode_component( key, encode_map)
+                  },#{
+                    Addressable::URI.encode_component( val, encode_map)
+                  }"
+                end
+              end
+              transformed_value = transformed_value.join(',') unless modifier == "*"
+            else
               if length
-                Addressable::URI.encode_component( val[0...length], encode_map)
+                transformed_value = Addressable::URI.encode_component(
+                  value[0...length], encode_map)
               else
-                Addressable::URI.encode_component( val, encode_map)
+                transformed_value = Addressable::URI.encode_component(
+                  value, encode_map)
               end
-            end
-            transformed_value = transformed_value.join(',') unless modifier == "*"
-          elsif value.kind_of?(Hash)
-            transformed_value = value.map do |key, val|
-              if modifier == "*"
-                "#{
-                  Addressable::URI.encode_component( key, encode_map)
-                }=#{
-                  Addressable::URI.encode_component( val, encode_map)
-                }"
-              else
-                "#{
-                  Addressable::URI.encode_component( key, encode_map)
-                },#{
-                  Addressable::URI.encode_component( val, encode_map)
-                }"
-              end
-            end
-            transformed_value = transformed_value.join(',') unless modifier == "*"
-          else
-            if length
-              transformed_value = Addressable::URI.encode_component(
-                value[0...length], encode_map)
-            else
-              transformed_value = Addressable::URI.encode_component(
-                value, encode_map)
             end
           end
-        end
 
-        # Process, if we've got a processor
-        if processor != nil
-          if processor.respond_to?(:validate)
-            if !processor.validate(name, value)
-              display_value = value.kind_of?(Array) ? value.inspect : value
-              raise InvalidTemplateValueError,
-                "#{name}=#{display_value} is an invalid template value."
-            end
-          end
-          if processor.respond_to?(:transform)
-            transformed_value = processor.transform(name, value)
-            if transformed_value.kind_of?(Array)
-              transformed_value.map! do |val|
-                Addressable::IDNA.unicode_normalize_kc(val)
+          # Process, if we've got a processor
+          if processor != nil
+            if processor.respond_to?(:validate)
+              if !processor.validate(name, value)
+                display_value = value.kind_of?(Array) ? value.inspect : value
+                raise InvalidTemplateValueError,
+                  "#{name}=#{display_value} is an invalid template value."
               end
-            else
-              transformed_value =
-                Addressable::IDNA.unicode_normalize_kc(transformed_value)
+            end
+            if processor.respond_to?(:transform)
+              transformed_value = processor.transform(name, value)
+              if transformed_value.kind_of?(Array)
+                transformed_value.map! do |val|
+                  Addressable::IDNA.unicode_normalize_kc(val)
+                end
+              else
+                transformed_value =
+                  Addressable::IDNA.unicode_normalize_kc(transformed_value)
+              end
             end
           end
+          acc << [name, transformed_value]
         end
-        acc << [name, transformed_value]
         acc
       end
+      return "" if return_value.empty?
       case operator
       when ?.
         ?. + return_value.map{|k,v| v}.join('.')
@@ -496,6 +486,25 @@ module Addressable
       end
     end
 
+    def normalize_value(value)
+      unless value.is_a?(Hash)
+        value = value.respond_to?(:to_ary) ? value.to_ary : value.to_str
+      end
+
+      # Handle unicode normalization
+      if value.kind_of?(Array)
+        value.map! { |val| Addressable::IDNA.unicode_normalize_kc(val) }
+      elsif value.kind_of?(Hash)
+        value = value.inject({}) { |acc, (k, v)|
+          acc[Addressable::IDNA.unicode_normalize_kc(k)] =
+            Addressable::IDNA.unicode_normalize_kc(v)
+          acc
+        }
+      else
+        value = Addressable::IDNA.unicode_normalize_kc(value)
+      end
+      value
+    end
 
     ##
     # Generates a hash with string keys
