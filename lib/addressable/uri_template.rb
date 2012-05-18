@@ -145,42 +145,28 @@ module Addressable
         index = 0
         expansions.each do |expansion|
           _, operator, varlist = *expansion.match(EXPRESSION)
-          case operator
-          when nil, ?+, ?#, ?/, ?.
-            varlist.split(',').each do |varspec|
+          varlist.split(',').each do |varspec|
+            case operator
+            when nil, ?+, ?#, ?/, ?.
               unparsed_value = unparsed_values[index]
               name = varspec[VARSPEC, 1]
               value = unparsed_value
-              if processor != nil && processor.respond_to?(:restore)
-                value = processor.restore(name, value)
-              end
-              if processor == nil && !%w(+ #).include?(operator)
-                value = Addressable::URI.unencode_component(value)
-              end
-              if mapping[name] == nil || mapping[name] == value
-                mapping[name] = value
-              else
-                return nil
-              end
-              index = index + 1
-            end
-          when ?;, ??, ?&
-            varlist.split(',').each do |varspec|
+            when ?;, ??, ?&
               name, value = unparsed_values[index].split('=')
               value = "" if value.nil?
-              if processor != nil && processor.respond_to?(:restore)
-                value = processor.restore(name, value)
-              end
-              if processor == nil
-                value = Addressable::URI.unencode_component(value)
-              end
-              if mapping[name] == nil || mapping[name] == value
-                mapping[name] = value
-              else
-                return nil
-              end
-              index = index + 1
             end
+            if processor != nil && processor.respond_to?(:restore)
+              value = processor.restore(name, value)
+            end
+            if processor == nil
+              value = Addressable::URI.unencode_component(value)
+            end
+            if mapping[name] == nil || mapping[name] == value
+              mapping[name] = value
+            else
+              return nil
+            end
+            index = index + 1
           end
         end
         return Addressable::Template::MatchData.new(uri, self, mapping)
@@ -429,14 +415,7 @@ module Addressable
             end
             if processor.respond_to?(:transform)
               transformed_value = processor.transform(name, value)
-              if transformed_value.kind_of?(Array)
-                transformed_value.map! do |val|
-                  Addressable::IDNA.unicode_normalize_kc(val)
-                end
-              else
-                transformed_value =
-                  Addressable::IDNA.unicode_normalize_kc(transformed_value)
-              end
+              transformed_value = normalize_value(transformed_value)
             end
           end
           acc << [name, transformed_value]
