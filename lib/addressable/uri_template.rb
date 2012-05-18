@@ -182,25 +182,6 @@ module Addressable
               index = index + 1
             end
           end
-          # if expansion =~ OPERATOR_EXPANSION
-            # operator, argument, variables =
-              # parse_template_expansion(expansion)
-            # extract_method = "extract_#{operator}_operator"
-            # if ([extract_method, extract_method.to_sym] &
-                # private_methods).empty?
-              # raise InvalidTemplateOperatorError,
-                # "Invalid template operator: #{operator}"
-            # else
-              # begin
-                # send(
-                  # extract_method.to_sym, unparsed_value, processor,
-                  # argument, variables, mapping
-                # )
-              # rescue TemplateOperatorAbortedError
-                # return nil
-              # end
-            # end
-          # else
         end
         return Addressable::Template::MatchData.new(uri, self, mapping)
       else
@@ -330,21 +311,6 @@ module Addressable
       mapping = normalize_keys(mapping)
       result.gsub!( EXPRESSION ) do |capture|
         transform_capture(mapping, capture, processor)
-
-        # if capture =~ OPERATOR_EXPANSION
-          # operator, argument, variables, default_mapping =
-            # parse_template_expansion(capture, transformed_mapping)
-          # expand_method = "expand_#{operator}_operator"
-          # if ([expand_method, expand_method.to_sym] & private_methods).empty?
-            # raise InvalidTemplateOperatorError,
-              # "Invalid template operator: #{operator}"
-          # else
-            # send(expand_method.to_sym, argument, variables, default_mapping)
-          # end
-        # else
-          # varname, _, vardefault = capture.scan(/^\{(.+?)(=(.*))?\}$/)[0]
-          # transformed_mapping[varname] || vardefault
-        # end
       end
       return Addressable::URI.parse(result)
     end
@@ -388,22 +354,32 @@ module Addressable
     # @return [Object] The transformed mapped value
     def transform_capture(mapping, capture, processor=nil)
       _, operator, varlist = *capture.match(EXPRESSION)
-      return_value = varlist.split(',').inject({}) do |acc, varspec|
-        name = varspec[VARSPEC, 1]
+      return_value = varlist.split(',').inject([]) do |acc, varspec|
+        _, name, modifier = *varspec.match(VARSPEC)
         value = mapping[name]
         allow_reserved = %w(+ #).include?(operator)
         value = value.to_s if Numeric === value || Symbol === value
+        length = modifier.gsub(':', '').to_i if modifier =~ /^:\d+/
 
-        unless value.respond_to?(:to_ary) || value.respond_to?(:to_str)
+        unless (Hash === value) ||
+          value.respond_to?(:to_ary) || value.respond_to?(:to_str)
           raise TypeError,
             "Can't convert #{value.class} into String or Array."
         end
 
-        value = value.respond_to?(:to_ary) ? value.to_ary : value.to_str
+        unless Hash === value
+          value = value.respond_to?(:to_ary) ? value.to_ary : value.to_str
+        end
 
         # Handle unicode normalization
         if value.kind_of?(Array)
           value.map! { |val| Addressable::IDNA.unicode_normalize_kc(val) }
+        elsif value.kind_of?(Hash)
+          value = value.inject({}) { |acc, (k, v)|
+            acc[Addressable::IDNA.unicode_normalize_kc(k)] =
+              Addressable::IDNA.unicode_normalize_kc(v)
+            acc
+          }
         else
           value = Addressable::IDNA.unicode_normalize_kc(value)
         end
@@ -419,11 +395,38 @@ module Addressable
           end
           if value.kind_of?(Array)
             transformed_value = value.map do |val|
-              Addressable::URI.encode_component( val, encode_map)
+              if length
+                Addressable::URI.encode_component( val[0...length], encode_map)
+              else
+                Addressable::URI.encode_component( val, encode_map)
+              end
             end
+            transformed_value = transformed_value.join(',') unless modifier == "*"
+          elsif value.kind_of?(Hash)
+            transformed_value = value.map do |key, val|
+              if modifier == "*"
+                "#{
+                  Addressable::URI.encode_component( key, encode_map)
+                }=#{
+                  Addressable::URI.encode_component( val, encode_map)
+                }"
+              else
+                "#{
+                  Addressable::URI.encode_component( key, encode_map)
+                },#{
+                  Addressable::URI.encode_component( val, encode_map)
+                }"
+              end
+            end
+            transformed_value = transformed_value.join(',') unless modifier == "*"
           else
-            transformed_value = Addressable::URI.encode_component(
-              value, encode_map)
+            if length
+              transformed_value = Addressable::URI.encode_component(
+                value[0...length], encode_map)
+            else
+              transformed_value = Addressable::URI.encode_component(
+                value, encode_map)
+            end
           end
         end
 
@@ -448,30 +451,48 @@ module Addressable
             end
           end
         end
-        acc[name] = transformed_value
+        acc << [name, transformed_value]
         acc
       end
       case operator
       when ?.
-        ?. + return_value.values.join('.')
+        ?. + return_value.map{|k,v| v}.join('.')
       when ?/
-        ?/ + return_value.values.join('/')
+        ?/ + return_value.map{|k,v| v}.join('/')
       when ?#
-        ?# + return_value.values.join(',')
+        ?# + return_value.map{|k,v| v}.join(',')
       when ?&
         ?& + return_value.map{|k,v|
-          "#{k}=#{v}"
+          if v.is_a?(Array) && v.first =~ /=/
+            v.join("&")
+          elsif v.is_a?(Array)
+            v.map{|v| "#{k}=#{v}"}.join("&")
+          else
+            "#{k}=#{v}"
+          end
         }.join('&')
       when ??
         ?? + return_value.map{|k,v|
-          "#{k}=#{v}"
+          if v.is_a?(Array) && v.first =~ /=/
+            v.join("&")
+          elsif v.is_a?(Array)
+            v.map{|v| "#{k}=#{v}"}.join("&")
+          else
+            "#{k}=#{v}"
+          end
         }.join('&')
       when ?;
         return_value.map{|k,v|
-          v && v != '' ?  ";#{k}=#{v}" : ";#{k}"
+          if v.is_a?(Array) && v.first =~ /=/
+            ?; + v.join(";")
+          elsif v.is_a?(Array)
+            ?; + v.map{|v| "#{k}=#{v}"}.join(";")
+          else
+            v && v != '' ?  ";#{k}=#{v}" : ";#{k}"
+          end
         }.join
       else
-        return_value.values.join(',')
+        return_value.map{|k,v| v}.join(',')
       end
     end
 

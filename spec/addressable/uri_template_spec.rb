@@ -103,6 +103,91 @@ describe "Level 3" do
     }
   end
 end
+describe "Level 4" do
+  subject{
+    {
+      :var => "value",
+      :hello => "Hello World!",
+      :path => "/foo/bar",
+      :list => %w(red green blue),
+      :keys => {"semi" => ';', "dot" => '.', "comma" => ','}
+    }
+  }
+  context "Expansion with value modifiers" do
+    it_behaves_like 'expands', {
+      '{var:3}' => 'val',
+      '{var:30}' => 'value',
+      '{list}' => 'red,green,blue',
+      '{list*}' => 'red,green,blue',
+      '{keys}' => 'semi,%3B,dot,.,comma,%2C',
+      '{keys*}' => 'semi=%3B,dot=.,comma=%2C',
+    }
+  end
+  context "Operator + with value modifiers" do
+    it_behaves_like 'expands', {
+      '{+path:6}/here' => '/foo/b/here',
+      '{+list}' => 'red,green,blue',
+      '{+list*}' => 'red,green,blue',
+      '{+keys}' => 'semi,;,dot,.,comma,,',
+      '{+keys*}' => 'semi=;,dot=.,comma=,',
+    }
+  end
+  context "Operator # with value modifiers" do
+    it_behaves_like 'expands', {
+      '{#path:6}/here' => '#/foo/b/here',
+      '{#list}' => '#red,green,blue',
+      '{#list*}' => '#red,green,blue',
+      '{#keys}' => '#semi,;,dot,.,comma,,',
+      '{#keys*}' => '#semi=;,dot=.,comma=,',
+    }
+  end
+  context "Operator . with value modifiers" do
+    it_behaves_like 'expands', {
+      'X{.var:3}' => 'X.val',
+      'X{.list}' => 'X.red,green,blue',
+      'X{.list*}' => 'X.red.green.blue',
+      'X{.keys}' => 'X.semi,%3B,dot,.,comma,%2C',
+      'X{.keys*}' => 'X.semi=%3B.dot=..comma=%2C',
+    }
+  end
+  context "Operator / with value modifiers" do
+    it_behaves_like 'expands', {
+      '{/var:1,var}' => '/v/value',
+      '{/list}' => '/red,green,blue',
+      '{/list*}' => '/red/green/blue',
+      '{/list*,path:4}' => '/red/green/blue/%2Ffoo',
+      '{/keys}' => '/semi,%3B,dot,.,comma,%2C',
+      '{/keys*}' => '/semi=%3B/dot=./comma=%2C',
+    }
+  end
+  context "Operator ; with value modifiers" do
+    it_behaves_like 'expands', {
+      '{;hello:5}' => ';hello=Hello',
+      '{;list}' => ';list=red,green,blue',
+      '{;list*}' => ';list=red;list=green;list=blue',
+      '{;keys}' => ';keys=semi,%3B,dot,.,comma,%2C',
+      '{;keys*}' => ';semi=%3B;dot=.;comma=%2C',
+    }
+  end
+  context "Operator ? with value modifiers" do
+    it_behaves_like 'expands', {
+      '{?var:3}' => '?var=val',
+      '{?list}' => '?list=red,green,blue',
+      '{?list*}' => '?list=red&list=green&list=blue',
+      '{?keys}' => '?keys=semi,%3B,dot,.,comma,%2C',
+      '{?keys*}' => '?semi=%3B&dot=.&comma=%2C',
+    }
+  end
+  context "Operator & with value modifiers" do
+    it_behaves_like 'expands', {
+      '{&var:3}' => '&var=val',
+      '{&list}' => '&list=red,green,blue',
+      '{&list*}' => '&list=red&list=green&list=blue',
+      '{&keys}' => '&keys=semi,%3B,dot,.,comma,%2C',
+      '{&keys*}' => '&semi=%3B&dot=.&comma=%2C',
+    }
+  end
+end
 
 
 describe Addressable::UriTemplate do
