@@ -151,7 +151,7 @@ module Addressable
               unparsed_value = unparsed_values[index]
               name = varspec[VARSPEC, 1]
               value = unparsed_value
-              value = value.split(JOINERS[operator]) if modifier == ?*
+              value = value.split(JOINERS[operator]) if value && modifier == ?*
             when ?;, ??, ?&
               if modifier == ?*
                 value = unparsed_values[index].split(JOINERS[operator])
@@ -162,8 +162,10 @@ module Addressable
                   acc
                 end
               else
-                name, value = unparsed_values[index].split('=')
-                value = "" if value.nil?
+                if (unparsed_values[index])
+                  name, value = unparsed_values[index].split('=')
+                  value = "" if value.nil?
+                end
               end
             end
             if processor != nil && processor.respond_to?(:restore)
@@ -320,6 +322,29 @@ module Addressable
     end
 
 
+    ##
+    # Loops through each capture and expands any values available in mapping
+    #
+    # @param [Hash] mapping
+    #   Set of keys to expand
+    # @param [String] capture
+    #   The expression to expand
+    # @param [#validate, #transform] processor
+    #   An optional processor object may be supplied.
+    #
+    # The object should respond to either the <tt>validate</tt> or
+    # <tt>transform</tt> messages or both. Both the <tt>validate</tt> and
+    # <tt>transform</tt> methods should take two parameters: <tt>name</tt> and
+    # <tt>value</tt>. The <tt>validate</tt> method should return <tt>true</tt>
+    # or <tt>false</tt>; <tt>true</tt> if the value of the variable is valid,
+    # <tt>false</tt> otherwise. An <tt>InvalidTemplateValueError</tt> exception
+    # will be raised if the value is invalid. The <tt>transform</tt> method
+    # should return the transformed variable value as a <tt>String</tt>. If a
+    # <tt>transform</tt> method is used, the value will not be percent encoded
+    # automatically. Unicode normalization will be performed both before and
+    # after sending the value to the transform method.
+    #
+    # @return [String] The expanded expression
     def transform_partial_capture(mapping, capture, processor = nil)
       _, operator, varlist = *capture.match(EXPRESSION)
       is_first = true
@@ -360,7 +385,7 @@ module Addressable
     # automatically. Unicode normalization will be performed both before and
     # after sending the value to the transform method.
     #
-    # @return [Object] The transformed mapped value
+    # @return [String] The expanded expression
     def transform_capture(mapping, capture, processor=nil)
       _, operator, varlist = *capture.match(EXPRESSION)
       return_value = varlist.split(',').inject([]) do |acc, varspec|
@@ -451,6 +476,17 @@ module Addressable
       join_values(operator, return_value)
     end
 
+    ##
+    # Takes a set of values, and joins them together based on the
+    # operator.
+    #
+    # @param [String, Nil] operator One of the operators from the set
+    #   (?,&,+,#,;,/,.), or nil if there wasn't one.
+    # @param [Array] return_value
+    #   The set of return values (as [variable_name, value] tuples) that will
+    #   be joined together.
+    #
+    # @return [String] The transformed mapped value
     def join_values(operator, return_value)
       leader = LEADERS.fetch(operator, '')
       joiner = JOINERS.fetch(operator, ',')
@@ -480,6 +516,14 @@ module Addressable
       end
     end
 
+    ##
+    # Takes a set of values, and joins them together based on the
+    # operator.
+    #
+    # @param [Hash, Array, String] value
+    #   Normalizes keys and values with IDNA#unicode_normalize_kc
+    #
+    # @return [Hash, Array, String] The normalized values
     def normalize_value(value)
       unless value.is_a?(Hash)
         value = value.respond_to?(:to_ary) ? value.to_ary : value.to_str
@@ -575,12 +619,12 @@ module Addressable
               "#{ UNRESERVED }*?"
             end
             if modifier == ?*
-              "(#{group}(?:#{joiner}?#{group})*)"
+              "(#{group}(?:#{joiner}?#{group})*)?"
             else
-              "(#{group})"
+              "(#{group})?"
             end
           end
-        end.join(joiner)
+        end.join("#{joiner}?")
       end
 
       # Ensure that the regular expression matches the whole URI.

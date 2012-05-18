@@ -21,6 +21,7 @@ support for URI templates.
 
 - {Addressable::URI}
 - {Addressable::Template}
+- {Addressable::UriTemplate}
 
 # Example usage
 
@@ -55,10 +56,14 @@ support for URI templates.
     template = Addressable::Template.new(
       "http://{host}/{-suffix|/|segments}?{-join|&|one,two,bogus}\#{fragment}"
     )
+    template2 = Addressable::UriTemplate.new(
+      "http://{host}{/segments}/{?one,two,bogus}{#fragment}"
+    )
     uri = Addressable::URI.parse(
       "http://example.com/a/b/c/?one=1&two=2#foo"
     )
     template.extract(uri)
+    template2.extract(uri)
     #=>
     # {
     #   "host" => "example.com",

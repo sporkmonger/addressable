@@ -436,6 +436,7 @@ describe Addressable::UriTemplate do
       its(:variables){ should == ["query"]}
       its(:captures){ should == ["an example search query"]}
     end
+
     context "second uri with ExampleTwoProcessor" do
       subject{
         match = Addressable::UriTemplate.new(
@@ -461,7 +462,8 @@ describe Addressable::UriTemplate do
         ).match(uri3)
       }
       its(:variables){ should == ["hash", "first"]}
-      its(:captures){ should == [{"a" => "1", "b" => "2", "c" => "3"}, "foo"] }
+      its(:captures){ should == [
+        {"a" => "1", "b" => "2", "c" => "3", "first" => "foo"}, nil] }
     end
     context "fourth uri" do
       subject{
@@ -470,7 +472,26 @@ describe Addressable::UriTemplate do
         ).match(uri4)
       }
       its(:variables){ should == ["hash", "first"]}
-      its(:captures){ should == [{"a" => "1", "b" => "2", "c" => "3"}, "foo"] }
+      its(:captures){ should == [
+        {"a" => "1", "b" => "2", "c" => "3", "first"=> "foo"}, nil] }
+    end
+  end
+  describe "extract" do
+    let(:template) {
+      Addressable::UriTemplate.new(
+        "http://{host}{/segments*}/{?one,two,bogus}{#fragment}"
+      )
+    }
+    let(:uri){ "http://example.com/a/b/c/?one=1&two=2#foo" }
+    it "should be able to extract" do
+      template.extract(uri).should == {
+        "host" => "example.com",
+        "segments" => %w(a b c),
+        "one" => "1",
+        "bogus" => nil,
+        "two" => "2",
+        "fragment" => "foo"
+      }
     end
   end
   describe "Partial expand" do
@@ -597,8 +618,8 @@ describe Addressable::UriTemplate do
         subject { Addressable::UriTemplate.new("foo{+foo,bar}baz") }
         it "can match" do
           data = subject.match("foofoo/bar,barbaz")
-          data.mapping["foo"].should == "foo/bar"
-          data.mapping["bar"].should == "bar"
+          data.mapping["bar"].should == "foo/bar,bar"
+          data.mapping["foo"].should == ""
         end
         it "lists vars" do
           subject.variables.should == ["foo", "bar"]
