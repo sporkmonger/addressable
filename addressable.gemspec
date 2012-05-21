@@ -13,7 +13,7 @@ adds support for IRIs and URI templates.
 }
   s.email = %q{bob@sporkmonger.com}
   s.extra_rdoc_files = ["README.md"]
-  s.files = ["lib/addressable", "lib/addressable/idna", "lib/addressable/idna/native.rb", "lib/addressable/idna/pure.rb", "lib/addressable/idna.rb", "lib/addressable/template.rb", "lib/addressable/uri.rb", "lib/addressable/version.rb", "spec/addressable", "spec/addressable/idna_spec.rb", "spec/addressable/net_http_compat_spec.rb", "spec/addressable/template_spec.rb", "spec/addressable/uri_spec.rb", "tasks/clobber.rake", "tasks/gem.rake", "tasks/git.rake", "tasks/metrics.rake", "tasks/rspec.rake", "tasks/rubyforge.rake", "tasks/yard.rake", "website/index.html", "CHANGELOG.md", "Gemfile", "Gemfile.lock", "LICENSE.txt", "Rakefile", "README.md"]
+  s.files = ["lib/addressable", "lib/addressable/idna", "lib/addressable/idna/native.rb", "lib/addressable/idna/pure.rb", "lib/addressable/idna.rb", "lib/addressable/template.rb", "lib/addressable/uri.rb", "lib/addressable/version.rb", "spec/addressable", "spec/addressable/idna_spec.rb", "spec/addressable/net_http_compat_spec.rb", "spec/addressable/template_spec.rb", "spec/addressable/uri_spec.rb", "tasks/clobber.rake", "tasks/gem.rake", "tasks/git.rake", "tasks/metrics.rake", "tasks/rspec.rake", "tasks/rubyforge.rake", "tasks/yard.rake", "website/index.html", "CHANGELOG.md", "Gemfile", "LICENSE.txt", "Rakefile", "README.md"]
   s.homepage = %q{http://addressable.rubyforge.org/}
   s.rdoc_options = ["--main", "README.md"]
   s.require_paths = ["lib"]
