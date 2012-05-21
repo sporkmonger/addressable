@@ -32,7 +32,7 @@ module Addressable
 
     variable_char_class =
       Addressable::URI::CharacterClasses::ALPHA +
-      Addressable::URI::CharacterClasses::DIGIT + ?_
+      Addressable::URI::CharacterClasses::DIGIT + '_'
 
     var_char =
       "(?:(?:[#{variable_char_class}]|%[a-fA-F0-9][a-fA-F0-9])+)"
@@ -58,8 +58,21 @@ module Addressable
       /\{([#{operator}])?(#{varspec}(?:,#{varspec})*)\}/
 
 
-    LEADERS = {?? => ??, ?/ => ?/, ?# => ?#, ?. => ?., ?; => ?;, ?& => ?&}
-    JOINERS = {?? => ?&, ?. => ?., ?; => ?;, ?& => ?&, ?/ => ?/}
+    LEADERS = {
+      '?' => '?',
+      '/' => '/',
+      '#' => '#',
+      '.' => '.',
+      ';' => ';',
+      '&' => '&'
+    }
+    JOINERS = {
+      '?' => '&',
+      '.' => '.',
+      ';' => ';',
+      '&' => '&',
+      '/' => '/'
+    }
 
     ##
     # Raised if an invalid template value is supplied.
@@ -315,13 +328,13 @@ module Addressable
           varlist.split(',').each do |varspec|
             _, name, modifier = *varspec.match(VARSPEC)
             case operator
-            when nil, ?+, ?#, ?/, ?.
+            when nil, '+', '#', '/', '.'
               unparsed_value = unparsed_values[index]
               name = varspec[VARSPEC, 1]
               value = unparsed_value
-              value = value.split(JOINERS[operator]) if value && modifier == ?*
-            when ?;, ??, ?&
-              if modifier == ?*
+              value = value.split(JOINERS[operator]) if value && modifier == '*'
+            when ';', '?', '&'
+              if modifier == '*'
                 value = unparsed_values[index].split(JOINERS[operator])
                 value = value.inject({}) do |acc, v|
                   key, val = v.split('=')
@@ -541,10 +554,10 @@ module Addressable
         _, name, modifier = *varspec.match(VARSPEC)
         value = mapping[name]
         if value
-          operator = ?& if !is_first && operator == ??
+          operator = '&' if !is_first && operator == '?'
           acc << transform_capture(mapping, "{#{operator}#{varspec}}", processor)
         else
-          operator = ?& if !is_first && operator == ??
+          operator = '&' if !is_first && operator == '?'
           acc << "{#{operator}#{varspec}}"
         end
         is_first = false
@@ -680,7 +693,7 @@ module Addressable
       leader = LEADERS.fetch(operator, '')
       joiner = JOINERS.fetch(operator, ',')
       case operator
-      when ?&, ??
+      when '&', '?'
         leader + return_value.map{|k,v|
           if v.is_a?(Array) && v.first =~ /=/
             v.join(joiner)
@@ -690,12 +703,12 @@ module Addressable
             "#{k}=#{v}"
           end
         }.join(joiner)
-      when ?;
+      when ';'
         return_value.map{|k,v|
           if v.is_a?(Array) && v.first =~ /=/
-            ?; + v.join(";")
+            ';' + v.join(";")
           elsif v.is_a?(Array)
-            ?; + v.map{|v| "#{k}=#{v}"}.join(";")
+            ';' + v.map{|v| "#{k}=#{v}"}.join(";")
           else
             v && v != '' ?  ";#{k}=#{v}" : ";#{k}"
           end
@@ -790,24 +803,24 @@ module Addressable
             "(#{ processor.match(name) })"
           else
             group = case operator
-            when ?+
+            when '+'
               "#{ RESERVED }*?"
-            when ?#
+            when '#'
               "#{ RESERVED }*?"
-            when ?/
+            when '/'
               "#{ UNRESERVED }*?"
-            when ?.
+            when '.'
               "#{ UNRESERVED.gsub('\.', '') }*?"
-            when ?;
+            when ';'
               "#{ UNRESERVED }*=?#{ UNRESERVED }*?"
-            when ??
+            when '?'
               "#{ UNRESERVED }*=#{ UNRESERVED }*?"
-            when ?&
+            when '&'
               "#{ UNRESERVED }*=#{ UNRESERVED }*?"
             else
               "#{ UNRESERVED }*?"
             end
-            if modifier == ?*
+            if modifier == '*'
               "(#{group}(?:#{joiner}?#{group})*)?"
             else
               "(#{group})?"
