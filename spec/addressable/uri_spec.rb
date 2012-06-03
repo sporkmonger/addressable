@@ -150,6 +150,14 @@ describe Addressable::URI, "when created with a scheme but no hierarchical " +
   end
 end
 
+describe Addressable::URI, "when created with an invalid host" do
+  it "should raise an error" do
+    (lambda do
+      Addressable::URI.new(:host => "<invalid>")
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+end
+
 describe Addressable::URI, "when created from nil components" do
   before do
     @uri = Addressable::URI.new
@@ -1132,6 +1140,74 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have an origin of 'http://www.w3.org'" do
     @uri.origin.should == 'http://www.w3.org'
+  end
+end
+
+describe Addressable::URI, "when parsing IPv6 addresses" do
+  it "should not raise an error for " +
+      "'http://[3ffe:1900:4545:3:200:f8ff:fe21:67cf]/'" do
+    Addressable::URI.parse("http://[3ffe:1900:4545:3:200:f8ff:fe21:67cf]/")
+  end
+
+  it "should not raise an error for " +
+      "'http://[fe80:0:0:0:200:f8ff:fe21:67cf]/'" do
+    Addressable::URI.parse("http://[fe80:0:0:0:200:f8ff:fe21:67cf]/")
+  end
+
+  it "should not raise an error for " +
+      "'http://[fe80::200:f8ff:fe21:67cf]/'" do
+    Addressable::URI.parse("http://[fe80::200:f8ff:fe21:67cf]/")
+  end
+
+  it "should not raise an error for " +
+      "'http://[::1]/'" do
+    Addressable::URI.parse("http://[::1]/")
+  end
+
+  it "should not raise an error for " +
+      "'http://[fe80::1]/'" do
+    Addressable::URI.parse("http://[fe80::1]/")
+  end
+
+  it "should raise an error for " +
+      "'http://[<invalid>]/'" do
+    (lambda do
+      Addressable::URI.parse("http://[<invalid>]/")
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+end
+
+describe Addressable::URI, "when parsing IPvFuture addresses" do
+  it "should not raise an error for " +
+      "'http://[v9.3ffe:1900:4545:3:200:f8ff:fe21:67cf]/'" do
+    Addressable::URI.parse("http://[v9.3ffe:1900:4545:3:200:f8ff:fe21:67cf]/")
+  end
+
+  it "should not raise an error for " +
+      "'http://[vff.fe80:0:0:0:200:f8ff:fe21:67cf]/'" do
+    Addressable::URI.parse("http://[vff.fe80:0:0:0:200:f8ff:fe21:67cf]/")
+  end
+
+  it "should not raise an error for " +
+      "'http://[v12.fe80::200:f8ff:fe21:67cf]/'" do
+    Addressable::URI.parse("http://[v12.fe80::200:f8ff:fe21:67cf]/")
+  end
+
+  it "should not raise an error for " +
+      "'http://[va0.::1]/'" do
+    Addressable::URI.parse("http://[va0.::1]/")
+  end
+
+  it "should not raise an error for " +
+      "'http://[v255.fe80::1]/'" do
+    Addressable::URI.parse("http://[v255.fe80::1]/")
+  end
+
+  it "should raise an error for " +
+      "'http://[v0.<invalid>]/'" do
+    (lambda do
+      Addressable::URI.parse("http://[v0.<invalid>]/")
+    end).should raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
