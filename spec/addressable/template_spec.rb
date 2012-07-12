@@ -889,14 +889,27 @@ describe Addressable::Template do
         end
       end
       context "? operator" do
-        subject { Addressable::Template.new("foo{?foo,bar}baz") }
-        it "can match" do
-          data = subject.match("foo?foo=bar%20baz&bar=foobaz")
-          data.mapping["foo"].should == "bar baz"
-          data.mapping["bar"].should == "foo"
+        context "test" do
+          subject { Addressable::Template.new("foo{?foo,bar}baz") }
+          it "can match" do
+            data = subject.match("foo?foo=bar%20baz&bar=foobaz")
+            data.mapping["foo"].should == "bar baz"
+            data.mapping["bar"].should == "foo"
+          end
+          it "lists vars" do
+            subject.variables.should == %w(foo bar)
+          end
         end
-        it "lists vars" do
-          subject.variables.should == %w(foo bar)
+        context "issue #71" do
+          subject { Addressable::Template.new("http://cyberscore.dev/api/users{?username}") }
+          it "can match" do
+            data = subject.match("http://cyberscore.dev/api/users?username=foobaz")
+            data.mapping["username"].should == "foobaz"
+          end
+          it "lists vars" do
+            subject.variables.should == %w(username)
+            subject.keys.should == %w(username)
+          end
         end
       end
       context "& operator" do
