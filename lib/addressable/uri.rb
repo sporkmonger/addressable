@@ -1209,14 +1209,20 @@ module Addressable
     # @return [Integer] The inferred port component.
     def inferred_port
       if self.port.to_i == 0
-        if self.scheme
-          URI.port_mapping[self.scheme.strip.downcase]
-        else
-          nil
-        end
+        self.default_port
       else
         self.port.to_i
       end
+    end
+
+    ##
+    # The default port for this URI's scheme.
+    # This method will always returns the default port for the URI's scheme
+    # regardless of the presence of an explicit port in the URI.
+    #
+    # @return [Integer] The default port.
+    def default_port
+      URI.port_mapping[self.scheme.strip.downcase] if self.scheme
     end
 
     ##
