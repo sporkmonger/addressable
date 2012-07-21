@@ -1,3 +1,8 @@
+# Addressable 2.3.0
+- updated Addressable::Template to use RFC 6570, level 4
+- fixed compatibility problems with some versions of Ruby
+- moved unicode tables into a data file for performance reasons
+
 # Addressable 2.2.8
 - fixed issues with dot segment removal code
 - form encoding can now handle multiple values per key
