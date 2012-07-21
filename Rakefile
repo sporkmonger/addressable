@@ -23,7 +23,7 @@ adds support for IRIs and URI templates.
 TEXT
 
 PKG_FILES = FileList[
-    "lib/**/*", "spec/**/*", "vendor/**/*",
+    "lib/**/*", "spec/**/*", "vendor/**/*", "data/**/*",
     "tasks/**/*", "website/**/*",
     "[A-Z]*", "Rakefile"
 ].exclude(/database\.yml/).exclude(/[_\.]git$/)
