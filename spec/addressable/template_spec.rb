@@ -43,7 +43,7 @@ describe "Level 2" do
   context "Operator #:" do
     it_behaves_like 'expands', {
       'X{#var}' => 'X#value',
-      'X{#hello}' => 'X#Hello%20World!',
+      'X{#hello}' => 'X#Hello%20World!'
     }
   end
 end
@@ -68,46 +68,47 @@ describe "Level 3" do
   context "Operator + (multiple vars):" do
     it_behaves_like 'expands', {
       '{+x,hello,y}' => '1024,Hello%20World!,768',
-      '{+path,x}/here' => '/foo/bar,1024/here',
+      '{+path,x}/here' => '/foo/bar,1024/here'
     }
   end
   context "Operator # (multiple vars):" do
     it_behaves_like 'expands', {
       '{#x,hello,y}' => '#1024,Hello%20World!,768',
-      '{#path,x}/here' => '#/foo/bar,1024/here',
+      '{#path,x}/here' => '#/foo/bar,1024/here'
     }
   end
   context "Operator ." do
     it_behaves_like 'expands', {
       'X{.var}' => 'X.value',
-      'X{.x,y}' => 'X.1024.768',
+      'X{.x,y}' => 'X.1024.768'
     }
   end
   context "Operator /" do
     it_behaves_like 'expands', {
       '{/var}' => '/value',
-      '{/var,x}/here' => '/value/1024/here',
+      '{/var,x}/here' => '/value/1024/here'
     }
   end
   context "Operator ;" do
     it_behaves_like 'expands', {
       '{;x,y}' => ';x=1024;y=768',
-      '{;x,y,empty}' => ';x=1024;y=768;empty',
+      '{;x,y,empty}' => ';x=1024;y=768;empty'
     }
   end
   context "Operator ?" do
     it_behaves_like 'expands', {
       '{?x,y}' => '?x=1024&y=768',
-      '{?x,y,empty}' => '?x=1024&y=768&empty=',
+      '{?x,y,empty}' => '?x=1024&y=768&empty='
     }
   end
   context "Operator &" do
     it_behaves_like 'expands', {
       '?fixed=yes{&x}' => '?fixed=yes&x=1024',
-      '{&x,y,empty}' => '&x=1024&y=768&empty=',
+      '{&x,y,empty}' => '&x=1024&y=768&empty='
     }
   end
 end
+
 describe "Level 4" do
   subject{
     {
@@ -140,7 +141,7 @@ describe "Level 4" do
         'semi=%3B,comma=%2C,dot=.',
         'dot=.,comma=%2C,semi=%3B',
         'comma=%2C,dot=.,semi=%3B'
-      ],
+      ]
     }
   end
   context "Operator + with value modifiers" do
@@ -163,7 +164,7 @@ describe "Level 4" do
         'semi=;,comma=,,dot=.',
         'dot=.,comma=,,semi=;',
         'comma=,,dot=.,semi=;'
-      ],
+      ]
     }
   end
   context "Operator # with value modifiers" do
@@ -186,7 +187,7 @@ describe "Level 4" do
         '#semi=;,comma=,,dot=.',
         '#dot=.,comma=,,semi=;',
         '#comma=,,dot=.,semi=;'
-      ],
+      ]
     }
   end
   context "Operator . with value modifiers" do
@@ -209,7 +210,7 @@ describe "Level 4" do
         'X.semi=%3B.comma=%2C.dot=.',
         'X.dot=..comma=%2C.semi=%3B',
         'X.comma=%2C.dot=..semi=%3B'
-      ],
+      ]
     }
   end
   context "Operator / with value modifiers" do
@@ -233,7 +234,7 @@ describe "Level 4" do
         '/semi=%3B/comma=%2C/dot=.',
         '/dot=./comma=%2C/semi=%3B',
         '/comma=%2C/dot=./semi=%3B'
-      ],
+      ]
     }
   end
   context "Operator ; with value modifiers" do
@@ -256,7 +257,7 @@ describe "Level 4" do
         ';semi=%3B;comma=%2C;dot=.',
         ';dot=.;comma=%2C;semi=%3B',
         ';comma=%2C;dot=.;semi=%3B'
-      ],
+      ]
     }
   end
   context "Operator ? with value modifiers" do
@@ -279,7 +280,7 @@ describe "Level 4" do
         '?semi=%3B&comma=%2C&dot=.',
         '?dot=.&comma=%2C&semi=%3B',
         '?comma=%2C&dot=.&semi=%3B'
-      ],
+      ]
     }
   end
   context "Operator & with value modifiers" do
@@ -302,7 +303,7 @@ describe "Level 4" do
         '&semi=%3B&comma=%2C&dot=.',
         '&dot=.&comma=%2C&semi=%3B',
         '&comma=%2C&dot=.&semi=%3B'
-      ],
+      ]
     }
   end
 end
@@ -321,7 +322,7 @@ describe "Modifiers" do
       '{var:30}' => 'value',
       '{var}' => 'value',
       '{semi}' => '%3B',
-      '{semi:2}' => '%3B',
+      '{semi:2}' => '%3B'
     }
   end
   context "explode" do
@@ -334,8 +335,8 @@ end
 describe "Expansion" do
   subject{
     {
-      :count => [ "one", "two", "three" ],
-      :dom => [ "example", "com" ],
+      :count => ["one", "two", "three"],
+      :dom => ["example", "com"],
       :dub   => "me/too",
       :hello => "Hello World!",
       :half  => "50%",
@@ -343,14 +344,14 @@ describe "Expansion" do
       :who   => "fred",
       :base  => "http://example.com/home/",
       :path  => "/foo/bar",
-      :list  => [ "red", "green", "blue" ],
-      :keys  => { "semi"=>";","dot"=>".","comma"=>"," },
+      :list  => ["red", "green", "blue"],
+      :keys  => {"semi" => ";","dot" => ".","comma" => ","},
       :v     => "6",
       :x     => "1024",
       :y     => "768",
       :empty => "",
       :empty_keys  => {},
-      :undef => nil,
+      :undef => nil
     }
   }
   context "concatenation" do
@@ -363,7 +364,7 @@ describe "Expansion" do
       '{;count*}' => ';count=one;count=two;count=three',
       '{?count}' => '?count=one,two,three',
       '{?count*}' => '?count=one&count=two&count=three',
-      '{&count*}' => '&count=one&count=two&count=three',
+      '{&count*}' => '&count=one&count=two&count=three'
     }
   end
   context "simple expansion" do
@@ -397,7 +398,7 @@ describe "Expansion" do
         'semi=%3B,comma=%2C,dot=.',
         'dot=.,comma=%2C,semi=%3B',
         'comma=%2C,dot=.,semi=%3B'
-      ],
+      ]
     }
   end
   context "reserved expansion (+)" do
@@ -432,7 +433,7 @@ describe "Expansion" do
         'semi=;,comma=,,dot=.',
         'dot=.,comma=,,semi=;',
         'comma=,,dot=.,semi=;'
-      ],
+      ]
     }
   end
   context "fragment expansion (#)" do
@@ -462,7 +463,7 @@ describe "Expansion" do
         '#semi=;,comma=,,dot=.',
         '#dot=.,comma=,,semi=;',
         '#comma=,,dot=.,semi=;'
-      ],
+      ]
     }
   end
   context "label expansion (.)" do
@@ -494,7 +495,7 @@ describe "Expansion" do
         'X.comma=%2C.dot=..semi=%3B'
       ],
       'X{.empty_keys}' => 'X',
-      'X{.empty_keys*}' => 'X',
+      'X{.empty_keys*}' => 'X'
     }
   end
   context "path expansion (/)" do
@@ -526,7 +527,7 @@ describe "Expansion" do
         '/semi=%3B/comma=%2C/dot=.',
         '/dot=./comma=%2C/semi=%3B',
         '/comma=%2C/dot=./semi=%3B'
-      ],
+      ]
     }
   end
   context "path-style expansion (;)" do
@@ -557,7 +558,7 @@ describe "Expansion" do
         ';semi=%3B;comma=%2C;dot=.',
         ';dot=.;comma=%2C;semi=%3B',
         ';comma=%2C;dot=.;semi=%3B'
-      ],
+      ]
     }
   end
   context "form query expansion (?)" do
@@ -585,7 +586,7 @@ describe "Expansion" do
         '?semi=%3B&comma=%2C&dot=.',
         '?dot=.&comma=%2C&semi=%3B',
         '?comma=%2C&dot=.&semi=%3B'
-      ],
+      ]
     }
   end
   context "form query expansion (&)" do
@@ -613,7 +614,7 @@ describe "Expansion" do
         '&semi=%3B&comma=%2C&dot=.',
         '&dot=.&comma=%2C&semi=%3B',
         '&comma=%2C&dot=.&semi=%3B'
-      ],
+      ]
     }
   end
 end
