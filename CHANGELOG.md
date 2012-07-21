@@ -1,3 +1,6 @@
+# Addressable 2.3.1
+- fixed missing unicode data file
+
 # Addressable 2.3.0
 - updated Addressable::Template to use RFC 6570, level 4
 - fixed compatibility problems with some versions of Ruby
