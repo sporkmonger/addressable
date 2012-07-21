@@ -2833,11 +2833,11 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should have the correct query string after hash assignment" do
-    @uri.query_values = {"?uestion mark"=>"=sign", "hello"=>"g\xC3\xBCnther"}
+    @uri.query_values = {"?uestion mark" => "=sign", "hello" => "g\xC3\xBCnther"}
     @uri.query.split("&").should include("%3Fuestion%20mark=%3Dsign")
     @uri.query.split("&").should include("hello=g%C3%BCnther")
     @uri.query_values.should == {
-      "?uestion mark"=>"=sign", "hello"=>"g\xC3\xBCnther"
+      "?uestion mark" => "=sign", "hello" => "g\xC3\xBCnther"
     }
   end
 
@@ -2846,8 +2846,9 @@ describe Addressable::URI, "when parsed from " +
     @uri.query.split("&").should include("flag%3F1")
     @uri.query.split("&").should include("fl%3Dag2")
     @uri.query.split("&").should include("flag3")
-    @uri.query_values.should == {
-      'flag?1' => true, 'fl=ag2' => true, 'flag3' => true
+    @uri.query_values(Array).sort.should == [["fl=ag2"], ["flag3"], ["flag?1"]]
+    @uri.query_values(Hash).should == {
+      'flag?1' => nil, 'fl=ag2' => nil, 'flag3' => nil
     }
   end
 
@@ -3036,7 +3037,7 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should have query_values of {'q' => true, 'x' => 'b'}" do
-    @uri.query_values.should == {'q' => true, 'x' => 'b'}
+    @uri.query_values.should == {'q' => nil, 'x' => 'b'}
   end
 end
 
@@ -3545,17 +3546,10 @@ describe Addressable::URI, "when parsed from '?'" do
     @uri = Addressable::URI.parse("?")
   end
 
-  it "should have the correct subscript notation query values" do
+  it "should have the correct return type" do
     @uri.query_values.should == {}
-    @uri.query_values(:notation => :subscript).should == {}
-  end
-
-  it "should have the correct dot notation query values" do
-    @uri.query_values(:notation => :dot).should == {}
-  end
-
-  it "should have the correct flat notation query values" do
-    @uri.query_values(:notation => :flat).should == {}
+    @uri.query_values(Hash).should == {}
+    @uri.query_values(Array).should == []
   end
 
   it "should have a 'null' origin" do
@@ -3572,14 +3566,14 @@ describe Addressable::URI, "when parsed from '?one=1&two=2&three=3'" do
     @uri.query_values.should == {"one" => "1", "two" => "2", "three" => "3"}
   end
 
-  it "should raise an error for invalid query value notations" do
+  it "should raise an error for invalid return type values" do
     (lambda do
-      @uri.query_values(:notation => :bogus)
+      @uri.query_values(Fixnum)
     end).should raise_error(ArgumentError)
   end
 
-  it "should have the correct flat array notation query values" do
-    @uri.query_values(:notation => :flat_array).should == [
+  it "should have the correct array query values" do
+    @uri.query_values(Array).should == [
       ["one", "1"], ["two", "2"], ["three", "3"]
     ]
   end
@@ -3598,8 +3592,8 @@ describe Addressable::URI, "when parsed from '?one=1=uno&two=2=dos'" do
     @uri.query_values.should == {"one" => "1=uno", "two" => "2=dos"}
   end
 
-  it "should have the correct flat array notation query values" do
-    @uri.query_values(:notation => :flat_array).should == [
+  it "should have the correct array query values" do
+    @uri.query_values(Array).should == [
       ["one", "1=uno"], ["two", "2=dos"]
     ]
   end
@@ -3611,17 +3605,11 @@ describe Addressable::URI, "when parsed from '?one[two][three]=four'" do
   end
 
   it "should have the correct query values" do
-    @uri.query_values.should == {"one" => {"two" => {"three" => "four"}}}
+    @uri.query_values.should == {"one[two][three]" => "four"}
   end
 
-  it "should have the correct flat notation query values" do
-    @uri.query_values(:notation => :flat).should == {
-      "one[two][three]" => "four"
-    }
-  end
-
-  it "should have the correct flat array notation query values" do
-    @uri.query_values(:notation => :flat_array).should == [
+  it "should have the correct array query values" do
+    @uri.query_values(Array).should == [
       ["one[two][three]", "four"]
     ]
   end
@@ -3632,20 +3620,14 @@ describe Addressable::URI, "when parsed from '?one.two.three=four'" do
     @uri = Addressable::URI.parse("?one.two.three=four")
   end
 
-  it "should have the correct dot notation query values" do
-    @uri.query_values(:notation => :dot).should == {
-      "one" => {"two" => {"three" => "four"}}
-    }
-  end
-
-  it "should have the correct flat notation query values" do
-    @uri.query_values(:notation => :flat).should == {
+  it "should have the correct query values" do
+    @uri.query_values.should == {
       "one.two.three" => "four"
     }
   end
 
-  it "should have the correct flat array notation query values" do
-    @uri.query_values(:notation => :flat_array).should == [
+  it "should have the correct array query values" do
+    @uri.query_values(Array).should == [
       ["one.two.three", "four"]
     ]
   end
@@ -3657,21 +3639,14 @@ describe Addressable::URI, "when parsed from " +
     @uri = Addressable::URI.parse("?one[two][three]=four&one[two][five]=six")
   end
 
-  it "should have the correct dot notation query values" do
-    @uri.query_values(:notation => :subscript).should == {
-      "one" => {"two" => {"three" => "four", "five" => "six"}}
+  it "should have the correct query values" do
+    @uri.query_values.should == {
+      "one[two][three]" => "four", "one[two][five]" => "six"
     }
   end
 
-  it "should have the correct flat notation query values" do
-    @uri.query_values(:notation => :flat).should == {
-      "one[two][three]" => "four",
-      "one[two][five]" => "six"
-    }
-  end
-
-  it "should have the correct flat array notation query values" do
-    @uri.query_values(:notation => :flat_array).should == [
+  it "should have the correct array query values" do
+    @uri.query_values(Array).should == [
       ["one[two][three]", "four"], ["one[two][five]", "six"]
     ]
   end
@@ -3683,21 +3658,14 @@ describe Addressable::URI, "when parsed from " +
     @uri = Addressable::URI.parse("?one.two.three=four&one.two.five=six")
   end
 
-  it "should have the correct dot notation query values" do
-    @uri.query_values(:notation => :dot).should == {
-      "one" => {"two" => {"three" => "four", "five" => "six"}}
+  it "should have the correct query values" do
+    @uri.query_values.should == {
+      "one.two.three" => "four", "one.two.five" => "six"
     }
   end
 
-  it "should have the correct flat notation query values" do
-    @uri.query_values(:notation => :flat).should == {
-      "one.two.three" => "four",
-      "one.two.five" => "six"
-    }
-  end
-
-  it "should have the correct flat array notation query values" do
-    @uri.query_values(:notation => :flat_array).should == [
+  it "should have the correct array query values" do
+    @uri.query_values(Array).should == [
       ["one.two.three", "four"], ["one.two.five", "six"]
     ]
   end
@@ -3711,8 +3679,8 @@ describe Addressable::URI, "when parsed from " +
     )
   end
 
-  it "should have correct flat_array notation query values" do
-    @uri.query_values(:notation => :flat_array).should ==
+  it "should have correct array query values" do
+    @uri.query_values(Array).should ==
       [['one', 'two'], ['one', 'three']]
   end
 end
@@ -3725,23 +3693,14 @@ describe Addressable::URI, "when parsed from " +
     )
   end
 
-  it "should have the correct subscript notation query values" do
-    @uri.query_values(:notation => :subscript).should == {
-      "one" => {"two" => {"three" => ["four", "five"]}}
-    }
+  it "should have correct query values" do
+    @uri.query_values(Hash).should == {"one[two][three][]" => "five"}
   end
 
-  it "should raise an error if a key is repeated in the flat notation" do
-    (lambda do
-      @uri.query_values(:notation => :flat)
-    end).should raise_error(ArgumentError)
-  end
-
-  it "should not raise an error if a key is " +
-      "repeated in the flat array notation" do
-    (lambda do
-      @uri.query_values(:notation => :flat_array)
-    end).should_not raise_error
+  it "should have correct array query values" do
+    @uri.query_values(Array).should == [
+      ["one[two][three][]", "four"], ["one[two][three][]", "five"]
+    ]
   end
 end
 
@@ -3753,9 +3712,9 @@ describe Addressable::URI, "when parsed from " +
     )
   end
 
-  it "should have the correct subscript notation query values" do
-    @uri.query_values(:notation => :subscript).should == {
-      "one" => {"two" => {"three" => ["four", "five"]}}
+  it "should have the correct query values" do
+    @uri.query_values.should == {
+      "one[two][three][0]" => "four", "one[two][three][1]" => "five"
     }
   end
 end
@@ -3768,9 +3727,9 @@ describe Addressable::URI, "when parsed from " +
     )
   end
 
-  it "should have the correct subscript notation query values" do
-    @uri.query_values(:notation => :subscript).should == {
-      "one" => {"two" => {"three" => ["five", "four"]}}
+  it "should have the correct query values" do
+    @uri.query_values.should == {
+      "one[two][three][1]" => "four", "one[two][three][0]" => "five"
     }
   end
 end
@@ -3783,9 +3742,9 @@ describe Addressable::URI, "when parsed from " +
     )
   end
 
-  it "should have the correct subscript notation query values" do
-    @uri.query_values(:notation => :subscript).should == {
-      "one" => {"two" => {"three" => ["five", "four"]}}
+  it "should have the correct query values" do
+    @uri.query_values.should == {
+      "one[two][three][2]" => "four", "one[two][three][1]" => "five"
     }
   end
 end
@@ -4856,51 +4815,58 @@ describe Addressable::URI, "when assigning query values" do
 
   it "should correctly assign {:a => 'a', :b => ['c', 'd', 'e']}" do
     @uri.query_values = {:a => "a", :b => ["c", "d", "e"]}
-    @uri.query.should == "a=a&b[0]=c&b[1]=d&b[2]=e"
+    @uri.query.should == "a=a&b=c&b=d&b=e"
   end
 
-  it "should correctly assign {'a' => {'b' => [ 'c']}}" do
-    @uri.query_values = { 'a' => {'b' => [ 'c'] } }
-    @uri.query.should == "a[b][0]=c"
+  it "should raise an error attempting to assign {'a' => {'b' => ['c']}}" do
+    (lambda do
+      @uri.query_values = { 'a' => {'b' => ['c'] } }
+    end).should raise_error(TypeError)
   end
 
-  it "should correctly assign {:b => '2', :a => {:c => '1'}}" do
-    @uri.query_values = {:b => '2', :a => { :c => '1' }}
-    @uri.query.should == "a[c]=1&b=2"
+  it "should raise an error attempting to assign " +
+      "{:b => '2', :a => {:c => '1'}}" do
+    (lambda do
+      @uri.query_values = {:b => '2', :a => {:c => '1'}}
+    end).should raise_error(TypeError)
   end
 
-  it "should correctly assign " +
+  it "should raise an error attempting to assign " +
       "{:a => 'a', :b => [{:c => 'c', :d => 'd'}, " +
       "{:e => 'e', :f => 'f'}]}" do
-    @uri.query_values = {
-      :a => "a", :b => [{:c => "c", :d => "d"}, {:e => "e", :f => "f"}]
-    }
-    @uri.query.should == "a=a&b[0][c]=c&b[0][d]=d&b[1][e]=e&b[1][f]=f"
+    (lambda do
+      @uri.query_values = {
+        :a => "a", :b => [{:c => "c", :d => "d"}, {:e => "e", :f => "f"}]
+      }
+    end).should raise_error(TypeError)
   end
 
-  it "should correctly assign " +
+  it "should raise an error attempting to assign " +
       "{:a => 'a', :b => [{:c => true, :d => 'd'}, " +
       "{:e => 'e', :f => 'f'}]}" do
-    @uri.query_values = {
-      :a => 'a', :b => [{:c => true, :d => 'd'}, {:e => 'e', :f => 'f'}]
-    }
-    @uri.query.should == "a=a&b[0][c]&b[0][d]=d&b[1][e]=e&b[1][f]=f"
+    (lambda do
+      @uri.query_values = {
+        :a => 'a', :b => [{:c => true, :d => 'd'}, {:e => 'e', :f => 'f'}]
+      }
+    end).should raise_error(TypeError)
   end
 
-  it "should correctly assign " +
+  it "should raise an error attempting to assign " +
       "{:a => 'a', :b => {:c => true, :d => 'd'}}" do
-    @uri.query_values = {
-      :a => 'a', :b => {:c => true, :d => 'd'}
-    }
-    @uri.query.should == "a=a&b[c]&b[d]=d"
+    (lambda do
+      @uri.query_values = {
+        :a => 'a', :b => {:c => true, :d => 'd'}
+      }
+    end).should raise_error(TypeError)
   end
 
-  it "should correctly assign " +
+  it "should raise an error attempting to assign " +
       "{:a => 'a', :b => {:c => true, :d => 'd'}}" do
-    @uri.query_values = {
-      :a => 'a', :b => {:c => true, :d => 'd'}
-    }
-    @uri.query.should == "a=a&b[c]&b[d]=d"
+    (lambda do
+      @uri.query_values = {
+        :a => 'a', :b => {:c => true, :d => 'd'}
+      }
+    end).should raise_error(TypeError)
   end
 
   it "should correctly assign {:a => 1, :b => 1.5}" do
@@ -4908,18 +4874,16 @@ describe Addressable::URI, "when assigning query values" do
     @uri.query.should == "a=1&b=1.5"
   end
 
-  it "should correctly assign " +
+  it "should raise an error attempting to assign " +
       "{:z => 1, :f => [2, {999.1 => [3,'4']}, ['h', 'i']], " +
       ":a => {:b => ['c', 'd'], :e => true, :y => 0.5}}" do
-    @uri.query_values = {
-      :z => 1,
-      :f => [ 2, {999.1 => [3,'4']}, ['h', 'i'] ],
-      :a => { :b => ['c', 'd'], :e => true, :y => 0.5 }
-    }
-    @uri.query.should == (
-      "a[b][0]=c&a[b][1]=d&a[e]&a[y]=0.5&f[0]=2&" +
-      "f[1][999.1][0]=3&f[1][999.1][1]=4&f[2][0]=h&f[2][1]=i&z=1"
-    )
+    (lambda do
+      @uri.query_values = {
+        :z => 1,
+        :f => [ 2, {999.1 => [3,'4']}, ['h', 'i'] ],
+        :a => { :b => ['c', 'd'], :e => true, :y => 0.5 }
+      }
+    end).should raise_error(TypeError)
   end
 
   it "should correctly assign {}" do
@@ -4948,7 +4912,7 @@ describe Addressable::URI, "when assigning query values" do
     query_string = (('a'..'z').to_a.reverse.map { |e| "#{e}=#{e}" }).join("&")
     @uri.query = query_string
     original_uri = @uri.to_s
-    @uri.query_values = @uri.query_values(:notation => :flat_array)
+    @uri.query_values = @uri.query_values(Array)
     @uri.to_s.should == original_uri
   end
 end

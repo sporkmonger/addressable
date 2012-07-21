@@ -120,7 +120,11 @@ module Addressable
           user = userinfo.strip[/^([^:]*):?/, 1]
           password = userinfo.strip[/:(.*)$/, 1]
         end
-        host = authority.gsub(/^([^\[\]]*)@/, EMPTY_STR).gsub(/:([^:@\[\]]*?)$/, EMPTY_STR)
+        host = authority.gsub(
+          /^([^\[\]]*)@/, EMPTY_STR
+        ).gsub(
+          /:([^:@\[\]]*?)$/, EMPTY_STR
+        )
         port = authority[/:([^:@\[\]]*?)$/, 1]
       end
       if port == EMPTY_STR
@@ -365,7 +369,7 @@ module Addressable
     # @param [String, Addressable::URI, #to_str] uri
     #   The URI or component to unencode.
     #
-    # @param [Class] returning
+    # @param [Class] return_type
     #   The type of object to return.
     #   This value may only be set to <code>String</code> or
     #   <code>Addressable::URI</code>. All other values are invalid. Defaults
@@ -373,8 +377,9 @@ module Addressable
     #
     # @return [String, Addressable::URI]
     #   The unencoded component or URI.
-    #   The return type is determined by the <code>returning</code> parameter.
-    def self.unencode(uri, returning=String)
+    #   The return type is determined by the <code>return_type</code>
+    #   parameter.
+    def self.unencode(uri, return_type=String)
       return nil if uri.nil?
 
       begin
@@ -382,18 +387,18 @@ module Addressable
       rescue NoMethodError, TypeError
         raise TypeError, "Can't convert #{uri.class} into String."
       end if !uri.is_a? String
-      if ![String, ::Addressable::URI].include?(returning)
+      if ![String, ::Addressable::URI].include?(return_type)
         raise TypeError,
           "Expected Class (String or Addressable::URI), " +
-          "got #{returning.inspect}"
+          "got #{return_type.inspect}"
       end
       result = uri.gsub(/%[0-9a-f]{2}/i) do |sequence|
         sequence[1..3].to_i(16).chr
       end
       result.force_encoding("utf-8") if result.respond_to?(:force_encoding)
-      if returning == String
+      if return_type == String
         return result
-      elsif returning == ::Addressable::URI
+      elsif return_type == ::Addressable::URI
         return ::Addressable::URI.parse(result)
       end
     end
@@ -478,7 +483,7 @@ module Addressable
     # @param [String, Addressable::URI, #to_str] uri
     #   The URI to encode.
     #
-    # @param [Class] returning
+    # @param [Class] return_type
     #   The type of object to return.
     #   This value may only be set to <code>String</code> or
     #   <code>Addressable::URI</code>. All other values are invalid. Defaults
@@ -486,8 +491,9 @@ module Addressable
     #
     # @return [String, Addressable::URI]
     #   The encoded URI.
-    #   The return type is determined by the <code>returning</code> parameter.
-    def self.encode(uri, returning=String)
+    #   The return type is determined by the <code>return_type</code>
+    #   parameter.
+    def self.encode(uri, return_type=String)
       return nil if uri.nil?
 
       begin
@@ -496,10 +502,10 @@ module Addressable
         raise TypeError, "Can't convert #{uri.class} into String."
       end if !uri.is_a? String
 
-      if ![String, ::Addressable::URI].include?(returning)
+      if ![String, ::Addressable::URI].include?(return_type)
         raise TypeError,
           "Expected Class (String or Addressable::URI), " +
-          "got #{returning.inspect}"
+          "got #{return_type.inspect}"
       end
       uri_object = uri.kind_of?(self) ? uri : self.parse(uri)
       encoded_uri = Addressable::URI.new(
@@ -514,9 +520,9 @@ module Addressable
         :fragment => self.encode_component(uri_object.fragment,
           Addressable::URI::CharacterClasses::FRAGMENT)
       )
-      if returning == String
+      if return_type == String
         return encoded_uri.to_s
-      elsif returning == ::Addressable::URI
+      elsif return_type == ::Addressable::URI
         return encoded_uri
       end
     end
@@ -532,7 +538,7 @@ module Addressable
     # @param [String, Addressable::URI, #to_str] uri
     #   The URI to encode.
     #
-    # @param [Class] returning
+    # @param [Class] return_type
     #   The type of object to return.
     #   This value may only be set to <code>String</code> or
     #   <code>Addressable::URI</code>. All other values are invalid. Defaults
@@ -540,18 +546,19 @@ module Addressable
     #
     # @return [String, Addressable::URI]
     #   The encoded URI.
-    #   The return type is determined by the <code>returning</code> parameter.
-    def self.normalized_encode(uri, returning=String)
+    #   The return type is determined by the <code>return_type</code>
+    #   parameter.
+    def self.normalized_encode(uri, return_type=String)
       begin
         uri = uri.to_str
       rescue NoMethodError, TypeError
         raise TypeError, "Can't convert #{uri.class} into String."
       end if !uri.is_a? String
 
-      if ![String, ::Addressable::URI].include?(returning)
+      if ![String, ::Addressable::URI].include?(return_type)
         raise TypeError,
           "Expected Class (String or Addressable::URI), " +
-          "got #{returning.inspect}"
+          "got #{return_type.inspect}"
       end
       uri_object = uri.kind_of?(self) ? uri : self.parse(uri)
       components = {
@@ -591,9 +598,9 @@ module Addressable
         :fragment => self.encode_component(components[:fragment],
           Addressable::URI::CharacterClasses::FRAGMENT)
       )
-      if returning == String
+      if return_type == String
         return encoded_uri.to_s
-      elsif returning == ::Addressable::URI
+      elsif return_type == ::Addressable::URI
         return encoded_uri
       end
     end
@@ -1097,8 +1104,11 @@ module Addressable
           new_user = new_userinfo.strip[/^([^:]*):?/, 1]
           new_password = new_userinfo.strip[/:(.*)$/, 1]
         end
-        new_host =
-          new_authority.gsub(/^([^\[\]]*)@/, EMPTY_STR).gsub(/:([^:@\[\]]*?)$/, EMPTY_STR)
+        new_host = new_authority.gsub(
+          /^([^\[\]]*)@/, EMPTY_STR
+        ).gsub(
+          /:([^:@\[\]]*?)$/, EMPTY_STR
+        )
         new_port =
           new_authority[/:([^:@\[\]]*?)$/, 1]
       end
@@ -1399,114 +1409,72 @@ module Addressable
     ##
     # Converts the query component to a Hash value.
     #
-    # @option [Symbol] notation
-    #   May be one of <code>:flat</code>, <code>:dot</code>, or
-    #   <code>:subscript</code>. The <code>:dot</code> notation is not
-    #   supported for assignment. Default value is <code>:subscript</code>.
+    # @param [Class] return_type The return type desired. Value must be either
+    #   `Hash` or `Array`.
     #
     # @return [Hash, Array] The query string parsed as a Hash or Array object.
     #
     # @example
     #   Addressable::URI.parse("?one=1&two=2&three=3").query_values
     #   #=> {"one" => "1", "two" => "2", "three" => "3"}
-    #   Addressable::URI.parse("?one[two][three]=four").query_values
-    #   #=> {"one" => {"two" => {"three" => "four"}}}
-    #   Addressable::URI.parse("?one.two.three=four").query_values(
-    #     :notation => :dot
-    #   )
-    #   #=> {"one" => {"two" => {"three" => "four"}}}
-    #   Addressable::URI.parse("?one[two][three]=four").query_values(
-    #     :notation => :flat
-    #   )
-    #   #=> {"one[two][three]" => "four"}
-    #   Addressable::URI.parse("?one.two.three=four").query_values(
-    #     :notation => :flat
-    #   )
-    #   #=> {"one.two.three" => "four"}
-    #   Addressable::URI.parse(
-    #     "?one[two][three][]=four&one[two][three][]=five"
-    #   ).query_values
-    #   #=> {"one" => {"two" => {"three" => ["four", "five"]}}}
-    #   Addressable::URI.parse(
-    #     "?one=two&one=three").query_values(:notation => :flat_array)
-    #   #=> [['one', 'two'], ['one', 'three']]
-    def query_values(options={})
-      defaults = {:notation => :subscript}
-      options = defaults.merge(options)
-      if ![:flat, :dot, :subscript, :flat_array].include?(options[:notation])
-        raise ArgumentError,
-          "Invalid notation. Must be one of: " +
-          "[:flat, :dot, :subscript, :flat_array]."
-      end
-      dehash = lambda do |hash|
-        hash.each do |(key, value)|
-          if value.kind_of?(Hash)
-            hash[key] = dehash.call(value)
-          end
-        end
-        if hash != {} && hash.keys.all? { |key| key =~ /^\d+$/ }
-          hash.sort.inject([]) do |accu, (_, value)|
-            accu << value; accu
-          end
-        else
-          hash
-        end
+    #   Addressable::URI.parse("?one=two&one=three").query_values(Array)
+    #   #=> [["one", "two"], ["one", "three"]]
+    #   Addressable::URI.parse("?one=two&one=three").query_values(Hash)
+    #   #=> {"one" => "three"}
+    def query_values(return_type=Hash)
+      empty_accumulator = Array == return_type ? [] : {}
+      if return_type != Hash && return_type != Array
+        raise ArgumentError, "Invalid return type. Must be Hash or Array."
       end
       return nil if self.query == nil
-      empty_accumulator = :flat_array == options[:notation] ? [] : {}
-      return ((self.query.split("&").map do |pair|
+      split_query = (self.query.split("&").map do |pair|
         pair.split("=", 2) if pair && !pair.empty?
-      end).compact.inject(empty_accumulator.dup) do |accumulator, (key, value)|
-        value = true if value.nil?
-        key = URI.unencode_component(key)
-        if value != true
-          value = URI.unencode_component(value.gsub(/\+/, " "))
+      end).compact
+      return split_query.inject(empty_accumulator.dup) do |accu, pair|
+        # I'd rather use key/value identifiers instead of array lookups,
+        # but in this case I really want to maintain the exact pair structure,
+        # so it's best to make all changes in-place.
+        pair[0] = URI.unencode_component(pair[0])
+        # This looks weird, but it's correct. Handles query values like:
+        # ?data=1&flag&color=blue
+        # In this case, `flag` would evaluate to `true`, which is what you
+        # want. Its absence implies that `flag` resolves to `false`.
+        # value = true if value.nil?
+        if pair[1].respond_to?(:to_str)
+          # I loathe the fact that I have to do this. Stupid HTML 4.01.
+          # Treating '+' as a space was just an unbelievably bad idea.
+          # There was nothing wrong with '%20'!
+          # If it ain't broke, don't fix it!
+          pair[1] = URI.unencode_component(pair[1].to_str.gsub(/\+/, " "))
         end
-        if options[:notation] == :flat
-          if accumulator[key]
-            raise ArgumentError, "Key was repeated: #{key.inspect}"
-          end
-          accumulator[key] = value
-        elsif options[:notation] == :flat_array
-          accumulator << [key, value]
+        if return_type == Hash
+          accu[pair[0]] = pair[1]
         else
-          if options[:notation] == :dot
-            array_value = false
-            subkeys = key.split(".")
-          elsif options[:notation] == :subscript
-            array_value = !!(key =~ /\[\]$/)
-            subkeys = key.split(/[\[\]]+/)
-          end
-          current_hash = accumulator
-          for i in 0...(subkeys.size - 1)
-            subkey = subkeys[i]
-            current_hash[subkey] = {} unless current_hash[subkey]
-            current_hash = current_hash[subkey]
-          end
-          if array_value
-            current_hash[subkeys.last] = [] unless current_hash[subkeys.last]
-            current_hash[subkeys.last] << value
-          else
-            current_hash[subkeys.last] = value
-          end
+          accu << pair
         end
-        accumulator
-      end).inject(empty_accumulator.dup) do |accumulator, (key, value)|
-        if options[:notation] == :flat_array
-          accumulator << [key, value]
-        else
-          accumulator[key] = value.kind_of?(Hash) ? dehash.call(value) : value
-        end
-        accumulator
+        accu
       end
     end
 
     ##
     # Sets the query component for this URI from a Hash object.
-    # This method produces a query string using the :subscript notation.
-    # An empty Hash will result in a nil query.
+    # An empty Hash or Array will result in an empty query string.
     #
     # @param [Hash, #to_hash, Array] new_query_values The new query values.
+    #
+    # @example
+    #   uri.query_values = {:a => "a", :b => ["c", "d", "e"]}
+    #   uri.query
+    #   # => "a=a&b=c&b=d&b=e"
+    #   uri.query_values = [['a', 'a'], ['b', 'c'], ['b', 'd'], ['b', 'e']]
+    #   uri.query
+    #   # => "a=a&b=c&b=d&b=e"
+    #   uri.query_values = [['a', 'a'], ['b', ['c', 'd', 'e']]]
+    #   uri.query
+    #   # => "a=a&b=c&b=d&b=e"
+    #   uri.query_values = [['flag'], ['key', 'value']]
+    #   uri.query
+    #   # => "flag&key=value"
     def query_values=(new_query_values)
       if new_query_values == nil
         self.query = nil
@@ -1528,54 +1496,27 @@ module Addressable
         new_query_values.sort!
       end
 
-      ##
-      # Joins and converts parent and value into a properly encoded and
-      # ordered URL query.
-      #
-      # @private
-      # @param [String] parent an URI encoded component.
-      # @param [Array, Hash, Symbol, #to_str] value
-      #
-      # @return [String] a properly escaped and ordered URL query.
-      to_query = lambda do |parent, value|
-        if value.is_a?(Hash)
-          value = value.map do |key, val|
-            [
-              URI.encode_component(key, CharacterClasses::UNRESERVED),
-              val
-            ]
+      # new_query_values have form [['key1', 'value1'], ['key2', 'value2']]
+      buffer = ""
+      new_query_values.each do |key, value|
+        encoded_key = URI.encode_component(
+          key, CharacterClasses::UNRESERVED
+        )
+        if value == nil || value == true
+          buffer << "#{encoded_key}&"
+        elsif value.kind_of?(Array)
+          value.each do |sub_value|
+            encoded_value = URI.encode_component(
+              sub_value, CharacterClasses::UNRESERVED
+            )
+            buffer << "#{encoded_key}=#{encoded_value}&"
           end
-          value.sort!
-          buffer = ""
-          value.each do |key, val|
-            new_parent = "#{parent}[#{key}]"
-            buffer << "#{to_query.call(new_parent, val)}&"
-          end
-          return buffer.chop
-        elsif value.is_a?(Array)
-          buffer = ""
-          value.each_with_index do |val, i|
-            new_parent = "#{parent}[#{i}]"
-            buffer << "#{to_query.call(new_parent, val)}&"
-          end
-          return buffer.chop
-        elsif value == true
-          return parent
         else
           encoded_value = URI.encode_component(
             value, CharacterClasses::UNRESERVED
           )
-          return "#{parent}=#{encoded_value}"
+          buffer << "#{encoded_key}=#{encoded_value}&"
         end
-      end
-
-      # new_query_values have form [['key1', 'value1'], ['key2', 'value2']]
-      buffer = ""
-      new_query_values.each do |parent, value|
-        encoded_parent = URI.encode_component(
-          parent, CharacterClasses::UNRESERVED
-        )
-        buffer << "#{to_query.call(encoded_parent, value)}&"
       end
       self.query = buffer.chop
     end
