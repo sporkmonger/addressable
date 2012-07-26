@@ -14,7 +14,7 @@
 
 Addressable is a replacement for the URI implementation that is part of
 Ruby's standard library. It more closely conforms to RFC 3986, RFC 3987, and
-RFC 6570 (level 4), additionally providing support for IRIs and URI templates.
+RFC 6570 (level 4), providing support for IRIs and URI templates.
 
 # Reference
 
