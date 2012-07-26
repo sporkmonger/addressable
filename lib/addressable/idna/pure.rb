@@ -319,7 +319,7 @@ module Addressable
 
     # This is a sparse Unicode table.  Codepoints without entries are
     # assumed to have the value: [0, 0, nil, nil, nil, nil, nil]
-    UNICODE_DATA = File.open(UNICODE_TABLE, "r") do |file|
+    UNICODE_DATA = File.open(UNICODE_TABLE, "rb") do |file|
       Marshal.load(file.read)
     end
 
