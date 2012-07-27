@@ -181,6 +181,8 @@ module Addressable
         uri.gsub!(/^feed:\/+/, "feed://")
       when /^file:\/+/
         uri.gsub!(/^file:\/+/, "file:///")
+      when /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
+        uri.gsub!(/^/, hints[:scheme] + "://")
       end
       parsed = self.parse(uri)
       if parsed.scheme =~ /^[^\/?#\.]+\.[^\/?#]+$/

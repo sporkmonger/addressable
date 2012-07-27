@@ -809,6 +809,41 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+describe Addressable::URI, "when heuristically parsed from " +
+    "'192.0.2.16:8000/path'" do
+  before do
+    @uri = Addressable::URI.heuristic_parse("192.0.2.16:8000/path")
+  end
+
+  it "should use the 'http' scheme" do
+    @uri.scheme.should == "http"
+  end
+
+  it "should have a host of '192.0.2.16'" do
+    @uri.host.should == "192.0.2.16"
+  end
+
+  it "should have a port of '8000'" do
+    @uri.port.should == 8000
+  end
+
+  it "should be considered to be ip-based" do
+    @uri.should be_ip_based
+  end
+
+  it "should have a path of '/path'" do
+    @uri.path.should == "/path"
+  end
+
+  it "should be considered to be in normal form" do
+    @uri.normalize.should be_eql(@uri)
+  end
+
+  it "should have an origin of 'http://192.0.2.16:8000'" do
+    @uri.origin.should == 'http://192.0.2.16:8000'
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://example.com'" do
   before do
