@@ -26,7 +26,7 @@ PKG_FILES = FileList[
     "lib/**/*", "spec/**/*", "vendor/**/*", "data/**/*",
     "tasks/**/*", "website/**/*",
     "[A-Z]*", "Rakefile"
-].exclude(/database\.yml/).exclude(/[_\.]git$/)
+].exclude(/database\.yml/).exclude(/Gemfile\.lock/).exclude(/[_\.]git$/)
 
 RCOV_ENABLED = (RUBY_PLATFORM != "java" && RUBY_VERSION =~ /^1\.8/)
 task :default => "spec"
