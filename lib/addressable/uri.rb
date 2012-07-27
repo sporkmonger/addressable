@@ -999,21 +999,17 @@ module Addressable
     # @return [String] The host component, normalized.
     def normalized_host
       self.host && @normalized_host ||= (begin
-        if self.host != nil
-          if !self.host.strip.empty?
-            result = ::Addressable::IDNA.to_ascii(
-              URI.unencode_component(self.host.strip.downcase)
-            )
-            if result[-1..-1] == "."
-              # Trailing dots are unnecessary
-              result = result[0...-1]
-            end
-            result
-          else
-            EMPTY_STR
+        if !self.host.strip.empty?
+          result = ::Addressable::IDNA.to_ascii(
+            URI.unencode_component(self.host.strip.downcase)
+          )
+          if result[-1..-1] == "."
+            # Trailing dots are unnecessary
+            result = result[0...-1]
           end
+          result
         else
-          nil
+          EMPTY_STR
         end
       end)
     end
