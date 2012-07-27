@@ -1,3 +1,8 @@
+# Addressable 2.3.2
+- added Addressable::URI#default_port method
+- fixed issue with Marshalling Unicode data on Windows
+- improved heuristic parsing to better handle IPv4 addresses
+
 # Addressable 2.3.1
 - fixed missing unicode data file
 
