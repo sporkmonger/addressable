@@ -698,7 +698,7 @@ module Addressable
           if v.is_a?(Array) && v.first =~ /=/
             v.join(joiner)
           elsif v.is_a?(Array)
-            v.map{|v| "#{k}=#{v}"}.join(joiner)
+            v.map{|inner_value| "#{k}=#{inner_value}"}.join(joiner)
           else
             "#{k}=#{v}"
           end
@@ -708,7 +708,7 @@ module Addressable
           if v.is_a?(Array) && v.first =~ /=/
             ';' + v.join(";")
           elsif v.is_a?(Array)
-            ';' + v.map{|v| "#{k}=#{v}"}.join(";")
+            ';' + v.map{|inner_value| "#{k}=#{inner_value}"}.join(";")
           else
             v && v != '' ?  ";#{k}=#{v}" : ";#{k}"
           end
