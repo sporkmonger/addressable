@@ -815,6 +815,15 @@ describe Addressable::Template do
         data.mapping["foo"].should == "foo"
         data.mapping["bar"].should == "banana"
       end
+      it "can fail" do
+        subject.match("bar/foo").should be_nil
+        subject.match("foobaz").should be_nil
+      end
+      it "can match empty" do
+        data = subject.match("foo/baz")
+        data.mapping["foo"].should == ""
+        data.mapping["bar"].should == ""
+      end
       it "lists vars" do
         subject.variables.should == ["foo", "bar"]
       end
