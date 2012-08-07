@@ -2933,6 +2933,13 @@ describe Addressable::URI, "when parsed from " +
     }
   end
 
+  it "should have the correct query string after multilevel hash assignment" do
+    @uri.query_values = {:flag1 => 'value1', :flag2 => {:flag3 => {:flag4 => 'value2'}}}
+    @uri.query.split("&").should include("flag1=value1")
+    @uri.query.split("&").should include("flag2%5Bflag3%5D%5Bflag4%5D=value2")
+    @uri.query_values(Array).sort.should == [["flag1", "value1"], ["flag2[flag3][flag4]", "value2"]]
+  end
+
   it "should have the correct query string after flag hash assignment" do
     @uri.query_values = {'flag?1' => true, 'fl=ag2' => true, 'flag3' => true}
     @uri.query.split("&").should include("flag%3F1")
