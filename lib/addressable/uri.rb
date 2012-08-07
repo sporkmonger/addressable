@@ -1535,7 +1535,7 @@ module Addressable
           sub_hash = flatten_keys v, new_keys
           new_hash.merge! sub_hash
         else
-          new_hash[new_keys] = v
+          new_hash.merge! k => v
         end
       end
       new_hash
