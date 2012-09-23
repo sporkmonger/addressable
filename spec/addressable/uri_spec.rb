@@ -2944,6 +2944,11 @@ describe Addressable::URI, "when parsed from " +
     }
   end
 
+  it "should ignore nil query_values" do
+    @uri.query_values = {'flag' => nil}
+    @uri.query.should == ""
+  end
+
   it "should raise an error if query values are set to a bogus type" do
     (lambda do
       @uri.query_values = "bogus"

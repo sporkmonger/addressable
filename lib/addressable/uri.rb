@@ -1492,6 +1492,7 @@ module Addressable
         end
         new_query_values = new_query_values.to_hash
         new_query_values = new_query_values.map do |key, value|
+          next if value.nil?
           key = key.to_s if key.kind_of?(Symbol)
           [key, value]
         end
