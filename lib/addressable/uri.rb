@@ -1043,12 +1043,20 @@ module Addressable
     end
 
     ##
-    # @see Addressable::URI#host
-    alias_method :hostname, :host
+    # This method is same as URI::Generic#host except
+    # brackets for IPv6 (andn future IP) addresses are removed.
+    def hostname
+      v = self.host
+      /\A\[(.*)\]\z/ =~ v ? $1 : v
+    end
 
     ##
-    # @see Addressable::URI#host=
-    alias_method :hostname=, :host=
+    # This method is same as URI::Generic#host= except
+    # the argument can be bare IPv6 address.
+    def hostname=(v)
+      v = "[#{v}]" if /\A\[.*\]\z/ !~ v && /:/ =~ v
+      self.host = v
+    end
 
     ##
     # The authority component for this URI.
