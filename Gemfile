@@ -3,7 +3,7 @@ source 'https://rubygems.org'
 group :development do
   gem 'launchy'
   gem 'yard'
-  gem 'redcarpet', :platforms => [:mri_19, :jruby]
+  gem 'redcarpet', :platform => :mri_19
   gem 'rubyforge'
 end
 
