@@ -1439,11 +1439,6 @@ module Addressable
         # but in this case I really want to maintain the exact pair structure,
         # so it's best to make all changes in-place.
         pair[0] = URI.unencode_component(pair[0])
-        # This looks weird, but it's correct. Handles query values like:
-        # ?data=1&flag&color=blue
-        # In this case, `flag` would evaluate to `true`, which is what you
-        # want. Its absence implies that `flag` resolves to `false`.
-        # value = true if value.nil?
         if pair[1].respond_to?(:to_str)
           # I loathe the fact that I have to do this. Stupid HTML 4.01.
           # Treating '+' as a space was just an unbelievably bad idea.
@@ -1506,7 +1501,7 @@ module Addressable
         encoded_key = URI.encode_component(
           key, CharacterClasses::UNRESERVED
         )
-        if value == nil || value == true
+        if value == nil
           buffer << "#{encoded_key}&"
         elsif value.kind_of?(Array)
           value.each do |sub_value|
