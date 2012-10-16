@@ -331,7 +331,10 @@ module Addressable
       return nil if component.nil?
 
       begin
-        if component.kind_of?(Symbol) || component.kind_of?(Numeric)
+        if component.kind_of?(Symbol) ||
+            component.kind_of?(Numeric) ||
+            component.kind_of?(TrueClass) ||
+            component.kind_of?(FalseClass)
           component = component.to_s
         else
           component = component.to_str

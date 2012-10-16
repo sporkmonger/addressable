@@ -2934,7 +2934,7 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should have the correct query string after flag hash assignment" do
-    @uri.query_values = {'flag?1' => true, 'fl=ag2' => true, 'flag3' => true}
+    @uri.query_values = {'flag?1' => nil, 'fl=ag2' => nil, 'flag3' => nil}
     @uri.query.split("&").should include("flag%3F1")
     @uri.query.split("&").should include("fl%3Dag2")
     @uri.query.split("&").should include("flag3")
