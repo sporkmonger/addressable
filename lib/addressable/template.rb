@@ -317,6 +317,8 @@ module Addressable
       # First, we need to process the pattern, and extract the values.
       expansions, expansion_regexp =
         parse_template_pattern(pattern, processor)
+
+      return nil unless uri.to_str.match(expansion_regexp)
       unparsed_values = uri.to_str.scan(expansion_regexp).flatten
 
       if uri.to_str == pattern
