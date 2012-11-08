@@ -1428,6 +1428,8 @@ module Addressable
     #   #=> [["one", "two"], ["one", "three"]]
     #   Addressable::URI.parse("?one=two&one=three").query_values(Hash)
     #   #=> {"one" => "three"}
+    #   Addressable::URI.parse("?one[]=two&one[]=three").query_values(Hash)
+    #   #=> {"one" => ["two", "three"]}
     def query_values(return_type=Hash)
       empty_accumulator = Array == return_type ? [] : {}
       if return_type != Hash && return_type != Array
@@ -1435,7 +1437,7 @@ module Addressable
       end
       return nil if self.query == nil
       split_query = (self.query.split("&").map do |pair|
-        pair.split("=", 2) if pair && !pair.empty?
+        pair.split(%r{\[\]=|=}, 2) if pair && !pair.empty?
       end).compact
       return split_query.inject(empty_accumulator.dup) do |accu, pair|
         # I'd rather use key/value identifiers instead of array lookups,
@@ -1449,8 +1451,13 @@ module Addressable
           # If it ain't broke, don't fix it!
           pair[1] = URI.unencode_component(pair[1].to_str.gsub(/\+/, " "))
         end
+
         if return_type == Hash
-          accu[pair[0]] = pair[1]
+          accu[pair[0]] = if accu[pair[0]]
+            [ accu[pair[0]] ].push(pair[1]).flatten
+          else
+            pair[1]
+          end
         else
           accu << pair
         end
