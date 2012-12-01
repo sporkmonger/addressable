@@ -5062,3 +5062,26 @@ describe Addressable::URI, "when assigning path values" do
     end).should_not raise_error(Addressable::URI::InvalidURIError)
   end
 end
+
+# RFC 2397 - The "data" URI scheme
+# http://www.ietf.org/rfc/rfc2397.txt
+describe Addressable::URI, "when parsing data URIs" do
+  before do
+    @datauri = "data:image/gif;base64,R0lGODdhMAAwAPAAAAAAAP///ywAAAAAMAAw
+           AAAC8IyPqcvt3wCcDkiLc7C0qwyGHhSWpjQu5yqmCYsapyuvUUlvONmOZtfzgFz
+           ByTB10QgxOR0TqBQejhRNzOfkVJ+5YiUqrXF5Y5lKh/DeuNcP5yLWGsEbtLiOSp
+           a/TPg7JpJHxyendzWTBfX0cxOnKPjgBzi4diinWGdkF8kjdfnycQZXZeYGejmJl
+           ZeGl9i2icVqaNVailT6F5iJ90m6mvuTS4OK05M0vDk0Q4XUtwvKOzrcd3iq9uis
+           F81M1OIcR7lEewwcLp7tuNNkM3uNna3F2JQFo97Vriy/Xl4/f1cf5VWzXyym7PH
+           hhx4dbgYKAAA7"
+  end
+
+  it "should parse" do
+    uri = Addressable::URI.parse(@datauri);
+    uri.datauri.should == @datauri
+    uri.datauri?.should == true
+  end
+  
+end
+
+
