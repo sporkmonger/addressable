@@ -131,7 +131,19 @@ module Addressable
         port = nil
       end
 
-      return new(
+      # This logic allows Addressable to parse URIs using classes that are
+      # specialized to the URI scheme in a fairly lightweight way.
+      if scheme != nil
+        uri_specialization = match_specialization(scheme)
+      end
+      if uri_specialization == nil
+        # This defaults to Addressable::URI when called directly on the
+        # superclass, or it defaults to the subclass if called from the
+        # subclass. This allows developers to give hints to Addressable
+        # regarding which specialization to use.
+        uri_specialization = self
+      end
+      return uri_specialization.new(
         :scheme => scheme,
         :user => user,
         :password => password,
@@ -141,6 +153,43 @@ module Addressable
         :query => query,
         :fragment => fragment
       )
+    end
+
+    ##
+    # Automatically called when a class inherits from Addressable::URI,
+    # presumably to specialize handling of a URI scheme.
+    #
+    # @params [Class] subclass
+    #   The new subclass.
+    def self.inherited(subclass)
+      @@subclasses ||= []
+      @@subclasses << subclass
+    end
+
+    ##
+    # Finds a specialized subclass for the specified URI scheme.
+    #
+    # @param [String] scheme
+    #   The scheme to match.
+    # @return [Class]
+    #   An Addressable::URI subclass specialized for that scheme.
+    def self.match_specialization(scheme)
+      @@known_specializations ||= {}
+      @@subclasses ||= []
+      if @@known_specializations.has_key?(scheme)
+        return @@known_specializations[scheme]
+      else
+        @@known_specializations = {}
+        @@subclasses.each do |c|
+          next if !c.ancestors.include?(Addressable::URI)
+          next if !c.respond_to?(:scheme)
+          @@known_specializations[c.scheme] = c
+        end
+        return @@known_specializations[scheme]
+      end
+    end
+    class << self
+      private :match_specialization
     end
 
     ##
@@ -253,8 +302,8 @@ module Addressable
           "/#{$1.downcase}:/"
         end
         uri.path.gsub!(/\\/, SLASH)
-        if File.exists?(uri.path) &&
-            File.stat(uri.path).directory?
+        if ::File.exists?(uri.path) &&
+            ::File.stat(uri.path).directory?
           uri.path.gsub!(/\/$/, EMPTY_STR)
           uri.path = uri.path + '/'
         end
@@ -1361,7 +1410,7 @@ module Addressable
     # @return [String] The path's basename.
     def basename
       # Path cannot be nil
-      return File.basename(self.path).gsub(/;[^\/]*$/, EMPTY_STR)
+      return ::File.basename(self.path).gsub(/;[^\/]*$/, EMPTY_STR)
     end
 
     ##
@@ -1371,7 +1420,7 @@ module Addressable
     # @return [String] The path's extname.
     def extname
       return nil unless self.path
-      return File.extname(self.basename)
+      return ::File.extname(self.basename)
     end
 
     ##
@@ -2123,7 +2172,7 @@ module Addressable
     #
     # @return [String] The URI object's state, as a <code>String</code>.
     def inspect
-      sprintf("#<%s:%#0x URI:%s>", URI.to_s, self.object_id, self.to_s)
+      sprintf("#<%s:%#0x URI:%s>", self.class.to_s, self.object_id, self.to_s)
     end
 
     ##
@@ -2237,3 +2286,9 @@ module Addressable
     end
   end
 end
+
+# Load all specialized subclasses.
+specializations_path = File.expand_path(
+  File.join(File.dirname(__FILE__), "specializations"))
+specialization_files = Dir.glob(File.join(specializations_path, "/*.rb"))
+specialization_files.each { |rb_file| require(rb_file) }
