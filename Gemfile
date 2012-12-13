@@ -13,5 +13,6 @@ group :test, :development do
 end
 
 gem 'idn', :platform => :mri_18
+gem 'idn-ruby', :platform => :mri_19
 
 gemspec
