@@ -3670,6 +3670,10 @@ describe Addressable::URI, "when parsed from " +
   it "should have query_values of {'q' => 'a b'}" do
     @uri.query_values.should == {'q' => 'a b'}
   end
+
+  it "should have a normalized query of 'q=a+b'" do
+    @uri.normalized_query.should == "q=a+b"
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -3684,6 +3688,21 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have query_values of {'q' => 'a+b'}" do
     @uri.query_values.should == {'q' => 'a+b'}
+  end
+
+  it "should have a normalized query of 'q=a%2Bb'" do
+    @uri.normalized_query.should == "q=a%2Bb"
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'http://example.com/sound%2bvision'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/sound%2bvision")
+  end
+
+  it "should have a normalized path of '/sound+vision'" do
+    @uri.normalized_path.should == '/sound+vision'
   end
 end
 
