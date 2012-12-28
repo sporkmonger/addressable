@@ -315,6 +315,12 @@ module Addressable
     #   value is the reserved plus unreserved character classes specified in
     #   <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
     #
+    # @param [Regexp] upcase_encoded
+    #   A string of characters that may already be percent encoded, and whose
+    #   encodings should be upcased. This allows normalization of percent
+    #   encodings for characters not included in the
+    #   <code>character_class</code>.
+    #
     # @return [String] The encoded component.
     #
     # @example
@@ -327,7 +333,8 @@ module Addressable
     #   )
     #   => "simple%2Fexample"
     def self.encode_component(component, character_class=
-        CharacterClasses::RESERVED + CharacterClasses::UNRESERVED)
+        CharacterClasses::RESERVED + CharacterClasses::UNRESERVED,
+        upcase_encoded='')
       return nil if component.nil?
 
       begin
@@ -356,9 +363,15 @@ module Addressable
         component = component.dup
         component.force_encoding(Encoding::ASCII_8BIT)
       end
-      return component.gsub(character_class) do |sequence|
+      component.gsub!(character_class) do |sequence|
         (sequence.unpack('C*').map { |c| "%" + ("%02x" % c).upcase }).join
       end
+      if upcase_encoded.length > 0
+        component.gsub!(/%(#{upcase_encoded.chars.map do |c|
+          c.unpack('C*').map { |c| '%02x' % c }.join
+        end.join('|')})/i) { |s| s.upcase }
+      end
+      return component
     end
 
     class << self
@@ -380,11 +393,15 @@ module Addressable
     #   <code>Addressable::URI</code>. All other values are invalid. Defaults
     #   to <code>String</code>.
     #
+    # @param [String] leave_encoded
+    #   A string of characters to leave encoded. If a percent encoded character
+    #   in this list is encountered then it will remain percent encoded.
+    #
     # @return [String, Addressable::URI]
     #   The unencoded component or URI.
     #   The return type is determined by the <code>return_type</code>
     #   parameter.
-    def self.unencode(uri, return_type=String)
+    def self.unencode(uri, return_type=String, leave_encoded='')
       return nil if uri.nil?
 
       begin
@@ -398,7 +415,8 @@ module Addressable
           "got #{return_type.inspect}"
       end
       result = uri.gsub(/%[0-9a-f]{2}/i) do |sequence|
-        sequence[1..3].to_i(16).chr
+        c = sequence[1..3].to_i(16).chr
+        leave_encoded.include?(c) ? sequence : c
       end
       result.force_encoding("utf-8") if result.respond_to?(:force_encoding)
       if return_type == String
@@ -433,6 +451,13 @@ module Addressable
     #   value is the reserved plus unreserved character classes specified in
     #   <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
     #
+    # @param [String] leave_encoded
+    #   When <code>character_class</code> is a <code>String</code> then
+    #   <code>leave_encoded</code> is a string of characters that should remain
+    #   percent encoded while normalizing the component; if they appear percent
+    #   encoded in the original component, then they will be upcased ("%2f"
+    #   normalized to "%2F") but otherwise left alone.
+    #
     # @return [String] The normalized component.
     #
     # @example
@@ -447,8 +472,15 @@ module Addressable
     #     Addressable::URI::CharacterClasses::UNRESERVED
     #   )
     #   => "simple%2Fexample"
+    #   Addressable::URI.normalize_component(
+    #     "one%20two%2fthree%26four",
+    #     "0-9a-zA-Z &/",
+    #     "/"
+    #   )
+    #   => "one two%2Fthree&four"
     def self.normalize_component(component, character_class=
-        CharacterClasses::RESERVED + CharacterClasses::UNRESERVED)
+        CharacterClasses::RESERVED + CharacterClasses::UNRESERVED,
+        leave_encoded='')
       return nil if component.nil?
 
       begin
@@ -462,7 +494,16 @@ module Addressable
           "Expected String or Regexp, got #{character_class.inspect}"
       end
       if character_class.kind_of?(String)
-        character_class = /[^#{character_class}]/
+        leave_re = if leave_encoded.length > 0
+          character_class << '%'
+
+          "|%(?!#{leave_encoded.chars.map do |c|
+            seq = c.unpack('C*').map { |c| '%02x' % c }.join
+            [seq.upcase, seq.downcase]
+          end.flatten.join('|')})"
+        end
+
+        character_class = /[^#{character_class}]#{leave_re}/
       end
       if component.respond_to?(:force_encoding)
         # We can't perform regexps on invalid UTF sequences, but
@@ -470,11 +511,12 @@ module Addressable
         component = component.dup
         component.force_encoding(Encoding::ASCII_8BIT)
       end
-      unencoded = self.unencode_component(component)
+      unencoded = self.unencode_component(component, String, leave_encoded)
       begin
         encoded = self.encode_component(
           Addressable::IDNA.unicode_normalize_kc(unencoded),
-          character_class
+          character_class,
+          leave_encoded
         )
       rescue ArgumentError
         encoded = self.encode_component(unencoded)
@@ -1391,7 +1433,8 @@ module Addressable
         (self.query.split("&", -1).map do |pair|
           Addressable::URI.normalize_component(
             pair,
-            Addressable::URI::CharacterClasses::QUERY.sub("\\&", "")
+            Addressable::URI::CharacterClasses::QUERY.sub("\\&", ""),
+            '+'
           )
         end).join("&")
       end)
