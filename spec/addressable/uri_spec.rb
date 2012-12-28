@@ -3172,6 +3172,28 @@ describe Addressable::URI, "when parsed from " +
 end
 
 describe Addressable::URI, "when parsed from " +
+    "'http://example.com/?v=%7E&w=%&x=%25&y=%2B&z=C%CC%A7'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/?v=%7E&w=%&x=%25&y=%2B&z=C%CC%A7")
+  end
+
+  it "should have a normalized query of 'v=~&w=%25&x=%25&y=%2B&z=%C3%87'" do
+    @uri.normalized_query.should == "v=~&w=%25&x=%25&y=%2B&z=%C3%87"
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'http://example.com/?v=%7E&w=%&x=%25&y=+&z=C%CC%A7'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/?v=%7E&w=%&x=%25&y=+&z=C%CC%A7")
+  end
+
+  it "should have a normalized query of 'v=~&w=%25&x=%25&y=+&z=%C3%87'" do
+    @uri.normalized_query.should == "v=~&w=%25&x=%25&y=+&z=%C3%87"
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/sound%2bvision'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/sound%2bvision")
@@ -4638,6 +4660,19 @@ describe Addressable::URI, "when normalizing a multibyte string" do
   end
 end
 
+describe Addressable::URI, "when normalizing a string but leaving some characters encoded" do
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.normalize_component("%58X%59Y%5AZ", "0-9a-zXY", "Y").should ==
+      "XX%59Y%5A%5A"
+  end
+end
+
+describe Addressable::URI, "when encoding a string with existing encodings to upcase" do
+  it "should result in correct percent encoded sequence" do
+    Addressable::URI.encode_component("JK%4c", "0-9A-IKM-Za-z%", "L").should == "%4AK%4C"
+  end
+end
+
 describe Addressable::URI, "when encoding a multibyte string" do
   it "should result in correct percent encoded sequence" do
     Addressable::URI.encode_component("günther").should == "g%C3%BCnther"
@@ -4680,6 +4715,20 @@ describe Addressable::URI, "when unencoding a multibyte string" do
     ).should == Addressable::URI.new(
       :path => "/path", :query => "günther"
     )
+  end
+end
+
+describe Addressable::URI, "when partially unencoding a string" do
+  it "should unencode all characters by default" do
+    Addressable::URI.unencode('%%25~%7e+%2b', String).should == '%%~~++'
+  end
+
+  it "should unencode characters not in leave_encoded" do
+    Addressable::URI.unencode('%%25~%7e+%2b', String, '~').should == '%%~%7e++'
+  end
+
+  it "should leave characters in leave_encoded alone" do
+    Addressable::URI.unencode('%%25~%7e+%2b', String, '%~+').should == '%%25~%7e+%2b'
   end
 end
 
