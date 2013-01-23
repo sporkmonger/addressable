@@ -515,11 +515,11 @@ module Addressable
   private
     def ordered_variable_defaults
       @ordered_variable_defaults ||= (
-        expansions, expansion_regexp = parse_template_pattern(pattern)
+        expansions, _ = parse_template_pattern(pattern)
         expansions.map do |capture|
-          _, operator, varlist = *capture.match(EXPRESSION)
+          _, _, varlist = *capture.match(EXPRESSION)
           varlist.split(',').map do |varspec|
-            name = varspec[VARSPEC, 1]
+            varspec[VARSPEC, 1]
           end
         end.flatten
       )
@@ -553,7 +553,7 @@ module Addressable
       _, operator, varlist = *capture.match(EXPRESSION)
       is_first = true
       varlist.split(',').inject('') do |acc, varspec|
-        _, name, modifier = *varspec.match(VARSPEC)
+        _, name, _ = *varspec.match(VARSPEC)
         value = mapping[name]
         if value
           operator = '&' if !is_first && operator == '?'
