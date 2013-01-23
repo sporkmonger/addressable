@@ -367,8 +367,8 @@ module Addressable
         (sequence.unpack('C*').map { |c| "%" + ("%02x" % c).upcase }).join
       end
       if upcase_encoded.length > 0
-        component.gsub!(/%(#{upcase_encoded.chars.map do |c|
-          c.unpack('C*').map { |c| '%02x' % c }.join
+        component.gsub!(/%(#{upcase_encoded.chars.map do |char|
+          char.unpack('C*').map { |c| '%02x' % c }.join
         end.join('|')})/i) { |s| s.upcase }
       end
       return component
@@ -497,8 +497,8 @@ module Addressable
         leave_re = if leave_encoded.length > 0
           character_class << '%'
 
-          "|%(?!#{leave_encoded.chars.map do |c|
-            seq = c.unpack('C*').map { |c| '%02x' % c }.join
+          "|%(?!#{leave_encoded.chars.map do |char|
+            seq = char.unpack('C*').map { |c| '%02x' % c }.join
             [seq.upcase, seq.downcase]
           end.flatten.join('|')})"
         end
