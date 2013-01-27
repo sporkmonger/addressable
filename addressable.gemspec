@@ -35,4 +35,5 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<rspec>, [">= 2.9.0"])
     s.add_dependency(%q<launchy>, [">= 0.3.2"])
   end
+  s.license = "Apache License 2.0"
 end
