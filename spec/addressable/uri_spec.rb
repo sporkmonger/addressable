@@ -5670,6 +5670,14 @@ describe Addressable::URI, "when assigning query values" do
     @uri.query_values = @uri.query_values(Array)
     @uri.to_s.should == original_uri
   end
+
+  describe 'when a hash with mixed types is assigned to query_values' do
+    it 'should not raise an error' do
+      pending 'Issue #94' do
+        expect { subject.query_values = { "page" => "1", :page => 2 } }.to_not raise_error ArgumentError
+      end
+    end
+  end
 end
 
 describe Addressable::URI, "when assigning path values" do
