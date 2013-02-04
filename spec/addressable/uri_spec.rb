@@ -1840,6 +1840,13 @@ describe Addressable::URI, "when parsed from " +
   it "should have an origin of 'http://example.com'" do
     @uri.origin.should == 'http://example.com'
   end
+
+  it "should not change if encoded with the normalizing algorithm" do
+    Addressable::URI.normalized_encode(@uri).to_s.should ==
+      "http://example.com:80/"
+    Addressable::URI.normalized_encode(@uri, Addressable::URI).to_s.should ===
+      "http://example.com:80/"
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
@@ -1948,6 +1955,13 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have an origin of 'http://example.com:8080'" do
     @uri.origin.should == 'http://example.com:8080'
+  end
+
+  it "should not change if encoded with the normalizing algorithm" do
+    Addressable::URI.normalized_encode(@uri).to_s.should ==
+      "http://example.com:8080/"
+    Addressable::URI.normalized_encode(@uri, Addressable::URI).to_s.should ===
+      "http://example.com:8080/"
   end
 end
 
