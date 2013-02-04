@@ -620,7 +620,7 @@ module Addressable
         :user => self.unencode_component(uri_object.user),
         :password => self.unencode_component(uri_object.password),
         :host => self.unencode_component(uri_object.host),
-        :port => uri_object.port,
+        :port => (uri_object.port.nil? ? nil : uri_object.port.to_s),
         :path => self.unencode_component(uri_object.path),
         :query => self.unencode_component(uri_object.query),
         :fragment => self.unencode_component(uri_object.fragment)
