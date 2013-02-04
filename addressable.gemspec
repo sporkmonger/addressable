@@ -2,20 +2,21 @@
 
 Gem::Specification.new do |s|
   s.name = "addressable"
-  s.version = "2.3.2"
+  s.version = "3.0.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Bob Aman"]
-  s.date = "2012-07-27"
+  s.date = "2013-02-04"
   s.description = "Addressable is a replacement for the URI implementation that is part of\nRuby's standard library. It more closely conforms to the relevant RFCs and\nadds support for IRIs and URI templates.\n"
   s.email = "bob@sporkmonger.com"
   s.extra_rdoc_files = ["README.md"]
-  s.files = ["lib/addressable", "lib/addressable/idna", "lib/addressable/idna/native.rb", "lib/addressable/idna/pure.rb", "lib/addressable/idna.rb", "lib/addressable/template.rb", "lib/addressable/uri.rb", "lib/addressable/version.rb", "spec/addressable", "spec/addressable/idna_spec.rb", "spec/addressable/net_http_compat_spec.rb", "spec/addressable/template_spec.rb", "spec/addressable/uri_spec.rb", "data/unicode.data", "tasks/clobber.rake", "tasks/gem.rake", "tasks/git.rake", "tasks/metrics.rake", "tasks/rspec.rake", "tasks/rubyforge.rake", "tasks/yard.rake", "website/index.html", "CHANGELOG.md", "Gemfile", "LICENSE.txt", "Rakefile", "README.md"]
+  s.files = ["lib/addressable", "lib/addressable/idna", "lib/addressable/idna.rb", "lib/addressable/idna/native.rb", "lib/addressable/idna/pure.rb", "lib/addressable/specializations", "lib/addressable/specializations/data.rb", "lib/addressable/specializations/file.rb", "lib/addressable/specializations/http.rb", "lib/addressable/specializations/https.rb", "lib/addressable/template.rb", "lib/addressable/uri.rb", "lib/addressable/version.rb", "spec/addressable", "spec/addressable/idna_spec.rb", "spec/addressable/net_http_compat_spec.rb", "spec/addressable/template_spec.rb", "spec/addressable/uri_spec.rb", "data/unicode.data", "tasks/clobber.rake", "tasks/gem.rake", "tasks/git.rake", "tasks/metrics.rake", "tasks/rspec.rake", "tasks/rubyforge.rake", "tasks/yard.rake", "website/index.html", "CHANGELOG.md", "Gemfile", "LICENSE.txt", "README.md", "Rakefile"]
   s.homepage = "http://addressable.rubyforge.org/"
+  s.licenses = ["Apache License 2.0"]
   s.rdoc_options = ["--main", "README.md"]
   s.require_paths = ["lib"]
   s.rubyforge_project = "addressable"
-  s.rubygems_version = "1.8.15"
+  s.rubygems_version = "1.8.24"
   s.summary = "URI Implementation"
 
   if s.respond_to? :specification_version then
@@ -35,5 +36,4 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<rspec>, [">= 2.9.0"])
     s.add_dependency(%q<launchy>, [">= 0.3.2"])
   end
-  s.license = "Apache License 2.0"
 end
