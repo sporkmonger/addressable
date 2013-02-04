@@ -28,6 +28,7 @@ namespace :gem do
     s.email = "bob@sporkmonger.com"
     s.homepage = RUBY_FORGE_URL
     s.rubyforge_project = RUBY_FORGE_PROJECT
+    s.license = "Apache License 2.0"
   end
 
   Gem::PackageTask.new(GEM_SPEC) do |p|
