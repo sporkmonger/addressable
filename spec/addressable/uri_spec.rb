@@ -3826,13 +3826,20 @@ describe Addressable::URI, "when parsed from " +
     "'?one=two&one=three'" do
   before do
     @uri = Addressable::URI.parse(
-      "?one=two&one=three"
+      "?one=two&one=three&one=four"
     )
   end
 
   it "should have correct array query values" do
     @uri.query_values(Array).should ==
-      [['one', 'two'], ['one', 'three']]
+      [['one', 'two'], ['one', 'three'], ['one', 'four']]
+  end
+
+  it "should have correct hash query values" do
+    pending("This is probably more desirable behavior.") do
+      @uri.query_values(Hash).should ==
+        {'one' => ['two', 'three', 'four']}
+    end
   end
 end
 
