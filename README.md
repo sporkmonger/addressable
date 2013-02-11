@@ -24,64 +24,70 @@ RFC 6570 (level 4), providing support for IRIs and URI templates.
 
 # Example usage
 
-    require "addressable/uri"
+```ruby
+require "addressable/uri"
 
-    uri = Addressable::URI.parse("http://example.com/path/to/resource/")
-    uri.scheme
-    #=> "http"
-    uri.host
-    #=> "example.com"
-    uri.path
-    #=> "/path/to/resource/"
+uri = Addressable::URI.parse("http://example.com/path/to/resource/")
+uri.scheme
+#=> "http"
+uri.host
+#=> "example.com"
+uri.path
+#=> "/path/to/resource/"
 
-    uri = Addressable::URI.parse("http://www.詹姆斯.com/")
-    uri.normalize
-    #=> #<Addressable::URI:0xc9a4c8 URI:http://www.xn--8ws00zhy3a.com/>
+uri = Addressable::URI.parse("http://www.詹姆斯.com/")
+uri.normalize
+#=> #<Addressable::URI:0xc9a4c8 URI:http://www.xn--8ws00zhy3a.com/>
 
-    require "addressable/template"
+require "addressable/template"
 
-    template = Addressable::Template.new("http://example.com/{-list|+|query}/")
-    template.expand({
-      "query" => "an example query".split(" ")
-    })
-    #=> #<Addressable::URI:0xc9d95c URI:http://example.com/an+example+query/>
+template = Addressable::Template.new("http://example.com/{-list|+|query}/")
+template.expand({
+  "query" => "an example query".split(" ")
+})
+#=> #<Addressable::URI:0xc9d95c URI:http://example.com/an+example+query/>
 
-    template = Addressable::Template.new(
-      "http://example.com/{-join|&|one,two,three}/"
-    )
-    template.partial_expand({"one" => "1", "three" => 3}).pattern
-    #=> "http://example.com/?one=1{-prefix|&two=|two}&three=3"
+template = Addressable::Template.new(
+  "http://example.com/{-join|&|one,two,three}/"
+)
+template.partial_expand({"one" => "1", "three" => 3}).pattern
+#=> "http://example.com/?one=1{-prefix|&two=|two}&three=3"
 
-    template = Addressable::Template.new(
-      "http://{host}/{-suffix|/|segments}?{-join|&|one,two,bogus}\#{fragment}"
-    )
-    template2 = Addressable::UriTemplate.new(
-      "http://{host}{/segments}/{?one,two,bogus}{#fragment}"
-    )
-    uri = Addressable::URI.parse(
-      "http://example.com/a/b/c/?one=1&two=2#foo"
-    )
-    template.extract(uri)
-    template2.extract(uri)
-    #=>
-    # {
-    #   "host" => "example.com",
-    #   "segments" => ["a", "b", "c"],
-    #   "one" => "1",
-    #   "two" => "2",
-    #   "fragment" => "foo"
-    # }
+template = Addressable::Template.new(
+  "http://{host}/{-suffix|/|segments}?{-join|&|one,two,bogus}\#{fragment}"
+)
+template2 = Addressable::UriTemplate.new(
+  "http://{host}{/segments}/{?one,two,bogus}{#fragment}"
+)
+uri = Addressable::URI.parse(
+  "http://example.com/a/b/c/?one=1&two=2#foo"
+)
+template.extract(uri)
+template2.extract(uri)
+#=>
+# {
+#   "host" => "example.com",
+#   "segments" => ["a", "b", "c"],
+#   "one" => "1",
+#   "two" => "2",
+#   "fragment" => "foo"
+# }
+```
 
 # Install
 
-    $ sudo gem install addressable
+```console
+$ sudo gem install addressable
+```
 
 You may optionally turn on native IDN support by installing libidn and the
 idn gem:
 
-    $ sudo apt-get install idn # Debian/Ubuntu
-    $ sudo brew install libidn # OS X
-    $ sudo gem install idn
+```console
+$ sudo apt-get install idn # Debian/Ubuntu
+$ sudo brew install libidn # OS X
+$ sudo gem install idn
+```
 
 **NOTE:** Native IDN support appears to be broken in Ruby 1.9.x. The IDN gem
 hasn't been updated in years.
