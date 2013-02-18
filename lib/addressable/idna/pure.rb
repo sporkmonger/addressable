@@ -317,10 +317,20 @@ module Addressable
     UNICODE_DATA_LOWERCASE = 5
     UNICODE_DATA_TITLECASE = 6
 
-    # This is a sparse Unicode table.  Codepoints without entries are
-    # assumed to have the value: [0, 0, nil, nil, nil, nil, nil]
-    UNICODE_DATA = File.open(UNICODE_TABLE, "rb") do |file|
-      Marshal.load(file.read)
+    begin
+      if defined?(FakeFS)
+        fakefs_state = FakeFS.activated?
+        FakeFS.deactivate!
+      end
+      # This is a sparse Unicode table.  Codepoints without entries are
+      # assumed to have the value: [0, 0, nil, nil, nil, nil, nil]
+      UNICODE_DATA = File.open(UNICODE_TABLE, "rb") do |file|
+        Marshal.load(file.read)
+      end
+    ensure
+      if defined?(FakeFS)
+        FakeFS.activate! if fakefs_state
+      end
     end
 
     COMPOSITION_TABLE = {}
