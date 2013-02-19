@@ -1,3 +1,12 @@
+# Addressable 2.3.3
+- fixed issue with converting common primitives during template expansion
+- fixed port encoding issue
+- removed a few warnings
+- normalize should now ignore %2B in query strings
+- the IDNA logic should now be handled by libidn in Ruby 1.9
+- no template match should now result in nil instead of an empty MatchData
+- added license information to gemspec
+
 # Addressable 2.3.2
 - added Addressable::URI#default_port method
 - fixed issue with Marshalling Unicode data on Windows
