@@ -14,6 +14,18 @@ shared_examples_for 'expands' do |tests|
   end
 end
 
+describe "Type conversion" do
+  subject{
+    {:var => true, :hello => 1234, :nothing => nil, :sym => :symbolic}
+  }
+  it_behaves_like 'expands', {
+    '{var}' => 'true',
+    '{hello}' => '1234',
+    '{nothing}' => '',
+    '{sym}' => 'symbolic'
+  }
+end
+
 describe "Level 1:" do
   subject{
     {:var => "value", :hello => "Hello World!"}

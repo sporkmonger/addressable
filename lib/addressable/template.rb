@@ -597,7 +597,11 @@ module Addressable
         value = mapping[name]
         unless value == nil || value == {}
           allow_reserved = %w(+ #).include?(operator)
-          value = value.to_s if Numeric === value || Symbol === value
+          # Common primitives where the .to_s output is well-defined
+          if Numeric === value || Symbol === value ||
+              value == true || value == false
+            value = value.to_s
+          end
           length = modifier.gsub(':', '').to_i if modifier =~ /^:\d+/
 
           unless (Hash === value) ||
