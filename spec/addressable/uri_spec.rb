@@ -232,7 +232,7 @@ describe Addressable::URI, "when frozen" do
   end
 
   it "returns nil for #user" do
-    @uri.user .should == nil
+    @uri.user.should == nil
   end
 
   it "returns nil for #normalized_user" do
@@ -321,6 +321,139 @@ describe Addressable::URI, "when frozen" do
 
   it "returns #to_s" do
     @uri.to_s.should == ''
+  end
+
+  it "should not allow destructive operations" do
+    (lambda do
+      @uri.normalize!
+    end).should raise_error(
+      RuntimeError, "can't modify frozen Addressable::URI"
+    )
+  end
+end
+
+describe Addressable::URI, "when frozen" do
+  before do
+    @uri = Addressable::URI.parse(
+      "HTTP://example.com.:%38%30/%70a%74%68?a=%31#1%323"
+    ).freeze
+  end
+
+  it "returns 'HTTP' for #scheme" do
+    @uri.scheme.should == "HTTP"
+  end
+
+  it "returns 'http' for #normalized_scheme" do
+    @uri.normalized_scheme.should == "http"
+    @uri.normalize.scheme.should == "http"
+  end
+
+  it "returns nil for #user" do
+    @uri.user.should == nil
+  end
+
+  it "returns nil for #normalized_user" do
+    @uri.normalized_user.should == nil
+  end
+
+  it "returns nil for #password" do
+    @uri.password.should == nil
+  end
+
+  it "returns nil for #normalized_password" do
+    @uri.normalized_password.should == nil
+  end
+
+  it "returns nil for #userinfo" do
+    @uri.userinfo.should == nil
+  end
+
+  it "returns nil for #normalized_userinfo" do
+    @uri.normalized_userinfo.should == nil
+  end
+
+  it "returns 'example.com.' for #host" do
+    @uri.host.should == "example.com."
+  end
+
+  it "returns nil for #normalized_host" do
+    @uri.normalized_host.should == "example.com"
+    @uri.normalize.host.should == "example.com"
+  end
+
+  it "returns 'example.com.:80' for #authority" do
+    @uri.authority.should == "example.com.:80"
+  end
+
+  it "returns 'example.com:80' for #normalized_authority" do
+    @uri.normalized_authority.should == "example.com"
+    @uri.normalize.authority.should == "example.com"
+  end
+
+  it "returns 80 for #port" do
+    @uri.port.should == 80
+  end
+
+  it "returns nil for #normalized_port" do
+    @uri.normalized_port.should == nil
+    @uri.normalize.port.should == nil
+  end
+
+  it "returns 80 for #default_port" do
+    @uri.default_port.should == 80
+  end
+
+  it "returns 'HTTP://example.com.:80' for #site" do
+    @uri.site.should == "HTTP://example.com.:80"
+  end
+
+  it "returns 'http://example.com' for #normalized_site" do
+    @uri.normalized_site.should == "http://example.com"
+    @uri.normalize.site.should == "http://example.com"
+  end
+
+  it "returns '/%70a%74%68' for #path" do
+    @uri.path.should == "/%70a%74%68"
+  end
+
+  it "returns '/path' for #normalized_path" do
+    @uri.normalized_path.should == "/path"
+    @uri.normalize.path.should == "/path"
+  end
+
+  it "returns 'a=%31' for #query" do
+    @uri.query.should == "a=%31"
+  end
+
+  it "returns 'a=1' for #normalized_query" do
+    @uri.normalized_query.should == "a=1"
+    @uri.normalize.query.should == "a=1"
+  end
+
+  it "returns '1%323' for #fragment" do
+    @uri.fragment.should == "1%323"
+  end
+
+  it "returns '123' for #normalized_fragment" do
+    @uri.normalized_fragment.should == "123"
+    @uri.normalize.fragment.should == "123"
+  end
+
+  it "returns #hash" do
+    @uri.hash.should_not be nil
+  end
+
+  it "returns #to_s" do
+    @uri.to_s.should == 'HTTP://example.com.:80/%70a%74%68?a=%31#1%323'
+    @uri.normalize.to_s.should == 'http://example.com/path?a=1#123'
+  end
+
+  it "should not allow destructive operations" do
+    (lambda do
+      @uri.normalize!
+    end).should raise_error(
+      RuntimeError, "can't modify frozen Addressable::URI"
+    )
   end
 end
 
