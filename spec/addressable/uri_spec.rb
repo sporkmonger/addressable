@@ -326,9 +326,7 @@ describe Addressable::URI, "when frozen" do
   it "should not allow destructive operations" do
     (lambda do
       @uri.normalize!
-    end).should raise_error(
-      RuntimeError, "can't modify frozen Addressable::URI"
-    )
+    end).should raise_error(RuntimeError)
   end
 end
 
@@ -451,9 +449,7 @@ describe Addressable::URI, "when frozen" do
   it "should not allow destructive operations" do
     (lambda do
       @uri.normalize!
-    end).should raise_error(
-      RuntimeError, "can't modify frozen Addressable::URI"
-    )
+    end).should raise_error(RuntimeError)
   end
 end
 
