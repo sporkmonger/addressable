@@ -1038,3 +1038,77 @@ describe Addressable::Template do
     end
   end
 end
+
+describe Addressable::Template::MatchData do
+  let(:template) { Addressable::Template.new('{foo}/{bar}') }
+  subject(:its) { template.match('ab/cd') }
+  its(:uri) { should == Addressable::URI.parse('ab/cd') }
+  its(:template) { should == template }
+  its(:mapping) { should == { 'foo' => 'ab', 'bar' => 'cd' } }
+  its(:variables) { should == ['foo', 'bar'] }
+  its(:keys) { should == its.variables }
+  its(:names) { should == its.variables }
+  its(:values) { should == ['ab', 'cd'] }
+  its(:captures) { should == its.values }
+  its(:to_a) { should == ['ab/cd', 'ab', 'cd'] }
+  its(:to_s) { should == 'ab/cd' }
+  its(:string) { should == its.to_s }
+  its(:pre_match) { should == "" }
+  its(:post_match) { should == "" }
+
+  describe 'values_at' do
+    it 'returns an array with the values' do
+      its.values_at(0, 2).should == ['ab/cd', 'cd']
+    end
+    it 'allows mixing integer an string keys' do
+      its.values_at('foo', 1).should == ['ab', 'ab']
+    end
+    it 'accepts unknown keys' do
+      its.values_at('baz', 'foo').should == [nil, 'ab']
+    end
+  end
+
+  describe '[]' do
+    context 'string key' do
+      it 'returns the corresponding capture' do
+        its['foo'].should == 'ab'
+        its['bar'].should == 'cd'
+      end
+      it 'returns nil for unknown keys' do
+        its['baz'].should be_nil
+      end
+    end
+    context 'symbol key' do
+      it 'returns the corresponding capture' do
+        its[:foo].should == 'ab'
+        its[:bar].should == 'cd'
+      end
+      it 'returns nil for unknown keys' do
+        its[:baz].should be_nil
+      end
+    end
+    context 'integer key' do
+      it 'returns the full URI for index 0' do
+        its[0].should == 'ab/cd'
+      end
+      it 'returns the corresponding capture' do
+        its[1].should == 'ab'
+        its[2].should == 'cd'
+      end
+      it 'returns nil for unknown keys' do
+        its[3].should be_nil
+      end
+    end
+    context 'other key' do
+      it 'raises an exception' do
+        expect { its[Object.new] }.to raise_error(TypeError)
+      end
+    end
+    context 'with length' do
+      it 'returns an array starting at index with given length' do
+        its[0, 2].should == ['ab/cd', 'ab']
+        its[2, 1].should == ['cd']
+      end
+    end
+  end
+end
