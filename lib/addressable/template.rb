@@ -150,7 +150,7 @@ module Addressable
       ##
       # Accesses captured values by name or by index.
       #
-      # @param [#to_int, #to_str, #to_sym] key
+      # @param [String, Symbol, Fixnum] key
       #   Capture index or name. Note that when accessing by with index
       #   of 0, the full URI will be returned. The intention is to mimic
       #   the ::MatchData#[] behavior.
@@ -169,7 +169,7 @@ module Addressable
       def [](key, len = nil)
         if len
           to_a[key, len]
-        elsif key.respond_to? :to_str or key.respond_to? :to_sym
+        elsif String === key or Symbol === key
           mapping[key.to_s]
         else
           to_a[key]
@@ -194,7 +194,7 @@ module Addressable
 
       # Returns multiple captured values at once.
       #
-      # @param [#to_int, #to_str, #to_sym] *indexes
+      # @param [String, Symbol, Fixnum] *indexes
       #   Indices of the captures to be returned
       #
       # @return [Array]

@@ -12,7 +12,7 @@ group :test, :development do
   gem 'rspec', '>= 2.9.0'
 end
 
-gem 'idn', :platform => :mri_18
-gem 'idn-ruby', :platform => :mri_19
+#gem 'idn', :platform => :mri_18
+#gem 'idn-ruby', :platform => :mri_19
 
 gemspec
