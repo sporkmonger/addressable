@@ -132,6 +132,7 @@ module Addressable
         self.template.variables
       end
       alias_method :keys, :variables
+      alias_method :names, :variables
 
       ##
       # @return [Array]
@@ -147,6 +148,64 @@ module Addressable
       alias_method :captures, :values
 
       ##
+      # Accesses captured values by name or by index.
+      #
+      # @param [String, Symbol, Fixnum] key
+      #   Capture index or name. Note that when accessing by with index
+      #   of 0, the full URI will be returned. The intention is to mimic
+      #   the ::MatchData#[] behavior.
+      #
+      # @param [#to_int, nil] len
+      #   If provided, an array of values will be returend with the given
+      #   parameter used as length.
+      #
+      # @return [Array, String, nil]
+      #   The captured value corresponding to the index or name. If the
+      #   value was not provided or the key is unknown, nil will be
+      #   returned.
+      #
+      #   If the second parameter is provided, an array of that length will
+      #   be returned instead.
+      def [](key, len = nil)
+        if len
+          to_a[key, len]
+        elsif String === key or Symbol === key
+          mapping[key.to_s]
+        else
+          to_a[key]
+        end
+      end
+
+      ##
+      # @return [Array]
+      #   Array with the matched URI as first element followed by the captured
+      #   values.
+      def to_a
+        [to_s, *values]
+      end
+
+      ##
+      # @return [String]
+      #   The matched URI as String.
+      def to_s
+        uri.to_s
+      end
+      alias_method :string, :to_s
+
+      # Returns multiple captured values at once.
+      #
+      # @param [String, Symbol, Fixnum] *indexes
+      #   Indices of the captures to be returned
+      #
+      # @return [Array]
+      #   Values corresponding to given indices.
+      #
+      # @see Addressable::Template::MatchData#[]
+      def values_at(*indexes)
+        indexes.map { |i| self[i] }
+      end
+
+      ##
       # Returns a <tt>String</tt> representation of the MatchData's state.
       #
       # @return [String] The MatchData's state, as a <tt>String</tt>.
@@ -154,6 +213,15 @@ module Addressable
         sprintf("#<%s:%#0x RESULT:%s>",
           self.class.to_s, self.object_id, self.mapping.inspect)
       end
+
+      ##
+      # Dummy method for code expecting a ::MatchData instance
+      #
+      # @return [String] An empty string.
+      def pre_match
+        ""
+      end
+      alias_method :post_match, :pre_match
     end
 
     ##
