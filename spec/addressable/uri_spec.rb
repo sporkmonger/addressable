@@ -218,6 +218,373 @@ describe Addressable::URI, "when created from nil components" do
   end
 end
 
+describe Addressable::URI, "when initialized from individual components" do
+  before do
+    @uri = Addressable::URI.new(
+      :scheme => "http",
+      :user => "user",
+      :password => "password",
+      :host => "example.com",
+      :port => 8080,
+      :path => "/path",
+      :query => "query=value",
+      :fragment => "fragment"
+    )
+  end
+
+  it "returns 'http' for #scheme" do
+    @uri.scheme.should == "http"
+  end
+
+  it "returns 'http' for #normalized_scheme" do
+    @uri.normalized_scheme.should == "http"
+  end
+
+  it "returns 'user' for #user" do
+    @uri.user.should == "user"
+  end
+
+  it "returns 'user' for #normalized_user" do
+    @uri.normalized_user.should == "user"
+  end
+
+  it "returns 'password' for #password" do
+    @uri.password.should == "password"
+  end
+
+  it "returns 'password' for #normalized_password" do
+    @uri.normalized_password.should == "password"
+  end
+
+  it "returns 'user:password' for #userinfo" do
+    @uri.userinfo.should == "user:password"
+  end
+
+  it "returns 'user:password' for #normalized_userinfo" do
+    @uri.normalized_userinfo.should == "user:password"
+  end
+
+  it "returns 'example.com' for #host" do
+    @uri.host.should == "example.com"
+  end
+
+  it "returns 'example.com' for #normalized_host" do
+    @uri.normalized_host.should == "example.com"
+  end
+
+  it "returns 'user:password@example.com:8080' for #authority" do
+    @uri.authority.should == "user:password@example.com:8080"
+  end
+
+  it "returns 'user:password@example.com:8080' for #normalized_authority" do
+    @uri.normalized_authority.should == "user:password@example.com:8080"
+  end
+
+  it "returns 8080 for #port" do
+    @uri.port.should == 8080
+  end
+
+  it "returns 8080 for #normalized_port" do
+    @uri.normalized_port.should == 8080
+  end
+
+  it "returns 80 for #default_port" do
+    @uri.default_port.should == 80
+  end
+
+  it "returns 'http://user:password@example.com:8080' for #site" do
+    @uri.site.should == "http://user:password@example.com:8080"
+  end
+
+  it "returns 'http://user:password@example.com:8080' for #normalized_site" do
+    @uri.normalized_site.should == "http://user:password@example.com:8080"
+  end
+
+  it "returns '/path' for #path" do
+    @uri.path.should == "/path"
+  end
+
+  it "returns '/path' for #normalized_path" do
+    @uri.normalized_path.should == "/path"
+  end
+
+  it "returns 'query=value' for #query" do
+    @uri.query.should == "query=value"
+  end
+
+  it "returns 'query=value' for #normalized_query" do
+    @uri.normalized_query.should == "query=value"
+  end
+
+  it "returns 'fragment' for #fragment" do
+    @uri.fragment.should == "fragment"
+  end
+
+  it "returns 'fragment' for #normalized_fragment" do
+    @uri.normalized_fragment.should == "fragment"
+  end
+
+  it "returns #hash" do
+    @uri.hash.should_not be nil
+  end
+
+  it "returns #to_s" do
+    @uri.to_s.should ==
+      "http://user:password@example.com:8080/path?query=value#fragment"
+  end
+
+  it "should not be frozen" do
+    @uri.should_not be_frozen
+  end
+
+
+  it "should allow destructive operations" do
+    expect { @uri.normalize! }.not_to raise_error
+  end
+end
+
+describe Addressable::URI, "when initialized from " +
+    "frozen individual components" do
+  before do
+    @uri = Addressable::URI.new(
+      :scheme => "http".freeze,
+      :user => "user".freeze,
+      :password => "password".freeze,
+      :host => "example.com".freeze,
+      :port => "8080".freeze,
+      :path => "/path".freeze,
+      :query => "query=value".freeze,
+      :fragment => "fragment".freeze
+    )
+  end
+
+  it "returns 'http' for #scheme" do
+    @uri.scheme.should == "http"
+  end
+
+  it "returns 'http' for #normalized_scheme" do
+    @uri.normalized_scheme.should == "http"
+  end
+
+  it "returns 'user' for #user" do
+    @uri.user.should == "user"
+  end
+
+  it "returns 'user' for #normalized_user" do
+    @uri.normalized_user.should == "user"
+  end
+
+  it "returns 'password' for #password" do
+    @uri.password.should == "password"
+  end
+
+  it "returns 'password' for #normalized_password" do
+    @uri.normalized_password.should == "password"
+  end
+
+  it "returns 'user:password' for #userinfo" do
+    @uri.userinfo.should == "user:password"
+  end
+
+  it "returns 'user:password' for #normalized_userinfo" do
+    @uri.normalized_userinfo.should == "user:password"
+  end
+
+  it "returns 'example.com' for #host" do
+    @uri.host.should == "example.com"
+  end
+
+  it "returns 'example.com' for #normalized_host" do
+    @uri.normalized_host.should == "example.com"
+  end
+
+  it "returns 'user:password@example.com:8080' for #authority" do
+    @uri.authority.should == "user:password@example.com:8080"
+  end
+
+  it "returns 'user:password@example.com:8080' for #normalized_authority" do
+    @uri.normalized_authority.should == "user:password@example.com:8080"
+  end
+
+  it "returns 8080 for #port" do
+    @uri.port.should == 8080
+  end
+
+  it "returns 8080 for #normalized_port" do
+    @uri.normalized_port.should == 8080
+  end
+
+  it "returns 80 for #default_port" do
+    @uri.default_port.should == 80
+  end
+
+  it "returns 'http://user:password@example.com:8080' for #site" do
+    @uri.site.should == "http://user:password@example.com:8080"
+  end
+
+  it "returns 'http://user:password@example.com:8080' for #normalized_site" do
+    @uri.normalized_site.should == "http://user:password@example.com:8080"
+  end
+
+  it "returns '/path' for #path" do
+    @uri.path.should == "/path"
+  end
+
+  it "returns '/path' for #normalized_path" do
+    @uri.normalized_path.should == "/path"
+  end
+
+  it "returns 'query=value' for #query" do
+    @uri.query.should == "query=value"
+  end
+
+  it "returns 'query=value' for #normalized_query" do
+    @uri.normalized_query.should == "query=value"
+  end
+
+  it "returns 'fragment' for #fragment" do
+    @uri.fragment.should == "fragment"
+  end
+
+  it "returns 'fragment' for #normalized_fragment" do
+    @uri.normalized_fragment.should == "fragment"
+  end
+
+  it "returns #hash" do
+    @uri.hash.should_not be nil
+  end
+
+  it "returns #to_s" do
+    @uri.to_s.should ==
+      "http://user:password@example.com:8080/path?query=value#fragment"
+  end
+
+  it "should not be frozen" do
+    @uri.should_not be_frozen
+  end
+
+  it "should allow destructive operations" do
+    expect { @uri.normalize! }.not_to raise_error
+  end
+end
+
+describe Addressable::URI, "when parsed from a frozen string" do
+  before do
+    @uri = Addressable::URI.parse(
+      "http://user:password@example.com:8080/path?query=value#fragment".freeze
+    )
+  end
+
+  it "returns 'http' for #scheme" do
+    @uri.scheme.should == "http"
+  end
+
+  it "returns 'http' for #normalized_scheme" do
+    @uri.normalized_scheme.should == "http"
+  end
+
+  it "returns 'user' for #user" do
+    @uri.user.should == "user"
+  end
+
+  it "returns 'user' for #normalized_user" do
+    @uri.normalized_user.should == "user"
+  end
+
+  it "returns 'password' for #password" do
+    @uri.password.should == "password"
+  end
+
+  it "returns 'password' for #normalized_password" do
+    @uri.normalized_password.should == "password"
+  end
+
+  it "returns 'user:password' for #userinfo" do
+    @uri.userinfo.should == "user:password"
+  end
+
+  it "returns 'user:password' for #normalized_userinfo" do
+    @uri.normalized_userinfo.should == "user:password"
+  end
+
+  it "returns 'example.com' for #host" do
+    @uri.host.should == "example.com"
+  end
+
+  it "returns 'example.com' for #normalized_host" do
+    @uri.normalized_host.should == "example.com"
+  end
+
+  it "returns 'user:password@example.com:8080' for #authority" do
+    @uri.authority.should == "user:password@example.com:8080"
+  end
+
+  it "returns 'user:password@example.com:8080' for #normalized_authority" do
+    @uri.normalized_authority.should == "user:password@example.com:8080"
+  end
+
+  it "returns 8080 for #port" do
+    @uri.port.should == 8080
+  end
+
+  it "returns 8080 for #normalized_port" do
+    @uri.normalized_port.should == 8080
+  end
+
+  it "returns 80 for #default_port" do
+    @uri.default_port.should == 80
+  end
+
+  it "returns 'http://user:password@example.com:8080' for #site" do
+    @uri.site.should == "http://user:password@example.com:8080"
+  end
+
+  it "returns 'http://user:password@example.com:8080' for #normalized_site" do
+    @uri.normalized_site.should == "http://user:password@example.com:8080"
+  end
+
+  it "returns '/path' for #path" do
+    @uri.path.should == "/path"
+  end
+
+  it "returns '/path' for #normalized_path" do
+    @uri.normalized_path.should == "/path"
+  end
+
+  it "returns 'query=value' for #query" do
+    @uri.query.should == "query=value"
+  end
+
+  it "returns 'query=value' for #normalized_query" do
+    @uri.normalized_query.should == "query=value"
+  end
+
+  it "returns 'fragment' for #fragment" do
+    @uri.fragment.should == "fragment"
+  end
+
+  it "returns 'fragment' for #normalized_fragment" do
+    @uri.normalized_fragment.should == "fragment"
+  end
+
+  it "returns #hash" do
+    @uri.hash.should_not be nil
+  end
+
+  it "returns #to_s" do
+    @uri.to_s.should ==
+      "http://user:password@example.com:8080/path?query=value#fragment"
+  end
+
+  it "should not be frozen" do
+    @uri.should_not be_frozen
+  end
+
+  it "should allow destructive operations" do
+    expect { @uri.normalize! }.not_to raise_error
+  end
+end
+
 describe Addressable::URI, "when frozen" do
   before do
     @uri = Addressable::URI.new.freeze
