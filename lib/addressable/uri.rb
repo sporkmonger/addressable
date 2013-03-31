@@ -412,12 +412,13 @@ module Addressable
         component = component.dup
         component.force_encoding(Encoding::ASCII_8BIT)
       end
-      component.gsub!(character_class) do |sequence|
+      # Avoiding gsub! because there are edge cases with frozen strings
+      component = component.gsub(character_class) do |sequence|
         (sequence.unpack('C*').map { |c| "%" + ("%02x" % c).upcase }).join
       end
       if upcase_encoded.length > 0
-        component.gsub!(/%(#{upcase_encoded.chars.map do |c|
-          c.unpack('C*').map { |c| '%02x' % c }.join
+        component = component.gsub(/%(#{upcase_encoded.chars.map do |char|
+          char.unpack('C*').map { |c| '%02x' % c }.join
         end.join('|')})/i) { |s| s.upcase }
       end
       return component
