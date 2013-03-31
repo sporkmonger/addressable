@@ -1913,7 +1913,7 @@ module Addressable
             end
           else
             if uri.path != SLASH
-              components[:path].gsub!(
+              components[:path] = components[:path].gsub(
                 Regexp.new("^" + Regexp.escape(uri.path)), EMPTY_STR)
             end
           end
