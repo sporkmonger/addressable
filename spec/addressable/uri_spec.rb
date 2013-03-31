@@ -690,6 +690,14 @@ describe Addressable::URI, "when frozen" do
     @uri.to_s.should == ''
   end
 
+  it "should be frozen" do
+    @uri.should be_frozen
+  end
+
+  it "should not be frozen after duping" do
+    @uri.dup.should_not be_frozen
+  end
+
   it "should not allow destructive operations" do
     expect { @uri.normalize! }.to raise_error { |error|
       error.message.should match(/can't modify frozen/)
@@ -812,6 +820,14 @@ describe Addressable::URI, "when frozen" do
   it "returns #to_s" do
     @uri.to_s.should == 'HTTP://example.com.:80/%70a%74%68?a=%31#1%323'
     @uri.normalize.to_s.should == 'http://example.com/path?a=1#123'
+  end
+
+  it "should be frozen" do
+    @uri.should be_frozen
+  end
+
+  it "should not be frozen after duping" do
+    @uri.dup.should_not be_frozen
   end
 
   it "should not allow destructive operations" do
