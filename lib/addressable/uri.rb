@@ -1431,10 +1431,14 @@ module Addressable
     # @return [String] The query component, normalized.
     def normalized_query
       self.query && @normalized_query ||= (begin
+        modified_query_class = Addressable::URI::CharacterClasses::QUERY
+        # Make sure possible key-value pair delimiters are escaped.
+        modified_query_class = modified_query_class.sub("\\&", "")
+        modified_query_class = modified_query_class.sub("\\;", "")
         (self.query.split("&", -1).map do |pair|
           Addressable::URI.normalize_component(
             pair,
-            Addressable::URI::CharacterClasses::QUERY.sub("\\&", ""),
+            modified_query_class,
             '+'
           )
         end).join("&")

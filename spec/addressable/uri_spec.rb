@@ -3617,6 +3617,27 @@ describe Addressable::URI, "when parsed from " +
 end
 
 describe Addressable::URI, "when parsed from " +
+    "'http://example.com/?q='one;two'&x=1'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/?q='one;two'&x=1")
+  end
+
+  it "should have a query of 'q='one;two'&x=1'" do
+    @uri.query.should == "q='one;two'&x=1"
+  end
+
+  it "should have query_values of {\"q\" => \"'one;two'\", \"x\" => \"1\"}" do
+    @uri.query_values.should == {"q" => "'one;two'", "x" => "1"}
+  end
+
+  it "should escape the ';' character when normalizing to avoid ambiguity " +
+      "with the W3C HTML 4.01 specification" do
+    # HTML 4.01 Section B.2.2
+    @uri.normalize.query.should == "q='one%3Btwo'&x=1"
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/?&&x=b'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/?&&x=b")
