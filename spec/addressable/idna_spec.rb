@@ -186,6 +186,11 @@ shared_examples_for "converting from ASCII to unicode" do
       "xn--4ud"
     ).should == "\341\206\265"
   end
+
+  it "should normalize 'string' correctly" do
+    Addressable::IDNA.unicode_normalize_kc(:'string').should == "string"
+    Addressable::IDNA.unicode_normalize_kc("string").should == "string"
+  end
 end
 
 describe Addressable::IDNA, "when using the pure-Ruby implementation" do

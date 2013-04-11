@@ -106,6 +106,7 @@ module Addressable
 
     # Unicode normalization form KC.
     def self.unicode_normalize_kc(input)
+      input = input.to_s unless input.is_a?(String)
       unpacked = input.unpack("U*")
       unpacked =
         unicode_compose(unicode_sort_canonical(unicode_decompose(unpacked)))
