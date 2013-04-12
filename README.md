@@ -20,7 +20,6 @@ RFC 6570 (level 4), providing support for IRIs and URI templates.
 
 - {Addressable::URI}
 - {Addressable::Template}
-- {Addressable::UriTemplate}
 
 # Example usage
 
@@ -38,32 +37,38 @@ uri.path
 uri = Addressable::URI.parse("http://www.詹姆斯.com/")
 uri.normalize
 #=> #<Addressable::URI:0xc9a4c8 URI:http://www.xn--8ws00zhy3a.com/>
+```
+
+
+# URI Templates
+
+For more details, see [RFC 6570](https://www.rfc-editor.org/rfc/rfc6570.txt).
+
+
+```ruby
 
 require "addressable/template"
 
-template = Addressable::Template.new("http://example.com/{-list|+|query}/")
+template = Addressable::Template.new("http://example.com/{?query*}/")
 template.expand({
-  "query" => "an example query".split(" ")
+  "query" => {
+    'foo' => 'bar',
+    'color' => 'red'
+  }
 })
-#=> #<Addressable::URI:0xc9d95c URI:http://example.com/an+example+query/>
+#=> #<Addressable::URI:0xc9d95c URI:http://example.com/?foo=bar&color=red>
 
-template = Addressable::Template.new(
-  "http://example.com/{-join|&|one,two,three}/"
-)
+template = Addressable::Template.new("http://example.com/{?one,two,three}/")
 template.partial_expand({"one" => "1", "three" => 3}).pattern
-#=> "http://example.com/?one=1{-prefix|&two=|two}&three=3"
+#=> "http://example.com/?one=1{&two}&three=3"
 
 template = Addressable::Template.new(
-  "http://{host}/{-suffix|/|segments}?{-join|&|one,two,bogus}\#{fragment}"
-)
-template2 = Addressable::UriTemplate.new(
   "http://{host}{/segments}/{?one,two,bogus}{#fragment}"
 )
 uri = Addressable::URI.parse(
   "http://example.com/a/b/c/?one=1&two=2#foo"
 )
 template.extract(uri)
-template2.extract(uri)
 #=>
 # {
 #   "host" => "example.com",
