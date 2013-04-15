@@ -1,3 +1,9 @@
+# Addressable 2.3.4
+- fixed issue with encoding altering its inputs
+- query string normalization now leaves ';' characters alone
+- FakeFS is detected before attempting to load unicode tables
+- additional testing to ensure frozen objects don't cause problems
+
 # Addressable 2.3.3
 - fixed issue with converting common primitives during template expansion
 - fixed port encoding issue

@@ -2,11 +2,11 @@
 
 Gem::Specification.new do |s|
   s.name = "addressable"
-  s.version = "2.3.3"
+  s.version = "2.3.4"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Bob Aman"]
-  s.date = "2013-02-19"
+  s.date = "2013-04-15"
   s.description = "Addressable is a replacement for the URI implementation that is part of\nRuby's standard library. It more closely conforms to the relevant RFCs and\nadds support for IRIs and URI templates.\n"
   s.email = "bob@sporkmonger.com"
   s.extra_rdoc_files = ["README.md"]
