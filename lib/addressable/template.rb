@@ -487,6 +487,7 @@ module Addressable
     #   #=> "http://example.com/?one=1{&two}&three=3"
     def partial_expand(mapping, processor=nil)
       result = self.pattern.dup
+      mapping = normalize_keys(mapping)
       result.gsub!( EXPRESSION ) do |capture|
         transform_partial_capture(mapping, capture, processor)
       end
