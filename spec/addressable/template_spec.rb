@@ -736,7 +736,45 @@ describe Addressable::Template do
       }
     end
   end
-  describe "Partial expand" do
+  describe "Partial expand with symbols" do
+    context "partial_expand with two simple values" do
+      subject{
+        Addressable::Template.new("http://example.com/{one}/{two}/")
+      }
+      it "builds a new pattern" do
+        subject.partial_expand(:one => "1").pattern.should ==
+          "http://example.com/1/{two}/"
+      end
+    end
+    context "partial_expand query with missing param in middle" do
+      subject{
+        Addressable::Template.new("http://example.com/{?one,two,three}/")
+      }
+      it "builds a new pattern" do
+        subject.partial_expand(:one => "1", :three => "3").pattern.should ==
+          "http://example.com/?one=1{&two}&three=3/"
+      end
+    end
+    context "partial_expand with query string" do
+      subject{
+        Addressable::Template.new("http://example.com/{?two,one}/")
+      }
+      it "builds a new pattern" do
+        subject.partial_expand(:one => "1").pattern.should ==
+          "http://example.com/{?two}&one=1/"
+      end
+    end
+    context "partial_expand with path operator" do
+      subject{
+        Addressable::Template.new("http://example.com{/one,two}/")
+      }
+      it "builds a new pattern" do
+        subject.partial_expand(:one => "1").pattern.should ==
+          "http://example.com/1{/two}/"
+      end
+    end
+  end
+  describe "Partial expand with strings" do
     context "partial_expand with two simple values" do
       subject{
         Addressable::Template.new("http://example.com/{one}/{two}/")
