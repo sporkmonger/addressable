@@ -5,8 +5,27 @@ module Addressable
     ##
     # A data URI
     class Data < self
+      ##
+      # Associates processing of data: URIs with this class.
+      #
+      # @return [String] Returns 'data'.
       def self.scheme
         return "data"
+      end
+      ##
+      # URIs with a data: scheme are not IP-based.
+      #
+      # @return [FalseClass] Returns false.
+      def self.ip_based?
+        return false
+      end
+
+      ##
+      # URIs with a data: scheme are not IP-based.
+      #
+      # @return [FalseClass] Returns false.
+      def ip_based?
+        return false
       end
 
       def prefix
