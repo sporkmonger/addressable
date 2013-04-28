@@ -2239,7 +2239,7 @@ module Addressable
     # Ensures that the URI is valid.
     def validate
       return if !!@validation_deferred
-      if self.scheme != nil &&
+      if self.scheme != nil && self.ip_based? &&
           (self.host == nil || self.host.empty?) &&
           (self.path == nil || self.path.empty?)
         raise InvalidURIError,
