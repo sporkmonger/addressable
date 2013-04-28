@@ -1771,7 +1771,7 @@ module Addressable
       end
       joined_fragment = uri.fragment
 
-      return Addressable::URI.new(
+      return self.class.new(
         :scheme => joined_scheme,
         :user => joined_user,
         :password => joined_password,
@@ -1827,7 +1827,7 @@ module Addressable
         end
       end
 
-      uri = Addressable::URI.new
+      uri = self.class.new
       uri.defer_validation do
         # Bunch of crazy logic required because of the composite components
         # like userinfo and authority.
@@ -1968,7 +1968,7 @@ module Addressable
         end
       end
 
-      return Addressable::URI.new(
+      return self.class.new(
         :scheme => normalized_scheme,
         :authority => normalized_authority,
         :path => normalized_path,
@@ -2065,7 +2065,7 @@ module Addressable
     #
     # @return [Addressable::URI] The cloned URI.
     def dup
-      duplicated_uri = Addressable::URI.new(
+      duplicated_uri = self.class.new(
         :scheme => self.scheme ? self.scheme.dup : nil,
         :user => self.user ? self.user.dup : nil,
         :password => self.password ? self.password.dup : nil,

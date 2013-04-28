@@ -5738,3 +5738,29 @@ describe Addressable::URI, "when assigning path values" do
     end).should_not raise_error(Addressable::URI::InvalidURIError)
   end
 end
+
+describe Addressable::URI, "when initializing a subclass of Addressable::URI" do
+  before do
+    @uri = Class.new(Addressable::URI).new
+  end
+
+  it "should have the same class after being parsed" do
+    @uri.class.should == Addressable::URI.parse(@uri).class
+  end
+
+  it "should have the same class as its duplicate" do
+    @uri.class.should == @uri.dup.class
+  end
+
+  it "should have the same class after being normalized" do
+    @uri.class.should == @uri.normalize.class
+  end
+
+  it "should have the same class after being merged" do
+    @uri.class.should == @uri.merge(:path => 'path').class
+  end
+
+  it "should have the same class after being joined" do
+    @uri.class.should == @uri.join('path').class
+  end
+end
