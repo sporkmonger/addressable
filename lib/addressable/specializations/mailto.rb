@@ -47,7 +47,7 @@ module Addressable
         @to ||= (begin
           addresses = []
           addresses = addresses.concat(self.path.split(",", -1))
-          self.query_values(Array).each do |(key, value)|
+          self.query and self.query_values(Array).each do |(key, value)|
             if key.downcase == "to"
               addresses = addresses.concat(value.split(",", -1))
             end
@@ -64,7 +64,7 @@ module Addressable
       def cc
         @cc ||= (begin
           addresses = []
-          self.query_values(Array).each do |(key, value)|
+          self.query and self.query_values(Array).each do |(key, value)|
             if key.downcase == "cc"
               addresses = addresses.concat(value.split(",", -1))
             end
@@ -81,7 +81,7 @@ module Addressable
       def bcc
         @bcc ||= (begin
           addresses = []
-          self.query_values(Array).each do |(key, value)|
+          self.query and self.query_values(Array).each do |(key, value)|
             if key.downcase == "bcc"
               addresses = addresses.concat(value.split(",", -1))
             end
@@ -98,7 +98,7 @@ module Addressable
       def subject
         @subject ||= (begin
           subject = nil
-          self.query_values(Array).each do |(key, value)|
+          self.query and self.query_values(Array).each do |(key, value)|
             if key.downcase == "subject"
               subject = value
               break
@@ -116,7 +116,7 @@ module Addressable
       def body
         @body ||= (begin
           body = nil
-          self.query_values(Array).each do |(key, value)|
+          self.query and self.query_values(Array).each do |(key, value)|
             if key.downcase == "body"
               body = value
               break
@@ -132,7 +132,7 @@ module Addressable
       #
       # @return [String] The query component, normalized.
       def normalized_query
-        @normalized_query ||= (begin
+        self.query && @normalized_query ||= (begin
           stripped_headers = [
             "from",
             "date",
@@ -175,7 +175,7 @@ module Addressable
       def normalize
         naive_normalized_uri = self.class.parse(super.to_s)
         naive_normalized_uri.path = naive_normalized_uri.to.join(",")
-        naive_normalized_uri.query_values = (
+        naive_normalized_uri.query and naive_normalized_uri.query_values = (
           naive_normalized_uri.query_values(Array).reject do |(key, value)|
             key.downcase == "to"
           end

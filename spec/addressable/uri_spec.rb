@@ -1245,8 +1245,8 @@ describe Addressable::URI, "when parsed from " +
     )
   end
 
-  it "should be considered to be in normal form" do
-    @uri.normalize.should be_eql(@uri)
+  it "should not be considered to be in normal form" do
+    @uri.normalize.should_not be_eql(@uri)
   end
 
   it "should have a 'null' origin" do
