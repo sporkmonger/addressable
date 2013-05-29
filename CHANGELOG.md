@@ -1,5 +1,6 @@
 # Addressable 2.3.5
 - added Addressable::URI#empty? method
+- Addressable::URI#hostname methods now strip square brackets from IPv6 hosts
 
 # Addressable 2.3.4
 - fixed issue with encoding altering its inputs
