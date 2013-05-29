@@ -1,3 +1,6 @@
+# Addressable 2.3.5
+- added Addressable::URI#empty? method
+
 # Addressable 2.3.4
 - fixed issue with encoding altering its inputs
 - query string normalization now leaves ';' characters alone
