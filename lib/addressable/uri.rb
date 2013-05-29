@@ -1090,7 +1090,11 @@ module Addressable
 
     ##
     # This method is same as URI::Generic#host except
-    # brackets for IPv6 (andn future IP) addresses are removed.
+    # brackets for IPv6 (and 'IPvFuture') addresses are removed.
+    #
+    # @see Addressable::URI#host
+    #
+    # @return [String] The hostname for this URI.
     def hostname
       v = self.host
       /\A\[(.*)\]\z/ =~ v ? $1 : v
@@ -1098,8 +1102,16 @@ module Addressable
 
     ##
     # This method is same as URI::Generic#host= except
-    # the argument can be bare IPv6 address.
-    def hostname=(v)
+    # the argument can be a bare IPv6 address (or 'IPvFuture').
+    #
+    # @see Addressable::URI#host=
+    #
+    # @param [String, #to_str] new_hostname The new hostname for this URI.
+    def hostname=(new_hostname)
+      if new_hostname && !new_hostname.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{new_hostname.class} into String."
+      end
+      v = new_hostname ? new_hostname.to_str : nil
       v = "[#{v}]" if /\A\[.*\]\z/ !~ v && /:/ =~ v
       self.host = v
     end
