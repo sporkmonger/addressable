@@ -1838,6 +1838,28 @@ describe Addressable::URI, "when parsing IPv6 addresses" do
   end
 end
 
+describe Addressable::URI, "when parsing IPv6 address" do
+  subject { Addressable::URI.parse("http://[3ffe:1900:4545:3:200:f8ff:fe21:67cf]/") }
+  its(:host) { should == '[3ffe:1900:4545:3:200:f8ff:fe21:67cf]' }
+  its(:hostname) { should == '3ffe:1900:4545:3:200:f8ff:fe21:67cf' }
+end
+
+describe Addressable::URI, "when assigning IPv6 address" do
+  it "should allow to set bare IPv6 address as hostname" do
+    uri = Addressable::URI.parse("http://[::1]/")
+    uri.hostname = '3ffe:1900:4545:3:200:f8ff:fe21:67cf'
+    uri.to_s.should == 'http://[3ffe:1900:4545:3:200:f8ff:fe21:67cf]/'
+  end
+
+  it "should not allow to set bare IPv6 address as host" do
+    uri = Addressable::URI.parse("http://[::1]/")
+    pending "not checked"
+    (lambda do
+      uri.host = '3ffe:1900:4545:3:200:f8ff:fe21:67cf'
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+end
+
 describe Addressable::URI, "when parsing IPvFuture addresses" do
   it "should not raise an error for " +
       "'http://[v9.3ffe:1900:4545:3:200:f8ff:fe21:67cf]/'" do
