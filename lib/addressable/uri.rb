@@ -2122,6 +2122,15 @@ module Addressable
     end
 
     ##
+    # Determines if the URI is an empty string.
+    #
+    # @return [TrueClass, FalseClass]
+    #   Returns <code>true</code> if empty, <code>false</code> otherwise.
+    def empty?
+      return self.to_s.empty?
+    end
+
+    ##
     # Converts the URI to a <code>String</code>.
     #
     # @return [String] The URI's <code>String</code> representation.

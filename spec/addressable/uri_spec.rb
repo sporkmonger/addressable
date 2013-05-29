@@ -179,6 +179,10 @@ describe Addressable::URI, "when created from nil components" do
     @uri.default_port.should == nil
   end
 
+  it "should be empty" do
+    @uri.should be_empty
+  end
+
   it "should raise an error if the scheme is set to whitespace" do
     (lambda do
       @uri.scheme = "\t \n"
@@ -333,10 +337,13 @@ describe Addressable::URI, "when initialized from individual components" do
       "http://user:password@example.com:8080/path?query=value#fragment"
   end
 
+  it "should not be empty" do
+    @uri.should_not be_empty
+  end
+
   it "should not be frozen" do
     @uri.should_not be_frozen
   end
-
 
   it "should allow destructive operations" do
     expect { @uri.normalize! }.not_to raise_error
@@ -459,6 +466,10 @@ describe Addressable::URI, "when initialized from " +
       "http://user:password@example.com:8080/path?query=value#fragment"
   end
 
+  it "should not be empty" do
+    @uri.should_not be_empty
+  end
+
   it "should not be frozen" do
     @uri.should_not be_frozen
   end
@@ -576,6 +587,10 @@ describe Addressable::URI, "when parsed from a frozen string" do
       "http://user:password@example.com:8080/path?query=value#fragment"
   end
 
+  it "should not be empty" do
+    @uri.should_not be_empty
+  end
+
   it "should not be frozen" do
     @uri.should_not be_frozen
   end
@@ -688,6 +703,10 @@ describe Addressable::URI, "when frozen" do
 
   it "returns #to_s" do
     @uri.to_s.should == ''
+  end
+
+  it "should be empty" do
+    @uri.should be_empty
   end
 
   it "should be frozen" do
@@ -820,6 +839,10 @@ describe Addressable::URI, "when frozen" do
   it "returns #to_s" do
     @uri.to_s.should == 'HTTP://example.com.:80/%70a%74%68?a=%31#1%323'
     @uri.normalize.to_s.should == 'http://example.com/path?a=1#123'
+  end
+
+  it "should not be empty" do
+    @uri.should_not be_empty
   end
 
   it "should be frozen" do
