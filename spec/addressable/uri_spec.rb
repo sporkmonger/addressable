@@ -14,6 +14,8 @@
 #    limitations under the License.
 
 
+require "spec_helper"
+
 require "addressable/uri"
 
 if !"".respond_to?("force_encoding")

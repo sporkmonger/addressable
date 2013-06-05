@@ -14,6 +14,8 @@
 #    limitations under the License.
 
 
+require "spec_helper"
+
 # Have to use RubyGems to load the idn gem.
 require "rubygems"
 

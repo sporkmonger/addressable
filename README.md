@@ -7,8 +7,15 @@
   <dt>License</dt><dd>Apache 2.0</dd>
 </dl>
 
-[![Build Status](https://secure.travis-ci.org/sporkmonger/addressable.png)](http://travis-ci.org/sporkmonger/addressable)
-[![Dependency Status](https://gemnasium.com/sporkmonger/addressable.png)](https://gemnasium.com/sporkmonger/addressable)
+[![Gem Version](https://badge.fury.io/rb/addressable.png)][gem]
+[![Build Status](https://secure.travis-ci.org/sporkmonger/addressable.png?branch=master)][travis]
+[![Dependency Status](https://gemnasium.com/sporkmonger/addressable.png?travis)][gemnasium]
+[![Coverage Status](https://coveralls.io/repos/sporkmonger/addressable/badge.png?branch=master)][coveralls]
+
+[gem]: https://rubygems.org/gems/addressable
+[travis]: http://travis-ci.org/sporkmonger/addressable
+[gemnasium]: https://gemnasium.com/sporkmonger/addressable
+[coveralls]: https://coveralls.io/r/sporkmonger/addressable
 
 # Description
 
