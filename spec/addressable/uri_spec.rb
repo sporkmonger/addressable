@@ -43,14 +43,18 @@ if !"".respond_to?("force_encoding")
   end
 end
 
-module URI
-  class HTTP
-    def initialize(uri)
-      @uri = uri
-    end
+module Fake
+  module URI
+    class HTTP
+      def initialize(uri)
+        @uri = uri
+      end
 
-    def to_s
-      return @uri.to_s
+      def to_s
+        return @uri.to_s
+      end
+
+      alias :to_str :to_s
     end
   end
 end
@@ -1002,7 +1006,7 @@ end
 describe Addressable::URI, "when parsed from something that looks " +
     "like a URI object" do
   it "should parse without error" do
-    uri = Addressable::URI.parse(URI::HTTP.new("http://example.com/"))
+    uri = Addressable::URI.parse(Fake::URI::HTTP.new("http://example.com/"))
     (lambda do
       Addressable::URI.parse(uri)
     end).should_not raise_error
