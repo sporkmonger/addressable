@@ -1195,7 +1195,7 @@ module Addressable
 
     ##
     # The origin for this URI, serialized to ASCII, as per
-    # draft-ietf-websec-origin-00, section 5.2.
+    # RFC 6454, section 6.2.
     #
     # @return [String] The serialized origin.
     def origin
