@@ -1637,9 +1637,9 @@ describe Addressable::URI, "when parsed from " +
       Addressable::URI.parse("/path/")
   end
 
-  it "should have a route of '/' from 'http://example.com/path/'" do
+  it "should have a route of '..' from 'http://example.com/path/'" do
     @uri.route_from("http://example.com/path/").should ==
-      Addressable::URI.parse("/")
+      Addressable::URI.parse("..")
   end
 
   it "should have a route of '#' to 'http://example.com/'" do
@@ -2533,10 +2533,10 @@ describe Addressable::URI, "when parsed from " +
       Addressable::URI.parse("http://example.com:8080/")
   end
 
-  it "should have a route of '/' from " +
+  it "should have a route of '../../' from " +
       "'http://example.com:8080/path/to/'" do
     @uri.route_from("http://example.com:8080/path/to/").should ==
-      Addressable::URI.parse("/")
+      Addressable::URI.parse("../../")
   end
 
   it "should have a route of 'http://example.com:8080/' from " +
@@ -2817,6 +2817,25 @@ describe Addressable::URI, "when parsed from " +
       Addressable::URI.parse("resource/")
   end
 
+  it "should have a route of '../' from " +
+    "'http://example.com/path/to/resource/sub'" do
+    @uri.route_from("http://example.com/path/to/resource/sub").should ==
+      Addressable::URI.parse("../")
+  end
+
+
+  it "should have a route of 'resource/' from " +
+    "'http://example.com/path/to/another'" do
+    @uri.route_from("http://example.com/path/to/another").should ==
+      Addressable::URI.parse("resource/")
+  end
+
+  it "should have a route of 'resource/' from " +
+      "'http://example.com/path/to/res'" do
+    @uri.route_from("http://example.com/path/to/res").should ==
+      Addressable::URI.parse("resource/")
+  end
+
   it "should have a route of 'resource/' from " +
       "'http://example.com:80/path/to/'" do
     @uri.route_from("http://example.com:80/path/to/").should ==
@@ -2835,10 +2854,10 @@ describe Addressable::URI, "when parsed from " +
       Addressable::URI.parse("http://example.com/path/to/resource/")
   end
 
-  it "should have a route of '/path/to/resource/' from " +
+  it "should have a route of '../../path/to/resource/' from " +
       "'http://example.com/to/resource/'" do
     @uri.route_from("http://example.com/to/resource/").should ==
-      Addressable::URI.parse("/path/to/resource/")
+      Addressable::URI.parse("../../path/to/resource/")
   end
 
   it "should correctly convert to a hash" do
@@ -3377,13 +3396,13 @@ describe Addressable::URI, "when parsed from " +
     @uri.normalize.should be_eql(@uri)
   end
 
-  it "should have a route of '/path/' to " +
+  it "should have a route of '../../' to " +
       "'http://user:pass@example.com/path/'" do
     @uri.route_to("http://user:pass@example.com/path/").should ==
-      Addressable::URI.parse("/path/")
+      Addressable::URI.parse("../../")
   end
 
-  it "should have a route of '/path/to/resource?query=x#fragment' " +
+  it "should have a route of 'to/resource?query=x#fragment' " +
       "from 'http://user:pass@example.com/path/'" do
     @uri.route_from("http://user:pass@example.com/path/").should ==
       Addressable::URI.parse("to/resource?query=x#fragment")
