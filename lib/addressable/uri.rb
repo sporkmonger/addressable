@@ -1931,9 +1931,16 @@ module Addressable
               components[:query] = nil
             end
           else
-            if uri.path != SLASH
-              components[:path] = components[:path].gsub(
-                Regexp.new("^" + Regexp.escape(uri.path)), EMPTY_STR)
+            if uri.path != SLASH and components[:path]
+              self_splitted_path = split_path(components[:path])
+              uri_splitted_path = split_path(uri.path)
+              self_dir = self_splitted_path.shift
+              uri_dir = uri_splitted_path.shift
+              while !self_splitted_path.empty? && !uri_splitted_path.empty? and self_dir == uri_dir
+                self_dir = self_splitted_path.shift
+                uri_dir = uri_splitted_path.shift
+              end
+              components[:path] = (uri_splitted_path.fill('..') + [self_dir] + self_splitted_path).join(SLASH)
             end
           end
         end
@@ -2311,6 +2318,20 @@ module Addressable
       @query = uri.query
       @fragment = uri.fragment
       return self
+    end
+
+    ##
+    # Splits path string with "/"(slash).
+    # It is considered that there is empty string after last slash when
+    # path ends with slash.
+    #
+    # @param [String] path The path to split.
+    #
+    # @return [Array<String>] An array of parts of path.
+    def split_path(path)
+      splitted = path.split(SLASH)
+      splitted << EMPTY_STR if path.end_with? SLASH
+      splitted
     end
   end
 end
