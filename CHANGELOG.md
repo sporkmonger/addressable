@@ -1,6 +1,8 @@
 # Addressable 2.3.5
 - added Addressable::URI#empty? method
 - Addressable::URI#hostname methods now strip square brackets from IPv6 hosts
+- compatibility with Net::HTTP in Ruby 2.0.0
+- Addressable::URI#route_from should always give relative URIs
 
 # Addressable 2.3.4
 - fixed issue with encoding altering its inputs
