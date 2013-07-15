@@ -1948,6 +1948,38 @@ describe Addressable::URI, "when parsed from " +
 end
 
 describe Addressable::URI, "when parsed from " +
+    "'http://example.com?#'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com?#")
+  end
+
+  it "should correctly convert to a hash" do
+    @uri.to_hash.should == {
+      :scheme => "http",
+      :user => nil,
+      :password => nil,
+      :host => "example.com",
+      :port => nil,
+      :path => "",
+      :query => "",
+      :fragment => ""
+    }
+  end
+
+  it "should have a request URI of '/?'" do
+    @uri.request_uri.should == "/?"
+  end
+
+  it "should normalize to 'http://example.com/'" do
+    @uri.normalize.to_s.should == "http://example.com/"
+  end
+
+  it "should have an origin of 'http://example.com'" do
+    @uri.origin.should == "http://example.com"
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
     "'http://@example.com/'" do
   before do
     @uri = Addressable::URI.parse("http://@example.com/")
@@ -4205,6 +4237,10 @@ end
 describe Addressable::URI, "when parsed from '?'" do
   before do
     @uri = Addressable::URI.parse("?")
+  end
+
+  it "should normalize to ''" do
+    @uri.normalize.to_s.should == ""
   end
 
   it "should have the correct return type" do
