@@ -1455,13 +1455,14 @@ module Addressable
         # Make sure possible key-value pair delimiters are escaped.
         modified_query_class = modified_query_class.sub("\\&", "")
         modified_query_class = modified_query_class.sub("\\;", "")
-        (self.query.split("&", -1).map do |pair|
+        component = (self.query.split("&", -1).map do |pair|
           Addressable::URI.normalize_component(
             pair,
             modified_query_class,
-            '+'
+            "+"
           )
         end).join("&")
+        component == "" ? nil : component
       end)
     end
 
@@ -1643,10 +1644,11 @@ module Addressable
     # @return [String] The fragment component, normalized.
     def normalized_fragment
       self.fragment && @normalized_fragment ||= (begin
-        Addressable::URI.normalize_component(
-          self.fragment.strip,
+        component = Addressable::URI.normalize_component(
+          self.fragment,
           Addressable::URI::CharacterClasses::FRAGMENT
         )
+        component == "" ? nil : component
       end)
     end
 
