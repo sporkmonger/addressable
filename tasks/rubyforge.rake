@@ -24,22 +24,6 @@ namespace :gem do
   end
 end
 
-namespace :doc do
-  desc "Publish RDoc to RubyForge"
-  task :release => ["doc"] do
-    require "rake/contrib/sshpublisher"
-    require "yaml"
-
-    config = YAML.load(
-      File.read(File.expand_path('~/.rubyforge/user-config.yml'))
-    )
-    host = "#{config['username']}@rubyforge.org"
-    remote_dir = RUBY_FORGE_PATH + "/api"
-    local_dir = "doc"
-    Rake::SshDirPublisher.new(host, remote_dir, local_dir).upload
-  end
-end
-
 namespace :spec do
   desc "Publish specdoc to RubyForge"
   task :release => ["spec:specdoc"] do
