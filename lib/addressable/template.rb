@@ -390,7 +390,12 @@ module Addressable
       unparsed_values = uri.to_str.scan(expansion_regexp).flatten
 
       if uri.to_str == pattern
-        return Addressable::Template::MatchData.new(uri, self, mapping)
+        m = Addressable::Template::MatchData.new(uri, self, mapping)
+        if block_given?
+          yield m
+        else
+          return m
+        end
       elsif expansions.size > 0
         index = 0
         expansions.each do |expansion|
@@ -443,7 +448,12 @@ module Addressable
             index = index + 1
           end
         end
-        return Addressable::Template::MatchData.new(uri, self, mapping)
+        m = Addressable::Template::MatchData.new(uri, self, mapping)
+        if block_given?
+          yield m
+        else
+          return m
+        end
       else
         return nil
       end
