@@ -16,7 +16,7 @@
 #++
 
 
-require "idn"
+require "idn_one_nine"
 
 module Addressable
   module IDNA
