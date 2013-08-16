@@ -16,7 +16,12 @@
 #++
 
 
-require "idn_one_nine"
+# Accomodate Ruby 1.9 (idn_one_nine gem) and Ruby 1.8 (idn gem).
+begin
+  require "idn_one_nine"
+rescue LoadError
+  require "idn"
+end
 
 module Addressable
   module IDNA
