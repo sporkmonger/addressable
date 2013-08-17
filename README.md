@@ -79,9 +79,8 @@ RFC 6570 (level 4), providing support for IRIs and URI templates.
 You may optionally turn on native IDN support by installing libidn and the
 idn gem:
 
-    $ sudo apt-get install idn # Debian/Ubuntu
-    $ sudo brew install libidn # OS X
-    $ sudo gem install idn
-
-**NOTE:** Native IDN support appears to be broken in Ruby 1.9.x. The IDN gem
-hasn't been updated in years.
+```console
+$ sudo apt-get install idn # Debian/Ubuntu
+$ sudo brew install libidn # OS X
+$ sudo gem install idn-ruby
+```
