@@ -98,8 +98,5 @@ idn gem:
 ```console
 $ sudo apt-get install idn # Debian/Ubuntu
 $ sudo brew install libidn # OS X
-$ sudo gem install idn
+$ sudo gem install idn-ruby
 ```
-
-**NOTE:** Native IDN support appears to be broken in Ruby 1.9.x. The IDN gem
-hasn't been updated in years.
