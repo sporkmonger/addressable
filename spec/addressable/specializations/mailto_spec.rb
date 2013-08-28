@@ -14,6 +14,8 @@
 #    limitations under the License.
 
 
+require "spec_helper"
+
 require "addressable/uri"
 
 describe Addressable::URI, "when parsed from " +
