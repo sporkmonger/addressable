@@ -687,6 +687,9 @@ describe Addressable::Template do
     let(:uri4){
       Addressable::URI.parse("http://example.com/?a=1&b=2&c=3&first=foo")
     }
+    let(:uri5){
+      "http://example.com/foo"
+    }
     context "first uri with ExampleTwoProcessor" do
       subject{
         match = Addressable::Template.new(
@@ -725,6 +728,9 @@ describe Addressable::Template do
       its(:captures){ should == [
         {"a" => "1", "b" => "2", "c" => "3", "first" => "foo"}, nil] }
     end
+    # Note that this expansion is impossible to revert deterministically - the
+    # * operator means first could have been a key of hash or a separate key.
+    # Semantically, a separate key is more likely, but both are pssible.
     context "fourth uri" do
       subject{
         match = Addressable::Template.new(
@@ -735,6 +741,15 @@ describe Addressable::Template do
       its(:captures){ should == [
         {"a" => "1", "b" => "2", "c" => "3", "first"=> "foo"}, nil] }
     end
+    context "fifth uri" do
+      subject{
+        match = Addressable::Template.new(
+          "http://example.com/{path}{?hash*,first}"
+        ).match(uri5)
+      }
+      its(:variables){ should == ["path", "hash", "first"]}
+      its(:captures){ should == ["foo", nil, nil] }
+    end
   end
   describe "extract" do
     let(:template) {
@@ -743,13 +758,24 @@ describe Addressable::Template do
       )
     }
     let(:uri){ "http://example.com/a/b/c/?one=1&two=2#foo" }
-    it "should be able to extract" do
+    let(:uri2){ "http://example.com/a/b/c/#foo" }
+    it "should be able to extract with queries" do
       template.extract(uri).should == {
         "host" => "example.com",
         "segments" => %w(a b c),
         "one" => "1",
         "bogus" => nil,
         "two" => "2",
+        "fragment" => "foo"
+      }
+    end
+    it "should be able to extract without queries" do
+      template.extract(uri2).should == {
+        "host" => "example.com",
+        "segments" => %w(a b c),
+        "one" => nil,
+        "bogus" => nil,
+        "two" => nil,
         "fragment" => "foo"
       }
     end
@@ -851,8 +877,8 @@ describe Addressable::Template do
       end
       it "can match empty" do
         data = subject.match("foo/baz")
-        data.mapping["foo"].should == ""
-        data.mapping["bar"].should == ""
+        data.mapping["foo"].should == nil
+        data.mapping["bar"].should == nil
       end
       it "lists vars" do
         subject.variables.should == ["foo", "bar"]
@@ -865,6 +891,22 @@ describe Addressable::Template do
         data = subject.match("foo/test/banana#bazbaz")
         data.mapping["foo"].should == "/test/banana"
         data.mapping["bar"].should == "baz"
+      end
+      it "can match empty level 2 #" do
+        data = subject.match("foo/test/bananabaz")
+        data.mapping["foo"].should == "/test/banana"
+        data.mapping["bar"].should == nil
+        data = subject.match("foo/test/banana#baz")
+        data.mapping["foo"].should == "/test/banana"
+        data.mapping["bar"].should == ""
+      end
+      it "can match empty level 2 +" do
+        data = subject.match("foobaz")
+        data.mapping["foo"].should == nil
+        data.mapping["bar"].should == nil
+        data = subject.match("foo#barbaz")
+        data.mapping["foo"].should == nil
+        data.mapping["bar"].should == "bar"
       end
       it "lists vars" do
         subject.variables.should == ["foo", "bar"]
@@ -938,6 +980,24 @@ describe Addressable::Template do
           end
           it "lists vars" do
             subject.variables.should == %w(foo bar)
+          end
+        end
+        context "issue #137" do
+          subject { Addressable::Template.new('/path{?page,per_page}') }
+          it "can match empty" do
+            data = subject.match("/path")
+            data.mapping["page"].should == nil
+            data.mapping["per_page"].should == nil
+          end
+          it "can match first var" do
+            data = subject.match("/path?page=1")
+            data.mapping["page"].should == "1"
+            data.mapping["per_page"].should == nil
+          end
+          it "can match second var" do
+            data = subject.match("/path?per_page=1")
+            data.mapping["page"].should == nil
+            data.mapping["per_page"].should == "1"
           end
         end
         context "issue #71" do
@@ -1046,10 +1106,10 @@ describe Addressable::Template::MatchData do
   its(:template) { should == template }
   its(:mapping) { should == { 'foo' => 'ab', 'bar' => 'cd' } }
   its(:variables) { should == ['foo', 'bar'] }
-  its(:keys) { should == its.variables }
-  its(:names) { should == its.variables }
+  its(:keys) { should == ['foo', 'bar'] }
+  its(:names) { should == ['foo', 'bar'] }
   its(:values) { should == ['ab', 'cd'] }
-  its(:captures) { should == its.values }
+  its(:captures) { should == ['ab', 'cd'] }
   its(:to_a) { should == ['ab/cd', 'ab', 'cd'] }
   its(:to_s) { should == 'ab/cd' }
   its(:string) { should == its.to_s }
