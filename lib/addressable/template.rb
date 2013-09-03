@@ -405,12 +405,14 @@ module Addressable
               value = value.split(JOINERS[operator]) if value && modifier == '*'
             when ';', '?', '&'
               if modifier == '*'
-                value = unparsed_values[index].split(JOINERS[operator])
-                value = value.inject({}) do |acc, v|
-                  key, val = v.split('=')
-                  val = "" if val.nil?
-                  acc[key] = val
-                  acc
+                if unparsed_values[index]
+                  value = unparsed_values[index].split(JOINERS[operator])
+                  value = value.inject({}) do |acc, v|
+                    key, val = v.split('=')
+                    val = "" if val.nil?
+                    acc[key] = val
+                    acc
+                  end
                 end
               else
                 if (unparsed_values[index])
@@ -435,10 +437,9 @@ module Addressable
                 value = Addressable::URI.unencode_component(value)
               end
             end
-            if mapping[name] == nil || mapping[name] == value
+            if !mapping.has_key?(name) || mapping[name].nil?
+              # Doesn't exist, set to value (even if value is nil)
               mapping[name] = value
-            else
-              return nil
             end
             index = index + 1
           end
@@ -872,7 +873,7 @@ module Addressable
         _, operator, varlist = *expansion.match(EXPRESSION)
         leader = Regexp.escape(LEADERS.fetch(operator, ''))
         joiner = Regexp.escape(JOINERS.fetch(operator, ','))
-        leader + varlist.split(',').map do |varspec|
+        combined = varlist.split(',').map do |varspec|
           _, name, modifier = *varspec.match(VARSPEC)
           if processor != nil && processor.respond_to?(:match)
             "(#{ processor.match(name) })"
@@ -902,6 +903,7 @@ module Addressable
             end
           end
         end.join("#{joiner}?")
+        "(?:|#{leader}#{combined})"
       end
 
       # Ensure that the regular expression matches the whole URI.
