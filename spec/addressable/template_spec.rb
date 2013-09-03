@@ -730,7 +730,7 @@ describe Addressable::Template do
     end
     # Note that this expansion is impossible to revert deterministically - the
     # * operator means first could have been a key of hash or a separate key.
-    # Semantically, a separate key is more likely, but both are pssible.
+    # Semantically, a separate key is more likely, but both are possible.
     context "fourth uri" do
       subject{
         match = Addressable::Template.new(
@@ -1035,6 +1035,11 @@ describe Addressable::Template do
           it "can match second var" do
             data = subject.match("/path?per_page=1")
             data.mapping["page"].should == nil
+            data.mapping["per_page"].should == "1"
+          end
+          it "can match both vars" do
+            data = subject.match("/path?page=2&per_page=1")
+            data.mapping["page"].should == "2"
             data.mapping["per_page"].should == "1"
           end
         end
