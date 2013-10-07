@@ -17,6 +17,7 @@
 require "spec_helper"
 
 require "addressable/uri"
+require "uri"
 
 if !"".respond_to?("force_encoding")
   class String
@@ -5537,6 +5538,18 @@ describe Addressable::URI, "when given the input " +
   it "should heuristically parse to 'feed:http://example.com'" do
     @uri = Addressable::URI.heuristic_parse(@input)
     @uri.to_s.should == "feed:http://example.com"
+  end
+end
+
+describe Addressable::URI, "when given the input " +
+    "::URI.parse('http://example.com')" do
+  before do
+    @input = ::URI.parse('http://example.com')
+  end
+
+  it "should heuristically parse to 'http://example.com'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    @uri.to_s.should == "http://example.com"
   end
 end
 
