@@ -162,6 +162,15 @@ module Addressable
       return nil unless uri
       # If a URI object is passed, just return itself.
       return uri.dup if uri.kind_of?(self)
+
+      # If a URI object of the Ruby standard library variety is passed,
+      # convert it to a string, then parse the string.
+      # We do the check this way because we don't want to accidentally
+      # cause a missing constant exception to be thrown.
+      if uri.class.name =~ /^URI\b/
+        uri = uri.to_s
+      end
+
       if !uri.respond_to?(:to_str)
         raise TypeError, "Can't convert #{uri.class} into String."
       end
