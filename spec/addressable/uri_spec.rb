@@ -5234,6 +5234,16 @@ describe Addressable::URI, "when normalizing a string but leaving some character
     Addressable::URI.normalize_component("%58X%59Y%5AZ", "0-9a-zXY", "Y").should ==
       "XX%59Y%5A%5A"
   end
+
+  it "should not modify the character class" do
+    character_class = "0-9a-zXY"
+
+    character_class_copy = character_class.dup
+
+    Addressable::URI.normalize_component("%58X%59Y%5AZ", character_class, "Y")
+
+    character_class.should == character_class_copy
+  end
 end
 
 describe Addressable::URI, "when encoding a string with existing encodings to upcase" do

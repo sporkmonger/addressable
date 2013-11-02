@@ -554,7 +554,7 @@ module Addressable
       end
       if character_class.kind_of?(String)
         leave_re = if leave_encoded.length > 0
-          character_class << '%'
+          character_class = "#{character_class}%" unless character_class.include?('%')
 
           "|%(?!#{leave_encoded.chars.map do |c|
             seq = c.unpack('C*').map { |c| '%02x' % c }.join
