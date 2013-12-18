@@ -652,6 +652,11 @@ class ExampleTwoProcessor
   end
 end
 
+class DumbProcessor
+  def self.match(name)
+    return ".*?" if name == "first"
+  end
+end
 
 describe Addressable::Template do
   describe "Matching" do
@@ -688,6 +693,17 @@ describe Addressable::Template do
       its(:variables){ should == ["first", "second"]}
       its(:captures){ should == ["a", "b/c"] }
     end
+
+    context "second uri with DumbProcessor" do
+      subject{
+        match = Addressable::Template.new(
+          "http://example.com/{first}/{+second}/"
+        ).match(uri2, DumbProcessor)
+      }
+      its(:variables){ should == ["first", "second"]}
+      its(:captures){ should == ["a", "b/c"] }
+    end
+
     context "second uri" do
       subject{
         match = Addressable::Template.new(
