@@ -16,4 +16,12 @@ end
 gem 'idn', :platform => :mri_18
 gem 'idn-ruby', :platform => :mri_19
 
+platforms :mri_18 do
+  gem 'mime-types', '~> 1.25'
+end
+
+platforms :rbx do
+  gem 'rubysl', '~> 2.0'
+end
+
 gemspec
