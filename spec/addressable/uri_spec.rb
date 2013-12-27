@@ -2099,7 +2099,7 @@ describe Addressable::URI, "when parsed from " +
   it "should not raise an exception when normalized" do
     (lambda do
       @uri.normalize
-    end).should_not raise_error(ArgumentError)
+    end).should_not raise_error
   end
 
   it "should be considered to be in normal form" do
@@ -2151,7 +2151,7 @@ describe Addressable::URI, "when parsed from " +
   it "should not raise an exception when normalized" do
     (lambda do
       @uri.normalize
-    end).should_not raise_error(ArgumentError)
+    end).should_not raise_error
   end
 
   it "should be considered to be in normal form" do
@@ -2175,7 +2175,7 @@ describe Addressable::URI, "when parsed from " +
   it "should not raise an exception when normalized" do
     (lambda do
       @uri.normalize
-    end).should_not raise_error(ArgumentError)
+    end).should_not raise_error
   end
 
   it "should be considered to be in normal form" do
@@ -5674,7 +5674,7 @@ describe Addressable::URI, "when assigning query values" do
   describe 'when a hash with mixed types is assigned to query_values' do
     it 'should not raise an error' do
       pending 'Issue #94' do
-        expect { subject.query_values = { "page" => "1", :page => 2 } }.to_not raise_error ArgumentError
+        expect { subject.query_values = { "page" => "1", :page => 2 } }.to_not raise_error
       end
     end
   end
@@ -5726,6 +5726,6 @@ describe Addressable::URI, "when assigning path values" do
     (lambda do
       @uri.path = "uuid:0b3ecf60-3f93-11df-a9c3-001f5bfffe12"
       @uri.scheme = "urn"
-    end).should_not raise_error(Addressable::URI::InvalidURIError)
+    end).should_not raise_error
   end
 end
