@@ -875,8 +875,10 @@ module Addressable
         joiner = Regexp.escape(JOINERS.fetch(operator, ','))
         combined = varlist.split(',').map do |varspec|
           _, name, modifier = *varspec.match(VARSPEC)
-          if processor != nil && processor.respond_to?(:match)
-            "(#{ processor.match(name) })"
+
+          result = processor && processor.respond_to?(:match) ? processor.match(name) : nil
+          if result
+            "(#{ result })"
           else
             group = case operator
             when '+'
