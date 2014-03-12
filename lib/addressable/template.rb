@@ -251,6 +251,20 @@ module Addressable
     end
 
     ##
+    # Returns <code>true</code> if the Template objects are equal. This method
+    # does NOT normalize either Template before doing the comparison.
+    #
+    # @param [Object] template The Template to compare.
+    #
+    # @return [TrueClass, FalseClass]
+    #   <code>true</code> if the Templates are equivalent, <code>false</code>
+    #   otherwise.
+    def eql?(template)
+      return false unless template.kind_of?(Template)
+      return self.pattern == template.pattern
+    end
+
+    ##
     # Extracts a mapping from the URI using a URI Template pattern.
     #
     # @param [Addressable::URI, #to_str] uri
