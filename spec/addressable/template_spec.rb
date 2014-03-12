@@ -32,6 +32,27 @@ shared_examples_for 'expands' do |tests|
   end
 end
 
+describe "eql?" do
+  let(:template) { Addressable::Template.new('https://www.example.com/{foo}') }
+  it 'is equal when the pattern matches' do
+    other_template = Addressable::Template.new('https://www.example.com/{foo}')
+    expect(template).to be_eql(other_template)
+    expect(other_template).to be_eql(template)
+  end
+  it 'is not equal when the pattern differs' do
+    other_template = Addressable::Template.new('https://www.example.com/{bar}')
+    expect(template).to_not be_eql(other_template)
+    expect(other_template).to_not be_eql(template)
+  end
+  it 'is not equal to non-templates' do
+    uri = 'https://www.example.com/foo/bar'
+    addressable_template = Addressable::Template.new uri
+    addressable_uri = Addressable::URI.parse uri
+    expect(addressable_template).to_not be_eql(addressable_uri)
+    expect(addressable_uri).to_not be_eql(addressable_template)
+  end
+end
+
 describe "Type conversion" do
   subject{
     {:var => true, :hello => 1234, :nothing => nil, :sym => :symbolic}
