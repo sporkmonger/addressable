@@ -411,6 +411,7 @@ module Addressable
           _, operator, varlist = *expansion.match(EXPRESSION)
           varlist.split(',').each do |varspec|
             _, name, modifier = *varspec.match(VARSPEC)
+            mapping[name] ||= nil
             case operator
             when nil, '+', '#', '/', '.'
               unparsed_value = unparsed_values[index]
