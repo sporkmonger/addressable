@@ -4399,6 +4399,11 @@ describe Addressable::URI, "when parsed from " +
     @uri.query_values(Hash).should ==
       {'one' => ['two', 'three', 'four']}
   end
+
+  it "should handle assignment with keys of mixed type" do
+    @uri.query_values = @uri.query_values(Hash).merge({:one => 'three'})
+    @uri.query_values(Hash).should == {'one' => 'three'}
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
