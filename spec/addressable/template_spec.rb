@@ -75,14 +75,24 @@ describe "==" do
 end
 
 describe "Type conversion" do
+  require "bigdecimal"
+
   subject {
-    {:var => true, :hello => 1234, :nothing => nil, :sym => :symbolic}
+    {
+      :var => true,
+      :hello => 1234,
+      :nothing => nil,
+      :sym => :symbolic,
+      :decimal => BigDecimal.new(1)
+    }
   }
+
   it_behaves_like 'expands', {
     '{var}' => 'true',
     '{hello}' => '1234',
     '{nothing}' => '',
-    '{sym}' => 'symbolic'
+    '{sym}' => 'symbolic',
+    '{decimal}' => '0.1E1'
   }
 end
 
