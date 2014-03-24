@@ -837,34 +837,40 @@ describe Addressable::Template do
         "fragment" => "foo"
       }
     end
+
     context "issue #137" do
       subject { Addressable::Template.new('/path{?page,per_page}') }
+
       it "can match empty" do
         data = subject.extract("/path")
         data["page"].should == nil
         data["per_page"].should == nil
-        data.keys.should == ['page', 'per_page']
+        data.keys.sort.should == ['page', 'per_page']
       end
+
       it "can match first var" do
         data = subject.extract("/path?page=1")
         data["page"].should == "1"
         data["per_page"].should == nil
-        data.keys.should == ['page', 'per_page']
+        data.keys.sort.should == ['page', 'per_page']
       end
+
       it "can match second var" do
         data = subject.extract("/path?per_page=1")
         data["page"].should == nil
         data["per_page"].should == "1"
-        data.keys.should == ['page', 'per_page']
+        data.keys.sort.should == ['page', 'per_page']
       end
+
       it "can match both vars" do
         data = subject.extract("/path?page=2&per_page=1")
         data["page"].should == "2"
         data["per_page"].should == "1"
-        data.keys.should == ['page', 'per_page']
+        data.keys.sort.should == ['page', 'per_page']
       end
     end
   end
+
   describe "Partial expand with symbols" do
     context "partial_expand with two simple values" do
       subject {
