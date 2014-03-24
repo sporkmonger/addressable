@@ -1111,33 +1111,39 @@ describe Addressable::Template do
             subject.variables.should == %w(foo bar)
           end
         end
+
         context "issue #137" do
           subject { Addressable::Template.new('/path{?page,per_page}') }
+
           it "can match empty" do
             data = subject.match("/path")
             data.mapping["page"].should == nil
             data.mapping["per_page"].should == nil
-            data.mapping.keys.should == ['page', 'per_page']
+            data.mapping.keys.sort.should == ['page', 'per_page']
           end
+
           it "can match first var" do
             data = subject.match("/path?page=1")
             data.mapping["page"].should == "1"
             data.mapping["per_page"].should == nil
-            data.mapping.keys.should == ['page', 'per_page']
+            data.mapping.keys.sort.should == ['page', 'per_page']
           end
+
           it "can match second var" do
             data = subject.match("/path?per_page=1")
             data.mapping["page"].should == nil
             data.mapping["per_page"].should == "1"
-            data.mapping.keys.should == ['page', 'per_page']
+            data.mapping.keys.sort.should == ['page', 'per_page']
           end
+
           it "can match both vars" do
             data = subject.match("/path?page=2&per_page=1")
             data.mapping["page"].should == "2"
             data.mapping["per_page"].should == "1"
-            data.mapping.keys.should == ['page', 'per_page']
+            data.mapping.keys.sort.should == ['page', 'per_page']
           end
         end
+
         context "issue #71" do
           subject { Addressable::Template.new("http://cyberscore.dev/api/users{?username}") }
           it "can match" do
