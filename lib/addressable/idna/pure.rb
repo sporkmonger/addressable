@@ -64,6 +64,7 @@ module Addressable
     # Converts from a Unicode internationalized domain name to an ASCII
     # domain name as described in RFC 3490.
     def self.to_ascii(input)
+      input = input.to_s unless input.is_a?(String)
       input = input.dup
       if input.respond_to?(:force_encoding)
         input.force_encoding(Encoding::ASCII_8BIT)
@@ -89,6 +90,7 @@ module Addressable
     # Converts from an ASCII domain name to a Unicode internationalized
     # domain name as described in RFC 3490.
     def self.to_unicode(input)
+      input = input.to_s unless input.is_a?(String)
       parts = input.split('.')
       parts.map! do |part|
         if part =~ /^#{ACE_PREFIX}/
@@ -121,6 +123,7 @@ module Addressable
     #   The input string.
     # @return [String] The downcased result.
     def self.unicode_downcase(input)
+      input = input.to_s unless input.is_a?(String)
       unpacked = input.unpack("U*")
       unpacked.map! { |codepoint| lookup_unicode_lowercase(codepoint) }
       return unpacked.pack("U*")
@@ -366,6 +369,7 @@ module Addressable
     class PunycodeOverflow < StandardError; end
 
     def self.punycode_encode(unicode)
+      unicode = unicode.to_s unless unicode.is_a?(String)
       input = unicode.unpack("U*")
       output = [0] * (ACE_MAX_LENGTH + 1)
       input_length = input.size
