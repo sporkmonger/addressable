@@ -585,6 +585,9 @@ module Addressable
       rescue ArgumentError
         encoded = self.encode_component(unencoded)
       end
+      if encoded.respond_to?(:force_encoding)
+        encoded.force_encoding(Encoding::UTF_8)
+      end
       return encoded
     end
 
