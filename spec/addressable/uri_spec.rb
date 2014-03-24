@@ -5288,6 +5288,10 @@ describe Addressable::URI, "when unencoding a multibyte string" do
     Addressable::URI.unencode_component("g%C3%BCnther").should == "günther"
   end
 
+  it "should consistently use UTF-8 internally" do
+    Addressable::URI.unencode_component("ski=%BA%DAɫ").should == "ski=\xBA\xDAɫ"
+  end
+
   it "should result in correct percent encoded sequence as a URI" do
     Addressable::URI.unencode(
       "/path?g%C3%BCnther", ::Addressable::URI
