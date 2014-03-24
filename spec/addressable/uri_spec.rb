@@ -2563,7 +2563,7 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should normalize to 'http://example.com/'" do
-    @uri.normalize.should === "http://example.com/"
+    @uri.normalize.to_s.should == "http://example.com/"
   end
 
   it "should have an origin of 'http://example.com'" do
@@ -2586,7 +2586,7 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should normalize to 'http://example.com/'" do
-    @uri.normalize.should === "http://example.com/"
+    @uri.normalize.to_s.should == "http://example.com/"
   end
 end
 
@@ -2605,7 +2605,7 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should normalize to 'http://example.com/'" do
-    @uri.normalize.should === "http://example.com/"
+    @uri.normalize.to_s.should == "http://example.com/"
   end
 end
 
@@ -2624,7 +2624,7 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should normalize to 'http://example.com/'" do
-    @uri.normalize.should === "http://example.com/"
+    @uri.normalize.to_s.should == "http://example.com/"
   end
 end
 
@@ -2643,7 +2643,7 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should normalize to 'http://example.com/'" do
-    @uri.normalize.should === "http://example.com/"
+    @uri.normalize.to_s.should == "http://example.com/"
   end
 end
 
@@ -2662,7 +2662,7 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should normalize to 'http://example.com/'" do
-    @uri.normalize.should === "http://example.com/"
+    @uri.normalize.to_s.should == "http://example.com/"
   end
 end
 
@@ -2681,7 +2681,7 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should normalize to 'http://example.com/'" do
-    @uri.normalize.should === "http://example.com/"
+    @uri.normalize.to_s.should == "http://example.com/"
   end
 end
 
@@ -2696,7 +2696,7 @@ describe Addressable::URI, "when parsed from '/a/b/c/./../../g'" do
 
   # Section 5.2.4 of RFC 3986
   it "should normalize to '/a/g'" do
-    @uri.normalize.should === "/a/g"
+    @uri.normalize.to_s.should == "/a/g"
   end
 end
 
@@ -2711,7 +2711,7 @@ describe Addressable::URI, "when parsed from 'mid/content=5/../6'" do
 
   # Section 5.2.4 of RFC 3986
   it "should normalize to 'mid/6'" do
-    @uri.normalize.should === "mid/6"
+    @uri.normalize.to_s.should == "mid/6"
   end
 end
 
@@ -2726,7 +2726,7 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should normalize to 'http://www.example.com//'" do
-    @uri.normalize.should === "http://www.example.com//"
+    @uri.normalize.to_s.should == "http://www.example.com//"
   end
 end
 
