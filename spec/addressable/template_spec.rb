@@ -75,7 +75,7 @@ describe "==" do
 end
 
 describe "Type conversion" do
-  subject{
+  subject {
     {:var => true, :hello => 1234, :nothing => nil, :sym => :symbolic}
   }
   it_behaves_like 'expands', {
@@ -87,7 +87,7 @@ describe "Type conversion" do
 end
 
 describe "Level 1:" do
-  subject{
+  subject {
     {:var => "value", :hello => "Hello World!"}
   }
   it_behaves_like 'expands', {
@@ -97,7 +97,7 @@ describe "Level 1:" do
 end
 
 describe "Level 2" do
-  subject{
+  subject {
     {
       :var => "value",
       :hello => "Hello World!",
@@ -121,7 +121,7 @@ describe "Level 2" do
 end
 
 describe "Level 3" do
-  subject{
+  subject {
     {
       :var => "value",
       :hello => "Hello World!",
@@ -182,7 +182,7 @@ describe "Level 3" do
 end
 
 describe "Level 4" do
-  subject{
+  subject {
     {
       :var => "value",
       :hello => "Hello World!",
@@ -380,7 +380,7 @@ describe "Level 4" do
   end
 end
 describe "Modifiers" do
-  subject{
+  subject {
     {
       :var => "value",
       :semi => ";",
@@ -405,7 +405,7 @@ describe "Modifiers" do
   end
 end
 describe "Expansion" do
-  subject{
+  subject {
     {
       :count => ["one", "two", "three"],
       :dom => ["example", "com"],
@@ -738,51 +738,51 @@ describe Addressable::Template do
       "http://example.com/foo"
     }
     context "first uri with ExampleTwoProcessor" do
-      subject{
+      subject {
         match = Addressable::Template.new(
           "http://example.com/search/{query}/"
         ).match(uri, ExampleTwoProcessor)
       }
-      its(:variables){ should == ["query"]}
-      its(:captures){ should == ["an example search query"]}
+      its(:variables){ should == ["query"] }
+      its(:captures){ should == ["an example search query"] }
     end
 
     context "second uri with ExampleTwoProcessor" do
-      subject{
+      subject {
         match = Addressable::Template.new(
           "http://example.com/{first}/{+second}/"
         ).match(uri2, ExampleTwoProcessor)
       }
-      its(:variables){ should == ["first", "second"]}
+      its(:variables){ should == ["first", "second"] }
       its(:captures){ should == ["a", "b/c"] }
     end
 
     context "second uri with DumbProcessor" do
-      subject{
+      subject {
         match = Addressable::Template.new(
           "http://example.com/{first}/{+second}/"
         ).match(uri2, DumbProcessor)
       }
-      its(:variables){ should == ["first", "second"]}
+      its(:variables){ should == ["first", "second"] }
       its(:captures){ should == ["a", "b/c"] }
     end
 
     context "second uri" do
-      subject{
+      subject {
         match = Addressable::Template.new(
           "http://example.com/{first}{/second*}/"
         ).match(uri2)
       }
-      its(:variables){ should == ["first", "second"]}
+      its(:variables){ should == ["first", "second"] }
       its(:captures){ should == ["a", ["b","c"]] }
     end
     context "third uri" do
-      subject{
+      subject {
         match = Addressable::Template.new(
           "http://example.com/{;hash*,first}"
         ).match(uri3)
       }
-      its(:variables){ should == ["hash", "first"]}
+      its(:variables){ should == ["hash", "first"] }
       its(:captures){ should == [
         {"a" => "1", "b" => "2", "c" => "3", "first" => "foo"}, nil] }
     end
@@ -790,22 +790,22 @@ describe Addressable::Template do
     # * operator means first could have been a key of hash or a separate key.
     # Semantically, a separate key is more likely, but both are possible.
     context "fourth uri" do
-      subject{
+      subject {
         match = Addressable::Template.new(
           "http://example.com/{?hash*,first}"
         ).match(uri4)
       }
-      its(:variables){ should == ["hash", "first"]}
+      its(:variables){ should == ["hash", "first"] }
       its(:captures){ should == [
         {"a" => "1", "b" => "2", "c" => "3", "first"=> "foo"}, nil] }
     end
     context "fifth uri" do
-      subject{
+      subject {
         match = Addressable::Template.new(
           "http://example.com/{path}{?hash*,first}"
         ).match(uri5)
       }
-      its(:variables){ should == ["path", "hash", "first"]}
+      its(:variables){ should == ["path", "hash", "first"] }
       its(:captures){ should == ["foo", nil, nil] }
     end
   end
@@ -867,7 +867,7 @@ describe Addressable::Template do
   end
   describe "Partial expand with symbols" do
     context "partial_expand with two simple values" do
-      subject{
+      subject {
         Addressable::Template.new("http://example.com/{one}/{two}/")
       }
       it "builds a new pattern" do
@@ -876,7 +876,7 @@ describe Addressable::Template do
       end
     end
     context "partial_expand query with missing param in middle" do
-      subject{
+      subject {
         Addressable::Template.new("http://example.com/{?one,two,three}/")
       }
       it "builds a new pattern" do
@@ -885,7 +885,7 @@ describe Addressable::Template do
       end
     end
     context "partial_expand with query string" do
-      subject{
+      subject {
         Addressable::Template.new("http://example.com/{?two,one}/")
       }
       it "builds a new pattern" do
@@ -894,7 +894,7 @@ describe Addressable::Template do
       end
     end
     context "partial_expand with path operator" do
-      subject{
+      subject {
         Addressable::Template.new("http://example.com{/one,two}/")
       }
       it "builds a new pattern" do
@@ -905,7 +905,7 @@ describe Addressable::Template do
   end
   describe "Partial expand with strings" do
     context "partial_expand with two simple values" do
-      subject{
+      subject {
         Addressable::Template.new("http://example.com/{one}/{two}/")
       }
       it "builds a new pattern" do
@@ -914,7 +914,7 @@ describe Addressable::Template do
       end
     end
     context "partial_expand query with missing param in middle" do
-      subject{
+      subject {
         Addressable::Template.new("http://example.com/{?one,two,three}/")
       }
       it "builds a new pattern" do
@@ -923,7 +923,7 @@ describe Addressable::Template do
       end
     end
     context "partial_expand with query string" do
-      subject{
+      subject {
         Addressable::Template.new("http://example.com/{?two,one}/")
       }
       it "builds a new pattern" do
@@ -932,7 +932,7 @@ describe Addressable::Template do
       end
     end
     context "partial_expand with path operator" do
-      subject{
+      subject {
         Addressable::Template.new("http://example.com{/one,two}/")
       }
       it "builds a new pattern" do
@@ -943,7 +943,7 @@ describe Addressable::Template do
   end
   describe "Expand" do
     context "expand with a processor" do
-      subject{
+      subject {
         Addressable::Template.new("http://example.com/search/{query}/")
       }
       it "processes spaces" do
@@ -959,7 +959,7 @@ describe Addressable::Template do
       end
     end
     context "partial_expand query with missing param in middle" do
-      subject{
+      subject {
         Addressable::Template.new("http://example.com/{?one,two,three}/")
       }
       it "builds a new pattern" do
@@ -968,7 +968,7 @@ describe Addressable::Template do
       end
     end
     context "partial_expand with query string" do
-      subject{
+      subject {
         Addressable::Template.new("http://example.com/{?two,one}/")
       }
       it "builds a new pattern" do
@@ -977,7 +977,7 @@ describe Addressable::Template do
       end
     end
     context "partial_expand with path operator" do
-      subject{
+      subject {
         Addressable::Template.new("http://example.com{/one,two}/")
       }
       it "builds a new pattern" do
