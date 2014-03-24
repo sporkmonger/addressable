@@ -928,6 +928,17 @@ describe Addressable::URI, "when created with an authority and no port" do
   end
 end
 
+describe Addressable::URI, "when created with a host with trailing dots" do
+  before do
+    @uri = Addressable::URI.new(:authority => "example...")
+  end
+
+  it "should have a stable normalized form" do
+    @uri.normalize.normalize.normalize.host.should ==
+      @uri.normalize.host
+  end
+end
+
 describe Addressable::URI, "when created with both a userinfo and a user" do
   it "should raise an error" do
     (lambda do
