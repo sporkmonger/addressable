@@ -4382,10 +4382,8 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should have correct hash query values" do
-    pending("This is probably more desirable behavior.") do
-      @uri.query_values(Hash).should ==
-        {'one' => ['two', 'three', 'four']}
-    end
+    @uri.query_values(Hash).should ==
+      {'one' => ['two', 'three', 'four']}
   end
 end
 
@@ -4398,7 +4396,8 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should have correct query values" do
-    @uri.query_values(Hash).should == {"one[two][three][]" => "five"}
+    @uri.query_values(Hash).should ==
+      {"one[two][three][]" => ["four", "five"]}
   end
 
   it "should have correct array query values" do
