@@ -126,6 +126,12 @@ shared_examples_for "converting from unicode to ASCII" do
       "\357\276\257"
     ).should == "xn--4ud"
   end
+
+  it "should handle two adjacent '.'s correctly" do
+    Addressable::IDNA.to_ascii(
+      "example..host"
+    ).should == "example..host"
+  end
 end
 
 shared_examples_for "converting from ASCII to unicode" do
@@ -187,6 +193,12 @@ shared_examples_for "converting from ASCII to unicode" do
     Addressable::IDNA.to_unicode(
       "xn--4ud"
     ).should == "\341\206\265"
+  end
+
+  it "should handle two adjacent '.'s correctly" do
+    Addressable::IDNA.to_unicode(
+      "example..host"
+    ).should == "example..host"
   end
 
   it "should normalize 'string' correctly" do

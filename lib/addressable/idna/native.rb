@@ -21,23 +21,35 @@ require "idn"
 module Addressable
   module IDNA
     def self.punycode_encode(value)
-      IDN::Punycode.encode(value)
+      IDN::Punycode.encode(value.to_s)
     end
 
      def self.punycode_decode(value)
-       IDN::Punycode.decode(value)
+       IDN::Punycode.decode(value.to_s)
      end
 
     def self.unicode_normalize_kc(value)
-      IDN::Stringprep.nfkc_normalize(value)
+      IDN::Stringprep.nfkc_normalize(value.to_s)
     end
 
     def self.to_ascii(value)
-      IDN::Idna.toASCII(value)
+      value.to_s.split('.', -1).map do |segment|
+        if segment.size > 0
+          IDN::Idna.toASCII(segment)
+        else
+          ''
+        end
+      end.join('.')
     end
 
     def self.to_unicode(value)
-      IDN::Idna.toUnicode(value)
+      value.to_s.split('.', -1).map do |segment|
+        if segment.size > 0
+          IDN::Idna.toUnicode(segment)
+        else
+          ''
+        end
+      end.join('.')
     end
   end
 end
