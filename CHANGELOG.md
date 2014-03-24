@@ -1,3 +1,12 @@
+# Addressable 2.3.6
+- normalization drops empty query string
+- better handling in template extract for missing values
+- template modifier for `'?'` now treated as optional
+- fixed issue where character class parameters were modified
+- templates can now be tested for equality
+- added `:sorted` option to normalization of query strings
+- fixed issue with normalization of hosts given in `'example.com.'` form
+
 # Addressable 2.3.5
 - added Addressable::URI#empty? method
 - Addressable::URI#hostname methods now strip square brackets from IPv6 hosts
@@ -149,11 +158,11 @@
 - improved normalization
 - fixed bug in joining algorithm
 - updated specifications
-  
+
 # Addressable 0.1.1
 - updated documentation
 - added URI Template variable extraction
-  
+
 # Addressable 0.1.0
 - initial release
 - implementation based on RFC 3986, 3987
