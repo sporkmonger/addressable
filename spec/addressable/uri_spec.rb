@@ -2572,6 +2572,31 @@ describe Addressable::URI, "when parsed from " +
 end
 
 describe Addressable::URI, "when parsed from " +
+    "'http://example.com/%2E/'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/%2E/")
+  end
+
+  it "should be considered to be in normal form" do
+    pending(
+      'path segment normalization should happen before ' +
+      'percent escaping normalization'
+    ) do
+      @uri.normalize.should be_eql(@uri)
+    end
+  end
+
+  it "should normalize to 'http://example.com/%2E/'" do
+    pending(
+      'path segment normalization should happen before ' +
+      'percent escaping normalization'
+    ) do
+      @uri.normalize.should == "http://example.com/%2E/"
+    end
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
     "'http://example.com/..'" do
   before do
     @uri = Addressable::URI.parse("http://example.com/..")
