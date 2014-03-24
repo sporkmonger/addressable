@@ -1063,8 +1063,8 @@ module Addressable
           result = ::Addressable::IDNA.to_ascii(
             URI.unencode_component(self.host.strip.downcase)
           )
-          if result[-1..-1] == "."
-            # Trailing dots are unnecessary
+          if result =~ /[^\.]\.$/
+            # Single trailing dots are unnecessary.
             result = result[0...-1]
           end
           result
