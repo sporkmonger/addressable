@@ -259,10 +259,16 @@ module Addressable
     # @return [TrueClass, FalseClass]
     #   <code>true</code> if the Templates are equivalent, <code>false</code>
     #   otherwise.
-    def eql?(template)
+    def ==(template)
       return false unless template.kind_of?(Template)
       return self.pattern == template.pattern
     end
+
+    ##
+    # Addressable::Template makes no distinction between `==` and `eql?`.
+    #
+    # @see #==
+    alias_method :eql?, :==
 
     ##
     # Extracts a mapping from the URI using a URI Template pattern.

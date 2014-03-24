@@ -53,6 +53,27 @@ describe "eql?" do
   end
 end
 
+describe "==" do
+  let(:template) { Addressable::Template.new('https://www.example.com/{foo}') }
+  it 'is equal when the pattern matches' do
+    other_template = Addressable::Template.new('https://www.example.com/{foo}')
+    expect(template).should == other_template
+    expect(other_template).should == template
+  end
+  it 'is not equal when the pattern differs' do
+    other_template = Addressable::Template.new('https://www.example.com/{bar}')
+    expect(template).should_not == other_template
+    expect(other_template).should_not == template
+  end
+  it 'is not equal to non-templates' do
+    uri = 'https://www.example.com/foo/bar'
+    addressable_template = Addressable::Template.new uri
+    addressable_uri = Addressable::URI.parse uri
+    expect(addressable_template).should_not == addressable_uri
+    expect(addressable_uri).should_not == addressable_template
+  end
+end
+
 describe "Type conversion" do
   subject{
     {:var => true, :hello => 1234, :nothing => nil, :sym => :symbolic}
