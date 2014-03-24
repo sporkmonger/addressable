@@ -1458,21 +1458,16 @@ module Addressable
     # The query component for this URI, normalized.
     #
     # @return [String] The query component, normalized.
-    def normalized_query
-      self.query && @normalized_query ||= (begin
-        modified_query_class = Addressable::URI::CharacterClasses::QUERY
-        # Make sure possible key-value pair delimiters are escaped.
-        modified_query_class = modified_query_class.sub("\\&", "")
-        modified_query_class = modified_query_class.sub("\\;", "")
-        component = (self.query.split("&", -1).map do |pair|
-          Addressable::URI.normalize_component(
-            pair,
-            modified_query_class,
-            "+"
-          )
-        end).join("&")
-        component == "" ? nil : component
-      end)
+    def normalized_query(*flags)
+      modified_query_class = Addressable::URI::CharacterClasses::QUERY.dup
+      # Make sure possible key-value pair delimiters are escaped.
+      modified_query_class.sub!("\\&", "").sub!("\\;", "")
+      pairs = (self.query || "").split("&", -1)
+      pairs.sort! if flags.include?(:sorted)
+      component = (pairs.map do |pair|
+        Addressable::URI.normalize_component(pair, modified_query_class, "+")
+      end).join("&")
+      component == "" ? nil : component
     end
 
     ##
