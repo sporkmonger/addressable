@@ -774,6 +774,13 @@ module Addressable
     #
     # @return [Addressable::URI] The constructed URI object.
     def initialize(options={})
+      # Internally, all options are retrieved as symbols, and since some services conform to the API,
+      # but do not uniformly convert all options to symbols before sending to Addressable,
+      # let's be proactive in formatting.
+      #
+      # Ref: https://github.com/google/signet/pull/40
+      options = hash_keys_to_sym(options)
+
       if options.has_key?(:authority)
         if (options.keys & [:userinfo, :user, :password, :host, :port]).any?
           raise ArgumentError,
@@ -2332,6 +2339,16 @@ module Addressable
       @query = uri.query
       @fragment = uri.fragment
       return self
+    end
+
+    # Convert all keys in this hash (not nested) to symbols for uniform retrieval
+    def hash_keys_to_sym(old_hash)
+      old_hash.inject(formatted_hash={}) do |formatted_hash,(k,v)| 
+        formatted_hash[k.to_sym] = v
+        formatted_hash
+      end
+
+      formatted_hash
     end
 
     ##
