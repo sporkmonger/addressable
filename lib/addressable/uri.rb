@@ -71,6 +71,19 @@ module Addressable
       "prospero" => 1525
     }
 
+    # Whitelisted options, for normalization and retrieval
+    OPTIONS_WHITELIST = %w[ scheme
+                            user
+                            password
+                            userinfo
+                            host
+                            port
+                            authority
+                            path
+                            query
+                            query_values
+                            fragment ]
+
     ##
     # Returns a URI object based on the parsed string.
     #
@@ -774,6 +787,8 @@ module Addressable
     #
     # @return [Addressable::URI] The constructed URI object.
     def initialize(options={})
+      options = normalize_whitelist_options(options)
+
       if options.has_key?(:authority)
         if (options.keys & [:userinfo, :user, :password, :host, :port]).any?
           raise ArgumentError,
@@ -788,20 +803,26 @@ module Addressable
         end
       end
 
+      # Bunch of crazy logic required because of the composite components
+      # like userinfo and authority.
       self.defer_validation do
-        # Bunch of crazy logic required because of the composite components
-        # like userinfo and authority.
-        self.scheme = options[:scheme] if options[:scheme]
-        self.user = options[:user] if options[:user]
-        self.password = options[:password] if options[:password]
-        self.userinfo = options[:userinfo] if options[:userinfo]
-        self.host = options[:host] if options[:host]
-        self.port = options[:port] if options[:port]
-        self.authority = options[:authority] if options[:authority]
-        self.path = options[:path] if options[:path]
-        self.query = options[:query] if options[:query]
-        self.query_values = options[:query_values] if options[:query_values]
-        self.fragment = options[:fragment] if options[:fragment]
+        OPTIONS_WHITELIST.each do |opt|
+          # use String#:+ to create a new string, and prevent mutation
+          self.send(opt + "=", options[opt.to_sym]) if options[opt.to_sym]
+        end
+      end
+    end
+
+    # Only perform symbol coercion on keys if they're in our whitelist
+    def normalize_whitelist_options(options={})
+      options.inject({}) do |normalized_options, (k,v)| 
+        if k.is_a?(String) && OPTIONS_WHITELIST.include?(k)
+          normalized_options[k.to_sym] = v
+        else
+          normalized_options[k] = v
+        end
+
+        normalized_options
       end
     end
 
