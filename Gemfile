@@ -4,7 +4,6 @@ group :development do
   gem 'launchy'
   gem 'yard'
   gem 'redcarpet', :platform => :mri_19
-  gem 'rubyforge'
 end
 
 group :test, :development do

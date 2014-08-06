@@ -9,10 +9,6 @@ namespace :gem do
 
     s.files = PKG_FILES.to_a
 
-    s.has_rdoc = true
-    s.extra_rdoc_files = %w( README.md )
-    s.rdoc_options.concat ["--main",  "README.md"]
-
     if !s.respond_to?(:add_development_dependency)
       puts "Cannot build Gem with this version of RubyGems."
       exit(1)
@@ -26,8 +22,7 @@ namespace :gem do
 
     s.author = "Bob Aman"
     s.email = "bob@sporkmonger.com"
-    s.homepage = RUBY_FORGE_URL
-    s.rubyforge_project = RUBY_FORGE_PROJECT
+    s.homepage = HOMEPAGE_URL
     s.license = "Apache License 2.0"
   end
 
