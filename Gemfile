@@ -1,5 +1,7 @@
 source 'https://rubygems.org'
 
+gemspec
+
 group :development do
   gem 'launchy'
   gem 'yard'
@@ -10,7 +12,7 @@ end
 group :test, :development do
   gem 'rake', '>= 0.7.3'
   gem 'rspec', '>= 2.9.0'
-  gem 'coveralls', :require => false
+  gem 'coveralls', :require => false, :platforms => [:ruby_19, :ruby_20, :ruby_21, :rbx, :jruby]
 end
 
 gem 'idn', :platform => :mri_18
@@ -24,5 +26,3 @@ platforms :rbx do
   gem 'rubysl', '~> 2.0'
   gem 'rubinius-coverage'
 end
-
-gemspec
