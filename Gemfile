@@ -1,5 +1,7 @@
 source 'https://rubygems.org'
 
+gemspec
+
 group :development do
   gem 'launchy'
   gem 'yard'
@@ -8,7 +10,9 @@ group :development do
 end
 
 group :test, :development do
-  gem 'coveralls', :require => false
+  gem 'coveralls', :require => false, :platforms => [
+    :ruby_19, :ruby_20, :ruby_21, :rbx, :jruby
+  ]
 end
 
 gem 'idn', :platform => :mri_18
@@ -22,5 +26,3 @@ end
 platforms :rbx do
   gem 'rubysl-openssl', '2.2.1'
 end
-
-gemspec
