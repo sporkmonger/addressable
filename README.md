@@ -11,12 +11,14 @@
 [![Build Status](https://secure.travis-ci.org/sporkmonger/addressable.png?branch=master)][travis]
 [![Dependency Status](https://gemnasium.com/sporkmonger/addressable.png?travis)][gemnasium]
 [![Coverage Status](https://coveralls.io/repos/sporkmonger/addressable/badge.png?branch=master)][coveralls]
+[![Inline docs](http://inch-ci.org/github/sporkmonger/addressable.png?branch=master)](inchci)
 [![Gittip Donate](http://img.shields.io/gittip/sporkmonger.png)](https://www.gittip.com/sporkmonger/ "Support Open Source Development w/ Gittip")
 
 [gem]: https://rubygems.org/gems/addressable
 [travis]: http://travis-ci.org/sporkmonger/addressable
 [gemnasium]: https://gemnasium.com/sporkmonger/addressable
 [coveralls]: https://coveralls.io/r/sporkmonger/addressable
+[inchci]: http://inch-ci.org/github/sporkmonger/addressable
 
 # Description
 
