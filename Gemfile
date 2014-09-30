@@ -9,8 +9,9 @@ end
 
 group :test, :development do
   gem 'rake', '>= 0.7.3'
-  gem 'rspec', '>= 2.9.0'
+  gem 'rspec', '~> 2.99'
   gem 'coveralls', :require => false
+  gem 'rest-client', '~> 1.6.8'
 end
 
 gem 'idn', :platform => :mri_18
