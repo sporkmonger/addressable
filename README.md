@@ -71,7 +71,7 @@ template.partial_expand({"one" => "1", "three" => 3}).pattern
 #=> "http://example.com/?one=1{&two}&three=3"
 
 template = Addressable::Template.new(
-  "http://{host}{/segments}/{?one,two,bogus}{#fragment}"
+  "http://{host}{/segments*}/{?one,two,bogus}{#fragment}"
 )
 uri = Addressable::URI.parse(
   "http://example.com/a/b/c/?one=1&two=2#foo"
