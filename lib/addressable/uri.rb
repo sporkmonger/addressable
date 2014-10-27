@@ -1500,7 +1500,7 @@ module Addressable
     # @param [Class] return_type The return type desired. Value must be either
     #   `Hash` or `Array`.
     #
-    # @return [Hash, Array, Nil] The query string parsed as a Hash or Array
+    # @return [Hash, Array, nil] The query string parsed as a Hash or Array
     #   or nil if the query string is blank.
     #
     # @example
