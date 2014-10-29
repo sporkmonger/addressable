@@ -20,8 +20,7 @@ platforms :ruby_18 do
 end
 
 platforms :rbx do
-  gem 'rubysl', '~> 2.0'
-  gem 'rubinius-coverage'
+  gem 'rubysl-openssl', '2.1.0'
 end
 
 gemspec
