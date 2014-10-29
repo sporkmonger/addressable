@@ -8,7 +8,6 @@ group :development do
 end
 
 group :test, :development do
-  gem 'rspec', '>= 2.9.0'
   gem 'coveralls', :require => false
 end
 
