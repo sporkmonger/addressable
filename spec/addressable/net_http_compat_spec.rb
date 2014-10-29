@@ -23,6 +23,6 @@ describe Net::HTTP do
   it "should be compatible with Addressable" do
     response_body =
       Net::HTTP.get(Addressable::URI.parse('http://www.google.com/'))
-    response_body.should_not be_nil
+    expect(response_body).not_to be_nil
   end
 end
