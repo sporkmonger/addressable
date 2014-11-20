@@ -3,14 +3,14 @@
 <dl>
   <dt>Homepage</dt><dd><a href="http://addressable.rubyforge.org/">addressable.rubyforge.org</a></dd>
   <dt>Author</dt><dd><a href="mailto:bob@sporkmonger.com">Bob Aman</a></dd>
-  <dt>Copyright</dt><dd>Copyright © 2006-2013 Bob Aman</dd>
+  <dt>Copyright</dt><dd>Copyright © 2006-2014 Bob Aman</dd>
   <dt>License</dt><dd>Apache 2.0</dd>
 </dl>
 
-[![Gem Version](https://badge.fury.io/rb/addressable.png)][gem]
+[![Gem Version](http://img.shields.io/gem/dt/addressable.svg)][gem]
 [![Build Status](https://secure.travis-ci.org/sporkmonger/addressable.png?branch=master)][travis]
 [![Dependency Status](https://gemnasium.com/sporkmonger/addressable.png?travis)][gemnasium]
-[![Test Coverage Status](https://coveralls.io/repos/sporkmonger/addressable/badge.png?branch=master)][coveralls]
+[![Test Coverage Status](https://img.shields.io/coveralls/sporkmonger/addressable.svg)][coveralls]
 [![Documentation Coverage Status](http://inch-ci.org/github/sporkmonger/addressable.svg?branch=master)][inch]
 [![Gittip Donate](http://img.shields.io/gittip/sporkmonger.png)](https://www.gittip.com/sporkmonger/ "Support Open Source Development w/ Gittip")
 
