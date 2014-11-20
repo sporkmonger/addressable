@@ -1,3 +1,5 @@
+require 'rspec/its'
+
 begin
   require 'coveralls'
   Coveralls.wear!

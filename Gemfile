@@ -8,21 +8,19 @@ group :development do
 end
 
 group :test, :development do
-  gem 'rake', '>= 0.7.3'
-  gem 'rspec', '>= 2.9.0'
   gem 'coveralls', :require => false
 end
 
 gem 'idn', :platform => :mri_18
 gem 'idn-ruby', :platform => :mri_19
 
-platforms :mri_18 do
+platforms :ruby_18 do
   gem 'mime-types', '~> 1.25'
+  gem 'rest-client', '~> 1.6.0'
 end
 
 platforms :rbx do
-  gem 'rubysl', '~> 2.0'
-  gem 'rubinius-coverage'
+  gem 'rubysl-openssl', '2.1.0'
 end
 
 gemspec
