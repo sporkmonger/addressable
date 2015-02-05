@@ -1,3 +1,8 @@
+# Addressable 2.3.7
+- fix scenario in which invalid URIs don't get an exception until inspected
+- handle hostnames with two adjacent periods correctly
+- upgrade of RSpec
+
 # Addressable 2.3.6
 - normalization drops empty query string
 - better handling in template extract for missing values
