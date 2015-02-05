@@ -18,10 +18,10 @@ namespace :gem do
       exit(1)
     end
 
-    s.add_development_dependency("rake", ">= 0.7.3")
-    s.add_development_dependency("rspec", ">= 3.0")
-    s.add_development_dependency("rspec-its", "~> 1.1")
-    s.add_development_dependency("launchy", ">= 0.3.2")
+    s.add_development_dependency 'rake', '~> 0.7', '>= 0.7.3'
+    s.add_development_dependency 'rspec', '~> 3.0'
+    s.add_development_dependency 'rspec-its', '~> 1.1'
+    s.add_development_dependency 'launchy', '~> 0.3', '>= 0.3.2'
 
     s.require_path = "lib"
 
