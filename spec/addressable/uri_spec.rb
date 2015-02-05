@@ -157,6 +157,14 @@ describe Addressable::URI, "when created with a scheme but no hierarchical " +
   end
 end
 
+describe Addressable::URI, "when created with ambiguous path" do
+  it "should raise an error" do
+    expect(lambda do
+      Addressable::URI.parse("::http")
+    end).to raise_error(Addressable::URI::InvalidURIError)
+  end
+end
+
 describe Addressable::URI, "when created with an invalid host" do
   it "should raise an error" do
     expect(lambda do

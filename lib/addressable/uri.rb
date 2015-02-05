@@ -803,6 +803,7 @@ module Addressable
         self.query_values = options[:query_values] if options[:query_values]
         self.fragment = options[:fragment] if options[:fragment]
       end
+      self.to_s
     end
 
     ##
