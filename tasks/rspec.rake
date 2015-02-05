@@ -32,7 +32,7 @@ namespace :spec do
     desc "Browse the code coverage report."
     task :browse => "spec:rcov" do
       require "launchy"
-      Launchy::Browser.run("coverage/index.html")
+      Launchy.open("coverage/index.html")
     end
   end
 end

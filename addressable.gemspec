@@ -27,17 +27,17 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<rake>, [">= 0.7.3", "~> 0.7"])
       s.add_development_dependency(%q<rspec>, ["~> 3.0"])
       s.add_development_dependency(%q<rspec-its>, ["~> 1.1"])
-      s.add_development_dependency(%q<launchy>, [">= 0.3.2", "~> 0.3"])
+      s.add_development_dependency(%q<launchy>, [">= 2.4.3", "~> 2.4"])
     else
       s.add_dependency(%q<rake>, [">= 0.7.3", "~> 0.7"])
       s.add_dependency(%q<rspec>, ["~> 3.0"])
       s.add_dependency(%q<rspec-its>, ["~> 1.1"])
-      s.add_dependency(%q<launchy>, [">= 0.3.2", "~> 0.3"])
+      s.add_dependency(%q<launchy>, [">= 2.4.3", "~> 2.4"])
     end
   else
     s.add_dependency(%q<rake>, [">= 0.7.3", "~> 0.7"])
     s.add_dependency(%q<rspec>, ["~> 3.0"])
     s.add_dependency(%q<rspec-its>, ["~> 1.1"])
-    s.add_dependency(%q<launchy>, [">= 0.3.2", "~> 0.3"])
+    s.add_dependency(%q<launchy>, [">= 2.4.3", "~> 2.4"])
   end
 end
