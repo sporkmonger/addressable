@@ -27,8 +27,7 @@ namespace :gem do
 
     s.author = "Bob Aman"
     s.email = "bob@sporkmonger.com"
-    s.homepage = RUBY_FORGE_URL
-    s.rubyforge_project = RUBY_FORGE_PROJECT
+    s.homepage = "https://github.com/sporkmonger/addressable"
     s.license = "Apache License 2.0"
   end
 
@@ -77,6 +76,18 @@ namespace :gem do
 
   desc "Reinstall the gem"
   task :reinstall => [:uninstall, :install]
+
+  desc 'Package for release'
+  task :release => ["gem:package", "gem:gemspec"] do |t|
+    v = ENV['VERSION'] or abort 'Must supply VERSION=x.y.z'
+    abort "Versions don't match #{v} vs #{PROJ.version}" if v != PKG_VERSION
+    pkg = "pkg/#{GEM_SPEC.full_name}"
+
+    changelog = File.open("CHANGELOG.md") { |file| file.read }
+
+    puts "Releasing #{PKG_NAME} v. #{PKG_VERSION}"
+    Rake::Task["git:tag:create"].invoke
+  end
 end
 
 desc "Alias to gem:package"
