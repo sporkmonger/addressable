@@ -1515,7 +1515,7 @@ module Addressable
       if return_type != Hash && return_type != Array
         raise ArgumentError, "Invalid return type. Must be Hash or Array."
       end
-      return nil if self.query == nil
+      return return_type.new if query.nil?
       split_query = (self.query.split("&").map do |pair|
         pair.split("=", 2) if pair && !pair.empty?
       end).compact
