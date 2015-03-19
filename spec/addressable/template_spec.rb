@@ -749,7 +749,7 @@ describe Addressable::Template do
     }
     context "first uri with ExampleTwoProcessor" do
       subject {
-        match = Addressable::Template.new(
+        Addressable::Template.new(
           "http://example.com/search/{query}/"
         ).match(uri, ExampleTwoProcessor)
       }
@@ -759,7 +759,7 @@ describe Addressable::Template do
 
     context "second uri with ExampleTwoProcessor" do
       subject {
-        match = Addressable::Template.new(
+        Addressable::Template.new(
           "http://example.com/{first}/{+second}/"
         ).match(uri2, ExampleTwoProcessor)
       }
@@ -769,7 +769,7 @@ describe Addressable::Template do
 
     context "second uri with DumbProcessor" do
       subject {
-        match = Addressable::Template.new(
+        Addressable::Template.new(
           "http://example.com/{first}/{+second}/"
         ).match(uri2, DumbProcessor)
       }
@@ -779,7 +779,7 @@ describe Addressable::Template do
 
     context "second uri" do
       subject {
-        match = Addressable::Template.new(
+        Addressable::Template.new(
           "http://example.com/{first}{/second*}/"
         ).match(uri2)
       }
@@ -788,7 +788,7 @@ describe Addressable::Template do
     end
     context "third uri" do
       subject {
-        match = Addressable::Template.new(
+        Addressable::Template.new(
           "http://example.com/{;hash*,first}"
         ).match(uri3)
       }
@@ -801,7 +801,7 @@ describe Addressable::Template do
     # Semantically, a separate key is more likely, but both are possible.
     context "fourth uri" do
       subject {
-        match = Addressable::Template.new(
+        Addressable::Template.new(
           "http://example.com/{?hash*,first}"
         ).match(uri4)
       }
@@ -811,7 +811,7 @@ describe Addressable::Template do
     end
     context "fifth uri" do
       subject {
-        match = Addressable::Template.new(
+        Addressable::Template.new(
           "http://example.com/{path}{?hash*,first}"
         ).match(uri5)
       }
