@@ -867,10 +867,10 @@ module Addressable
       @scheme = new_scheme
       @scheme = nil if @scheme.to_s.strip.empty?
 
-      # Reset dependant values
-      @normalized_scheme = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@normalized_scheme) if defined?(@normalized_scheme)
+      remove_instance_variable(:@uri_string) if defined?(@uri_string)
+      remove_instance_variable(:@hash) if defined?(@hash)
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -917,13 +917,13 @@ module Addressable
         @user = EMPTY_STR if @user.nil?
       end
 
-      # Reset dependant values
-      @userinfo = nil
-      @normalized_userinfo = nil
-      @authority = nil
-      @normalized_user = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@userinfo) if defined?(@userinfo)
+      remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
+      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_instance_variable(:@normalized_user) if defined?(@normalized_user)
+      remove_instance_variable(:@uri_string) if defined?(@uri_string)
+      remove_instance_variable(:@hash) if defined?(@hash)
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -972,13 +972,13 @@ module Addressable
         @user = EMPTY_STR if @user.nil?
       end
 
-      # Reset dependant values
-      @userinfo = nil
-      @normalized_userinfo = nil
-      @authority = nil
-      @normalized_password = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@userinfo) if defined?(@userinfo)
+      remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
+      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_instance_variable(:@normalized_password) if defined?(@normalized_password)
+      remove_instance_variable(:@uri_string) if defined?(@uri_string)
+      remove_instance_variable(:@hash) if defined?(@hash)
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1040,10 +1040,10 @@ module Addressable
       self.password = new_password
       self.user = new_user
 
-      # Reset dependant values
-      @authority = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_instance_variable(:@uri_string) if defined?(@uri_string)
+      remove_instance_variable(:@hash) if defined?(@hash)
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1096,11 +1096,11 @@ module Addressable
         raise InvalidURIError, "Invalid character in host: '#{@host.to_s}'"
       end
 
-      # Reset dependant values
-      @authority = nil
-      @normalized_host = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_instance_variable(:@normalized_host) if defined?(@normalized_host)
+      remove_instance_variable(:@uri_string) if defined?(@uri_string)
+      remove_instance_variable(:@hash) if defined?(@hash)
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1204,11 +1204,11 @@ module Addressable
       self.host = defined?(new_host) ? new_host : nil
       self.port = defined?(new_port) ? new_port : nil
 
-      # Reset dependant values
-      @userinfo = nil
-      @normalized_userinfo = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@userinfo) if defined?(@userinfo)
+      remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
+      remove_instance_variable(:@uri_string) if defined?(@uri_string)
+      remove_instance_variable(:@hash) if defined?(@hash)
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1286,11 +1286,11 @@ module Addressable
       @port = new_port.to_s.to_i
       @port = nil if @port == 0
 
-      # Reset dependant values
-      @authority = nil
-      @normalized_port = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_instance_variable(:@normalized_port) if defined?(@normalized_port)
+      remove_instance_variable(:@uri_string) if defined?(@uri_string)
+      remove_instance_variable(:@hash) if defined?(@hash)
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1433,10 +1433,10 @@ module Addressable
         @path = "/#{@path}"
       end
 
-      # Reset dependant values
-      @normalized_path = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@normalized_path) if defined?(@normalized_path)
+      remove_instance_variable(:@uri_string) if defined?(@uri_string)
+      remove_instance_variable(:@hash) if defined?(@hash)
     end
 
     ##
@@ -1492,10 +1492,10 @@ module Addressable
       end
       @query = new_query ? new_query.to_str : nil
 
-      # Reset dependant values
-      @normalized_query = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@normalized_query) if defined?(@normalized_query)
+      remove_instance_variable(:@uri_string) if defined?(@uri_string)
+      remove_instance_variable(:@hash) if defined?(@hash)
     end
 
     ##
@@ -1646,9 +1646,9 @@ module Addressable
       self.path = path_component
       self.query = query_component
 
-      # Reset dependant values
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@uri_string) if defined?(@uri_string)
+      remove_instance_variable(:@hash) if defined?(@hash)
     end
 
     ##
@@ -1685,7 +1685,7 @@ module Addressable
       end
       @fragment = new_fragment ? new_fragment.to_str : nil
 
-      # Reset dependant values
+      # Reset dependent values
       remove_instance_variable(:@normalized_fragment) if defined?(@normalized_fragment)
       remove_instance_variable(:@uri_string) if defined?(@uri_string)
       remove_instance_variable(:@hash) if defined?(@hash)
@@ -2329,9 +2329,9 @@ module Addressable
     #
     # @return [Addressable::URI] <code>self</code>.
     def replace_self(uri)
-      # Reset dependant values
+      # Reset dependent values
       instance_variables.each do |var|
-        instance_variable_set(var, nil)
+        remove_instance_variable(var) if instance_variable_defined?(var)
       end
 
       @scheme = uri.scheme
