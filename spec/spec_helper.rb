@@ -6,3 +6,7 @@ begin
 rescue LoadError
   warn "warning: coveralls gem not found; skipping Coveralls"
 end
+
+RSpec.configure do |config|
+  config.warnings = true
+end

@@ -262,7 +262,7 @@ module Addressable
           "/#{$1.downcase}:/"
         end
         uri.path.gsub!(/\\/, SLASH)
-        if File.exists?(uri.path) &&
+        if File.exist?(uri.path) &&
             File.stat(uri.path).directory?
           uri.path.gsub!(/\/$/, EMPTY_STR)
           uri.path = uri.path + '/'
