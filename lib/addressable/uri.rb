@@ -1505,7 +1505,8 @@ module Addressable
     # @param [Class] return_type The return type desired. Value must be either
     #   `Hash` or `Array`.
     #
-    # @return [Hash, Array] The query string parsed as a Hash or Array object.
+    # @return [Hash, Array, nil] The query string parsed as a Hash or Array
+    #   or nil if the query string is blank.
     #
     # @example
     #   Addressable::URI.parse("?one=1&two=2&three=3").query_values
@@ -1514,6 +1515,10 @@ module Addressable
     #   #=> [["one", "two"], ["one", "three"]]
     #   Addressable::URI.parse("?one=two&one=three").query_values(Hash)
     #   #=> {"one" => "three"}
+    #   Addressable::URI.parse("?").query_values
+    #   #=> {}
+    #   Addressable::URI.parse("").query_values
+    #   #=> nil
     def query_values(return_type=Hash)
       empty_accumulator = Array == return_type ? [] : {}
       if return_type != Hash && return_type != Array
