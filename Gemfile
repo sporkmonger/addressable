@@ -3,7 +3,6 @@ source 'https://rubygems.org'
 gemspec
 
 group :development do
-  gem 'launchy'
   gem 'yard'
   gem 'redcarpet', :platform => :mri_19
   gem 'rubyforge'
