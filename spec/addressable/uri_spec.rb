@@ -173,6 +173,28 @@ describe Addressable::URI, "when created with an invalid host" do
   end
 end
 
+describe Addressable::URI, "when created with a host consisting of " +
+    "sub-delims characters" do
+  it "should not raise an error" do
+    expect(lambda do
+      Addressable::URI.new(
+        :host => Addressable::URI::CharacterClasses::SUB_DELIMS.gsub(/\\/, '')
+      )
+    end).not_to raise_error
+  end
+end
+
+describe Addressable::URI, "when created with a host consisting of " +
+    "unreserved characters" do
+  it "should not raise an error" do
+    expect(lambda do
+      Addressable::URI.new(
+        :host => Addressable::URI::CharacterClasses::UNRESERVED.gsub(/\\/, '')
+      )
+    end).not_to raise_error
+  end
+end
+
 describe Addressable::URI, "when created from nil components" do
   before do
     @uri = Addressable::URI.new
