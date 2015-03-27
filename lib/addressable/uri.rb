@@ -831,7 +831,7 @@ module Addressable
     #
     # @return [String] The scheme component.
     def scheme
-      return instance_variable_defined?(:@scheme) ? @scheme : nil
+      return defined?(@scheme) ? @scheme : nil
     end
 
     ##
@@ -881,7 +881,7 @@ module Addressable
     #
     # @return [String] The user component.
     def user
-      return instance_variable_defined?(:@user) ? @user : nil
+      return defined?(@user) ? @user : nil
     end
 
     ##
@@ -934,7 +934,7 @@ module Addressable
     #
     # @return [String] The password component.
     def password
-      return instance_variable_defined?(:@password) ? @password : nil
+      return defined?(@password) ? @password : nil
     end
 
     ##
@@ -1054,7 +1054,7 @@ module Addressable
     #
     # @return [String] The host component.
     def host
-      return instance_variable_defined?(:@host) ? @host : nil
+      return defined?(@host) ? @host : nil
     end
 
     ##
@@ -1255,7 +1255,7 @@ module Addressable
     #
     # @return [Integer] The port component.
     def port
-      return instance_variable_defined?(:@port) ? @port : nil
+      return defined?(@port) ? @port : nil
     end
 
     ##
@@ -1387,7 +1387,7 @@ module Addressable
     #
     # @return [String] The path component.
     def path
-      return instance_variable_defined?(:@path) ? @path : EMPTY_STR
+      return defined?(@path) ? @path : EMPTY_STR
     end
 
     NORMPATH = /^(?!\/)[^\/:]*:.*$/
@@ -1463,7 +1463,7 @@ module Addressable
     #
     # @return [String] The query component.
     def query
-      return instance_variable_defined?(:@query) ? @query : nil
+      return defined?(@query) ? @query : nil
     end
 
     ##
@@ -1656,7 +1656,7 @@ module Addressable
     #
     # @return [String] The fragment component.
     def fragment
-      return instance_variable_defined?(:@fragment) ? @fragment : nil
+      return defined?(@fragment) ? @fragment : nil
     end
 
     ##
@@ -1665,7 +1665,7 @@ module Addressable
     # @return [String] The fragment component, normalized.
     def normalized_fragment
       return unless self.fragment
-      return @normalized_fragment if instance_variable_defined?(:@normalized_fragment)
+      return @normalized_fragment if defined?(@normalized_fragment)
       @normalized_fragment ||= begin
         component = Addressable::URI.normalize_component(
           self.fragment,
@@ -1686,9 +1686,9 @@ module Addressable
       @fragment = new_fragment ? new_fragment.to_str : nil
 
       # Reset dependant values
-      remove_instance_variable(:@normalized_fragment) if instance_variable_defined?(:@normalized_fragment)
-      remove_instance_variable(:@uri_string) if instance_variable_defined?(:@uri_string)
-      remove_instance_variable(:@hash) if instance_variable_defined?(:@hash)
+      remove_instance_variable(:@normalized_fragment) if defined?(@normalized_fragment)
+      remove_instance_variable(:@uri_string) if defined?(@uri_string)
+      remove_instance_variable(:@hash) if defined?(@hash)
 
       # Ensure we haven't created an invalid URI
       validate()
