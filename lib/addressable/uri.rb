@@ -1094,7 +1094,7 @@ module Addressable
 
       unreserved = CharacterClasses::UNRESERVED
       sub_delims = CharacterClasses::SUB_DELIMS
-      if @host != nil && (@host =~ /[<>{}\/\?\#\@]/ ||
+      if @host != nil && (@host =~ /[<>{}\/\?\#\@"]/ ||
           (@host[/^\[(.*)\]$/, 1] != nil && @host[/^\[(.*)\]$/, 1] !~
           Regexp.new("^[#{unreserved}#{sub_delims}:]*$")))
         raise InvalidURIError, "Invalid character in host: '#{@host.to_s}'"

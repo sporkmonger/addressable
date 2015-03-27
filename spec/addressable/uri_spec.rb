@@ -157,6 +157,16 @@ describe Addressable::URI, "when created with a scheme but no hierarchical " +
   end
 end
 
+describe Addressable::URI, "quote handling" do
+  describe 'in host name' do
+    it "should raise an error for single quote" do
+      expect(lambda do
+        Addressable::URI.parse("http://local\"host/")
+      end).to raise_error(Addressable::URI::InvalidURIError)
+    end
+  end
+end
+
 describe Addressable::URI, "when created with ambiguous path" do
   it "should raise an error" do
     expect(lambda do
