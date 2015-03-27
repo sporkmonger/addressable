@@ -869,8 +869,7 @@ module Addressable
 
       # Reset dependent values
       remove_instance_variable(:@normalized_scheme) if defined?(@normalized_scheme)
-      remove_instance_variable(:@uri_string) if defined?(@uri_string)
-      remove_instance_variable(:@hash) if defined?(@hash)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -922,8 +921,7 @@ module Addressable
       remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
       remove_instance_variable(:@authority) if defined?(@authority)
       remove_instance_variable(:@normalized_user) if defined?(@normalized_user)
-      remove_instance_variable(:@uri_string) if defined?(@uri_string)
-      remove_instance_variable(:@hash) if defined?(@hash)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -977,8 +975,7 @@ module Addressable
       remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
       remove_instance_variable(:@authority) if defined?(@authority)
       remove_instance_variable(:@normalized_password) if defined?(@normalized_password)
-      remove_instance_variable(:@uri_string) if defined?(@uri_string)
-      remove_instance_variable(:@hash) if defined?(@hash)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1042,8 +1039,7 @@ module Addressable
 
       # Reset dependent values
       remove_instance_variable(:@authority) if defined?(@authority)
-      remove_instance_variable(:@uri_string) if defined?(@uri_string)
-      remove_instance_variable(:@hash) if defined?(@hash)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1099,8 +1095,7 @@ module Addressable
       # Reset dependent values
       remove_instance_variable(:@authority) if defined?(@authority)
       remove_instance_variable(:@normalized_host) if defined?(@normalized_host)
-      remove_instance_variable(:@uri_string) if defined?(@uri_string)
-      remove_instance_variable(:@hash) if defined?(@hash)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1207,8 +1202,7 @@ module Addressable
       # Reset dependent values
       remove_instance_variable(:@userinfo) if defined?(@userinfo)
       remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
-      remove_instance_variable(:@uri_string) if defined?(@uri_string)
-      remove_instance_variable(:@hash) if defined?(@hash)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1289,8 +1283,7 @@ module Addressable
       # Reset dependent values
       remove_instance_variable(:@authority) if defined?(@authority)
       remove_instance_variable(:@normalized_port) if defined?(@normalized_port)
-      remove_instance_variable(:@uri_string) if defined?(@uri_string)
-      remove_instance_variable(:@hash) if defined?(@hash)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1435,8 +1428,7 @@ module Addressable
 
       # Reset dependent values
       remove_instance_variable(:@normalized_path) if defined?(@normalized_path)
-      remove_instance_variable(:@uri_string) if defined?(@uri_string)
-      remove_instance_variable(:@hash) if defined?(@hash)
+      remove_composite_values
     end
 
     ##
@@ -1494,8 +1486,7 @@ module Addressable
 
       # Reset dependent values
       remove_instance_variable(:@normalized_query) if defined?(@normalized_query)
-      remove_instance_variable(:@uri_string) if defined?(@uri_string)
-      remove_instance_variable(:@hash) if defined?(@hash)
+      remove_composite_values
     end
 
     ##
@@ -1647,8 +1638,7 @@ module Addressable
       self.query = query_component
 
       # Reset dependent values
-      remove_instance_variable(:@uri_string) if defined?(@uri_string)
-      remove_instance_variable(:@hash) if defined?(@hash)
+      remove_composite_values
     end
 
     ##
@@ -1687,8 +1677,7 @@ module Addressable
 
       # Reset dependent values
       remove_instance_variable(:@normalized_fragment) if defined?(@normalized_fragment)
-      remove_instance_variable(:@uri_string) if defined?(@uri_string)
-      remove_instance_variable(:@hash) if defined?(@hash)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -2357,6 +2346,13 @@ module Addressable
       splitted = path.split(SLASH)
       splitted << EMPTY_STR if path.end_with? SLASH
       splitted
+    end
+
+    ##
+    # Resets composite values for the entire URI
+    def remove_composite_values
+      remove_instance_variable(:@uri_string) if defined?(@uri_string)
+      remove_instance_variable(:@hash) if defined?(@hash)
     end
   end
 end
