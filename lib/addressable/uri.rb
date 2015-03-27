@@ -720,9 +720,9 @@ module Addressable
           ).gsub("%20", "+")
         ]
       end
-      return (escaped_form_values.map do |(key, value)|
+      return escaped_form_values.map do |(key, value)|
         "#{key}=#{value}"
-      end).join("&")
+      end.join("&")
     end
 
     ##
@@ -839,7 +839,7 @@ module Addressable
     #
     # @return [String] The scheme component, normalized.
     def normalized_scheme
-      self.scheme && @normalized_scheme ||= (begin
+      self.scheme && @normalized_scheme ||= begin
         if self.scheme =~ /^\s*ssh\+svn\s*$/i
           "svn+ssh"
         else
@@ -848,7 +848,7 @@ module Addressable
             Addressable::URI::CharacterClasses::SCHEME
           )
         end
-      end)
+      end
     end
 
     ##
@@ -888,7 +888,7 @@ module Addressable
     #
     # @return [String] The user component, normalized.
     def normalized_user
-      self.user && @normalized_user ||= (begin
+      self.user && @normalized_user ||= begin
         if normalized_scheme =~ /https?/ && self.user.strip.empty? &&
             (!self.password || self.password.strip.empty?)
           nil
@@ -898,7 +898,7 @@ module Addressable
             Addressable::URI::CharacterClasses::UNRESERVED
           )
         end
-      end)
+      end
     end
 
     ##
@@ -940,7 +940,7 @@ module Addressable
     #
     # @return [String] The password component, normalized.
     def normalized_password
-      self.password && @normalized_password ||= (begin
+      self.password && @normalized_password ||= begin
         if self.normalized_scheme =~ /https?/ && self.password.strip.empty? &&
             (!self.user || self.user.strip.empty?)
           nil
@@ -950,7 +950,7 @@ module Addressable
             Addressable::URI::CharacterClasses::UNRESERVED
           )
         end
-      end)
+      end
     end
 
     ##
@@ -989,13 +989,13 @@ module Addressable
     def userinfo
       current_user = self.user
       current_password = self.password
-      (current_user || current_password) && @userinfo ||= (begin
+      (current_user || current_password) && @userinfo ||= begin
         if current_user && current_password
           "#{current_user}:#{current_password}"
         elsif current_user && !current_password
           "#{current_user}"
         end
-      end)
+      end
     end
 
     ##
@@ -1003,7 +1003,7 @@ module Addressable
     #
     # @return [String] The userinfo component, normalized.
     def normalized_userinfo
-      self.userinfo && @normalized_userinfo ||= (begin
+      self.userinfo && @normalized_userinfo ||= begin
         current_user = self.normalized_user
         current_password = self.normalized_password
         if !current_user && !current_password
@@ -1013,7 +1013,7 @@ module Addressable
         elsif current_user && !current_password
           "#{current_user}"
         end
-      end)
+      end
     end
 
     ##
@@ -1058,7 +1058,7 @@ module Addressable
     #
     # @return [String] The host component, normalized.
     def normalized_host
-      self.host && @normalized_host ||= (begin
+      self.host && @normalized_host ||= begin
         if !self.host.strip.empty?
           result = ::Addressable::IDNA.to_ascii(
             URI.unencode_component(self.host.strip.downcase)
@@ -1071,7 +1071,7 @@ module Addressable
         else
           EMPTY_STR
         end
-      end)
+      end
     end
 
     ##
@@ -1138,7 +1138,7 @@ module Addressable
     #
     # @return [String] The authority component.
     def authority
-      self.host && @authority ||= (begin
+      self.host && @authority ||= begin
         authority = ""
         if self.userinfo != nil
           authority << "#{self.userinfo}@"
@@ -1148,7 +1148,7 @@ module Addressable
           authority << ":#{self.port}"
         end
         authority
-      end)
+      end
     end
 
     ##
@@ -1156,7 +1156,7 @@ module Addressable
     #
     # @return [String] The authority component, normalized.
     def normalized_authority
-      self.authority && @normalized_authority ||= (begin
+      self.authority && @normalized_authority ||= begin
         authority = ""
         if self.normalized_userinfo != nil
           authority << "#{self.normalized_userinfo}@"
@@ -1166,7 +1166,7 @@ module Addressable
           authority << ":#{self.normalized_port}"
         end
         authority
-      end)
+      end
     end
 
     ##
@@ -1214,18 +1214,16 @@ module Addressable
     #
     # @return [String] The serialized origin.
     def origin
-      return (if self.scheme && self.authority
+      if self.scheme && self.authority
         if self.normalized_port
-          (
-            "#{self.normalized_scheme}://#{self.normalized_host}" +
-            ":#{self.normalized_port}"
-          )
+          "#{self.normalized_scheme}://#{self.normalized_host}" +
+          ":#{self.normalized_port}"
         else
           "#{self.normalized_scheme}://#{self.normalized_host}"
         end
       else
         "null"
-      end)
+      end
     end
 
     # Returns an array of known ip-based schemes. These schemes typically
@@ -1323,12 +1321,12 @@ module Addressable
     #
     # @return [String] The components that identify a site.
     def site
-      (self.scheme || self.authority) && @site ||= (begin
+      (self.scheme || self.authority) && @site ||= begin
         site_string = ""
         site_string << "#{self.scheme}:" if self.scheme != nil
         site_string << "//#{self.authority}" if self.authority != nil
         site_string
-      end)
+      end
     end
 
     ##
@@ -1341,7 +1339,7 @@ module Addressable
     #
     # @return [String] The normalized components that identify a site.
     def normalized_site
-      self.site && @normalized_site ||= (begin
+      self.site && @normalized_site ||= begin
         site_string = ""
         if self.normalized_scheme != nil
           site_string << "#{self.normalized_scheme}:"
@@ -1350,7 +1348,7 @@ module Addressable
           site_string << "//#{self.normalized_authority}"
         end
         site_string
-      end)
+      end
     end
 
     ##
@@ -1389,7 +1387,7 @@ module Addressable
     #
     # @return [String] The path component, normalized.
     def normalized_path
-      @normalized_path ||= (begin
+      @normalized_path ||= begin
         path = self.path.to_s
         if self.scheme == nil && path =~ NORMPATH
           # Relative paths with colons in the first segment are ambiguous.
@@ -1397,12 +1395,12 @@ module Addressable
         end
         # String#split(delimeter, -1) uses the more strict splitting behavior
         # found by default in Python.
-        result = (path.strip.split(SLASH, -1).map do |segment|
+        result = path.strip.split(SLASH, -1).map do |segment|
           Addressable::URI.normalize_component(
             segment,
             Addressable::URI::CharacterClasses::PCHAR
           )
-        end).join(SLASH)
+        end.join(SLASH)
 
         result = URI.normalize_path(result)
         if result.empty? &&
@@ -1410,7 +1408,7 @@ module Addressable
           result = SLASH
         end
         result
-      end)
+      end
     end
 
     ##
@@ -1468,9 +1466,9 @@ module Addressable
       modified_query_class.sub!("\\&", "").sub!("\\;", "")
       pairs = (self.query || "").split("&", -1)
       pairs.sort! if flags.include?(:sorted)
-      component = (pairs.map do |pair|
+      component = pairs.map do |pair|
         Addressable::URI.normalize_component(pair, modified_query_class, "+")
-      end).join("&")
+      end.join("&")
       component == "" ? nil : component
     end
 
@@ -1515,9 +1513,9 @@ module Addressable
         raise ArgumentError, "Invalid return type. Must be Hash or Array."
       end
       return nil if self.query == nil
-      split_query = (self.query.split("&").map do |pair|
+      split_query = self.query.split("&").map do |pair|
         pair.split("=", 2) if pair && !pair.empty?
-      end).compact
+      end.compact
       return split_query.inject(empty_accumulator.dup) do |accu, pair|
         # I'd rather use key/value identifiers instead of array lookups,
         # but in this case I really want to maintain the exact pair structure,
@@ -2098,7 +2096,7 @@ module Addressable
     #
     # @return [Integer] A hash of the URI.
     def hash
-      return @hash ||= (self.to_s.hash * -1)
+      return @hash ||= self.to_s.hash * -1
     end
 
     ##
@@ -2181,7 +2179,7 @@ module Addressable
         raise InvalidURIError,
           "Cannot assemble URI string with ambiguous path: '#{self.path}'"
       end
-      @uri_string ||= (begin
+      @uri_string ||= begin
         uri_string = ""
         uri_string << "#{self.scheme}:" if self.scheme != nil
         uri_string << "//#{self.authority}" if self.authority != nil
@@ -2192,7 +2190,7 @@ module Addressable
           uri_string.force_encoding(Encoding::UTF_8)
         end
         uri_string
-      end)
+      end
     end
 
     ##
