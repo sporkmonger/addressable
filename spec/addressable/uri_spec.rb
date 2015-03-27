@@ -18,6 +18,7 @@ require "spec_helper"
 
 require "addressable/uri"
 require "uri"
+require "ipaddr"
 
 if !"".respond_to?("force_encoding")
   class String
@@ -1927,6 +1928,12 @@ describe Addressable::URI, "when assigning IPv6 address" do
     expect(uri.to_s).to eq('http://[3ffe:1900:4545:3:200:f8ff:fe21:67cf]/')
   end
 
+  it "should allow to set bare IPv6 address as hostname with IPAddr object" do
+    uri = Addressable::URI.parse("http://[::1]/")
+    uri.hostname = IPAddr.new('3ffe:1900:4545:3:200:f8ff:fe21:67cf')
+    expect(uri.to_s).to eq('http://[3ffe:1900:4545:3:200:f8ff:fe21:67cf]/')
+  end
+
   it "should not allow to set bare IPv6 address as host" do
     uri = Addressable::URI.parse("http://[::1]/")
     skip "not checked"
@@ -3680,6 +3687,19 @@ describe Addressable::URI, "when parsed from " +
     @uri.host = "newexample.com"
     expect(@uri.host).to eq("newexample.com")
     expect(@uri.authority).to eq("user:pass@newexample.com")
+  end
+
+  it "should have the correct host after assignment" do
+    @uri.hostname = "newexample.com"
+    expect(@uri.host).to eq("newexample.com")
+    expect(@uri.hostname).to eq("newexample.com")
+    expect(@uri.authority).to eq("user:pass@newexample.com")
+  end
+
+  it "should raise an error if assigning a bogus object to the hostname" do
+    expect(lambda do
+      @uri.hostname = Object.new
+    end).to raise_error
   end
 
   it "should have the correct port after assignment" do

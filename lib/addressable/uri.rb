@@ -1128,7 +1128,10 @@ module Addressable
     #
     # @param [String, #to_str] new_hostname The new hostname for this URI.
     def hostname=(new_hostname)
-      if new_hostname && !new_hostname.respond_to?(:to_str)
+      if new_hostname &&
+          (new_hostname.respond_to?(:ipv4?) || new_hostname.respond_to?(:ipv6?))
+        new_hostname = new_hostname.to_s
+      elsif new_hostname && !new_hostname.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_hostname.class} into String."
       end
       v = new_hostname ? new_hostname.to_str : nil
