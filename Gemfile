@@ -9,7 +9,7 @@ group :development do
 end
 
 group :test, :development do
-  gem 'simplecov'
+  gem 'simplecov', :require => false
   gem 'coveralls', :require => false, :platforms => [
     :ruby_19, :ruby_20, :ruby_21, :rbx, :jruby
   ]
