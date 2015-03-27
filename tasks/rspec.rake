@@ -1,7 +1,11 @@
 require "rspec/core/rake_task"
 
 namespace :spec do
-  RSpec::Core::RakeTask.new(:rcov) do |t|
+  RSpec::Core::RakeTask.new(:simplecov) do |t|
+    require 'simplecov'
+    SimpleCov.start do
+      add_filter "/spec/"
+    end
     t.pattern = FileList['spec/**/*_spec.rb']
     t.rspec_opts = ['--color', '--format', 'documentation']
   end
@@ -28,9 +32,9 @@ namespace :spec do
     t.fail_on_error = false
   end
 
-  namespace :rcov do
+  namespace :simplecov do
     desc "Browse the code coverage report."
-    task :browse => "spec:rcov" do
+    task :browse => "spec:simplecov" do
       require "launchy"
       Launchy.open("coverage/index.html")
     end
@@ -40,4 +44,4 @@ end
 desc "Alias to spec:normal"
 task "spec" => "spec:normal"
 
-task "clobber" => ["spec:clobber_rcov"]
+task "clobber" => ["spec:clobber_simplecov"]

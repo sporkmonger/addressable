@@ -175,7 +175,6 @@ module Addressable
 
       p = []
       ucs4_to_utf8 = lambda do |ch|
-        # For some reason, rcov likes to drop BUS errors here.
         if ch < 128
           p << ch
         elsif ch < 2048
