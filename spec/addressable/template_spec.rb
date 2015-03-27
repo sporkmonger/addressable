@@ -16,6 +16,7 @@
 
 require "spec_helper"
 
+require "bigdecimal"
 require "addressable/template"
 
 shared_examples_for 'expands' do |tests|
@@ -75,8 +76,6 @@ describe "==" do
 end
 
 describe "Type conversion" do
-  require "bigdecimal"
-
   subject {
     {
       :var => true,
