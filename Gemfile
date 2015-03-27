@@ -19,7 +19,7 @@ gem 'idn-ruby', :platform => :mri_19
 
 platforms :ruby_18 do
   gem 'mime-types', '~> 1.25'
-  gem 'rest-client', '~> 1.7.3'
+  gem 'rest-client', '~> 1.6.8'
 end
 
 platforms :rbx do
