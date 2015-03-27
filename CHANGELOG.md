@@ -1,3 +1,7 @@
+# Addressable 2.3.8
+- fix warnings
+- update dependency gems
+
 # Addressable 2.3.7
 - fix scenario in which invalid URIs don't get an exception until inspected
 - handle hostnames with two adjacent periods correctly
