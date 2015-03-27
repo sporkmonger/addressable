@@ -728,6 +728,21 @@ class DumbProcessor
 end
 
 describe Addressable::Template do
+  describe 'initialize' do
+    context 'with a non-string' do
+      it 'raises a TypeError' do
+        expect { Addressable::Template.new(nil) }.to raise_error(TypeError)
+      end
+    end
+  end
+
+  describe 'freeze' do
+    subject { Addressable::Template.new("http://example.com/{first}/{+second}/") }
+    it 'freezes the template' do
+      expect(subject.freeze).to be_frozen
+    end
+  end
+
   describe "Matching" do
     let(:uri){
       Addressable::URI.parse(
@@ -818,6 +833,21 @@ describe Addressable::Template do
       its(:captures){ should == ["foo", nil, nil] }
     end
   end
+
+  describe 'match' do
+    subject { Addressable::Template.new('http://example.com/first/second/') }
+    context 'when the URI is the same as the template' do
+      it 'returns the match data itself with an empty mapping' do
+        uri = Addressable::URI.parse('http://example.com/first/second/')
+        match_data = subject.match(uri)
+        expect(match_data).to be_an Addressable::Template::MatchData
+        expect(match_data.uri).to eq(uri)
+        expect(match_data.template).to eq(subject)
+        expect(match_data.mapping).to be_empty
+      end
+    end
+  end
+
   describe "extract" do
     let(:template) {
       Addressable::Template.new(
