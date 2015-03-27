@@ -1,6 +1,7 @@
 # Addressable 2.3.8
 - fix warnings
 - update dependency gems
+- support for 1.8.x officially deprecated
 
 # Addressable 2.3.7
 - fix scenario in which invalid URIs don't get an exception until inspected
