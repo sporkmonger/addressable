@@ -1069,6 +1069,15 @@ describe Addressable::URI, "when parsed from something that looks " +
   end
 end
 
+describe Addressable::URI, "when parsed from a standard library URI object" do
+  it "should parse without error" do
+    uri = Addressable::URI.parse(URI.parse("http://example.com/"))
+    expect(lambda do
+      Addressable::URI.parse(uri)
+    end).not_to raise_error
+  end
+end
+
 describe Addressable::URI, "when parsed from ''" do
   before do
     @uri = Addressable::URI.parse("")

@@ -19,9 +19,7 @@
 require "addressable/version"
 require "addressable/idna"
 
-if RUBY_VERSION =~ /^1.8/
-  warn('Ruby 1.8.x is no longer supported in Addressable.')
-end
+warn('Addressable no longer supports Ruby 1.8.x.') if RUBY_VERSION =~ /^1.8/
 
 ##
 # Addressable is a library for processing links and URIs.
