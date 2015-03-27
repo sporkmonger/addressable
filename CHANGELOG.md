@@ -1,3 +1,7 @@
+# Addressable 2.4.0
+- support for 1.8.x dropped
+- double quotes in a host now raises an error
+
 # Addressable 2.3.8
 - fix warnings
 - update dependency gems

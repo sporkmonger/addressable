@@ -20,7 +20,7 @@ require "addressable/version"
 require "addressable/idna"
 
 if RUBY_VERSION =~ /^1.8/
-  warn('Support for Ruby 1.8.x in Addressable is deprecated.')
+  warn('Ruby 1.8.x is no longer supported in Addressable.')
 end
 
 ##
