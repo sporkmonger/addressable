@@ -1664,13 +1664,15 @@ module Addressable
     #
     # @return [String] The fragment component, normalized.
     def normalized_fragment
-      self.fragment && @normalized_fragment ||= (begin
+      return unless self.fragment
+      return @normalized_fragment if instance_variable_defined?(:@normalized_fragment)
+      @normalized_fragment ||= begin
         component = Addressable::URI.normalize_component(
           self.fragment,
           Addressable::URI::CharacterClasses::FRAGMENT
         )
         component == "" ? nil : component
-      end)
+      end
     end
 
     ##
@@ -1684,9 +1686,9 @@ module Addressable
       @fragment = new_fragment ? new_fragment.to_str : nil
 
       # Reset dependant values
-      @normalized_fragment = nil
-      @uri_string = nil
-      @hash = nil
+      remove_instance_variable(:@normalized_fragment) if instance_variable_defined?(:@normalized_fragment)
+      remove_instance_variable(:@uri_string) if instance_variable_defined?(:@uri_string)
+      remove_instance_variable(:@hash) if instance_variable_defined?(:@hash)
 
       # Ensure we haven't created an invalid URI
       validate()
