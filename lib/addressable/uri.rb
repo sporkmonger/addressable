@@ -1475,15 +1475,19 @@ module Addressable
     #
     # @return [String] The query component, normalized.
     def normalized_query(*flags)
-      modified_query_class = Addressable::URI::CharacterClasses::QUERY.dup
-      # Make sure possible key-value pair delimiters are escaped.
-      modified_query_class.sub!("\\&", "").sub!("\\;", "")
-      pairs = (self.query || "").split("&", -1)
-      pairs.sort! if flags.include?(:sorted)
-      component = pairs.map do |pair|
-        Addressable::URI.normalize_component(pair, modified_query_class, "+")
-      end.join("&")
-      component == "" ? nil : component
+      return nil unless self.query
+      return @normalized_query if defined?(@normalized_query)
+      @normalized_query ||= begin
+        modified_query_class = Addressable::URI::CharacterClasses::QUERY.dup
+        # Make sure possible key-value pair delimiters are escaped.
+        modified_query_class.sub!("\\&", "").sub!("\\;", "")
+        pairs = (self.query || "").split("&", -1)
+        pairs.sort! if flags.include?(:sorted)
+        component = pairs.map do |pair|
+          Addressable::URI.normalize_component(pair, modified_query_class, "+")
+        end.join("&")
+        component == "" ? nil : component
+      end
     end
 
     ##
