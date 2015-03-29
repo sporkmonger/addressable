@@ -238,6 +238,17 @@ module Addressable
     end
 
     ##
+    # Freeze URI, initializing instance variables.
+    #
+    # @return [Addressable::URI] The frozen URI object.
+    def freeze
+      self.variables
+      self.variable_defaults
+      self.named_captures
+      super
+    end
+
+    ##
     # @return [String] The Template object's pattern.
     attr_reader :pattern
 
@@ -616,7 +627,9 @@ module Addressable
     #   that in conjunction with this method, but I'm reluctant to raise an
     #   exception in that scenario right now.
     def named_captures
-      Hash[self.variables.zip((1..self.variables.length).map { |i| Array(i) })]
+      @named_captures ||= Hash[
+        self.variables.zip((1..self.variables.length).map { |i| Array(i) })
+      ]
     end
 
   private
