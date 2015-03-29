@@ -651,6 +651,10 @@ module Addressable
     # Generates a route result for a given set of parameters.
     # Should only be used by rack-mount.
     #
+    # @param params [Hash] The set of parameters used to expand the template.
+    # @param recall [Hash] Default parameters used to expand the template.
+    # @param options [Hash] Either a `:processor` or a `:parameterize` block.
+    #
     # @api private
     def generate(params={}, recall={}, options={})
       merged = recall.merge(params)
