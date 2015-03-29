@@ -100,6 +100,6 @@ idn gem:
 
 ```console
 $ sudo apt-get install idn # Debian/Ubuntu
-$ sudo brew install libidn # OS X
-$ sudo gem install idn-ruby
+$ brew install libidn # OS X
+$ gem install idn-ruby
 ```
