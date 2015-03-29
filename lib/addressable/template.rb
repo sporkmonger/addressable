@@ -616,20 +616,35 @@ module Addressable
     end
 
     ##
-    # Returns a mapping of variables to the corresponding indexes in the
-    # {MatchData} structure.
+    # Coerces a template into a `Regexp` object. This regular expression will
+    # behave very similarly to the actual template, and should match the same
+    # URI values, but it cannot fully handle, for example, values that would
+    # extract to an `Array`.
     #
-    # @return [Hash] Mapping of template variables to {MatchData} indexes.
+    # @return [Regexp] A regular expression which should match the template.
+    def to_regexp
+      _, source = parse_template_pattern(pattern)
+      Regexp.new(source)
+    end
+
+    ##
+    # Returns the source of the coerced `Regexp`.
     #
-    # @note
-    #   This will almost certainly give unexpected results for templates
-    #   that use the same variable name twice. There's no good reason to do
-    #   that in conjunction with this method, but I'm reluctant to raise an
-    #   exception in that scenario right now.
+    # @return [String] The source of the `Regexp` given by {#to_regexp}.
+    #
+    # @api private
+    def source
+      self.to_regexp.source
+    end
+
+    ##
+    # Returns the named captures of the coerced `Regexp`.
+    #
+    # @return [String] The named captures of the `Regexp` given by {#to_regexp}.
+    #
+    # @api private
     def named_captures
-      @named_captures ||= Hash[
-        self.variables.zip((1..self.variables.length).map { |i| Array(i) })
-      ]
+      self.to_regexp.named_captures
     end
 
   private
@@ -928,7 +943,7 @@ module Addressable
 
           result = processor && processor.respond_to?(:match) ? processor.match(name) : nil
           if result
-            "(#{ result })"
+            "(?<#{name}>#{ result })"
           else
             group = case operator
             when '+'
@@ -949,9 +964,9 @@ module Addressable
               "#{ UNRESERVED }*?"
             end
             if modifier == '*'
-              "(#{group}(?:#{joiner}?#{group})*)?"
+              "(?<#{name}>#{group}(?:#{joiner}?#{group})*)?"
             else
-              "(#{group})?"
+              "(?<#{name}>#{group})?"
             end
           end
         end.join("#{joiner}?")
