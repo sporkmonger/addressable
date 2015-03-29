@@ -839,7 +839,8 @@ module Addressable
     #
     # @return [String] The scheme component, normalized.
     def normalized_scheme
-      self.scheme && @normalized_scheme ||= begin
+      return nil unless self.scheme
+      @normalized_scheme ||= begin
         if self.scheme =~ /^\s*ssh\+svn\s*$/i
           "svn+ssh"
         else
@@ -888,7 +889,9 @@ module Addressable
     #
     # @return [String] The user component, normalized.
     def normalized_user
-      self.user && @normalized_user ||= begin
+      return nil unless self.user
+      return @normalized_user if defined?(@normalized_user)
+      @normalized_user ||= begin
         if normalized_scheme =~ /https?/ && self.user.strip.empty? &&
             (!self.password || self.password.strip.empty?)
           nil
@@ -940,7 +943,9 @@ module Addressable
     #
     # @return [String] The password component, normalized.
     def normalized_password
-      self.password && @normalized_password ||= begin
+      return nil unless self.password
+      return @normalized_password if defined?(@normalized_password)
+      @normalized_password ||= begin
         if self.normalized_scheme =~ /https?/ && self.password.strip.empty? &&
             (!self.user || self.user.strip.empty?)
           nil
@@ -1003,7 +1008,9 @@ module Addressable
     #
     # @return [String] The userinfo component, normalized.
     def normalized_userinfo
-      self.userinfo && @normalized_userinfo ||= begin
+      return nil unless self.userinfo
+      return @normalized_userinfo if defined?(@normalized_userinfo)
+      @normalized_userinfo ||= begin
         current_user = self.normalized_user
         current_password = self.normalized_password
         if !current_user && !current_password
@@ -1058,7 +1065,8 @@ module Addressable
     #
     # @return [String] The host component, normalized.
     def normalized_host
-      self.host && @normalized_host ||= begin
+      return nil unless self.host
+      @normalized_host ||= begin
         if !self.host.strip.empty?
           result = ::Addressable::IDNA.to_ascii(
             URI.unencode_component(self.host.strip.downcase)
@@ -1156,7 +1164,8 @@ module Addressable
     #
     # @return [String] The authority component, normalized.
     def normalized_authority
-      self.authority && @normalized_authority ||= begin
+      return nil unless self.authority
+      @normalized_authority ||= begin
         authority = ""
         if self.normalized_userinfo != nil
           authority << "#{self.normalized_userinfo}@"
@@ -1339,7 +1348,8 @@ module Addressable
     #
     # @return [String] The normalized components that identify a site.
     def normalized_site
-      self.site && @normalized_site ||= begin
+      return nil unless self.site
+      @normalized_site ||= begin
         site_string = ""
         if self.normalized_scheme != nil
           site_string << "#{self.normalized_scheme}:"
@@ -1652,7 +1662,7 @@ module Addressable
     #
     # @return [String] The fragment component, normalized.
     def normalized_fragment
-      return unless self.fragment
+      return nil unless self.fragment
       return @normalized_fragment if defined?(@normalized_fragment)
       @normalized_fragment ||= begin
         component = Addressable::URI.normalize_component(
@@ -2096,7 +2106,7 @@ module Addressable
     #
     # @return [Integer] A hash of the URI.
     def hash
-      return @hash ||= self.to_s.hash * -1
+      @hash ||= self.to_s.hash * -1
     end
 
     ##
