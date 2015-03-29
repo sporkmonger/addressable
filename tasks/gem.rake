@@ -18,6 +18,8 @@ namespace :gem do
       exit(1)
     end
 
+    s.required_ruby_version = '>= 1.9.0'
+
     s.add_development_dependency 'rake', '~> 10.4', '>= 10.4.2'
     s.add_development_dependency 'rspec', '~> 3.0'
     s.add_development_dependency 'rspec-its', '~> 1.1'
