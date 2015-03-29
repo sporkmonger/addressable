@@ -647,6 +647,15 @@ module Addressable
       self.to_regexp.named_captures
     end
 
+    ##
+    # Generates a route result for a given set of parameters.
+    # Should only be used by rack-routes.
+    #
+    # @api private
+    def generate(params, recall={}, options={})
+      expand(params, options[:processor])
+    end
+
   private
     def ordered_variable_defaults
       @ordered_variable_defaults ||= (
