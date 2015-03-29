@@ -592,6 +592,7 @@ module Addressable
       @variables ||= ordered_variable_defaults.map { |var, val| var }.uniq
     end
     alias_method :keys, :variables
+    alias_method :names, :variables
 
     ##
     # Returns a mapping of variables to their default values specified
@@ -601,6 +602,21 @@ module Addressable
     def variable_defaults
       @variable_defaults ||=
         Hash[*ordered_variable_defaults.reject { |k, v| v.nil? }.flatten]
+    end
+
+    ##
+    # Returns a mapping of variables to the corresponding indexes in the
+    # {MatchData} structure.
+    #
+    # @return [Hash] Mapping of template variables to {MatchData} indexes.
+    #
+    # @note
+    #   This will almost certainly give unexpected results for templates
+    #   that use the same variable name twice. There's no good reason to do
+    #   that in conjunction with this method, but I'm reluctant to raise an
+    #   exception in that scenario right now.
+    def named_captures
+      Hash[self.variables.zip((1..self.variables.length).map { |i| Array(i) })]
     end
 
   private
