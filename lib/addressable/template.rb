@@ -234,7 +234,7 @@ module Addressable
       if !pattern.respond_to?(:to_str)
         raise TypeError, "Can't convert #{pattern.class} into String."
       end
-      @pattern = pattern.to_str.freeze
+      @pattern = pattern.to_str.dup.freeze
     end
 
     ##
