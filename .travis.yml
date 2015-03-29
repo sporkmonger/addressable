@@ -2,6 +2,7 @@ before_install:
  - sudo apt-get update
  - sudo apt-get install idn
 bundler_args: --without development
+cache: bundler
 language: ruby
 rvm:
   - 1.9.2
