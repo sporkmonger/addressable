@@ -1264,10 +1264,14 @@ module Addressable
     #
     # @return [Integer] The port component, normalized.
     def normalized_port
-      if URI.port_mapping[self.normalized_scheme] == self.port
-        nil
-      else
-        self.port
+      return nil unless self.port
+      return @normalized_port if defined?(@normalized_port)
+      @normalized_port ||= begin
+        if URI.port_mapping[self.normalized_scheme] == self.port
+          nil
+        else
+          self.port
+        end
       end
     end
 
