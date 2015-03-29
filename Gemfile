@@ -25,7 +25,3 @@ end
 
 gem 'idn', :platform => :mri_18
 gem 'idn-ruby', :platform => :mri_19
-
-platforms :rbx do
-  gem 'rubysl-openssl', '2.2.1'
-end
