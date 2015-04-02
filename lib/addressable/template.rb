@@ -649,7 +649,7 @@ module Addressable
 
   private
     def ordered_variable_defaults
-      @ordered_variable_defaults ||= (
+      @ordered_variable_defaults ||= begin
         expansions, _ = parse_template_pattern(pattern)
         expansions.map do |capture|
           _, _, varlist = *capture.match(EXPRESSION)
@@ -657,7 +657,7 @@ module Addressable
             varspec[VARSPEC, 1]
           end
         end.flatten
-      )
+      end
     end
 
 
