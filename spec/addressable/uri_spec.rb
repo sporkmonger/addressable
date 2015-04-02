@@ -227,6 +227,14 @@ describe Addressable::URI, "when created from nil components" do
     expect(@uri.default_port).to eq(nil)
   end
 
+  it "should have an empty query_value" do
+    expect(@uri.query_values).to eq({})
+  end
+
+  it "should have an emtpy query_values Array when requesting an array" do
+    expect(@uri.query_values(Array)).to eq([])
+  end
+
   it "should be empty" do
     expect(@uri).to be_empty
   end
@@ -1602,7 +1610,7 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have no query string" do
     expect(@uri.query).to eq(nil)
-    expect(@uri.query_values).to eq(nil)
+    expect(@uri.query_values).to eq({})
   end
 
   it "should have a request URI of '/'" do
