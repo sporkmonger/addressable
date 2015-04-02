@@ -640,7 +640,7 @@ module Addressable
     ##
     # Returns the named captures of the coerced `Regexp`.
     #
-    # @return [String] The named captures of the `Regexp` given by {#to_regexp}.
+    # @return [Hash] The named captures of the `Regexp` given by {#to_regexp}.
     #
     # @api private
     def named_captures
