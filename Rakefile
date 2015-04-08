@@ -19,7 +19,7 @@ TEXT
 
 PKG_FILES = FileList[
     "lib/**/*", "spec/**/*", "vendor/**/*", "data/**/*",
-    "tasks/**/*", "website/**/*",
+    "tasks/**/*",
     "[A-Z]*", "Rakefile"
 ].exclude(/database\.yml/).exclude(/Gemfile\.lock/).exclude(/[_\.]git$/)
 
