@@ -647,6 +647,40 @@ module Addressable
       self.to_regexp.named_captures
     end
 
+    ##
+    # Generates a route result for a given set of parameters.
+    # Should only be used by rack-mount.
+    #
+    # @param params [Hash] The set of parameters used to expand the template.
+    # @param recall [Hash] Default parameters used to expand the template.
+    # @param options [Hash] Either a `:processor` or a `:parameterize` block.
+    #
+    # @api private
+    def generate(params={}, recall={}, options={})
+      merged = recall.merge(params)
+      if options[:processor]
+        processor = options[:processor]
+      elsif options[:parameterize]
+        # TODO: This is sending me into fits trying to shoe-horn this into
+        # the existing API. I think I've got this backwards and processors
+        # should be a set of 4 optional blocks named :validate, :transform,
+        # :match, and :restore. Having to use a singleton here is a huge
+        # code smell.
+        processor = Object.new
+        class <<processor
+          attr_accessor :block
+          def transform(name, value)
+            block.call(name, value)
+          end
+        end
+        processor.block = options[:parameterize]
+      else
+        processor = nil
+      end
+      result = self.expand(merged, processor)
+      result.to_s if result
+    end
+
   private
     def ordered_variable_defaults
       @ordered_variable_defaults ||= begin
