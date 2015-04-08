@@ -38,7 +38,7 @@ describe Rack::Mount do
       }, {:id => 'unidentified'}, :one)
       set.add_route(app_two, {
         :request_method => 'GET',
-        :path_info => Addressable::Template.new('/two/{id}/')
+        :path_info => Addressable::Template.new('/two/')
       }, {:id => 'unidentified'}, :two)
       set.add_route(app_three, {
         :request_method => 'GET',
@@ -71,18 +71,18 @@ describe Rack::Mount do
 
   it "should generate from routes with Addressable::Template" do
     path, _ = routes.generate(:path_info, :two, {:id => '654'})
-    expect(path).to eq '/two/654/'
+    expect(path).to eq '/two/'
   end
 
   it "should generate from routes with Addressable::Template using defaults" do
     path, _ = routes.generate(:path_info, :two, {})
-    expect(path).to eq '/two/unidentified/'
+    expect(path).to eq '/two/'
   end
 
   it "should recognize routes with Addressable::Template" do
     request = Rack::Request.new(
       'REQUEST_METHOD' => 'GET',
-      'PATH_INFO' => '/two/654/'
+      'PATH_INFO' => '/two/'
     )
     route, matches, params = routes.recognize(request)
     expect(route).not_to be_nil
