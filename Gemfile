@@ -13,6 +13,8 @@ group :test, :development do
   gem 'coveralls', :require => false, :platforms => [
     :ruby_19, :ruby_20, :ruby_21, :rbx, :jruby
   ]
+  # Used to test compatibility.
+  gem 'rack-mount', git: 'https://github.com/sporkmonger/rack-mount.git'
 end
 
 gem 'idn', :platform => :mri_18
