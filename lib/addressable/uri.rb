@@ -2257,7 +2257,7 @@ module Addressable
       return nil
     end
 
-  private
+  protected
     SELF_REF = '.'
     PARENT = '..'
 
@@ -2351,7 +2351,7 @@ module Addressable
     end
 
     ##
-    # Splits path string with "/"(slash).
+    # Splits path string with "/" (slash).
     # It is considered that there is empty string after last slash when
     # path ends with slash.
     #
@@ -2366,6 +2366,8 @@ module Addressable
 
     ##
     # Resets composite values for the entire URI
+    #
+    # @api private
     def remove_composite_values
       remove_instance_variable(:@uri_string) if defined?(@uri_string)
       remove_instance_variable(:@hash) if defined?(@hash)
