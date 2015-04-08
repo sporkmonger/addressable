@@ -16,4 +16,7 @@ matrix:
     - rvm: ruby-head
     - rvm: jruby-head
   fast_finish: true
+# before_install:
+#   - apt-get update
+#   - apt-get install idn
 sudo: false
