@@ -31,7 +31,7 @@ describe Rack::Mount do
     proc { |env| [200, {'Content-Type' => 'text/plain'}, 'Route 3'] }
   end
   let(:routes) do
-    set = Rack::Mount::RouteSet.new do |set|
+    s = Rack::Mount::RouteSet.new do |set|
       set.add_route(app_one, {
         :request_method => 'GET',
         :path_info => Addressable::Template.new('/one/{id}/')
@@ -45,8 +45,8 @@ describe Rack::Mount do
         :path_info => Addressable::Template.new('/three/{id}/').to_regexp
       }, {:id => 'unidentified'}, :three)
     end
-    set.rehash
-    set
+    s.rehash
+    s
   end
 
   it "should generate from routes with Addressable::Template" do
@@ -64,9 +64,10 @@ describe Rack::Mount do
       'REQUEST_METHOD' => 'GET',
       'PATH_INFO' => '/one/123/'
     )
-    route, matches, params = routes.recognize(request)
+    route, _, params = routes.recognize(request)
     expect(route).not_to be_nil
     expect(route.app).to eq app_one
+    expect(params).to eq({id: '123'})
   end
 
   it "should generate from routes with Addressable::Template" do
@@ -84,9 +85,10 @@ describe Rack::Mount do
       'REQUEST_METHOD' => 'GET',
       'PATH_INFO' => '/two/'
     )
-    route, matches, params = routes.recognize(request)
+    route, _, params = routes.recognize(request)
     expect(route).not_to be_nil
     expect(route.app).to eq app_two
+    expect(params).to eq({id: 'unidentified'})
   end
 
   it "should recognize routes with derived Regexp" do
@@ -94,8 +96,9 @@ describe Rack::Mount do
       'REQUEST_METHOD' => 'GET',
       'PATH_INFO' => '/three/789/'
     )
-    route, matches, params = routes.recognize(request)
+    route, _, params = routes.recognize(request)
     expect(route).not_to be_nil
     expect(route.app).to eq app_three
+    expect(params).to eq({id: '789'})
   end
 end
