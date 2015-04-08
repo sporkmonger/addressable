@@ -25,4 +25,4 @@ group :test, :development do
   gem 'rack-mount', git: 'https://github.com/sporkmonger/rack-mount.git'
 end
 
-gem 'idn-ruby', :platform => :mri_19
+gem 'idn-ruby', :platform => [:mri_19, :mri_20, :mri_21]
