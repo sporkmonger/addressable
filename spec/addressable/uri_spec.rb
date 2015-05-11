@@ -69,6 +69,14 @@ describe Addressable::URI, "when created with a non-numeric port number" do
   end
 end
 
+describe Addressable::URI, "when created with a invalid encoded port number" do
+  it "should raise an error" do
+    expect(lambda do
+      Addressable::URI.new(:port => "%eb")
+    end).to raise_error(Addressable::URI::InvalidURIError)
+  end
+end
+
 describe Addressable::URI, "when created with a non-string scheme" do
   it "should raise an error" do
     expect(lambda do
