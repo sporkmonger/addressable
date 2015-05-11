@@ -434,7 +434,6 @@ module Addressable
         leave_encoded.include?(c) ? sequence : c
       end
       result.force_encoding("utf-8") if result.respond_to?(:force_encoding)
-
       if return_type == String
         return result
       elsif return_type == ::Addressable::URI
