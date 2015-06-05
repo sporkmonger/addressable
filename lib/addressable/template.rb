@@ -720,19 +720,54 @@ module Addressable
     # @return [String] The expanded expression
     def transform_partial_capture(mapping, capture, processor = nil)
       _, operator, varlist = *capture.match(EXPRESSION)
-      is_first = true
-      varlist.split(',').inject('') do |acc, varspec|
-        _, name, _ = *varspec.match(VARSPEC)
-        value = mapping[name]
-        if value
-          operator = '&' if !is_first && operator == '?'
-          acc << transform_capture(mapping, "{#{operator}#{varspec}}", processor)
-        else
-          operator = '&' if !is_first && operator == '?'
-          acc << "{#{operator}#{varspec}}"
+
+      vars = varlist.split(',')
+
+      if '?' == operator
+        # partial expansion of form style query variables sometimes requires a
+        # slight reordering of the variables to produce a value url.
+        first_to_expand = vars.find { |varspec|
+          _, name, _ =  *varspec.match(VARSPEC)
+          mapping.key? name
+        }
+
+        vars = [first_to_expand] + vars.reject {|varspec| varspec == first_to_expand}
+      end
+
+      vars
+        .zip(operator_sequence(operator).take(vars.length))
+        .reduce("") do |acc, (varspec, op)|
+          _, name, _ =  *varspec.match(VARSPEC)
+
+          acc << if mapping.key? name
+                   transform_capture(mapping, "{#{op}#{varspec}}", processor)
+                 else
+                   "{#{op}#{varspec}}"
+                 end
+      end
+    end
+
+    ##
+    # Creates a lazy Enumerator of the operators that should be used to expand
+    # variables in a varlist starting with `operator`. For example, an operator
+    # `"?"` results in the sequence `"?","&","&"...`
+    #
+    # @param [String] operator from which to generate a sequence
+    #
+    # @return [Enumerator] sequence of operators
+    def operator_sequence(operator)
+      rest_operator = if "?" == operator
+                        "&"
+                      else
+                        operator
+                      end
+      head_operator = operator
+
+      Enumerator.new do |y|
+        y << head_operator.to_s
+        while true
+          y << rest_operator.to_s
         end
-        is_first = false
-        acc
       end
     end
 
