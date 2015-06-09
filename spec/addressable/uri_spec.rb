@@ -168,6 +168,40 @@ describe Addressable::URI, "quote handling" do
   end
 end
 
+describe Addressable::URI, "newline normalization" do
+  it "should not unescape newline in scheme" do
+    uri = Addressable::URI.parse("ht%0atp://localhost/").normalize
+    expect(uri.to_s).to eq("ht%0Atp://localhost/")
+  end
+
+  it "should not unescape newline in path" do
+    uri = Addressable::URI.parse("http://localhost/%0a").normalize
+    expect(uri.to_s).to eq("http://localhost/%0A")
+  end
+
+  it "should not unescape newline in hostname" do
+    uri = Addressable::URI.parse("http://local%0ahost/").normalize
+    expect(uri.to_s).to eq("http://local%0Ahost/")
+  end
+
+  it "should not unescape newline in username" do
+    uri = Addressable::URI.parse("http://foo%0abar@localhost/").normalize
+    expect(uri.to_s).to eq("http://foo%0Abar@localhost/")
+  end
+
+  it "should not unescape newline in username" do
+    uri = Addressable::URI.parse("http://example:foo%0abar@localhost/").normalize
+    expect(uri.to_s).to eq("http://example:foo%0Abar@localhost/")
+  end
+
+  it "should not accept newline in hostname" do
+    uri = Addressable::URI.parse("http://localhost/")
+    expect(lambda do
+      uri.host = "local\nhost"
+    end).to raise_error(Addressable::URI::InvalidURIError)
+  end
+end
+
 describe Addressable::URI, "when created with ambiguous path" do
   it "should raise an error" do
     expect(lambda do
