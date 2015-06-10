@@ -5434,6 +5434,24 @@ describe Addressable::URI, "when form encoding a non-Array object" do
   end
 end
 
+# See https://tools.ietf.org/html/rfc6749#appendix-B
+describe Addressable::URI, "when form encoding the example value from OAuth 2" do
+  it "should result in correct values" do
+    expect(Addressable::URI.form_encode(
+      {"value" => " %&+£€"}
+    )).to eq("value=+%25%26%2B%C2%A3%E2%82%AC")
+  end
+end
+
+# See https://tools.ietf.org/html/rfc6749#appendix-B
+describe Addressable::URI, "when form unencoding the example value from OAuth 2" do
+  it "should result in correct values" do
+    expect(Addressable::URI.form_unencode(
+      "value=+%25%26%2B%C2%A3%E2%82%AC"
+    )).to eq([["value", " %&+£€"]])
+  end
+end
+
 describe Addressable::URI, "when form unencoding a string" do
   it "should result in correct values" do
     expect(Addressable::URI.form_unencode(
