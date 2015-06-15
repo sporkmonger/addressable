@@ -725,13 +725,13 @@ module Addressable
 
       if '?' == operator
         # partial expansion of form style query variables sometimes requires a
-        # slight reordering of the variables to produce a value url.
+        # slight reordering of the variables to produce a valid url.
         first_to_expand = vars.find { |varspec|
           _, name, _ =  *varspec.match(VARSPEC)
           mapping.key? name
         }
 
-        vars = [first_to_expand] + vars.reject {|varspec| varspec == first_to_expand}
+        vars = [first_to_expand] + vars.reject {|varspec| varspec == first_to_expand}  if first_to_expand
       end
 
       vars
