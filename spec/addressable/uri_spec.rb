@@ -202,6 +202,48 @@ describe Addressable::URI, "when created from nil components" do
     end).should raise_error(Addressable::URI::InvalidURIError)
   end
 
+  it "should raise an error if the scheme begins with a digit" do
+    (lambda do
+      @uri.scheme = "1scheme"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if the scheme begins with a plus" do
+    (lambda do
+      @uri.scheme = "+scheme"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if the scheme begins with a dot" do
+    (lambda do
+      @uri.scheme = ".scheme"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if the scheme begins with a dash" do
+    (lambda do
+      @uri.scheme = "-scheme"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if the scheme contains an illegal character" do
+    (lambda do
+      @uri.scheme = "scheme!"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if the scheme contains whitespace" do
+    (lambda do
+      @uri.scheme = "sch eme"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if the scheme contains a newline" do
+    (lambda do
+      @uri.scheme = "sch\neme"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
   it "should raise an error if set into an invalid state" do
     (lambda do
       @uri.user = "user"
@@ -3509,22 +3551,6 @@ describe Addressable::URI, "when parsed from " +
     @uri.route_from("http://elsewhere.com/path/to/").should ==
       Addressable::URI.parse(
         "http://user:pass@example.com/path/to/resource?query=x#fragment")
-  end
-
-  it "should have the correct scheme after assignment" do
-    @uri.scheme = "ftp"
-    @uri.scheme.should == "ftp"
-    @uri.to_s.should ==
-      "ftp://user:pass@example.com/path/to/resource?query=x#fragment"
-    @uri.to_str.should ==
-      "ftp://user:pass@example.com/path/to/resource?query=x#fragment"
-    @uri.scheme = "bogus!"
-    @uri.scheme.should == "bogus!"
-    @uri.normalized_scheme.should == "bogus%21"
-    @uri.normalize.to_s.should ==
-      "bogus%21://user:pass@example.com/path/to/resource?query=x#fragment"
-    @uri.normalize.to_str.should ==
-      "bogus%21://user:pass@example.com/path/to/resource?query=x#fragment"
   end
 
   it "should have the correct site segment after assignment" do
