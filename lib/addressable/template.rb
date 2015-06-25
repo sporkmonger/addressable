@@ -1,6 +1,6 @@
 # encoding:utf-8
 #--
-# Copyright (C) 2006-2013 Bob Aman
+# Copyright (C) 2006-2015 Bob Aman
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -234,7 +234,18 @@ module Addressable
       if !pattern.respond_to?(:to_str)
         raise TypeError, "Can't convert #{pattern.class} into String."
       end
-      @pattern = pattern.to_str.freeze
+      @pattern = pattern.to_str.dup.freeze
+    end
+
+    ##
+    # Freeze URI, initializing instance variables.
+    #
+    # @return [Addressable::URI] The frozen URI object.
+    def freeze
+      self.variables
+      self.variable_defaults
+      self.named_captures
+      super
     end
 
     ##
@@ -592,6 +603,7 @@ module Addressable
       @variables ||= ordered_variable_defaults.map { |var, val| var }.uniq
     end
     alias_method :keys, :variables
+    alias_method :names, :variables
 
     ##
     # Returns a mapping of variables to their default values specified
@@ -603,9 +615,75 @@ module Addressable
         Hash[*ordered_variable_defaults.reject { |k, v| v.nil? }.flatten]
     end
 
+    ##
+    # Coerces a template into a `Regexp` object. This regular expression will
+    # behave very similarly to the actual template, and should match the same
+    # URI values, but it cannot fully handle, for example, values that would
+    # extract to an `Array`.
+    #
+    # @return [Regexp] A regular expression which should match the template.
+    def to_regexp
+      _, source = parse_template_pattern(pattern)
+      Regexp.new(source)
+    end
+
+    ##
+    # Returns the source of the coerced `Regexp`.
+    #
+    # @return [String] The source of the `Regexp` given by {#to_regexp}.
+    #
+    # @api private
+    def source
+      self.to_regexp.source
+    end
+
+    ##
+    # Returns the named captures of the coerced `Regexp`.
+    #
+    # @return [Hash] The named captures of the `Regexp` given by {#to_regexp}.
+    #
+    # @api private
+    def named_captures
+      self.to_regexp.named_captures
+    end
+
+    ##
+    # Generates a route result for a given set of parameters.
+    # Should only be used by rack-mount.
+    #
+    # @param params [Hash] The set of parameters used to expand the template.
+    # @param recall [Hash] Default parameters used to expand the template.
+    # @param options [Hash] Either a `:processor` or a `:parameterize` block.
+    #
+    # @api private
+    def generate(params={}, recall={}, options={})
+      merged = recall.merge(params)
+      if options[:processor]
+        processor = options[:processor]
+      elsif options[:parameterize]
+        # TODO: This is sending me into fits trying to shoe-horn this into
+        # the existing API. I think I've got this backwards and processors
+        # should be a set of 4 optional blocks named :validate, :transform,
+        # :match, and :restore. Having to use a singleton here is a huge
+        # code smell.
+        processor = Object.new
+        class <<processor
+          attr_accessor :block
+          def transform(name, value)
+            block.call(name, value)
+          end
+        end
+        processor.block = options[:parameterize]
+      else
+        processor = nil
+      end
+      result = self.expand(merged, processor)
+      result.to_s if result
+    end
+
   private
     def ordered_variable_defaults
-      @ordered_variable_defaults ||= (
+      @ordered_variable_defaults ||= begin
         expansions, _ = parse_template_pattern(pattern)
         expansions.map do |capture|
           _, _, varlist = *capture.match(EXPRESSION)
@@ -613,7 +691,7 @@ module Addressable
             varspec[VARSPEC, 1]
           end
         end.flatten
-      )
+      end
     end
 
 
@@ -899,7 +977,7 @@ module Addressable
 
           result = processor && processor.respond_to?(:match) ? processor.match(name) : nil
           if result
-            "(#{ result })"
+            "(?<#{name}>#{ result })"
           else
             group = case operator
             when '+'
@@ -920,9 +998,9 @@ module Addressable
               "#{ UNRESERVED }*?"
             end
             if modifier == '*'
-              "(#{group}(?:#{joiner}?#{group})*)?"
+              "(?<#{name}>#{group}(?:#{joiner}?#{group})*)?"
             else
-              "(#{group})?"
+              "(?<#{name}>#{group})?"
             end
           end
         end.join("#{joiner}?")

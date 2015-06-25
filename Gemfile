@@ -1,28 +1,28 @@
 source 'https://rubygems.org'
 
+gemspec
+
+gem 'rake', '~> 10.4', '>= 10.4.2'
+
+group :test do
+  gem 'rspec', '~> 3.0'
+  gem 'rspec-its', '~> 1.1'
+end
+
 group :development do
-  gem 'launchy'
-  gem 'yard'
+  gem 'launchy', '~> 2.4', '>= 2.4.3'
   gem 'redcarpet', :platform => :mri_19
   gem 'rubyforge'
+  gem 'yard'
 end
 
 group :test, :development do
-  gem 'rake', '>= 0.7.3'
-  gem 'rspec', '~> 2.14.0'
-  gem 'coveralls', :require => false
+  gem 'simplecov', :require => false
+  gem 'coveralls', :require => false, :platforms => [
+    :ruby_19, :ruby_20, :ruby_21, :rbx, :jruby
+  ]
+  # Used to test compatibility.
+  gem 'rack-mount', git: 'https://github.com/sporkmonger/rack-mount.git'
 end
 
-gem 'idn', :platform => :mri_18
-gem 'idn-ruby', :platform => :mri_19
-
-platforms :mri_18 do
-  gem 'mime-types', '~> 1.25'
-end
-
-platforms :rbx do
-  gem 'rubysl', '~> 2.0'
-  gem 'rubinius-coverage'
-end
-
-gemspec
+gem 'idn-ruby', :platform => [:mri_19, :mri_20, :mri_21, :mri_22]

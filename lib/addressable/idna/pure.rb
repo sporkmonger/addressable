@@ -1,6 +1,6 @@
 # encoding:utf-8
 #--
-# Copyright (C) 2006-2013 Bob Aman
+# Copyright (C) 2006-2015 Bob Aman
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -175,7 +175,6 @@ module Addressable
 
       p = []
       ucs4_to_utf8 = lambda do |ch|
-        # For some reason, rcov likes to drop BUS errors here.
         if ch < 128
           p << ch
         elsif ch < 2048

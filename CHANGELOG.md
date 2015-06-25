@@ -1,3 +1,19 @@
+# Addressable 2.4.0
+- support for 1.8.x dropped
+- double quotes in a host now raises an error
+- calling `require 'addressable'` will now load both the URI and Template files
+- assigning to the `hostname` component with an `IPAddr` object is now supported
+
+# Addressable 2.3.8
+- fix warnings
+- update dependency gems
+- support for 1.8.x officially deprecated
+
+# Addressable 2.3.7
+- fix scenario in which invalid URIs don't get an exception until inspected
+- handle hostnames with two adjacent periods correctly
+- upgrade of RSpec
+
 # Addressable 2.3.6
 - normalization drops empty query string
 - better handling in template extract for missing values

@@ -10,11 +10,6 @@ PKG_FILE_NAME      = "#{PKG_NAME}-#{PKG_VERSION}"
 
 RELEASE_NAME       = "REL #{PKG_VERSION}"
 
-RUBY_FORGE_PROJECT = PKG_NAME
-RUBY_FORGE_USER    = "sporkmonger"
-RUBY_FORGE_PATH    = "/var/www/gforge-projects/#{RUBY_FORGE_PROJECT}"
-RUBY_FORGE_URL     = "http://#{RUBY_FORGE_PROJECT}.rubyforge.org/"
-
 PKG_SUMMARY        = "URI Implementation"
 PKG_DESCRIPTION    = <<-TEXT
 Addressable is a replacement for the URI implementation that is part of
@@ -24,11 +19,10 @@ TEXT
 
 PKG_FILES = FileList[
     "lib/**/*", "spec/**/*", "vendor/**/*", "data/**/*",
-    "tasks/**/*", "website/**/*",
+    "tasks/**/*",
     "[A-Z]*", "Rakefile"
 ].exclude(/database\.yml/).exclude(/Gemfile\.lock/).exclude(/[_\.]git$/)
 
-RCOV_ENABLED = (RUBY_PLATFORM != "java" && RUBY_VERSION =~ /^1\.8/)
 task :default => "spec"
 
 WINDOWS = (RUBY_PLATFORM =~ /mswin|win32|mingw|bccwin|cygwin/) rescue false

@@ -1,6 +1,6 @@
 # encoding:utf-8
 #--
-# Copyright (C) 2006-2013 Bob Aman
+# Copyright (C) 2006-2015 Bob Aman
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -262,7 +262,7 @@ module Addressable
           "/#{$1.downcase}:/"
         end
         uri.path.gsub!(/\\/, SLASH)
-        if File.exists?(uri.path) &&
+        if File.exist?(uri.path) &&
             File.stat(uri.path).directory?
           uri.path.gsub!(/\/$/, EMPTY_STR)
           uri.path = uri.path + '/'
@@ -720,9 +720,9 @@ module Addressable
           ).gsub("%20", "+")
         ]
       end
-      return (escaped_form_values.map do |(key, value)|
+      return escaped_form_values.map do |(key, value)|
         "#{key}=#{value}"
-      end).join("&")
+      end.join("&")
     end
 
     ##
@@ -803,6 +803,7 @@ module Addressable
         self.query_values = options[:query_values] if options[:query_values]
         self.fragment = options[:fragment] if options[:fragment]
       end
+      self.to_s
     end
 
     ##
@@ -830,7 +831,7 @@ module Addressable
     #
     # @return [String] The scheme component.
     def scheme
-      return instance_variable_defined?(:@scheme) ? @scheme : nil
+      return defined?(@scheme) ? @scheme : nil
     end
 
     ##
@@ -838,7 +839,8 @@ module Addressable
     #
     # @return [String] The scheme component, normalized.
     def normalized_scheme
-      self.scheme && @normalized_scheme ||= (begin
+      return nil unless self.scheme
+      @normalized_scheme ||= begin
         if self.scheme =~ /^\s*ssh\+svn\s*$/i
           "svn+ssh"
         else
@@ -847,7 +849,7 @@ module Addressable
             Addressable::URI::CharacterClasses::SCHEME
           )
         end
-      end)
+      end
     end
 
     ##
@@ -866,10 +868,9 @@ module Addressable
       @scheme = new_scheme
       @scheme = nil if @scheme.to_s.strip.empty?
 
-      # Reset dependant values
-      @normalized_scheme = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@normalized_scheme) if defined?(@normalized_scheme)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -880,7 +881,7 @@ module Addressable
     #
     # @return [String] The user component.
     def user
-      return instance_variable_defined?(:@user) ? @user : nil
+      return defined?(@user) ? @user : nil
     end
 
     ##
@@ -888,7 +889,9 @@ module Addressable
     #
     # @return [String] The user component, normalized.
     def normalized_user
-      self.user && @normalized_user ||= (begin
+      return nil unless self.user
+      return @normalized_user if defined?(@normalized_user)
+      @normalized_user ||= begin
         if normalized_scheme =~ /https?/ && self.user.strip.empty? &&
             (!self.password || self.password.strip.empty?)
           nil
@@ -898,7 +901,7 @@ module Addressable
             Addressable::URI::CharacterClasses::UNRESERVED
           )
         end
-      end)
+      end
     end
 
     ##
@@ -916,13 +919,12 @@ module Addressable
         @user = EMPTY_STR if @user.nil?
       end
 
-      # Reset dependant values
-      @userinfo = nil
-      @normalized_userinfo = nil
-      @authority = nil
-      @normalized_user = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@userinfo) if defined?(@userinfo)
+      remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
+      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_instance_variable(:@normalized_user) if defined?(@normalized_user)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -933,7 +935,7 @@ module Addressable
     #
     # @return [String] The password component.
     def password
-      return instance_variable_defined?(:@password) ? @password : nil
+      return defined?(@password) ? @password : nil
     end
 
     ##
@@ -941,7 +943,9 @@ module Addressable
     #
     # @return [String] The password component, normalized.
     def normalized_password
-      self.password && @normalized_password ||= (begin
+      return nil unless self.password
+      return @normalized_password if defined?(@normalized_password)
+      @normalized_password ||= begin
         if self.normalized_scheme =~ /https?/ && self.password.strip.empty? &&
             (!self.user || self.user.strip.empty?)
           nil
@@ -951,7 +955,7 @@ module Addressable
             Addressable::URI::CharacterClasses::UNRESERVED
           )
         end
-      end)
+      end
     end
 
     ##
@@ -971,13 +975,12 @@ module Addressable
         @user = EMPTY_STR if @user.nil?
       end
 
-      # Reset dependant values
-      @userinfo = nil
-      @normalized_userinfo = nil
-      @authority = nil
-      @normalized_password = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@userinfo) if defined?(@userinfo)
+      remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
+      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_instance_variable(:@normalized_password) if defined?(@normalized_password)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -991,13 +994,13 @@ module Addressable
     def userinfo
       current_user = self.user
       current_password = self.password
-      (current_user || current_password) && @userinfo ||= (begin
+      (current_user || current_password) && @userinfo ||= begin
         if current_user && current_password
           "#{current_user}:#{current_password}"
         elsif current_user && !current_password
           "#{current_user}"
         end
-      end)
+      end
     end
 
     ##
@@ -1005,7 +1008,9 @@ module Addressable
     #
     # @return [String] The userinfo component, normalized.
     def normalized_userinfo
-      self.userinfo && @normalized_userinfo ||= (begin
+      return nil unless self.userinfo
+      return @normalized_userinfo if defined?(@normalized_userinfo)
+      @normalized_userinfo ||= begin
         current_user = self.normalized_user
         current_password = self.normalized_password
         if !current_user && !current_password
@@ -1015,7 +1020,7 @@ module Addressable
         elsif current_user && !current_password
           "#{current_user}"
         end
-      end)
+      end
     end
 
     ##
@@ -1039,10 +1044,9 @@ module Addressable
       self.password = new_password
       self.user = new_user
 
-      # Reset dependant values
-      @authority = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1053,7 +1057,7 @@ module Addressable
     #
     # @return [String] The host component.
     def host
-      return instance_variable_defined?(:@host) ? @host : nil
+      return defined?(@host) ? @host : nil
     end
 
     ##
@@ -1061,7 +1065,8 @@ module Addressable
     #
     # @return [String] The host component, normalized.
     def normalized_host
-      self.host && @normalized_host ||= (begin
+      return nil unless self.host
+      @normalized_host ||= begin
         if !self.host.strip.empty?
           result = ::Addressable::IDNA.to_ascii(
             URI.unencode_component(self.host.strip.downcase)
@@ -1074,7 +1079,7 @@ module Addressable
         else
           EMPTY_STR
         end
-      end)
+      end
     end
 
     ##
@@ -1089,17 +1094,16 @@ module Addressable
 
       unreserved = CharacterClasses::UNRESERVED
       sub_delims = CharacterClasses::SUB_DELIMS
-      if @host != nil && (@host =~ /[<>{}\/\?\#\@]/ ||
+      if @host != nil && (@host =~ /[<>{}\/\?\#\@"]/ ||
           (@host[/^\[(.*)\]$/, 1] != nil && @host[/^\[(.*)\]$/, 1] !~
           Regexp.new("^[#{unreserved}#{sub_delims}:]*$")))
         raise InvalidURIError, "Invalid character in host: '#{@host.to_s}'"
       end
 
-      # Reset dependant values
-      @authority = nil
-      @normalized_host = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_instance_variable(:@normalized_host) if defined?(@normalized_host)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1125,7 +1129,10 @@ module Addressable
     #
     # @param [String, #to_str] new_hostname The new hostname for this URI.
     def hostname=(new_hostname)
-      if new_hostname && !new_hostname.respond_to?(:to_str)
+      if new_hostname &&
+          (new_hostname.respond_to?(:ipv4?) || new_hostname.respond_to?(:ipv6?))
+        new_hostname = new_hostname.to_s
+      elsif new_hostname && !new_hostname.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_hostname.class} into String."
       end
       v = new_hostname ? new_hostname.to_str : nil
@@ -1139,7 +1146,7 @@ module Addressable
     #
     # @return [String] The authority component.
     def authority
-      self.host && @authority ||= (begin
+      self.host && @authority ||= begin
         authority = ""
         if self.userinfo != nil
           authority << "#{self.userinfo}@"
@@ -1149,7 +1156,7 @@ module Addressable
           authority << ":#{self.port}"
         end
         authority
-      end)
+      end
     end
 
     ##
@@ -1157,7 +1164,8 @@ module Addressable
     #
     # @return [String] The authority component, normalized.
     def normalized_authority
-      self.authority && @normalized_authority ||= (begin
+      return nil unless self.authority
+      @normalized_authority ||= begin
         authority = ""
         if self.normalized_userinfo != nil
           authority << "#{self.normalized_userinfo}@"
@@ -1167,7 +1175,7 @@ module Addressable
           authority << ":#{self.normalized_port}"
         end
         authority
-      end)
+      end
     end
 
     ##
@@ -1200,11 +1208,10 @@ module Addressable
       self.host = defined?(new_host) ? new_host : nil
       self.port = defined?(new_port) ? new_port : nil
 
-      # Reset dependant values
-      @userinfo = nil
-      @normalized_userinfo = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@userinfo) if defined?(@userinfo)
+      remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1216,18 +1223,16 @@ module Addressable
     #
     # @return [String] The serialized origin.
     def origin
-      return (if self.scheme && self.authority
+      if self.scheme && self.authority
         if self.normalized_port
-          (
-            "#{self.normalized_scheme}://#{self.normalized_host}" +
-            ":#{self.normalized_port}"
-          )
+          "#{self.normalized_scheme}://#{self.normalized_host}" +
+          ":#{self.normalized_port}"
         else
           "#{self.normalized_scheme}://#{self.normalized_host}"
         end
       else
         "null"
-      end)
+      end
     end
 
     # Returns an array of known ip-based schemes. These schemes typically
@@ -1251,7 +1256,7 @@ module Addressable
     #
     # @return [Integer] The port component.
     def port
-      return instance_variable_defined?(:@port) ? @port : nil
+      return defined?(@port) ? @port : nil
     end
 
     ##
@@ -1259,10 +1264,14 @@ module Addressable
     #
     # @return [Integer] The port component, normalized.
     def normalized_port
-      if URI.port_mapping[self.normalized_scheme] == self.port
-        nil
-      else
-        self.port
+      return nil unless self.port
+      return @normalized_port if defined?(@normalized_port)
+      @normalized_port ||= begin
+        if URI.port_mapping[self.normalized_scheme] == self.port
+          nil
+        else
+          self.port
+        end
       end
     end
 
@@ -1282,11 +1291,10 @@ module Addressable
       @port = new_port.to_s.to_i
       @port = nil if @port == 0
 
-      # Reset dependant values
-      @authority = nil
-      @normalized_port = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_instance_variable(:@normalized_port) if defined?(@normalized_port)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1326,12 +1334,12 @@ module Addressable
     #
     # @return [String] The components that identify a site.
     def site
-      (self.scheme || self.authority) && @site ||= (begin
+      (self.scheme || self.authority) && @site ||= begin
         site_string = ""
         site_string << "#{self.scheme}:" if self.scheme != nil
         site_string << "//#{self.authority}" if self.authority != nil
         site_string
-      end)
+      end
     end
 
     ##
@@ -1344,7 +1352,8 @@ module Addressable
     #
     # @return [String] The normalized components that identify a site.
     def normalized_site
-      self.site && @normalized_site ||= (begin
+      return nil unless self.site
+      @normalized_site ||= begin
         site_string = ""
         if self.normalized_scheme != nil
           site_string << "#{self.normalized_scheme}:"
@@ -1353,7 +1362,7 @@ module Addressable
           site_string << "//#{self.normalized_authority}"
         end
         site_string
-      end)
+      end
     end
 
     ##
@@ -1383,7 +1392,7 @@ module Addressable
     #
     # @return [String] The path component.
     def path
-      return instance_variable_defined?(:@path) ? @path : EMPTY_STR
+      return defined?(@path) ? @path : EMPTY_STR
     end
 
     NORMPATH = /^(?!\/)[^\/:]*:.*$/
@@ -1392,7 +1401,7 @@ module Addressable
     #
     # @return [String] The path component, normalized.
     def normalized_path
-      @normalized_path ||= (begin
+      @normalized_path ||= begin
         path = self.path.to_s
         if self.scheme == nil && path =~ NORMPATH
           # Relative paths with colons in the first segment are ambiguous.
@@ -1400,12 +1409,12 @@ module Addressable
         end
         # String#split(delimeter, -1) uses the more strict splitting behavior
         # found by default in Python.
-        result = (path.strip.split(SLASH, -1).map do |segment|
+        result = path.strip.split(SLASH, -1).map do |segment|
           Addressable::URI.normalize_component(
             segment,
             Addressable::URI::CharacterClasses::PCHAR
           )
-        end).join(SLASH)
+        end.join(SLASH)
 
         result = URI.normalize_path(result)
         if result.empty? &&
@@ -1413,7 +1422,7 @@ module Addressable
           result = SLASH
         end
         result
-      end)
+      end
     end
 
     ##
@@ -1429,10 +1438,9 @@ module Addressable
         @path = "/#{@path}"
       end
 
-      # Reset dependant values
-      @normalized_path = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@normalized_path) if defined?(@normalized_path)
+      remove_composite_values
     end
 
     ##
@@ -1459,7 +1467,7 @@ module Addressable
     #
     # @return [String] The query component.
     def query
-      return instance_variable_defined?(:@query) ? @query : nil
+      return defined?(@query) ? @query : nil
     end
 
     ##
@@ -1467,15 +1475,19 @@ module Addressable
     #
     # @return [String] The query component, normalized.
     def normalized_query(*flags)
-      modified_query_class = Addressable::URI::CharacterClasses::QUERY.dup
-      # Make sure possible key-value pair delimiters are escaped.
-      modified_query_class.sub!("\\&", "").sub!("\\;", "")
-      pairs = (self.query || "").split("&", -1)
-      pairs.sort! if flags.include?(:sorted)
-      component = (pairs.map do |pair|
-        Addressable::URI.normalize_component(pair, modified_query_class, "+")
-      end).join("&")
-      component == "" ? nil : component
+      return nil unless self.query
+      return @normalized_query if defined?(@normalized_query)
+      @normalized_query ||= begin
+        modified_query_class = Addressable::URI::CharacterClasses::QUERY.dup
+        # Make sure possible key-value pair delimiters are escaped.
+        modified_query_class.sub!("\\&", "").sub!("\\;", "")
+        pairs = (self.query || "").split("&", -1)
+        pairs.sort! if flags.include?(:sorted)
+        component = pairs.map do |pair|
+          Addressable::URI.normalize_component(pair, modified_query_class, "+")
+        end.join("&")
+        component == "" ? nil : component
+      end
     end
 
     ##
@@ -1488,10 +1500,9 @@ module Addressable
       end
       @query = new_query ? new_query.to_str : nil
 
-      # Reset dependant values
-      @normalized_query = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@normalized_query) if defined?(@normalized_query)
+      remove_composite_values
     end
 
     ##
@@ -1500,7 +1511,8 @@ module Addressable
     # @param [Class] return_type The return type desired. Value must be either
     #   `Hash` or `Array`.
     #
-    # @return [Hash, Array] The query string parsed as a Hash or Array object.
+    # @return [Hash, Array, nil] The query string parsed as a Hash or Array
+    #   or nil if the query string is blank.
     #
     # @example
     #   Addressable::URI.parse("?one=1&two=2&three=3").query_values
@@ -1509,15 +1521,19 @@ module Addressable
     #   #=> [["one", "two"], ["one", "three"]]
     #   Addressable::URI.parse("?one=two&one=three").query_values(Hash)
     #   #=> {"one" => "three"}
+    #   Addressable::URI.parse("?").query_values
+    #   #=> {}
+    #   Addressable::URI.parse("").query_values
+    #   #=> nil
     def query_values(return_type=Hash)
       empty_accumulator = Array == return_type ? [] : {}
       if return_type != Hash && return_type != Array
         raise ArgumentError, "Invalid return type. Must be Hash or Array."
       end
       return nil if self.query == nil
-      split_query = (self.query.split("&").map do |pair|
+      split_query = self.query.split("&").map do |pair|
         pair.split("=", 2) if pair && !pair.empty?
-      end).compact
+      end.compact
       return split_query.inject(empty_accumulator.dup) do |accu, pair|
         # I'd rather use key/value identifiers instead of array lookups,
         # but in this case I really want to maintain the exact pair structure,
@@ -1637,9 +1653,8 @@ module Addressable
       self.path = path_component
       self.query = query_component
 
-      # Reset dependant values
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_composite_values
     end
 
     ##
@@ -1647,7 +1662,7 @@ module Addressable
     #
     # @return [String] The fragment component.
     def fragment
-      return instance_variable_defined?(:@fragment) ? @fragment : nil
+      return defined?(@fragment) ? @fragment : nil
     end
 
     ##
@@ -1655,13 +1670,15 @@ module Addressable
     #
     # @return [String] The fragment component, normalized.
     def normalized_fragment
-      self.fragment && @normalized_fragment ||= (begin
+      return nil unless self.fragment
+      return @normalized_fragment if defined?(@normalized_fragment)
+      @normalized_fragment ||= begin
         component = Addressable::URI.normalize_component(
           self.fragment,
           Addressable::URI::CharacterClasses::FRAGMENT
         )
         component == "" ? nil : component
-      end)
+      end
     end
 
     ##
@@ -1674,10 +1691,9 @@ module Addressable
       end
       @fragment = new_fragment ? new_fragment.to_str : nil
 
-      # Reset dependant values
-      @normalized_fragment = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_instance_variable(:@normalized_fragment) if defined?(@normalized_fragment)
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -2098,7 +2114,7 @@ module Addressable
     #
     # @return [Integer] A hash of the URI.
     def hash
-      return @hash ||= (self.to_s.hash * -1)
+      @hash ||= self.to_s.hash * -1
     end
 
     ##
@@ -2181,7 +2197,7 @@ module Addressable
         raise InvalidURIError,
           "Cannot assemble URI string with ambiguous path: '#{self.path}'"
       end
-      @uri_string ||= (begin
+      @uri_string ||= begin
         uri_string = ""
         uri_string << "#{self.scheme}:" if self.scheme != nil
         uri_string << "//#{self.authority}" if self.authority != nil
@@ -2192,7 +2208,7 @@ module Addressable
           uri_string.force_encoding(Encoding::UTF_8)
         end
         uri_string
-      end)
+      end
     end
 
     ##
@@ -2241,7 +2257,7 @@ module Addressable
       return nil
     end
 
-  private
+  protected
     SELF_REF = '.'
     PARENT = '..'
 
@@ -2318,9 +2334,9 @@ module Addressable
     #
     # @return [Addressable::URI] <code>self</code>.
     def replace_self(uri)
-      # Reset dependant values
+      # Reset dependent values
       instance_variables.each do |var|
-        instance_variable_set(var, nil)
+        remove_instance_variable(var) if instance_variable_defined?(var)
       end
 
       @scheme = uri.scheme
@@ -2335,7 +2351,7 @@ module Addressable
     end
 
     ##
-    # Splits path string with "/"(slash).
+    # Splits path string with "/" (slash).
     # It is considered that there is empty string after last slash when
     # path ends with slash.
     #
@@ -2346,6 +2362,15 @@ module Addressable
       splitted = path.split(SLASH)
       splitted << EMPTY_STR if path.end_with? SLASH
       splitted
+    end
+
+    ##
+    # Resets composite values for the entire URI
+    #
+    # @api private
+    def remove_composite_values
+      remove_instance_variable(:@uri_string) if defined?(@uri_string)
+      remove_instance_variable(:@hash) if defined?(@hash)
     end
   end
 end

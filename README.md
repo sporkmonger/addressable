@@ -3,20 +3,22 @@
 <dl>
   <dt>Homepage</dt><dd><a href="http://addressable.rubyforge.org/">addressable.rubyforge.org</a></dd>
   <dt>Author</dt><dd><a href="mailto:bob@sporkmonger.com">Bob Aman</a></dd>
-  <dt>Copyright</dt><dd>Copyright © 2006-2013 Bob Aman</dd>
+  <dt>Copyright</dt><dd>Copyright © 2006-2015 Bob Aman</dd>
   <dt>License</dt><dd>Apache 2.0</dd>
 </dl>
 
-[![Gem Version](https://badge.fury.io/rb/addressable.png)][gem]
+[![Gem Version](http://img.shields.io/gem/dt/addressable.svg)][gem]
 [![Build Status](https://secure.travis-ci.org/sporkmonger/addressable.png?branch=master)][travis]
 [![Dependency Status](https://gemnasium.com/sporkmonger/addressable.png?travis)][gemnasium]
-[![Coverage Status](https://coveralls.io/repos/sporkmonger/addressable/badge.png?branch=master)][coveralls]
+[![Test Coverage Status](https://img.shields.io/coveralls/sporkmonger/addressable.svg)][coveralls]
+[![Documentation Coverage Status](http://inch-ci.org/github/sporkmonger/addressable.svg?branch=master)][inch]
 [![Gittip Donate](http://img.shields.io/gittip/sporkmonger.png)](https://www.gittip.com/sporkmonger/ "Support Open Source Development w/ Gittip")
 
 [gem]: https://rubygems.org/gems/addressable
 [travis]: http://travis-ci.org/sporkmonger/addressable
 [gemnasium]: https://gemnasium.com/sporkmonger/addressable
 [coveralls]: https://coveralls.io/r/sporkmonger/addressable
+[inch]: http://inch-ci.org/github/sporkmonger/addressable
 
 # Description
 
@@ -71,7 +73,7 @@ template.partial_expand({"one" => "1", "three" => 3}).pattern
 #=> "http://example.com/?one=1{&two}&three=3"
 
 template = Addressable::Template.new(
-  "http://{host}{/segments}/{?one,two,bogus}{#fragment}"
+  "http://{host}{/segments*}/{?one,two,bogus}{#fragment}"
 )
 uri = Addressable::URI.parse(
   "http://example.com/a/b/c/?one=1&two=2#foo"
@@ -98,6 +100,6 @@ idn gem:
 
 ```console
 $ sudo apt-get install idn # Debian/Ubuntu
-$ sudo brew install libidn # OS X
-$ sudo gem install idn-ruby
+$ brew install libidn # OS X
+$ gem install idn-ruby
 ```

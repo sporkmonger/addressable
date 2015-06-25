@@ -1,20 +1,23 @@
+bundler_args: --without development --retry=3 --jobs=3
+cache: bundler
 language: ruby
 rvm:
-  - 1.8.7
+  - rbx-2
+  - jruby
+  - jruby-head
+  - ruby-head
   - 1.9.2
   - 1.9.3
   - 2.0.0
-  - 2.1.0
-  - ruby-head
-  - jruby
-  - jruby-head
-  - rbx
-  - ree
+  - 2.1
+  - 2.2
 matrix:
   allow_failures:
     - rvm: ruby-head
     - rvm: jruby-head
-script: "bundle exec rake"
+  fast_finish: true
 before_install:
- - sudo apt-get update
- - sudo apt-get install idn
+  - gem update bundler
+#   - apt-get update
+#   - apt-get install idn
+sudo: false
