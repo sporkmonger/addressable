@@ -3553,6 +3553,15 @@ describe Addressable::URI, "when parsed from " +
         "http://user:pass@example.com/path/to/resource?query=x#fragment")
   end
 
+  it "should have the correct scheme after assignment" do
+    @uri.scheme = "ftp"
+    @uri.scheme.should == "ftp"
+    @uri.to_s.should ==
+      "ftp://user:pass@example.com/path/to/resource?query=x#fragment"
+    @uri.to_str.should ==
+      "ftp://user:pass@example.com/path/to/resource?query=x#fragment"
+  end
+
   it "should have the correct site segment after assignment" do
     @uri.site = "https://newuser:newpass@example.com:443"
     @uri.scheme.should == "https"
