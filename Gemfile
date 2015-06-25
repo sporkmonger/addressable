@@ -9,7 +9,7 @@ end
 
 group :test, :development do
   gem 'rake', '>= 0.7.3'
-  gem 'rspec', '>= 2.9.0'
+  gem 'rspec', '~> 2.14.0'
   gem 'coveralls', :require => false
 end
 
