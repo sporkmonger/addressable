@@ -487,7 +487,7 @@ module Addressable
       outlen.times do |j|
         c = output[j]
         unless c >= 0 && c <= 127
-          raise Exception, "Invalid output char."
+          raise StandardError, "Invalid output char."
         end
         unless PUNYCODE_PRINT_ASCII[c]
           raise PunycodeBadInput, "Input is invalid."
