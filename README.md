@@ -103,3 +103,12 @@ $ sudo apt-get install idn # Debian/Ubuntu
 $ brew install libidn # OS X
 $ gem install idn-ruby
 ```
+
+# Bundler
+
+```ruby
+gem 'addressable', require: 'addressable/uri'
+gem 'addressable', require: 'addressable/template'
+```
+
+Because this gem is split into two different modules you need to explicitly tell Bundler which modules you want by using the require statements shown above. Both lines are not required, if you are not going to use the templating features of the gem you can simply not include that line.
