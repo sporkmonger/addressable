@@ -4,6 +4,7 @@
 - calling `require 'addressable'` will now load both the URI and Template files
 - assigning to the `hostname` component with an `IPAddr` object is now supported
 - assigning to the `origin` component is now supported
+- fixed minor bug where an exception would be thrown for a missing ACE suffix
 
 # Addressable 2.3.8
 - fix warnings

@@ -137,6 +137,10 @@ shared_examples_for "converting from unicode to ASCII" do
 end
 
 shared_examples_for "converting from ASCII to unicode" do
+  it "should return the identity conversion when the ACE prefix has no suffix" do
+    expect(Addressable::IDNA.to_unicode("xn--...-")).to eq("xn--...-")
+  end
+
   it "should convert 'www.google.com' correctly" do
     expect(Addressable::IDNA.to_unicode("www.google.com")).to eq("www.google.com")
   end

@@ -93,7 +93,7 @@ module Addressable
       input = input.to_s unless input.is_a?(String)
       parts = input.split('.')
       parts.map! do |part|
-        if part =~ /^#{ACE_PREFIX}/
+        if part =~ /^#{ACE_PREFIX}(.+)/
           punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
         else
           part
