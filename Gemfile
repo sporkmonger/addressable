@@ -12,7 +12,6 @@ end
 group :development do
   gem 'launchy', '~> 2.4', '>= 2.4.3'
   gem 'redcarpet', :platform => :mri_19
-  gem 'rubyforge'
   gem 'yard'
 end
 
