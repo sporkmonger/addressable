@@ -1235,6 +1235,45 @@ module Addressable
       end
     end
 
+    ##
+    # Sets the origin for this URI, serialized to ASCII, as per
+    # RFC 6454, section 6.2. This assignment will reset the `userinfo`
+    # component.
+    #
+    # @param [String, #to_str] new_origin The new origin component.
+    def origin=(new_origin)
+      if new_origin
+        if !new_origin.respond_to?(:to_str)
+          raise TypeError, "Can't convert #{new_origin.class} into String."
+        end
+        new_origin = new_origin.to_str
+        new_scheme = new_origin[/^([^:\/?#]+):\/\//, 1]
+        unless new_scheme
+          raise InvalidURIError, 'An origin cannot omit the scheme.'
+        end
+        new_host = new_origin[/:\/\/([^\/?#:]+)/, 1]
+        unless new_host
+          raise InvalidURIError, 'An origin cannot omit the host.'
+        end
+        new_port = new_origin[/:([^:@\[\]\/]*?)$/, 1]
+      end
+
+      self.scheme = defined?(new_scheme) ? new_scheme : nil
+      self.host = defined?(new_host) ? new_host : nil
+      self.port = defined?(new_port) ? new_port : nil
+      self.userinfo = nil
+
+      # Reset dependent values
+      remove_instance_variable(:@userinfo) if defined?(@userinfo)
+      remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
+      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_instance_variable(:@normalized_authority) if defined?(@normalized_authority)
+      remove_composite_values
+
+      # Ensure we haven't created an invalid URI
+      validate()
+    end
+
     # Returns an array of known ip-based schemes. These schemes typically
     # use a similar URI form:
     # <code>//<user>:<password>@<host>:<port>/<url-path></code>

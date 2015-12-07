@@ -1058,6 +1058,26 @@ describe Addressable::URI, "when parsed from an Addressable::URI object" do
     expect(original_uri.host).to eq('example.com')
     expect(original_uri.to_s).to eq('http://example.com/')
   end
+
+  it "should not have unexpected side-effects" do
+    original_uri = Addressable::URI.parse("http://example.com/")
+    new_uri = Addressable::URI.parse(original_uri)
+    new_uri.origin = 'https://www.example.com:8080'
+    expect(new_uri.host).to eq('www.example.com')
+    expect(new_uri.to_s).to eq('https://www.example.com:8080/')
+    expect(original_uri.host).to eq('example.com')
+    expect(original_uri.to_s).to eq('http://example.com/')
+  end
+
+  it "should not have unexpected side-effects" do
+    original_uri = Addressable::URI.parse("http://example.com/")
+    new_uri = Addressable::URI.heuristic_parse(original_uri)
+    new_uri.origin = 'https://www.example.com:8080'
+    expect(new_uri.host).to eq('www.example.com')
+    expect(new_uri.to_s).to eq('https://www.example.com:8080/')
+    expect(original_uri.host).to eq('example.com')
+    expect(original_uri.to_s).to eq('http://example.com/')
+  end
 end
 
 describe Addressable::URI, "when parsed from something that looks " +
@@ -3706,6 +3726,12 @@ describe Addressable::URI, "when parsed from " +
     @uri.port = 8080
     expect(@uri.port).to eq(8080)
     expect(@uri.authority).to eq("user:pass@example.com:8080")
+  end
+
+  it "should have the correct origin after assignment" do
+    @uri.origin = "http://newexample.com"
+    expect(@uri.host).to eq("newexample.com")
+    expect(@uri.authority).to eq("newexample.com")
   end
 
   it "should have the correct path after assignment" do
