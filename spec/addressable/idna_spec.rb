@@ -151,10 +151,22 @@ shared_examples_for "converting from ASCII to unicode" do
     )).to eq("www.詹姆斯.com")
   end
 
+  it "should convert '詹姆斯.com' correctly" do
+    expect(Addressable::IDNA.to_unicode(
+      "xn--8ws00zhy3a.com"
+    )).to eq("詹姆斯.com")
+  end
+
   it "should convert 'www.iñtërnâtiônàlizætiøn.com' correctly" do
     expect(Addressable::IDNA.to_unicode(
       "www.xn--itrntinliztin-vdb0a5exd8ewcye.com"
     )).to eq("www.iñtërnâtiônàlizætiøn.com")
+  end
+
+  it "should convert 'iñtërnâtiônàlizætiøn.com' correctly" do
+    expect(Addressable::IDNA.to_unicode(
+      "xn--itrntinliztin-vdb0a5exd8ewcye.com"
+    )).to eq("iñtërnâtiônàlizætiøn.com")
   end
 
   it "should convert " +
