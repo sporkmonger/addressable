@@ -22,7 +22,7 @@ group :test, :development do
     :ruby_19, :ruby_20, :ruby_21, :rbx, :jruby
   ]
   # Used to test compatibility.
-  gem 'rack-mount', git: 'https://github.com/sporkmonger/rack-mount.git'
+  gem 'rack-mount', git: 'https://github.com/sporkmonger/rack-mount.git', require: 'rack/mount'
 end
 
 gem 'idn-ruby', :platform => [:mri_19, :mri_20, :mri_21, :mri_22]
