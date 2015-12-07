@@ -1,6 +1,7 @@
 # Addressable 2.4.0
 - support for 1.8.x dropped
 - double quotes in a host now raises an error
+- stricter handling of bogus scheme values
 - calling `require 'addressable'` will now load both the URI and Template files
 - assigning to the `hostname` component with an `IPAddr` object is now supported
 - assigning to the `origin` component is now supported
