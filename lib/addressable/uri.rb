@@ -44,6 +44,7 @@ module Addressable
       UNRESERVED = ALPHA + DIGIT + "\\-\\.\\_\\~"
       PCHAR = UNRESERVED + SUB_DELIMS + "\\:\\@"
       SCHEME = ALPHA + DIGIT + "\\-\\+\\."
+      HOST = ALPHA + DIGIT + "\\-\\.\\[\\:\\]"
       AUTHORITY = PCHAR
       PATH = PCHAR + "\\/"
       QUERY = PCHAR + "\\/\\?"
@@ -1075,6 +1076,9 @@ module Addressable
             # Single trailing dots are unnecessary.
             result = result[0...-1]
           end
+          result = Addressable::URI.normalize_component(
+            result,
+            CharacterClasses::HOST)
           result
         else
           EMPTY_STR
@@ -1094,7 +1098,7 @@ module Addressable
 
       unreserved = CharacterClasses::UNRESERVED
       sub_delims = CharacterClasses::SUB_DELIMS
-      if @host != nil && (@host =~ /[<>{}\/\?\#\@"]/ ||
+      if @host != nil && (@host =~ /[<>{}\/\?\#\@"[[:space:]]]/ ||
           (@host[/^\[(.*)\]$/, 1] != nil && @host[/^\[(.*)\]$/, 1] !~
           Regexp.new("^[#{unreserved}#{sub_delims}:]*$")))
         raise InvalidURIError, "Invalid character in host: '#{@host.to_s}'"
