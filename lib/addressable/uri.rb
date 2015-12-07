@@ -1326,6 +1326,11 @@ module Addressable
       if new_port != nil && new_port.respond_to?(:to_str)
         new_port = Addressable::URI.unencode_component(new_port.to_str)
       end
+
+      if new_port.respond_to?(:valid_encoding?) && !new_port.valid_encoding?
+        raise InvalidURIError, "Invalid encoding in port"
+      end
+
       if new_port != nil && !(new_port.to_s =~ /^\d+$/)
         raise InvalidURIError,
           "Invalid port number: #{new_port.inspect}"
