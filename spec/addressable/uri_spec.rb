@@ -243,6 +243,48 @@ describe Addressable::URI, "when created from nil components" do
     end).to raise_error(Addressable::URI::InvalidURIError)
   end
 
+  it "should raise an error if the scheme begins with a digit" do
+    (lambda do
+      @uri.scheme = "1scheme"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if the scheme begins with a plus" do
+    (lambda do
+      @uri.scheme = "+scheme"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if the scheme begins with a dot" do
+    (lambda do
+      @uri.scheme = ".scheme"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if the scheme begins with a dash" do
+    (lambda do
+      @uri.scheme = "-scheme"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if the scheme contains an illegal character" do
+    (lambda do
+      @uri.scheme = "scheme!"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if the scheme contains whitespace" do
+    (lambda do
+      @uri.scheme = "sch eme"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error if the scheme contains a newline" do
+    (lambda do
+      @uri.scheme = "sch\neme"
+    end).should raise_error(Addressable::URI::InvalidURIError)
+  end
+
   it "should raise an error if set into an invalid state" do
     expect(lambda do
       @uri.user = "user"
@@ -3631,15 +3673,6 @@ describe Addressable::URI, "when parsed from " +
     )
     expect(@uri.to_str).to eq(
       "ftp://user:pass@example.com/path/to/resource?query=x#fragment"
-    )
-    @uri.scheme = "bogus!"
-    expect(@uri.scheme).to eq("bogus!")
-    expect(@uri.normalized_scheme).to eq("bogus%21")
-    expect(@uri.normalize.to_s).to eq(
-      "bogus%21://user:pass@example.com/path/to/resource?query=x#fragment"
-    )
-    expect(@uri.normalize.to_str).to eq(
-      "bogus%21://user:pass@example.com/path/to/resource?query=x#fragment"
     )
   end
 

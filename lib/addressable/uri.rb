@@ -862,7 +862,7 @@ module Addressable
       elsif new_scheme
         new_scheme = new_scheme.to_str
       end
-      if new_scheme && new_scheme !~ /[a-z][a-z0-9\.\+\-]*/i
+      if new_scheme && new_scheme !~ /\A[a-z][a-z0-9\.\+\-]*\z/i
         raise InvalidURIError, "Invalid scheme format."
       end
       @scheme = new_scheme
