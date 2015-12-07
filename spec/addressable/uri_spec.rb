@@ -169,9 +169,10 @@ describe Addressable::URI, "quote handling" do
 end
 
 describe Addressable::URI, "newline normalization" do
-  it "should not unescape newline in scheme" do
-    uri = Addressable::URI.parse("ht%0atp://localhost/").normalize
-    expect(uri.to_s).to eq("ht%0Atp://localhost/")
+  it "should not accept newlines in scheme" do
+    expect(lambda do
+      Addressable::URI.parse("ht%0atp://localhost/")
+    end).to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should not unescape newline in path" do
@@ -190,8 +191,8 @@ describe Addressable::URI, "newline normalization" do
   end
 
   it "should not unescape newline in username" do
-    uri = Addressable::URI.parse("http://example:foo%0abar@localhost/").normalize
-    expect(uri.to_s).to eq("http://example:foo%0Abar@localhost/")
+    uri = Addressable::URI.parse("http://example:foo%0abar@example/").normalize
+    expect(uri.to_s).to eq("http://example:foo%0Abar@example/")
   end
 
   it "should not accept newline in hostname" do
