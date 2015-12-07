@@ -698,6 +698,13 @@ describe "Expansion" do
       ]
     }
   end
+  context "non-string key in match data" do
+    subject {Addressable::Template.new("http://example.com/{one}")}
+
+    it "raises TypeError" do
+      expect { subject.expand(Object.new => "1") }.to raise_error TypeError
+    end
+  end
 end
 
 class ExampleTwoProcessor
@@ -931,13 +938,23 @@ describe Addressable::Template do
         )
       end
     end
+    context "partial_expand form style query with missing param at beginning" do
+      subject {
+        Addressable::Template.new("http://example.com/{?one,two}/")
+      }
+      it "builds a new pattern" do
+        expect(subject.partial_expand(:two => "2").pattern).to eq(
+          "http://example.com/?two=2{&one}/"
+        )
+      end
+    end
     context "partial_expand with query string" do
       subject {
         Addressable::Template.new("http://example.com/{?two,one}/")
       }
       it "builds a new pattern" do
         expect(subject.partial_expand(:one => "1").pattern).to eq(
-          "http://example.com/{?two}&one=1/"
+          "http://example.com/?one=1{&two}/"
         )
       end
     end
@@ -979,7 +996,7 @@ describe Addressable::Template do
       }
       it "builds a new pattern" do
         expect(subject.partial_expand("one" => "1").pattern).to eq(
-          "http://example.com/{?two}&one=1/"
+          "http://example.com/?one=1{&two}/"
         )
       end
     end
@@ -1028,7 +1045,7 @@ describe Addressable::Template do
       }
       it "builds a new pattern" do
         expect(subject.partial_expand("one" => "1").pattern).to eq(
-          "http://example.com/{?two}&one=1/"
+          "http://example.com/?one=1{&two}/"
         )
       end
     end
