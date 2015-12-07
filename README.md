@@ -68,7 +68,7 @@ template.expand({
 })
 #=> #<Addressable::URI:0xc9d95c URI:http://example.com/?foo=bar&color=red>
 
-template = Addressable::Template.new("http://example.com/{?one,two,three}/")
+template = Addressable::Template.new("http://example.com/{?one,two,three}")
 template.partial_expand({"one" => "1", "three" => 3}).pattern
 #=> "http://example.com/?one=1{&two}&three=3"
 
