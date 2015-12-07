@@ -3,10 +3,12 @@
 - double quotes in a host now raises an error
 - newlines in host will no longer get unescaped during normalization
 - stricter handling of bogus scheme values
+- stricter handling of encoded port values
 - calling `require 'addressable'` will now load both the URI and Template files
 - assigning to the `hostname` component with an `IPAddr` object is now supported
 - assigning to the `origin` component is now supported
 - fixed minor bug where an exception would be thrown for a missing ACE suffix
+- better partial expansion of URI templates
 
 # Addressable 2.3.8
 - fix warnings
