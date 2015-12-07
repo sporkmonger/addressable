@@ -244,45 +244,45 @@ describe Addressable::URI, "when created from nil components" do
   end
 
   it "should raise an error if the scheme begins with a digit" do
-    (lambda do
+    expect(lambda do
       @uri.scheme = "1scheme"
-    end).should raise_error(Addressable::URI::InvalidURIError)
+    end).to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should raise an error if the scheme begins with a plus" do
-    (lambda do
+    expect(lambda do
       @uri.scheme = "+scheme"
-    end).should raise_error(Addressable::URI::InvalidURIError)
+    end).to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should raise an error if the scheme begins with a dot" do
-    (lambda do
+    expect(lambda do
       @uri.scheme = ".scheme"
-    end).should raise_error(Addressable::URI::InvalidURIError)
+    end).to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should raise an error if the scheme begins with a dash" do
-    (lambda do
+    expect(lambda do
       @uri.scheme = "-scheme"
-    end).should raise_error(Addressable::URI::InvalidURIError)
+    end).to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should raise an error if the scheme contains an illegal character" do
-    (lambda do
+    expect(lambda do
       @uri.scheme = "scheme!"
-    end).should raise_error(Addressable::URI::InvalidURIError)
+    end).to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should raise an error if the scheme contains whitespace" do
-    (lambda do
+    expect(lambda do
       @uri.scheme = "sch eme"
-    end).should raise_error(Addressable::URI::InvalidURIError)
+    end).to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should raise an error if the scheme contains a newline" do
-    (lambda do
+    expect(lambda do
       @uri.scheme = "sch\neme"
-    end).should raise_error(Addressable::URI::InvalidURIError)
+    end).to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should raise an error if set into an invalid state" do
