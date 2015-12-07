@@ -27,7 +27,7 @@ namespace :gem do
     s.author = "Bob Aman"
     s.email = "bob@sporkmonger.com"
     s.homepage = "https://github.com/sporkmonger/addressable"
-    s.license = "Apache License 2.0"
+    s.license = "Apache-2.0"
   end
 
   Gem::PackageTask.new(GEM_SPEC) do |p|
