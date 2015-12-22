@@ -94,7 +94,12 @@ module Addressable
       parts = input.split('.')
       parts.map! do |part|
         if part =~ /^#{ACE_PREFIX}(.+)/
-          punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
+          begin
+            punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
+          rescue Addressable::IDNA::PunycodeBadInput
+            # toUnicode is explicitly defined as never-fails by the spec
+            part
+          end
         else
           part
         end

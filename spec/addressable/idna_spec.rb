@@ -137,6 +137,10 @@ shared_examples_for "converting from unicode to ASCII" do
 end
 
 shared_examples_for "converting from ASCII to unicode" do
+  it "should return the identity conversion when punycode decode fails" do
+    expect(Addressable::IDNA.to_unicode("xn--zckp1cyg1.sblo.jp")).to eq("xn--zckp1cyg1.sblo.jp")
+  end
+
   it "should return the identity conversion when the ACE prefix has no suffix" do
     expect(Addressable::IDNA.to_unicode("xn--...-")).to eq("xn--...-")
   end
