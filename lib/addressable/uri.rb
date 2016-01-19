@@ -1151,7 +1151,7 @@ module Addressable
     # @return [String] The authority component.
     def authority
       self.host && @authority ||= begin
-        authority = ""
+        authority = String.new
         if self.userinfo != nil
           authority << "#{self.userinfo}@"
         end
@@ -1170,7 +1170,7 @@ module Addressable
     def normalized_authority
       return nil unless self.authority
       @normalized_authority ||= begin
-        authority = ""
+        authority = String.new
         if self.normalized_userinfo != nil
           authority << "#{self.normalized_userinfo}@"
         end
@@ -2246,7 +2246,7 @@ module Addressable
           "Cannot assemble URI string with ambiguous path: '#{self.path}'"
       end
       @uri_string ||= begin
-        uri_string = ""
+        uri_string = String.new
         uri_string << "#{self.scheme}:" if self.scheme != nil
         uri_string << "//#{self.authority}" if self.authority != nil
         uri_string << self.path.to_s
