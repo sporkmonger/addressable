@@ -3,7 +3,7 @@
 <dl>
   <dt>Homepage</dt><dd><a href="https://github.com/sporkmonger/addressable">github.com/sporkmonger/addressable</a></dd>
   <dt>Author</dt><dd><a href="mailto:bob@sporkmonger.com">Bob Aman</a></dd>
-  <dt>Copyright</dt><dd>Copyright © 2006-2015 Bob Aman</dd>
+  <dt>Copyright</dt><dd>Copyright © 2006-2016 Bob Aman</dd>
   <dt>License</dt><dd>Apache 2.0</dd>
 </dl>
 
