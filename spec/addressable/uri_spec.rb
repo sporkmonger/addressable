@@ -5696,7 +5696,7 @@ describe Addressable::URI, "when assigning query values" do
     @uri.query.should == nil
   end
 
-  it "should maintain original ordering: {'ab' => 'c', :ab => 'a', :a => 'x'}" do
+  it "maintains original ordering: {'ab' => 'c', :ab => 'a', :a => 'x'}" do
     @uri.query_values = {'ab' => 'c', :ab => 'a', :a => 'x'}
 
     @uri.query.should == "ab=c&ab=a&a=x"
