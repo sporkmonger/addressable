@@ -6100,9 +6100,9 @@ describe Addressable::URI, "when assigning query values" do
     expect(@uri.query).to eq(nil)
   end
 
-  it "should correctly sort {'ab' => 'c', :ab => 'a', :a => 'x'}" do
+  it "should maintain original ordering: {'ab' => 'c', :ab => 'a', :a => 'x'}" do
     @uri.query_values = {'ab' => 'c', :ab => 'a', :a => 'x'}
-    expect(@uri.query).to eq("a=x&ab=a&ab=c")
+    expect(@uri.query).to eq("ab=c&ab=a&a=x")
   end
 
   it "should correctly assign " +
