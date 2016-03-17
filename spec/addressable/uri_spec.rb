@@ -125,14 +125,6 @@ describe Addressable::URI, "when created with a non-string authority" do
   end
 end
 
-describe Addressable::URI, "when created with a non-string authority" do
-  it "should raise an error" do
-    expect(lambda do
-      Addressable::URI.new(:authority => :bogus)
-    end).to raise_error(TypeError)
-  end
-end
-
 describe Addressable::URI, "when created with a non-string path" do
   it "should raise an error" do
     expect(lambda do
