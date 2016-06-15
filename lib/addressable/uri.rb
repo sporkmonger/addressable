@@ -1607,9 +1607,6 @@ module Addressable
           key = key.to_s if key.kind_of?(Symbol)
           [key, value]
         end
-        # Useful default for OAuth and caching.
-        # Only to be used for non-Array inputs. Arrays should preserve order.
-        new_query_values.sort!
       end
 
       # new_query_values have form [['key1', 'value1'], ['key2', 'value2']]

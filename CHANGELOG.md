@@ -1,3 +1,6 @@
+# Addressable 3.0
+- removed default query param sorting
+
 # Addressable 2.3.2
 - added Addressable::URI#default_port method
 - fixed issue with Marshalling Unicode data on Windows
