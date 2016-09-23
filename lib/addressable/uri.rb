@@ -1546,7 +1546,7 @@ module Addressable
       if new_query && !new_query.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_query.class} into String."
       end
-      @query = new_query ? new_query.to_str : nil
+      @query = new_query ? CGI.unescapeHTML(new_query.to_str) : nil
 
       # Reset dependent values
       remove_instance_variable(:@normalized_query) if defined?(@normalized_query)
