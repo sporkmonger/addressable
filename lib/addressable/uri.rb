@@ -18,6 +18,7 @@
 
 require "addressable/version"
 require "addressable/idna"
+require "cgi"
 
 ##
 # Addressable is a library for processing links and URIs.
