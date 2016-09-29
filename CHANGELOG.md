@@ -1,3 +1,5 @@
+- stopped merge!, join!, omit! and normalize! from disabling deferred validation
+
 # Addressable 2.4.0
 - support for 1.8.x dropped
 - double quotes in a host now raises an error

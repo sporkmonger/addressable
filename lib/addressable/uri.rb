@@ -2384,7 +2384,9 @@ module Addressable
     def replace_self(uri)
       # Reset dependent values
       instance_variables.each do |var|
-        remove_instance_variable(var) if instance_variable_defined?(var)
+        if instance_variable_defined?(var) && var != :@validation_deferred
+          remove_instance_variable(var)
+        end
       end
 
       @scheme = uri.scheme
