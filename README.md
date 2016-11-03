@@ -92,7 +92,7 @@ template.extract(uri)
 # Install
 
 ```console
-$ sudo gem install addressable
+$ gem install addressable
 ```
 
 You may optionally turn on native IDN support by installing libidn and the
