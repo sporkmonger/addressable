@@ -3,7 +3,7 @@
 - URI validation now also takes place after setting a path
 - Handle backslashes in authority more like a browser for `heuristic_parse`
 - Unescaped backslashes in host now raise an `InvalidURIError`
-- stopped merge!, join!, omit! and normalize! from disabling deferred validation
+- `merge!`, `join!`, `omit!` and `normalize!` don't disable deferred validation
 
 # Addressable 2.4.0
 - support for 1.8.x dropped
