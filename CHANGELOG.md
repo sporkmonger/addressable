@@ -1,3 +1,7 @@
+# Addressable 2.5.0
+- Paths beginning with // and missing an authority are now considered invalid
+- URI validation now also takes place after setting a path
+
 # Addressable 2.4.0
 - support for 1.8.x dropped
 - double quotes in a host now raises an error

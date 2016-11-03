@@ -2961,6 +2961,23 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+describe Addressable::URI, "when parsed from " +
+    "'/..//example.com'" do
+  before do
+    @uri = Addressable::URI.parse("/..//example.com")
+  end
+
+  it "should become invalid when normalized" do
+    expect(lambda do
+      @uri.normalize
+    end).to raise_error(Addressable::URI::InvalidURIError, /authority/)
+  end
+
+  it "should have a path of '/..//example.com'" do
+    expect(@uri.path).to eq("/..//example.com")
+  end
+end
+
 describe Addressable::URI, "when parsed from '/a/b/c/./../../g'" do
   before do
     @uri = Addressable::URI.parse("/a/b/c/./../../g")

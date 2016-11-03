@@ -1489,6 +1489,9 @@ module Addressable
       # Reset dependent values
       remove_instance_variable(:@normalized_path) if defined?(@normalized_path)
       remove_composite_values
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     ##
@@ -2370,6 +2373,12 @@ module Addressable
           self.authority != nil
         raise InvalidURIError,
           "Cannot have a relative path with an authority set: '#{self.to_s}'"
+      end
+      if self.path != nil && !self.path.empty? &&
+          self.path[0..1] == SLASH + SLASH && self.authority == nil
+        raise InvalidURIError,
+          "Cannot have a path with two leading slashes " +
+          "without an authority set: '#{self.to_s}'"
       end
       return nil
     end
