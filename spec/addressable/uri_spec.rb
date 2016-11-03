@@ -1073,6 +1073,22 @@ describe Addressable::URI, "when created with a host with trailing dots" do
   end
 end
 
+describe Addressable::URI, "when created with a host with a backslash" do
+  it "should raise an error" do
+    expect(lambda do
+      Addressable::URI.new(:authority => "example\\example")
+    end).to raise_error(Addressable::URI::InvalidURIError)
+  end
+end
+
+describe Addressable::URI, "when created with a host with a slash" do
+  it "should raise an error" do
+    expect(lambda do
+      Addressable::URI.new(:authority => "example/example")
+    end).to raise_error(Addressable::URI::InvalidURIError)
+  end
+end
+
 describe Addressable::URI, "when created with both a userinfo and a user" do
   it "should raise an error" do
     expect(lambda do
@@ -5892,6 +5908,44 @@ describe Addressable::URI, "when given the input " +
   it "should heuristically parse to 'http://example.com/example.com/'" do
     @uri = Addressable::URI.heuristic_parse(@input)
     expect(@uri.to_s).to eq("http://example.com/example.com/")
+  end
+end
+
+describe Addressable::URI, "when given the input " +
+    "'http://prefix\\.example.com/'" do
+  before do
+    @input = "http://prefix\\.example.com/"
+  end
+
+  it "should heuristically parse to 'http://prefix%2F.example.com/'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    expect(@uri.authority).to eq("prefix%2F.example.com")
+    expect(@uri.to_s).to eq("http://prefix%2F.example.com/")
+  end
+
+  it "should heuristically parse to 'http://prefix%2F.example.com/' " +
+      "even with a scheme hint of 'ftp'" do
+    @uri = Addressable::URI.heuristic_parse(@input, {:scheme => 'ftp'})
+    expect(@uri.to_s).to eq("http://prefix%2F.example.com/")
+  end
+end
+
+describe Addressable::URI, "when given the input " +
+    "'http://prefix%2F.example.com/'" do
+  before do
+    @input = "http://prefix%2F.example.com/"
+  end
+
+  it "should heuristically parse to 'http://prefix%2F.example.com/'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    expect(@uri.authority).to eq("prefix%2F.example.com")
+    expect(@uri.to_s).to eq("http://prefix%2F.example.com/")
+  end
+
+  it "should heuristically parse to 'http://prefix%2F.example.com/' " +
+      "even with a scheme hint of 'ftp'" do
+    @uri = Addressable::URI.heuristic_parse(@input, {:scheme => 'ftp'})
+    expect(@uri.to_s).to eq("http://prefix%2F.example.com/")
   end
 end
 

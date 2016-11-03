@@ -194,6 +194,12 @@ module Addressable
       when /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
         uri.gsub!(/^/, hints[:scheme] + "://")
       end
+      scan = uri.scan(URIREGEX)
+      fragments = scan[0]
+      authority = fragments[3]
+      if authority
+        uri.gsub!(authority, authority.gsub(/[\/\\]/, '%2F'))
+      end
       parsed = self.parse(uri)
       if parsed.scheme =~ /^[^\/?#\.]+\.[^\/?#]+$/
         parsed = self.parse(hints[:scheme] + "://" + uri)
@@ -1095,14 +1101,6 @@ module Addressable
         raise TypeError, "Can't convert #{new_host.class} into String."
       end
       @host = new_host ? new_host.to_str : nil
-
-      unreserved = CharacterClasses::UNRESERVED
-      sub_delims = CharacterClasses::SUB_DELIMS
-      if !@host.nil? && (@host =~ /[<>{}\/\?\#\@"[[:space:]]]/ ||
-          (@host[/^\[(.*)\]$/, 1] != nil && @host[/^\[(.*)\]$/, 1] !~
-          Regexp.new("^[#{unreserved}#{sub_delims}:]*$")))
-        raise InvalidURIError, "Invalid character in host: '#{@host.to_s}'"
-      end
 
       # Reset dependent values
       remove_instance_variable(:@authority) if defined?(@authority)
@@ -2379,6 +2377,13 @@ module Addressable
         raise InvalidURIError,
           "Cannot have a path with two leading slashes " +
           "without an authority set: '#{self.to_s}'"
+      end
+      unreserved = CharacterClasses::UNRESERVED
+      sub_delims = CharacterClasses::SUB_DELIMS
+      if !self.host.nil? && (self.host =~ /[<>{}\/\\\?\#\@"[[:space:]]]/ ||
+          (self.host[/^\[(.*)\]$/, 1] != nil && self.host[/^\[(.*)\]$/, 1] !~
+          Regexp.new("^[#{unreserved}#{sub_delims}:]*$")))
+        raise InvalidURIError, "Invalid character in host: '#{self.host.to_s}'"
       end
       return nil
     end

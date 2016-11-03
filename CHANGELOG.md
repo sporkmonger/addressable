@@ -1,6 +1,8 @@
 # Addressable 2.5.0
 - Paths beginning with // and missing an authority are now considered invalid
 - URI validation now also takes place after setting a path
+- Handle backslashes in authority more like a browser for `heuristic_parse`
+- Unescaped backslashes in host now raise an `InvalidURIError`
 
 # Addressable 2.4.0
 - support for 1.8.x dropped
