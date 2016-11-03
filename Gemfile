@@ -22,6 +22,16 @@ group :test, :development do
   ]
   # Used to test compatibility.
   gem 'rack-mount', git: 'https://github.com/sporkmonger/rack-mount.git', require: 'rack/mount'
+
+  if RUBY_VERSION.start_with?('1.9', '2.0', '2.1')
+    gem 'rack', '< 2', :require => false
+  end
+
+  if RUBY_VERSION.start_with?('1.9')
+    gem 'json', '< 2', :require => false
+    gem 'term-ansicolor', '< 1.4', :require => false
+    gem 'tins', '< 1.7', :require => false
+  end
 end
 
 gem 'idn-ruby', :platform => [:mri_19, :mri_20, :mri_21, :mri_22]
