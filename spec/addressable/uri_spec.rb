@@ -5939,6 +5939,63 @@ describe Addressable::URI, "when given the input " +
 end
 
 describe Addressable::URI, "when given the input " +
+    "'http://p:\\/'" do
+  before do
+    @input = "http://p:\\/"
+  end
+
+  it "should heuristically parse to 'http://p//'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    expect(@uri.authority).to eq("p")
+    expect(@uri.to_s).to eq("http://p//")
+  end
+
+  it "should heuristically parse to 'http://p//' " +
+      "even with a scheme hint of 'ftp'" do
+    @uri = Addressable::URI.heuristic_parse(@input, {:scheme => 'ftp'})
+    expect(@uri.to_s).to eq("http://p//")
+  end
+end
+
+describe Addressable::URI, "when given the input " +
+    "'http://p://'" do
+  before do
+    @input = "http://p://"
+  end
+
+  it "should heuristically parse to 'http://p//'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    expect(@uri.authority).to eq("p")
+    expect(@uri.to_s).to eq("http://p//")
+  end
+
+  it "should heuristically parse to 'http://p//' " +
+      "even with a scheme hint of 'ftp'" do
+    @uri = Addressable::URI.heuristic_parse(@input, {:scheme => 'ftp'})
+    expect(@uri.to_s).to eq("http://p//")
+  end
+end
+
+describe Addressable::URI, "when given the input " +
+    "'http://p://p'" do
+  before do
+    @input = "http://p://p"
+  end
+
+  it "should heuristically parse to 'http://p//p'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    expect(@uri.authority).to eq("p")
+    expect(@uri.to_s).to eq("http://p//p")
+  end
+
+  it "should heuristically parse to 'http://p//p' " +
+      "even with a scheme hint of 'ftp'" do
+    @uri = Addressable::URI.heuristic_parse(@input, {:scheme => 'ftp'})
+    expect(@uri.to_s).to eq("http://p//p")
+  end
+end
+
+describe Addressable::URI, "when given the input " +
     "'http://prefix .example.com/'" do
   before do
     @input = "http://prefix .example.com/"

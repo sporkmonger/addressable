@@ -197,11 +197,11 @@ module Addressable
       match = uri.match(URIREGEX)
       fragments = match.captures
       authority = fragments[3]
-      if authority
+      if authority && authority.length > 0
         new_authority = authority.gsub(/\\/, '/').gsub(/ /, '%20')
-        offset = match.offset(3)
-        # FIXME: This is definitely buggy.
-        uri = uri.sub(authority, new_authority)
+        # NOTE: We want offset 4, not 3!
+        offset = match.offset(4)
+        uri[offset[0]...offset[1]] = new_authority
       end
       parsed = self.parse(uri)
       if parsed.scheme =~ /^[^\/?#\.]+\.[^\/?#]+$/
