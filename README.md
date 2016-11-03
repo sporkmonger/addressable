@@ -106,14 +106,17 @@ $ gem install idn-ruby
 
 # Semantic Versioning
 
-This project conforms to semver. As a result of this policy, you can (and should) specify a dependency on this gem using the Pessimistic Version Constraint with two digits of precision. For example:
+This project uses sementic versioning. You can (and should) specify your
+dependency using a pessimistic version constraint covering the major and minor
+values:
 
 ```ruby
-spec.add_dependency 'addressable', '~> 1.0'
+spec.add_dependency 'addressable', '~> 2.4'
 ```
 
-This means your project is compatible with addressable 1.0 up until 2.0. You can also set a higher minimum version:
+If you need a specific bug fix, you can also specify minimum tiny versions
+without preventing updates to the latest minor release:
 
 ```ruby
-spec.add_dependency 'addressable', '~> 1.1'
+spec.add_dependency 'addressable', '~> 2.3', '>= 2.3.7'
 ```
