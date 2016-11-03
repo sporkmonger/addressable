@@ -4165,6 +4165,25 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+describe Addressable::URI, "when parsed from " \
+                           "'http://example.com/?q=a&amp;q2=b'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/?q=a&amp;q2=b")
+  end
+
+  it "should have a query of 'q=a&q2=b'" do
+    expect(@uri.query).to eq("q=a&q2=b")
+  end
+
+  it "should have query_values of {'q' => 'a', 'q2' => 'b'}" do
+    expect(@uri.query_values).to eq("q" => "a", "q2" => "b")
+  end
+
+  it "should have a normalized query of 'q=a&q2=b'" do
+    expect(@uri.normalized_query).to eq("q=a&q2=b")
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://example.com/?v=%7E&w=%&x=%25&y=%2B&z=C%CC%A7'" do
   before do
