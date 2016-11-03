@@ -194,11 +194,14 @@ module Addressable
       when /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
         uri.gsub!(/^/, hints[:scheme] + "://")
       end
-      scan = uri.scan(URIREGEX)
-      fragments = scan[0]
+      match = uri.match(URIREGEX)
+      fragments = match.captures
       authority = fragments[3]
       if authority
-        uri.gsub!(authority, authority.gsub(/[\/\\]/, '%2F'))
+        new_authority = authority.gsub(/\\/, '/').gsub(/ /, '%20')
+        offset = match.offset(3)
+        # FIXME: This is definitely buggy.
+        uri = uri.sub(authority, new_authority)
       end
       parsed = self.parse(uri)
       if parsed.scheme =~ /^[^\/?#\.]+\.[^\/?#]+$/
