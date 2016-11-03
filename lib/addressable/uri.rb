@@ -176,7 +176,7 @@ module Addressable
         raise TypeError, "Can't convert #{uri.class} into String."
       end
       # Otherwise, convert to a String
-      uri = uri.to_str.dup
+      uri = uri.to_str.dup.strip
       hints = {
         :scheme => "http"
       }.merge(hints)

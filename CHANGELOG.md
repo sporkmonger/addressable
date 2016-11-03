@@ -4,6 +4,7 @@
 - Handle backslashes in authority more like a browser for `heuristic_parse`
 - Unescaped backslashes in host now raise an `InvalidURIError`
 - `merge!`, `join!`, `omit!` and `normalize!` don't disable deferred validation
+- `heuristic_parse` now trims whitespace before parsing
 
 # Addressable 2.4.0
 - support for 1.8.x dropped

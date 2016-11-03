@@ -6017,6 +6017,20 @@ describe Addressable::URI, "when given the input " +
 end
 
 describe Addressable::URI, "when given the input " +
+    "'  http://www.example.com/  '" do
+  before do
+    @input = "  http://www.example.com/  "
+  end
+
+  it "should heuristically parse to 'http://prefix%20.example.com/'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    expect(@uri.scheme).to eq("http")
+    expect(@uri.path).to eq("/")
+    expect(@uri.to_s).to eq("http://www.example.com/")
+  end
+end
+
+describe Addressable::URI, "when given the input " +
     "'http://prefix%2F.example.com/'" do
   before do
     @input = "http://prefix%2F.example.com/"
