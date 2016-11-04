@@ -409,6 +409,10 @@ describe Addressable::URI, "when initialized from individual components" do
     expect(@uri.normalized_host).to eq("example.com")
   end
 
+  it "returns 'com' for #tld" do
+    expect(@uri.tld).to eq("com")
+  end
+
   it "returns 'user:password@example.com:8080' for #authority" do
     expect(@uri.authority).to eq("user:password@example.com:8080")
   end
@@ -2341,6 +2345,80 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have an origin of 'http://example.com'" do
     expect(@uri.origin).to eq('http://example.com')
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'HTTP://EXAMPLE.COM/'" do
+  before do
+    @uri = Addressable::URI.parse("HTTP://EXAMPLE.COM/")
+  end
+
+  it "should be equivalent to http://example.com" do
+    expect(@uri).to eq(Addressable::URI.parse("http://example.com"))
+  end
+
+  it "should correctly convert to a hash" do
+    expect(@uri.to_hash).to eq({
+      :scheme => "HTTP",
+      :user => nil,
+      :password => nil,
+      :host => "EXAMPLE.COM",
+      :port => nil,
+      :path => "/",
+      :query => nil,
+      :fragment => nil
+    })
+  end
+
+  it "should be identical to its duplicate" do
+    expect(@uri).to eq(@uri.dup)
+  end
+
+  it "should have an origin of 'http://example.com'" do
+    expect(@uri.origin).to eq('http://example.com')
+  end
+
+  it "should have a tld of 'com'" do
+    expect(@uri.tld).to eq('com')
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'http://www.example.co.uk/'" do
+  before do
+    @uri = Addressable::URI.parse("http://www.example.co.uk/")
+  end
+
+  it "should have an origin of 'http://www.example.co.uk'" do
+    expect(@uri.origin).to eq('http://www.example.co.uk')
+  end
+
+  it "should have a tld of 'co.uk'" do
+    expect(@uri.tld).to eq('co.uk')
+  end
+
+  it "should have a domain of 'example.co.uk'" do
+    expect(@uri.domain).to eq('example.co.uk')
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'http://sub_domain.blogspot.com/'" do
+  before do
+    @uri = Addressable::URI.parse("http://sub_domain.blogspot.com/")
+  end
+
+  it "should have an origin of 'http://sub_domain.blogspot.com'" do
+    expect(@uri.origin).to eq('http://sub_domain.blogspot.com')
+  end
+
+  it "should have a tld of 'com'" do
+    expect(@uri.tld).to eq('com')
+  end
+
+  it "should have a domain of 'blogspot.com'" do
+    expect(@uri.domain).to eq('blogspot.com')
   end
 end
 

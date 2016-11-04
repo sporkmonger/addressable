@@ -20,6 +20,7 @@ namespace :gem do
 
     s.required_ruby_version = '>= 1.9.0'
 
+    s.add_runtime_dependency 'public_suffix', '~> 2.0', '>= 2.0.3'
     s.add_development_dependency 'bundler', '~> 1.0'
 
     s.require_path = "lib"
@@ -39,15 +40,8 @@ namespace :gem do
   desc "Generates .gemspec file"
   task :gemspec do
     spec_string = GEM_SPEC.to_ruby
-
-    begin
-      Thread.new { eval("$SAFE = 3\n#{spec_string}", binding) }.join
-    rescue
-      abort "unsafe gemspec: #{$!}"
-    else
-      File.open("#{GEM_SPEC.name}.gemspec", 'w') do |file|
-        file.write spec_string
-      end
+    File.open("#{GEM_SPEC.name}.gemspec", 'w') do |file|
+      file.write spec_string
     end
   end
 

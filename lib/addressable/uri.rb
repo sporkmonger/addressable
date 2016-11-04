@@ -18,6 +18,7 @@
 
 require "addressable/version"
 require "addressable/idna"
+require "public_suffix"
 
 ##
 # Addressable is a library for processing links and URIs.
@@ -44,7 +45,7 @@ module Addressable
       UNRESERVED = ALPHA + DIGIT + "\\-\\.\\_\\~"
       PCHAR = UNRESERVED + SUB_DELIMS + "\\:\\@"
       SCHEME = ALPHA + DIGIT + "\\-\\+\\."
-      HOST = ALPHA + DIGIT + "\\-\\.\\[\\:\\]"
+      HOST = UNRESERVED + SUB_DELIMS + "\\[\\:\\]"
       AUTHORITY = PCHAR
       PATH = PCHAR + "\\/"
       QUERY = PCHAR + "\\/\\?"
@@ -1143,6 +1144,24 @@ module Addressable
       v = new_hostname ? new_hostname.to_str : nil
       v = "[#{v}]" if /\A\[.*\]\z/ !~ v && /:/ =~ v
       self.host = v
+    end
+
+    ##
+    # Returns the top-level domain for this host.
+    #
+    # @example
+    #   Addressable::URI.parse("www.example.co.uk").tld # => "co.uk"
+    def tld
+      PublicSuffix.parse(self.host, ignore_private: true).tld
+    end
+
+    ##
+    # Returns the public suffix domain for this host.
+    #
+    # @example
+    #   Addressable::URI.parse("www.example.co.uk").domain # => "example.co.uk"
+    def domain
+      PublicSuffix.domain(self.host, ignore_private: true)
     end
 
     ##

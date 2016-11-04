@@ -1,8 +1,10 @@
 # Addressable 2.5.0
-- Paths beginning with // and missing an authority are now considered invalid
-- URI validation now also takes place after setting a path
-- Handle backslashes in authority more like a browser for `heuristic_parse`
-- Unescaped backslashes in host now raise an `InvalidURIError`
+- add support for public suffixes and tld; first runtime dependency
+- hostname escaping should match RFC; underscores in hostnames no longer escaped
+- paths beginning with // and missing an authority are now considered invalid
+- validation now also takes place after setting a path
+- handle backslashes in authority more like a browser for `heuristic_parse`
+- unescaped backslashes in host now raise an `InvalidURIError`
 - `merge!`, `join!`, `omit!` and `normalize!` don't disable deferred validation
 - `heuristic_parse` now trims whitespace before parsing
 
