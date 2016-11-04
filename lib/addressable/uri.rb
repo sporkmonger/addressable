@@ -377,12 +377,10 @@ module Addressable
       if character_class.kind_of?(String)
         character_class = /[^#{character_class}]/
       end
-      if component.respond_to?(:force_encoding)
-        # We can't perform regexps on invalid UTF sequences, but
-        # here we need to, so switch to ASCII.
-        component = component.dup
-        component.force_encoding(Encoding::ASCII_8BIT)
-      end
+      # We can't perform regexps on invalid UTF sequences, but
+      # here we need to, so switch to ASCII.
+      component = component.dup
+      component.force_encoding(Encoding::ASCII_8BIT)
       # Avoiding gsub! because there are edge cases with frozen strings
       component = component.gsub(character_class) do |sequence|
         (sequence.unpack('C*').map { |c| "%" + ("%02x" % c).upcase }).join
@@ -437,14 +435,14 @@ module Addressable
       end
       uri = uri.dup
       # Seriously, only use UTF-8. I'm really not kidding!
-      uri.force_encoding("utf-8") if uri.respond_to?(:force_encoding)
-      leave_encoded.force_encoding("utf-8") if leave_encoded.respond_to?(:force_encoding)
+      uri.force_encoding("utf-8")
+      leave_encoded.force_encoding("utf-8")
       result = uri.gsub(/%[0-9a-f]{2}/iu) do |sequence|
         c = sequence[1..3].to_i(16).chr
-        c.force_encoding("utf-8") if c.respond_to?(:force_encoding)
+        c.force_encoding("utf-8")
         leave_encoded.include?(c) ? sequence : c
       end
-      result.force_encoding("utf-8") if result.respond_to?(:force_encoding)
+      result.force_encoding("utf-8")
       if return_type == String
         return result
       elsif return_type == ::Addressable::URI
@@ -531,12 +529,10 @@ module Addressable
 
         character_class = /[^#{character_class}]#{leave_re}/
       end
-      if component.respond_to?(:force_encoding)
-        # We can't perform regexps on invalid UTF sequences, but
-        # here we need to, so switch to ASCII.
-        component = component.dup
-        component.force_encoding(Encoding::ASCII_8BIT)
-      end
+      # We can't perform regexps on invalid UTF sequences, but
+      # here we need to, so switch to ASCII.
+      component = component.dup
+      component.force_encoding(Encoding::ASCII_8BIT)
       unencoded = self.unencode_component(component, String, leave_encoded)
       begin
         encoded = self.encode_component(
@@ -547,9 +543,7 @@ module Addressable
       rescue ArgumentError
         encoded = self.encode_component(unencoded)
       end
-      if encoded.respond_to?(:force_encoding)
-        encoded.force_encoding(Encoding::UTF_8)
-      end
+      encoded.force_encoding(Encoding::UTF_8)
       return encoded
     end
 
@@ -861,6 +855,9 @@ module Addressable
           )
         end
       end
+      # All normalized values should be UTF-8
+      @normalized_scheme.force_encoding(Encoding::UTF_8) if @normalized_scheme
+      @normalized_scheme
     end
 
     ##
@@ -913,6 +910,9 @@ module Addressable
           )
         end
       end
+      # All normalized values should be UTF-8
+      @normalized_user.force_encoding(Encoding::UTF_8) if @normalized_user
+      @normalized_user
     end
 
     ##
@@ -967,6 +967,11 @@ module Addressable
           )
         end
       end
+      # All normalized values should be UTF-8
+      if @normalized_password
+        @normalized_password.force_encoding(Encoding::UTF_8)
+      end
+      @normalized_password
     end
 
     ##
@@ -1032,6 +1037,11 @@ module Addressable
           "#{current_user}"
         end
       end
+      # All normalized values should be UTF-8
+      if @normalized_userinfo
+        @normalized_userinfo.force_encoding(Encoding::UTF_8)
+      end
+      @normalized_userinfo
     end
 
     ##
@@ -1094,6 +1104,9 @@ module Addressable
           EMPTY_STR
         end
       end
+      # All normalized values should be UTF-8
+      @normalized_host.force_encoding(Encoding::UTF_8) if @normalized_host
+      @normalized_host
     end
 
     ##
@@ -1200,6 +1213,11 @@ module Addressable
         end
         authority
       end
+      # All normalized values should be UTF-8
+      if @normalized_authority
+        @normalized_authority.force_encoding(Encoding::UTF_8)
+      end
+      @normalized_authority
     end
 
     ##
@@ -1431,6 +1449,9 @@ module Addressable
         end
         site_string
       end
+      # All normalized values should be UTF-8
+      @normalized_site.force_encoding(Encoding::UTF_8) if @normalized_site
+      @normalized_site
     end
 
     ##
@@ -1491,6 +1512,9 @@ module Addressable
         end
         result
       end
+      # All normalized values should be UTF-8
+      @normalized_path.force_encoding(Encoding::UTF_8) if @normalized_path
+      @normalized_path
     end
 
     ##
@@ -1559,6 +1583,9 @@ module Addressable
         end.join("&")
         component == "" ? nil : component
       end
+      # All normalized values should be UTF-8
+      @normalized_query.force_encoding(Encoding::UTF_8) if @normalized_query
+      @normalized_query
     end
 
     ##
@@ -1750,6 +1777,11 @@ module Addressable
         )
         component == "" ? nil : component
       end
+      # All normalized values should be UTF-8
+      if @normalized_fragment
+        @normalized_fragment.force_encoding(Encoding::UTF_8)
+      end
+      @normalized_fragment
     end
 
     ##
@@ -2275,9 +2307,7 @@ module Addressable
         uri_string << self.path.to_s
         uri_string << "?#{self.query}" if self.query != nil
         uri_string << "##{self.fragment}" if self.fragment != nil
-        if uri_string.respond_to?(:force_encoding)
-          uri_string.force_encoding(Encoding::UTF_8)
-        end
+        uri_string.force_encoding(Encoding::UTF_8)
         uri_string
       end
     end
