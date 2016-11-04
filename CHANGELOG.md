@@ -9,6 +9,7 @@
 - unescaped backslashes in host now raise an `InvalidURIError`
 - `merge!`, `join!`, `omit!` and `normalize!` don't disable deferred validation
 - `heuristic_parse` now trims whitespace before parsing
+- host parts longer than 63 bytes will be ignored and not passed to libidn
 
 # Addressable 2.4.0
 - support for 1.8.x dropped
