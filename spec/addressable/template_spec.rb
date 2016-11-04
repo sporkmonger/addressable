@@ -851,6 +851,7 @@ describe Addressable::Template do
         expect(match_data.uri).to eq(uri)
         expect(match_data.template).to eq(subject)
         expect(match_data.mapping).to be_empty
+        expect(match_data.inspect).to be_an String
       end
     end
   end
