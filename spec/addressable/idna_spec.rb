@@ -26,6 +26,11 @@ shared_examples_for "converting from unicode to ASCII" do
     expect(Addressable::IDNA.to_ascii("www.google.com")).to eq("www.google.com")
   end
 
+  LONG = 'AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com'
+  it "should convert '#{LONG}' correctly" do
+    expect(Addressable::IDNA.to_ascii(LONG)).to eq(LONG)
+  end
+
   it "should convert 'www.詹姆斯.com' correctly" do
     expect(Addressable::IDNA.to_ascii(
       "www.詹姆斯.com"
@@ -137,8 +142,14 @@ shared_examples_for "converting from unicode to ASCII" do
 end
 
 shared_examples_for "converting from ASCII to unicode" do
+  LONG = 'AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com'
+  it "should convert '#{LONG}' correctly" do
+    expect(Addressable::IDNA.to_unicode(LONG)).to eq(LONG)
+  end
+
   it "should return the identity conversion when punycode decode fails" do
-    expect(Addressable::IDNA.to_unicode("xn--zckp1cyg1.sblo.jp")).to eq("xn--zckp1cyg1.sblo.jp")
+    expect(Addressable::IDNA.to_unicode("xn--zckp1cyg1.sblo.jp")).to eq(
+      "xn--zckp1cyg1.sblo.jp")
   end
 
   it "should return the identity conversion when the ACE prefix has no suffix" do
@@ -146,7 +157,8 @@ shared_examples_for "converting from ASCII to unicode" do
   end
 
   it "should convert 'www.google.com' correctly" do
-    expect(Addressable::IDNA.to_unicode("www.google.com")).to eq("www.google.com")
+    expect(Addressable::IDNA.to_unicode("www.google.com")).to eq(
+      "www.google.com")
   end
 
   it "should convert 'www.詹姆斯.com' correctly" do

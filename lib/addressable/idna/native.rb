@@ -34,8 +34,10 @@ module Addressable
 
     def self.to_ascii(value)
       value.to_s.split('.', -1).map do |segment|
-        if segment.size > 0
+        if segment.size > 0 && segment.size < 64
           IDN::Idna.toASCII(segment)
+        elsif segment.size >= 64
+          segment
         else
           ''
         end
@@ -44,8 +46,10 @@ module Addressable
 
     def self.to_unicode(value)
       value.to_s.split('.', -1).map do |segment|
-        if segment.size > 0
+        if segment.size > 0 && segment.size < 64
           IDN::Idna.toUnicode(segment)
+        elsif segment.size >= 64
+          segment
         else
           ''
         end
