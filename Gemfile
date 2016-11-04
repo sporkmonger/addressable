@@ -2,7 +2,7 @@ source 'https://rubygems.org'
 
 gemspec
 
-gem 'rake', '~> 10.4', '>= 10.4.2'
+gem 'rake', '> 10.0', '< 12'
 
 group :test do
   gem 'rspec', '~> 3.0'
@@ -28,4 +28,4 @@ group :test, :development do
   end
 end
 
-gem 'idn-ruby', :platform => [:mri_19, :mri_20, :mri_21, :mri_22]
+gem 'idn-ruby', :platform => [:mri_20, :mri_21, :mri_22]
