@@ -8,13 +8,13 @@ group :test do
 end
 
 group :development do
-  gem 'rake', '> 10.0', '< 12'
   gem 'launchy', '~> 2.4', '>= 2.4.3'
   gem 'redcarpet', :platform => :mri_19
   gem 'yard'
 end
 
 group :test, :development do
+  gem 'rake', '> 10.0', '< 12'
   gem 'simplecov', :require => false
   gem 'coveralls', :require => false, :platforms => [
     :ruby_20, :ruby_21, :rbx, :jruby
