@@ -10,6 +10,7 @@
 - `merge!`, `join!`, `omit!` and `normalize!` don't disable deferred validation
 - `heuristic_parse` now trims whitespace before parsing
 - host parts longer than 63 bytes will be ignored and not passed to libidn
+- normalized values always encoded as UTF-8
 
 # Addressable 2.4.0
 - support for 1.8.x dropped
