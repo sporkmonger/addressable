@@ -17,7 +17,7 @@ group :test, :development do
   gem 'rake', '> 10.0', '< 12'
   gem 'simplecov', :require => false
   gem 'coveralls', :require => false, :platforms => [
-    :ruby_20, :ruby_21, :rbx, :jruby
+    :ruby_20, :ruby_21, :ruby_22, :ruby_23
   ]
   # Used to test compatibility.
   gem 'rack-mount', git: 'https://github.com/sporkmonger/rack-mount.git', require: 'rack/mount'
