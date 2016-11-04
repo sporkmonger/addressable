@@ -111,7 +111,7 @@ dependency using a pessimistic version constraint covering the major and minor
 values:
 
 ```ruby
-spec.add_dependency 'addressable', '~> 2.4'
+spec.add_dependency 'addressable', '~> 2.5'
 ```
 
 If you need a specific bug fix, you can also specify minimum tiny versions
