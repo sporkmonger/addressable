@@ -2,14 +2,13 @@ source 'https://rubygems.org'
 
 gemspec
 
-gem 'rake', '> 10.0', '< 12'
-
 group :test do
   gem 'rspec', '~> 3.0'
   gem 'rspec-its', '~> 1.1'
 end
 
 group :development do
+  gem 'rake', '> 10.0', '< 12'
   gem 'launchy', '~> 2.4', '>= 2.4.3'
   gem 'redcarpet', :platform => :mri_19
   gem 'yard'
