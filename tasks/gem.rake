@@ -20,7 +20,7 @@ namespace :gem do
 
     s.required_ruby_version = '>= 2.0'
 
-    s.add_runtime_dependency 'public_suffix', '~> 2.0', '>= 2.0.3'
+    s.add_runtime_dependency 'public_suffix', '~> 2.0', '>= 2.0.2'
     s.add_development_dependency 'bundler', '~> 1.0'
 
     s.require_path = "lib"
