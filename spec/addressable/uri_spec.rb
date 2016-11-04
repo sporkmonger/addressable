@@ -1823,6 +1823,12 @@ describe Addressable::URI, "when parsed from " +
     end).to raise_error(Addressable::URI::InvalidURIError)
   end
 
+  it "should not allow origin assignment with bogus type" do
+    expect(lambda do
+      @uri.origin = :bogus
+    end).to raise_error(TypeError)
+  end
+
   # Section 6.2.3 of RFC 3986
   it "should be equivalent to http://example.com/" do
     expect(@uri).to eq(Addressable::URI.parse("http://example.com/"))
