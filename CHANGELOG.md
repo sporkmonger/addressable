@@ -1,4 +1,6 @@
 # Addressable 2.5.0
+- dropping support for Ruby 1.9
+- adding support for Ruby 2.4 preview
 - add support for public suffixes and tld; first runtime dependency
 - hostname escaping should match RFC; underscores in hostnames no longer escaped
 - paths beginning with // and missing an authority are now considered invalid

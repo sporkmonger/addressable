@@ -5595,7 +5595,7 @@ describe Addressable::URI, "when parsing a non-String object" do
   it "should raise a TypeError for objects than cannot be converted" do
     expect(lambda do
       Addressable::URI.parse(42)
-    end).to raise_error(TypeError, "Can't convert Fixnum into String.")
+    end).to raise_error(TypeError)
   end
 
   it "should correctly parse heuristically anything with a 'to_str' method" do
@@ -5605,7 +5605,7 @@ describe Addressable::URI, "when parsing a non-String object" do
   it "should raise a TypeError for objects than cannot be converted" do
     expect(lambda do
       Addressable::URI.heuristic_parse(42)
-    end).to raise_error(TypeError, "Can't convert Fixnum into String.")
+    end).to raise_error(TypeError)
   end
 end
 
@@ -5651,7 +5651,7 @@ describe Addressable::URI, "when form encoding a non-Array object" do
   it "should raise a TypeError for objects than cannot be converted" do
     expect(lambda do
       Addressable::URI.form_encode(42)
-    end).to raise_error(TypeError, "Can't convert Fixnum into Array.")
+    end).to raise_error(TypeError)
   end
 end
 
@@ -5719,7 +5719,7 @@ describe Addressable::URI, "when form unencoding a non-String object" do
   it "should raise a TypeError for objects than cannot be converted" do
     expect(lambda do
       Addressable::URI.form_unencode(42)
-    end).to raise_error(TypeError, "Can't convert Fixnum into String.")
+    end).to raise_error(TypeError)
   end
 end
 
@@ -5731,7 +5731,7 @@ describe Addressable::URI, "when normalizing a non-String object" do
   it "should raise a TypeError for objects than cannot be converted" do
     expect(lambda do
       Addressable::URI.normalize_component(42)
-    end).to raise_error(TypeError, "Can't convert Fixnum into String.")
+    end).to raise_error(TypeError)
   end
 
   it "should raise a TypeError for objects than cannot be converted" do
