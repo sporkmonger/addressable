@@ -1803,12 +1803,24 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should have the same hash as http://EXAMPLE.com after assignment" do
-    @uri.host = "EXAMPLE.com"
+    @uri.origin = "http://EXAMPLE.com"
     expect(@uri.hash).to eq(Addressable::URI.parse("http://EXAMPLE.com").hash)
   end
 
   it "should have a different hash from http://EXAMPLE.com" do
     expect(@uri.hash).not_to eq(Addressable::URI.parse("http://EXAMPLE.com").hash)
+  end
+
+  it "should not allow origin assignment without scheme" do
+    expect(lambda do
+      @uri.origin = "example.com"
+    end).to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should not allow origin assignment without host" do
+    expect(lambda do
+      @uri.origin = "http://"
+    end).to raise_error(Addressable::URI::InvalidURIError)
   end
 
   # Section 6.2.3 of RFC 3986
