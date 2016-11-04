@@ -2,21 +2,27 @@ bundler_args: --without development --retry=3 --jobs=3
 cache: bundler
 language: ruby
 rvm:
-  - rbx-2
-  - jruby
-  - jruby-head
+  - rbx-2.2.7
+  # - jruby-head
+  - jruby-9.0.5.0
   - ruby-head
-  - 1.9.2
-  - 1.9.3
+  - ruby-head-clang
   - 2.0.0
   - 2.1.8
   - 2.2.4
   - 2.3.0
+  - 2.3.1
+  - ruby-2.4.0-preview2
+  - ruby-2.4.0-preview2-clang
 matrix:
   allow_failures:
     - rvm: ruby-head
-    - rvm: jruby-head
-    - rvm: rbx-2
+    - rvm: ruby-head-clang
+    - rvm: ruby-2.4.0-preview2
+    - rvm: ruby-2.4.0-preview2-clang
+    # - rvm: jruby-head
+    - rvm: jruby-9.0.5.0
+    - rvm: rbx-2.2.7
   fast_finish: true
 before_install:
   - gem update bundler

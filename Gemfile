@@ -18,19 +18,13 @@ end
 group :test, :development do
   gem 'simplecov', :require => false
   gem 'coveralls', :require => false, :platforms => [
-    :ruby_19, :ruby_20, :ruby_21, :rbx, :jruby
+    :ruby_20, :ruby_21, :rbx, :jruby
   ]
   # Used to test compatibility.
   gem 'rack-mount', git: 'https://github.com/sporkmonger/rack-mount.git', require: 'rack/mount'
 
-  if RUBY_VERSION.start_with?('1.9', '2.0', '2.1')
+  if RUBY_VERSION.start_with?('2.0', '2.1')
     gem 'rack', '< 2', :require => false
-  end
-
-  if RUBY_VERSION.start_with?('1.9')
-    gem 'json', '< 2', :require => false
-    gem 'term-ansicolor', '< 1.4', :require => false
-    gem 'tins', '< 1.7', :require => false
   end
 end
 

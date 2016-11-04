@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
   s.homepage = "https://github.com/sporkmonger/addressable"
   s.licenses = ["Apache-2.0"]
   s.rdoc_options = ["--main", "README.md"]
-  s.required_ruby_version = Gem::Requirement.new(">= 1.9.0")
+  s.required_ruby_version = Gem::Requirement.new(">= 2.0")
   s.rubygems_version = "2.5.1"
   s.summary = "URI Implementation"
 

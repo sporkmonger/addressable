@@ -18,7 +18,7 @@ namespace :gem do
       exit(1)
     end
 
-    s.required_ruby_version = '>= 1.9.0'
+    s.required_ruby_version = '>= 2.0'
 
     s.add_runtime_dependency 'public_suffix', '~> 2.0', '>= 2.0.3'
     s.add_development_dependency 'bundler', '~> 1.0'
