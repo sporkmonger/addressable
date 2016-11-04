@@ -25,6 +25,8 @@ group :test, :development do
 
   if RUBY_VERSION.start_with?('2.0', '2.1')
     gem 'rack', '< 2', :require => false
+  else
+    gem 'rack', :require => false
   end
 end
 
