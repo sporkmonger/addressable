@@ -91,7 +91,7 @@ describe "Type conversion" do
     '{hello}' => '1234',
     '{nothing}' => '',
     '{sym}' => 'symbolic',
-    '{decimal}' => '0.1E1'
+    '{decimal}' => RUBY_VERSION < '2.4.0' ? '0.1E1' : '0.1e1'
   }
 end
 
