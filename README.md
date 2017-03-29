@@ -12,7 +12,6 @@
 [![Dependency Status](https://gemnasium.com/sporkmonger/addressable.svg?travis)][gemnasium]
 [![Test Coverage Status](https://img.shields.io/coveralls/sporkmonger/addressable.svg)][coveralls]
 [![Documentation Coverage Status](http://inch-ci.org/github/sporkmonger/addressable.svg?branch=master)][inch]
-[![Gittip Donate](http://img.shields.io/gittip/sporkmonger.png)](https://www.gittip.com/sporkmonger/ "Support Open Source Development w/ Gittip")
 
 [gem]: https://rubygems.org/gems/addressable
 [travis]: http://travis-ci.org/sporkmonger/addressable
