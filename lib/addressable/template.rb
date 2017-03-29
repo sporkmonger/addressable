@@ -524,7 +524,7 @@ module Addressable
       result = self.pattern.dup
       mapping = normalize_keys(mapping)
       result.gsub!( EXPRESSION ) do |capture|
-        transform_partial_capture(mapping, capture, processor)
+        transform_partial_capture(mapping, capture, processor, normalize_values)
       end
       return Addressable::Template.new(result)
     end
@@ -708,6 +708,8 @@ module Addressable
     #   The expression to expand
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
+    # @param [Boolean] normalize_values
+    #   Optional flag to enable/disable unicode normalization. Default: true
     #
     # The object should respond to either the <tt>validate</tt> or
     # <tt>transform</tt> messages or both. Both the <tt>validate</tt> and
@@ -722,7 +724,7 @@ module Addressable
     # after sending the value to the transform method.
     #
     # @return [String] The expanded expression
-    def transform_partial_capture(mapping, capture, processor = nil)
+    def transform_partial_capture(mapping, capture, processor = nil, normalize_values = true)
       _, operator, varlist = *capture.match(EXPRESSION)
 
       vars = varlist.split(',')
@@ -744,7 +746,7 @@ module Addressable
           _, name, _ =  *varspec.match(VARSPEC)
 
           acc << if mapping.key? name
-                   transform_capture(mapping, "{#{op}#{varspec}}", processor)
+                   transform_capture(mapping, "{#{op}#{varspec}}", processor, normalize_values)
                  else
                    "{#{op}#{varspec}}"
                  end

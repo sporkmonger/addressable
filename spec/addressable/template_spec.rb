@@ -969,6 +969,22 @@ describe Addressable::Template do
         )
       end
     end
+    context "partial expand with unicode values" do
+      subject {
+        Addressable::Template.new("http://example.com/{resource}/{query}/")
+      }
+      it "normalizes unicode by default" do
+        expect(subject.partial_expand("query" => "Cafe\u0301").pattern).to eq(
+          "http://example.com/{resource}/Caf%C3%A9/"
+        )
+      end
+
+      it "does not normalize unicode when byte semantics requested" do
+        expect(subject.partial_expand({"query" => "Cafe\u0301"}, nil, false).pattern).to eq(
+          "http://example.com/{resource}/Cafe%CC%81/"
+        )
+      end
+    end
   end
   describe "Partial expand with strings" do
     context "partial_expand with two simple values" do
@@ -1018,7 +1034,7 @@ describe Addressable::Template do
         Addressable::Template.new("http://example.com/search/{query}/")
       }
       it "normalizes unicode by default" do
-        expect(subject.expand({"query" => "Cafe\u0301"}).to_str).to eq(
+        expect(subject.expand("query" => "Cafe\u0301").to_str).to eq(
           "http://example.com/search/Caf%C3%A9/"
         )
       end
