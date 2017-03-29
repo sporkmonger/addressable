@@ -1,3 +1,7 @@
+# Addressable 2.5.1
+- allow unicode normalization to be disabled for URI Template expansion
+- removed duplicate test
+
 # Addressable 2.5.0
 - dropping support for Ruby 1.9
 - adding support for Ruby 2.4 preview
