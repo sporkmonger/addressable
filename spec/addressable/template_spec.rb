@@ -974,13 +974,15 @@ describe Addressable::Template do
         Addressable::Template.new("http://example.com/{resource}/{query}/")
       }
       it "normalizes unicode by default" do
-        expect(subject.partial_expand("query" => "Cafe\u0301").pattern).to eq(
+        template = subject.partial_expand("query" => "Cafe\u0301")
+        expect(template.pattern).to eq(
           "http://example.com/{resource}/Caf%C3%A9/"
         )
       end
 
       it "does not normalize unicode when byte semantics requested" do
-        expect(subject.partial_expand({"query" => "Cafe\u0301"}, nil, false).pattern).to eq(
+        template = subject.partial_expand({"query" => "Cafe\u0301"}, nil, false)
+        expect(template.pattern).to eq(
           "http://example.com/{resource}/Cafe%CC%81/"
         )
       end
@@ -1034,15 +1036,13 @@ describe Addressable::Template do
         Addressable::Template.new("http://example.com/search/{query}/")
       }
       it "normalizes unicode by default" do
-        expect(subject.expand("query" => "Cafe\u0301").to_str).to eq(
-          "http://example.com/search/Caf%C3%A9/"
-        )
+        uri = subject.expand("query" => "Cafe\u0301").to_str
+        expect(uri).to eq("http://example.com/search/Caf%C3%A9/")
       end
 
       it "does not normalize unicode when byte semantics requested" do
-        expect(subject.expand({"query" => "Cafe\u0301"}, nil, false).to_str).to eq(
-          "http://example.com/search/Cafe%CC%81/"
-        )
+        uri = subject.expand({"query" => "Cafe\u0301"}, nil, false).to_str
+        expect(uri).to eq("http://example.com/search/Cafe%CC%81/")
       end
     end
     context "expand with a processor" do

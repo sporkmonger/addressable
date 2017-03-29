@@ -724,7 +724,8 @@ module Addressable
     # after sending the value to the transform method.
     #
     # @return [String] The expanded expression
-    def transform_partial_capture(mapping, capture, processor = nil, normalize_values = true)
+    def transform_partial_capture(mapping, capture, processor = nil,
+                                  normalize_values = true)
       _, operator, varlist = *capture.match(EXPRESSION)
 
       vars = varlist.split(',')
@@ -746,7 +747,8 @@ module Addressable
           _, name, _ =  *varspec.match(VARSPEC)
 
           acc << if mapping.key? name
-                   transform_capture(mapping, "{#{op}#{varspec}}", processor, normalize_values)
+                   transform_capture(mapping, "{#{op}#{varspec}}",
+                                     processor, normalize_values)
                  else
                    "{#{op}#{varspec}}"
                  end
@@ -803,7 +805,8 @@ module Addressable
     # after sending the value to the transform method.
     #
     # @return [String] The expanded expression
-    def transform_capture(mapping, capture, processor=nil, normalize_values=true)
+    def transform_capture(mapping, capture, processor=nil,
+                          normalize_values=true)
       _, operator, varlist = *capture.match(EXPRESSION)
       return_value = varlist.split(',').inject([]) do |acc, varspec|
         _, name, modifier = *varspec.match(VARSPEC)
@@ -886,7 +889,9 @@ module Addressable
             end
             if processor.respond_to?(:transform)
               transformed_value = processor.transform(name, value)
-              transformed_value = normalize_value(transformed_value) if normalize_values
+              if normalize_values
+                transformed_value = normalize_value(transformed_value)
+              end
             end
           end
           acc << [name, transformed_value]
