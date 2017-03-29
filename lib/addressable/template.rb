@@ -488,6 +488,8 @@ module Addressable
     # @param [Hash] mapping The mapping that corresponds to the pattern.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
+    # @param [Boolean] normalize_values
+    #   Optional flag to enable/disable unicode normalization. Default: true
     #
     # The object should respond to either the <tt>validate</tt> or
     # <tt>transform</tt> messages or both. Both the <tt>validate</tt> and
@@ -518,7 +520,7 @@ module Addressable
     #     "http://example.com/{?one,two,three}/"
     #   ).partial_expand({"one" => "1", "three" => 3}).pattern
     #   #=> "http://example.com/?one=1{&two}&three=3"
-    def partial_expand(mapping, processor=nil)
+    def partial_expand(mapping, processor=nil, normalize_values=true)
       result = self.pattern.dup
       mapping = normalize_keys(mapping)
       result.gsub!( EXPRESSION ) do |capture|
@@ -533,6 +535,8 @@ module Addressable
     # @param [Hash] mapping The mapping that corresponds to the pattern.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
+    # @param [Boolean] normalize_values
+    #   Optional flag to enable/disable unicode normalization. Default: true
     #
     # The object should respond to either the <tt>validate</tt> or
     # <tt>transform</tt> messages or both. Both the <tt>validate</tt> and
@@ -583,11 +587,11 @@ module Addressable
     #     ExampleProcessor
     #   ).to_str
     #   #=> Addressable::Template::InvalidTemplateValueError
-    def expand(mapping, processor=nil)
+    def expand(mapping, processor=nil, normalize_values=true)
       result = self.pattern.dup
       mapping = normalize_keys(mapping)
       result.gsub!( EXPRESSION ) do |capture|
-        transform_capture(mapping, capture, processor)
+        transform_capture(mapping, capture, processor, normalize_values)
       end
       return Addressable::URI.parse(result)
     end
@@ -780,6 +784,9 @@ module Addressable
     #   The expression to replace
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
+    # @param [Boolean] normalize_values
+    #   Optional flag to enable/disable unicode normalization. Default: true
+    #
     #
     # The object should respond to either the <tt>validate</tt> or
     # <tt>transform</tt> messages or both. Both the <tt>validate</tt> and
@@ -794,7 +801,7 @@ module Addressable
     # after sending the value to the transform method.
     #
     # @return [String] The expanded expression
-    def transform_capture(mapping, capture, processor=nil)
+    def transform_capture(mapping, capture, processor=nil, normalize_values=true)
       _, operator, varlist = *capture.match(EXPRESSION)
       return_value = varlist.split(',').inject([]) do |acc, varspec|
         _, name, modifier = *varspec.match(VARSPEC)
@@ -814,7 +821,7 @@ module Addressable
               "Can't convert #{value.class} into String or Array."
           end
 
-          value = normalize_value(value)
+          value = normalize_value(value) if normalize_values
 
           if processor == nil || !processor.respond_to?(:transform)
             # Handle percent escaping
@@ -877,7 +884,7 @@ module Addressable
             end
             if processor.respond_to?(:transform)
               transformed_value = processor.transform(name, value)
-              transformed_value = normalize_value(transformed_value)
+              transformed_value = normalize_value(transformed_value) if normalize_values
             end
           end
           acc << [name, transformed_value]

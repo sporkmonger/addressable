@@ -1013,6 +1013,22 @@ describe Addressable::Template do
     end
   end
   describe "Expand" do
+    context "expand with unicode values" do
+      subject {
+        Addressable::Template.new("http://example.com/search/{query}/")
+      }
+      it "normalizes unicode by default" do
+        expect(subject.expand({"query" => "Cafe\u0301"}).to_str).to eq(
+          "http://example.com/search/Caf%C3%A9/"
+        )
+      end
+
+      it "does not normalize unicode when byte semantics requested" do
+        expect(subject.expand({"query" => "Cafe\u0301"}, nil, false).to_str).to eq(
+          "http://example.com/search/Cafe%CC%81/"
+        )
+      end
+    end
     context "expand with a processor" do
       subject {
         Addressable::Template.new("http://example.com/search/{query}/")
