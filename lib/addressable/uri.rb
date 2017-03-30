@@ -56,7 +56,8 @@ module Addressable
     EMPTY_STR = ''
 
     URIREGEX = /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/
-
+    DATAURIREGEX = /^(data\:.+)/m
+    
     PORT_MAPPING = {
       "http" => 80,
       "https" => 443,
@@ -95,54 +96,60 @@ module Addressable
       if uri.class.name =~ /^URI\b/
         uri = uri.to_s
       end
-
+      
       # Otherwise, convert to a String
       begin
         uri = uri.to_str
       rescue TypeError, NoMethodError
         raise TypeError, "Can't convert #{uri.class} into String."
       end if not uri.is_a? String
-
-      # This Regexp supplied as an example in RFC 3986, and it works great.
-      scan = uri.scan(URIREGEX)
-      fragments = scan[0]
-      scheme = fragments[1]
-      authority = fragments[3]
-      path = fragments[4]
-      query = fragments[6]
-      fragment = fragments[8]
-      user = nil
-      password = nil
-      host = nil
-      port = nil
-      if authority != nil
-        # The Regexp above doesn't split apart the authority.
-        userinfo = authority[/^([^\[\]]*)@/, 1]
-        if userinfo != nil
-          user = userinfo.strip[/^([^:]*):?/, 1]
-          password = userinfo.strip[/:(.*)$/, 1]
-        end
-        host = authority.gsub(
-          /^([^\[\]]*)@/, EMPTY_STR
-        ).gsub(
-          /:([^:@\[\]]*?)$/, EMPTY_STR
+      
+      if uri.match(DATAURIREGEX)
+        return new(
+          :datauri => uri
         )
-        port = authority[/:([^:@\[\]]*?)$/, 1]
-      end
-      if port == EMPTY_STR
+      else
+        # This Regexp supplied as an example in RFC 3986, and it works great.
+        scan = uri.scan(URIREGEX)
+        fragments = scan[0]
+        scheme = fragments[1]
+        authority = fragments[3]
+        path = fragments[4]
+        query = fragments[6]
+        fragment = fragments[8]
+        user = nil
+        password = nil
+        host = nil
         port = nil
+        if authority != nil
+          # The Regexp above doesn't split apart the authority.
+          userinfo = authority[/^([^\[\]]*)@/, 1]
+          if userinfo != nil
+            user = userinfo.strip[/^([^:]*):?/, 1]
+            password = userinfo.strip[/:(.*)$/, 1]
+          end
+          host = authority.gsub(
+            /^([^\[\]]*)@/, EMPTY_STR
+          ).gsub(
+            /:([^:@\[\]]*?)$/, EMPTY_STR
+          )
+          port = authority[/:([^:@\[\]]*?)$/, 1]
+        end
+        if port == EMPTY_STR
+          port = nil
+        end
+    
+        return new(
+          :scheme => scheme,
+          :user => user,
+          :password => password,
+          :host => host,
+          :port => port,
+          :path => path,
+          :query => query,
+          :fragment => fragment
+        )
       end
-
-      return new(
-        :scheme => scheme,
-        :user => user,
-        :password => password,
-        :host => host,
-        :port => port,
-        :path => path,
-        :query => query,
-        :fragment => fragment
-      )
     end
 
     ##
@@ -192,6 +199,8 @@ module Addressable
         uri.gsub!(/^feed:\/+/, "feed://")
       when /^file:\/+/
         uri.gsub!(/^file:\/+/, "file:///")
+      when /^data:/
+        # placeholder
       when /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
         uri.gsub!(/^/, hints[:scheme] + "://")
       end
@@ -792,7 +801,7 @@ module Addressable
             "Cannot specify both a userinfo and either the user or password."
         end
       end
-
+      
       self.defer_validation do
         # Bunch of crazy logic required because of the composite components
         # like userinfo and authority.
@@ -807,6 +816,7 @@ module Addressable
         self.query = options[:query] if options[:query]
         self.query_values = options[:query_values] if options[:query_values]
         self.fragment = options[:fragment] if options[:fragment]
+        self.datauri = options[:datauri] if options[:datauri]
       end
       self.to_s
     end
@@ -1801,7 +1811,35 @@ module Addressable
       # Ensure we haven't created an invalid URI
       validate()
     end
-
+    
+    ##
+    # The data URI (RFC 2397).
+    # This is the full data URI.
+    #
+    # @return [String] The data URI.
+    def datauri
+      return instance_variable_defined?(:@datauri) ? @datauri : nil
+    end
+    
+    ##
+    # Sets the data component for this URI.
+    #
+    # @param [String, #to_str] new_datauri The new data URI.
+    def datauri=(new_datauri)
+      if new_datauri && !new_datauri.respond_to?(:to_str)
+        raise TypeError, "Can't convert #{new_fragment.class} into String."
+      end
+      @datauri = new_datauri ? new_datauri.to_str : nil
+      
+      # Reset dependant values
+      @normalized_datauri = nil
+      @uri_string = nil
+      @hash = nil
+      
+      # Ensure we haven't created an invalid URI
+      validate()
+    end
+    
     ##
     # Determines if the scheme indicates an IP-based protocol.
     #
@@ -1825,7 +1863,17 @@ module Addressable
     def relative?
       return self.scheme.nil?
     end
-
+    
+    ##
+    # Determines if this is a data URI (RFC 2397).
+    #
+    # @return [TrueClass, FalseClass]
+    #   <code>true</code> if the URI is absolute. <code>false</code>
+    #   otherwise.
+    def datauri?
+      return ! self.datauri.nil?
+    end
+    
     ##
     # Determines if the URI is absolute.
     #
