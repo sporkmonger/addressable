@@ -1684,6 +1684,7 @@ module Addressable
             "Can't convert #{new_query_values.class} into Hash."
         end
         new_query_values = new_query_values.to_hash
+        new_query_values = flatten_keys new_query_values
         new_query_values = new_query_values.map do |key, value|
           key = key.to_s if key.kind_of?(Symbol)
           [key, value]
@@ -1716,6 +1717,20 @@ module Addressable
         end
       end
       self.query = buffer.chop
+    end
+
+    def flatten_keys hash, keys=nil
+      new_hash = {}
+      hash.map do |k, v|
+        new_keys = keys ? "#{keys}[#{k.to_s}]" : k
+        if v.is_a?(Hash)
+          sub_hash = flatten_keys v, new_keys
+          new_hash.merge! sub_hash
+        else
+          new_hash.merge! new_keys => v
+        end
+      end
+      new_hash
     end
 
     ##
