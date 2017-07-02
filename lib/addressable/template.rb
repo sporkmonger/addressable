@@ -743,7 +743,7 @@ module Addressable
 
       vars
         .zip(operator_sequence(operator).take(vars.length))
-        .reduce("") do |acc, (varspec, op)|
+        .reduce("".dup) do |acc, (varspec, op)|
           _, name, _ =  *varspec.match(VARSPEC)
 
           acc << if mapping.key? name
