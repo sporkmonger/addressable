@@ -955,6 +955,10 @@ describe Addressable::URI, "when frozen" do
     expect(@uri.normalize.query).to eq("a=1")
   end
 
+  it "returns '/%70a%74%68?a=%31' for #request_uri" do
+    expect(@uri.request_uri).to eq("/%70a%74%68?a=%31")
+  end
+
   it "returns '1%323' for #fragment" do
     expect(@uri.fragment).to eq("1%323")
   end
@@ -1971,9 +1975,9 @@ end
 
 # Section 5.1.2 of RFC 2616
 describe Addressable::URI, "when parsed from " +
-    "'http://www.w3.org/pub/WWW/TheProject.html'" do
+    "'HTTP://www.w3.org/pub/WWW/TheProject.html'" do
   before do
-    @uri = Addressable::URI.parse("http://www.w3.org/pub/WWW/TheProject.html")
+    @uri = Addressable::URI.parse("HTTP://www.w3.org/pub/WWW/TheProject.html")
   end
 
   it "should have the correct request URI" do
@@ -2008,7 +2012,7 @@ describe Addressable::URI, "when parsed from " +
 
   it "should correctly convert to a hash" do
     expect(@uri.to_hash).to eq({
-      :scheme => "http",
+      :scheme => "HTTP",
       :user => nil,
       :password => nil,
       :host => "www.w3.org",

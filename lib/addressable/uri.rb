@@ -1724,7 +1724,7 @@ module Addressable
     #
     # @return [String] The request URI required for an HTTP request.
     def request_uri
-      return nil if self.absolute? && self.scheme !~ /^https?$/
+      return nil if self.absolute? && self.scheme !~ /^https?$/i
       return (
         (!self.path.empty? ? self.path : SLASH) +
         (self.query ? "?#{self.query}" : EMPTY_STR)
@@ -1739,7 +1739,7 @@ module Addressable
       if !new_request_uri.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_request_uri.class} into String."
       end
-      if self.absolute? && self.scheme !~ /^https?$/
+      if self.absolute? && self.scheme !~ /^https?$/i
         raise InvalidURIError,
           "Cannot set an HTTP request URI for a non-HTTP URI."
       end
