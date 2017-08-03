@@ -29,4 +29,4 @@ group :test, :development do
   end
 end
 
-gem 'idn-ruby', :platform => [:mri_20, :mri_21, :mri_22]
+gem 'idn-ruby', :platform => [:mri_20, :mri_21, :mri_22, :mri_23, :mri_24]
