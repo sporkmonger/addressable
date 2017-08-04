@@ -2,6 +2,7 @@
 .yardoc
 .bundle
 Gemfile.lock
+gemfiles/*.lock
 coverage
 doc
 heckling

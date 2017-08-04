@@ -10,8 +10,11 @@ rvm:
   - 2.1.9
   - 2.2.6
   - 2.3.3
-  - 2.4.0
+  - 2.4.1
 matrix:
+  include:
+    - gemfile: gemfiles/Gemfile.public_suffix_2
+      rvm: 2.4.1
   allow_failures:
     - rvm: ruby-head
     - rvm: ruby-head-clang
