@@ -436,7 +436,7 @@ module Addressable
       uri = uri.dup
       # Seriously, only use UTF-8. I'm really not kidding!
       uri.force_encoding("utf-8")
-      leave_encoded.force_encoding("utf-8")
+      leave_encoded = leave_encoded.dup.force_encoding("utf-8")
       result = uri.gsub(/%[0-9a-f]{2}/iu) do |sequence|
         c = sequence[1..3].to_i(16).chr
         c.force_encoding("utf-8")
@@ -847,7 +847,7 @@ module Addressable
       return nil unless self.scheme
       @normalized_scheme ||= begin
         if self.scheme =~ /^\s*ssh\+svn\s*$/i
-          "svn+ssh"
+          "svn+ssh".dup
         else
           Addressable::URI.normalize_component(
             self.scheme.strip.downcase,
@@ -1032,9 +1032,9 @@ module Addressable
         if !current_user && !current_password
           nil
         elsif current_user && current_password
-          "#{current_user}:#{current_password}"
+          "#{current_user}:#{current_password}".dup
         elsif current_user && !current_password
-          "#{current_user}"
+          "#{current_user}".dup
         end
       end
       # All normalized values should be UTF-8
@@ -1101,7 +1101,7 @@ module Addressable
             CharacterClasses::HOST)
           result
         else
-          EMPTY_STR
+          EMPTY_STR.dup
         end
       end
       # All normalized values should be UTF-8
@@ -1421,7 +1421,7 @@ module Addressable
     # @return [String] The components that identify a site.
     def site
       (self.scheme || self.authority) && @site ||= begin
-        site_string = ""
+        site_string = "".dup
         site_string << "#{self.scheme}:" if self.scheme != nil
         site_string << "//#{self.authority}" if self.authority != nil
         site_string
@@ -1440,7 +1440,7 @@ module Addressable
     def normalized_site
       return nil unless self.site
       @normalized_site ||= begin
-        site_string = ""
+        site_string = "".dup
         if self.normalized_scheme != nil
           site_string << "#{self.normalized_scheme}:"
         end
@@ -1508,7 +1508,7 @@ module Addressable
         result = URI.normalize_path(result)
         if result.empty? &&
             ["http", "https", "ftp", "tftp"].include?(self.normalized_scheme)
-          result = SLASH
+          result = SLASH.dup
         end
         result
       end
@@ -1694,7 +1694,7 @@ module Addressable
       end
 
       # new_query_values have form [['key1', 'value1'], ['key2', 'value2']]
-      buffer = ""
+      buffer = "".dup
       new_query_values.each do |key, value|
         encoded_key = URI.encode_component(
           key, CharacterClasses::UNRESERVED
