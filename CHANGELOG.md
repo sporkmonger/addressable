@@ -1,3 +1,9 @@
+# Addressable 2.5.2
+- better support for frozen string literals
+- fixed bug w/ uppercase characters in scheme
+- IDNA errors w/ emoji URLs
+- compatibility w/ public_suffix 3.x
+
 # Addressable 2.5.1
 - allow unicode normalization to be disabled for URI Template expansion
 - removed duplicate test
