@@ -134,6 +134,12 @@ shared_examples_for "converting from unicode to ASCII" do
     )).to eq("xn--4ud")
   end
 
+  it "should convert '🌹🌹🌹.ws' correctly" do
+    expect(Addressable::IDNA.to_ascii(
+      "\360\237\214\271\360\237\214\271\360\237\214\271.ws"
+    )).to eq("xn--2h8haa.ws")
+  end
+
   it "should handle two adjacent '.'s correctly" do
     expect(Addressable::IDNA.to_ascii(
       "example..host"
@@ -229,6 +235,12 @@ shared_examples_for "converting from ASCII to unicode" do
     expect(Addressable::IDNA.to_unicode(
       "xn--4ud"
     )).to eq("\341\206\265")
+  end
+
+  it "should convert '🌹🌹🌹.ws' correctly" do
+    expect(Addressable::IDNA.to_unicode(
+      "xn--2h8haa.ws"
+    )).to eq("\360\237\214\271\360\237\214\271\360\237\214\271.ws")
   end
 
   it "should handle two adjacent '.'s correctly" do
