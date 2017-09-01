@@ -151,11 +151,9 @@ module Addressable
         if (starter_cc == 0 &&
             (composite = unicode_compose_pair(starter, ch)) != nil)
           starter = composite
-          startercc = lookup_unicode_combining_class(composite)
         else
           unpacked_result << starter
           starter = ch
-          startercc = cc
         end
       end
       unpacked_result << starter
