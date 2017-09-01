@@ -146,7 +146,6 @@ module Addressable
       starter_cc = 256 if starter_cc != 0
       for i in 1...length
         ch = unpacked[i]
-        cc = lookup_unicode_combining_class(ch)
 
         if (starter_cc == 0 &&
             (composite = unicode_compose_pair(starter, ch)) != nil)
