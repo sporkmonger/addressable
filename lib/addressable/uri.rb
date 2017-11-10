@@ -181,20 +181,19 @@ module Addressable
       hints = {
         :scheme => "http"
       }.merge(hints)
-      case 
-      when uri =~ /^http:\/+/
+      if uri =~ /^http:\/+/ then
         uri.gsub!(/^http:\/+/, "http://")
-      when uri =~ /^https:\/+/
+      elsif uri =~ /^https:\/+/ then
         uri.gsub!(/^https:\/+/, "https://")
-      when uri =~ /^feed:\/+http:\/+/
+      elsif uri =~ /^feed:\/+http:\/+/ then
         uri.gsub!(/^feed:\/+http:\/+/, "feed:http://")
-      when uri =~ /^feed:\/+/
+      elsif uri =~ /^feed:\/+/ then
         uri.gsub!(/^feed:\/+/, "feed://")
-      when uri =~ /^file:\/+/
+      elsif uri =~ /^file:\/+/ then
         uri.gsub!(/^file:\/+/, "file:///")
-      when uri =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
+      elsif uri =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/ then
         uri.gsub!(/^/, hints[:scheme] + "://")
-      when uri !~ /:\/+/
+      elsif uri !~ /:\/+/ then
         uri.gsub!(/^/, hints[:scheme] + "://")
       end
       match = uri.match(URIREGEX)
