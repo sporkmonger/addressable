@@ -194,7 +194,7 @@ module Addressable
         uri.gsub!(/^file:\/+/, "file:///")
       when uri =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
         uri.gsub!(/^/, hints[:scheme] + "://")
-      when uri !~ /:\/+/ && hints.key?(:scheme)
+      when uri !~ /:\/+/
         uri.gsub!(/^/, hints[:scheme] + "://")
       end
       match = uri.match(URIREGEX)
