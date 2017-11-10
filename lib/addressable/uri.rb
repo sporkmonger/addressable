@@ -181,20 +181,20 @@ module Addressable
       hints = {
         :scheme => "http"
       }.merge(hints)
-      if uri =~ /^http:\/+/ then
-        uri.gsub!(/^http:\/+/, "http://")
-      elsif uri =~ /^https:\/+/ then
-        uri.gsub!(/^https:\/+/, "https://")
-      elsif uri =~ /^feed:\/+http:\/+/ then
-        uri.gsub!(/^feed:\/+http:\/+/, "feed:http://")
-      elsif uri =~ /^feed:\/+/ then
-        uri.gsub!(/^feed:\/+/, "feed://")
-      elsif uri =~ /^file:\/+/ then
-        uri.gsub!(/^file:\/+/, "file:///")
-      elsif uri =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/ then
-        uri.gsub!(/^/, hints[:scheme] + "://")
-      elsif uri !~ /:\/+/ then
-        uri.gsub!(/^/, hints[:scheme] + "://")
+      if uri =~ %r{^http:\/+} then
+        uri.gsub!(%r{^http:\/+}, "http://")
+      elsif uri =~ %r{^https:\/+}
+        uri.gsub!(%r{^https:\/+}, "https://")
+      elsif uri =~ %r{^feed:\/+http:\/+}
+        uri.gsub!(%r{^feed:\/+http:\/+/}, "feed:http://")
+      elsif uri =~ %r{^feed:\/+}
+        uri.gsub!(%r{^feed:\/+}, "feed://")
+      elsif uri =~ %{^file:\/+}
+        uri.gsub!(%r{^file:\/+}, "file:///")
+      elsif uri =~ %r{^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}}
+        uri.gsub!(%r{^}, hints[:scheme] + "://")
+      elsif uri !~ %r{:\/+}
+        uri.gsub!(%r{^}, hints[:scheme] + "://")
       end
       match = uri.match(URIREGEX)
       fragments = match.captures
