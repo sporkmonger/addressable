@@ -181,18 +181,19 @@ module Addressable
       hints = {
         :scheme => "http"
       }.merge(hints)
-      case uri
-      when /^http:\/+/
+      if uri =~ /^http:\/+/
         uri.gsub!(/^http:\/+/, "http://")
-      when /^https:\/+/
+      elsif uri =~ /^https:\/+/
         uri.gsub!(/^https:\/+/, "https://")
-      when /^feed:\/+http:\/+/
+      elsif uri =~ /^feed:\/+http:\/+/
         uri.gsub!(/^feed:\/+http:\/+/, "feed:http://")
-      when /^feed:\/+/
+      elsif uri =~ /^feed:\/+/
         uri.gsub!(/^feed:\/+/, "feed://")
-      when /^file:\/+/
+      elsif uri =~ /^file:\/+/
         uri.gsub!(/^file:\/+/, "file:///")
-      when /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
+      elsif uri =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
+        uri.gsub!(/^/, hints[:scheme] + "://")
+      elsif uri !~ /:\/+/
         uri.gsub!(/^/, hints[:scheme] + "://")
       end
       match = uri.match(URIREGEX)
@@ -205,9 +206,6 @@ module Addressable
         uri[offset[0]...offset[1]] = new_authority
       end
       parsed = self.parse(uri)
-      if parsed.scheme =~ /^[^\/?#\.]+\.[^\/?#]+$/
-        parsed = self.parse(hints[:scheme] + "://" + uri)
-      end
       if parsed.path.include?(".")
         new_host = parsed.path[/^([^\/]+\.[^\/]*)/, 1]
         if new_host
