@@ -6240,6 +6240,18 @@ describe Addressable::URI, "when given the input " +
 end
 
 describe Addressable::URI, "when given the input " +
+    "'file://localhost/path/to/resource/'" do
+  before do
+    @input = "file://localhost/path/to/resource/"
+  end
+
+  it "should heuristically parse to 'file:///path/to/resource/'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    expect(@uri.to_s).to eq("file:///path/to/resource/")
+  end
+end
+
+describe Addressable::URI, "when given the input " +
     "'file://path/to/resource/'" do
   before do
     @input = "file://path/to/resource/"
@@ -6248,6 +6260,18 @@ describe Addressable::URI, "when given the input " +
   it "should heuristically parse to 'file:///path/to/resource/'" do
     @uri = Addressable::URI.heuristic_parse(@input)
     expect(@uri.to_s).to eq("file:///path/to/resource/")
+  end
+end
+
+describe Addressable::URI, "when given the input " +
+    "'file://///path/to/resource/'" do
+  before do
+    @input = "file:///////path/to/resource/"
+  end
+
+  it "should heuristically parse to 'file:////path/to/resource/'" do
+    @uri = Addressable::URI.heuristic_parse(@input)
+    expect(@uri.to_s).to eq("file:////path/to/resource/")
   end
 end
 
