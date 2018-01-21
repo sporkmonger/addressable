@@ -4944,14 +4944,14 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have correct query values" do
     expect(@uri.query_values(Hash)).to eq(
-      {"one[two][three]" => ["four", "five"]}
-      )
+      "one[two][three]" => %w(four five)
+    )
   end
 
   it "should have correct array query values" do
     expect(@uri.query_values(Array)).to eq(
       [["one[two][three]", "four"], ["one[two][three]", "five"]]
-      )
+    )
   end
 end
 

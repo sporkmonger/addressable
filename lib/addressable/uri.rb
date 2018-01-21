@@ -1709,19 +1709,19 @@ module Addressable
           key, CharacterClasses::UNRESERVED
         )
         if value == nil
-          buffer << encoded_key << '&'
+          buffer << encoded_key << "&"
         elsif value.kind_of?(Array)
           value.each do |sub_value|
             encoded_value = URI.encode_component(
               sub_value, CharacterClasses::UNRESERVED
             )
-            buffer << encoded_key << '%5B%5D=' << encoded_value << '&'
+            buffer << encoded_key << "%5B%5D=" << encoded_value << "&"
           end
         else
           encoded_value = URI.encode_component(
             value, CharacterClasses::UNRESERVED
           )
-          buffer << encoded_key << '=' << encoded_value << '&'
+          buffer << encoded_key << "=" << encoded_value << "&"
         end
       end
       self.query = buffer.chop
