@@ -4943,13 +4943,15 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should have correct query values" do
-    expect(@uri.query_values(Hash)).to eq({"one[two][three][]" => "five"})
+    expect(@uri.query_values(Hash)).to eq(
+      "one[two][three]" => %w(four five)
+    )
   end
 
   it "should have correct array query values" do
-    expect(@uri.query_values(Array)).to eq([
-      ["one[two][three][]", "four"], ["one[two][three][]", "five"]
-    ])
+    expect(@uri.query_values(Array)).to eq(
+      [["one[two][three]", "four"], ["one[two][three]", "five"]]
+    )
   end
 end
 
@@ -6282,7 +6284,7 @@ describe Addressable::URI, "when assigning query values" do
 
   it "should correctly assign {:a => 'a', :b => ['c', 'd', 'e']}" do
     @uri.query_values = {:a => "a", :b => ["c", "d", "e"]}
-    expect(@uri.query).to eq("a=a&b=c&b=d&b=e")
+    expect(@uri.query).to eq("a=a&b%5B%5D=c&b%5B%5D=d&b%5B%5D=e")
   end
 
   it "should raise an error attempting to assign {'a' => {'b' => ['c']}}" do
