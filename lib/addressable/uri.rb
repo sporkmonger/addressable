@@ -1706,7 +1706,7 @@ module Addressable
             encoded_value = URI.encode_component(
               sub_value, CharacterClasses::UNRESERVED
             )
-            buffer << "#{encoded_key}=#{encoded_value}&"
+            buffer << "#{encoded_key}%5B%5D=#{encoded_value}&"
           end
         else
           encoded_value = URI.encode_component(

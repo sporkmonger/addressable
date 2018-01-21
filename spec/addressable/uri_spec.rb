@@ -6282,7 +6282,7 @@ describe Addressable::URI, "when assigning query values" do
 
   it "should correctly assign {:a => 'a', :b => ['c', 'd', 'e']}" do
     @uri.query_values = {:a => "a", :b => ["c", "d", "e"]}
-    expect(@uri.query).to eq("a=a&b=c&b=d&b=e")
+    expect(@uri.query).to eq("a=a&b%5B%5D=c&b%5B%5D=d&b%5B%5D=e")
   end
 
   it "should raise an error attempting to assign {'a' => {'b' => ['c']}}" do
