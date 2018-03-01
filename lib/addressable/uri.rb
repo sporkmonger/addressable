@@ -122,9 +122,9 @@ module Addressable
           user = userinfo.strip[/^([^:]*):?/, 1]
           password = userinfo.strip[/:(.*)$/, 1]
         end
-        host = authority.gsub(
+        host = authority.sub(
           /^([^\[\]]*)@/, EMPTY_STR
-        ).gsub(
+        ).sub(
           /:([^:@\[\]]*?)$/, EMPTY_STR
         )
         port = authority[/:([^:@\[\]]*?)$/, 1]
@@ -182,18 +182,18 @@ module Addressable
         :scheme => "http"
       }.merge(hints)
       case uri
-      when /^http:\/+/
-        uri.gsub!(/^http:\/+/, "http://")
-      when /^https:\/+/
-        uri.gsub!(/^https:\/+/, "https://")
-      when /^feed:\/+http:\/+/
-        uri.gsub!(/^feed:\/+http:\/+/, "feed:http://")
-      when /^feed:\/+/
-        uri.gsub!(/^feed:\/+/, "feed://")
-      when /^file:\/+/
-        uri.gsub!(/^file:\/+/, "file:///")
+      when /^http:\//
+        uri.sub!(/^http:\/+/, "http://")
+      when /^https:\//
+        uri.sub!(/^https:\/+/, "https://")
+      when /^feed:\/+http:\//
+        uri.sub!(/^feed:\/+http:\/+/, "feed:http://")
+      when /^feed:\//
+        uri.sub!(/^feed:\/+/, "feed://")
+      when /^file:\//
+        uri.sub!(/^file:\/+/, "file:///")
       when /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
-        uri.gsub!(/^/, hints[:scheme] + "://")
+        uri.sub!(/^/, hints[:scheme] + "://")
       end
       match = uri.match(URIREGEX)
       fragments = match.captures
@@ -212,7 +212,7 @@ module Addressable
         new_host = parsed.path[/^([^\/]+\.[^\/]*)/, 1]
         if new_host
           parsed.defer_validation do
-            new_path = parsed.path.gsub(
+            new_path = parsed.path.sub(
               Regexp.new("^" + Regexp.escape(new_host)), EMPTY_STR)
             parsed.host = new_host
             parsed.path = new_path
@@ -263,19 +263,19 @@ module Addressable
       # Otherwise, convert to a String
       path = path.to_str.strip
 
-      path.gsub!(/^file:\/?\/?/, EMPTY_STR) if path =~ /^file:\/?\/?/
+      path.sub!(/^file:\/?\/?/, EMPTY_STR) if path =~ /^file:\/?\/?/
       path = SLASH + path if path =~ /^([a-zA-Z])[\|:]/
       uri = self.parse(path)
 
       if uri.scheme == nil
         # Adjust windows-style uris
-        uri.path.gsub!(/^\/?([a-zA-Z])[\|:][\\\/]/) do
+        uri.path.sub!(/^\/?([a-zA-Z])[\|:][\\\/]/) do
           "/#{$1.downcase}:/"
         end
         uri.path.gsub!(/\\/, SLASH)
         if File.exist?(uri.path) &&
             File.stat(uri.path).directory?
-          uri.path.gsub!(/\/$/, EMPTY_STR)
+          uri.path.sub!(/\/$/, EMPTY_STR)
           uri.path = uri.path + '/'
         end
 
@@ -1235,9 +1235,9 @@ module Addressable
           new_user = new_userinfo.strip[/^([^:]*):?/, 1]
           new_password = new_userinfo.strip[/:(.*)$/, 1]
         end
-        new_host = new_authority.gsub(
+        new_host = new_authority.sub(
           /^([^\[\]]*)@/, EMPTY_STR
-        ).gsub(
+        ).sub(
           /:([^:@\[\]]*?)$/, EMPTY_STR
         )
         new_port =
@@ -1544,7 +1544,7 @@ module Addressable
     # @return [String] The path's basename.
     def basename
       # Path cannot be nil
-      return File.basename(self.path).gsub(/;[^\/]*$/, EMPTY_STR)
+      return File.basename(self.path).sub(/;[^\/]*$/, EMPTY_STR)
     end
 
     ##
@@ -1900,7 +1900,7 @@ module Addressable
               #
               # Removes the right-most path segment from the base path.
               if base_path =~ /\//
-                base_path.gsub!(/\/[^\/]+$/, SLASH)
+                base_path.sub!(/\/[^\/]+$/, SLASH)
               else
                 base_path = EMPTY_STR
               end
