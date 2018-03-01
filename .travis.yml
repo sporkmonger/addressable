@@ -7,14 +7,15 @@ rvm:
   - ruby-head
   - ruby-head-clang
   - 2.0.0
-  - 2.1.9
-  - 2.2.6
-  - 2.3.3
-  - 2.4.1
+  - 2.1.10
+  - 2.2.9
+  - 2.3.6
+  - 2.4.3
+  - 2.5.0
 matrix:
   include:
     - gemfile: gemfiles/Gemfile.public_suffix_2
-      rvm: 2.4.1
+      rvm: 2.5.0
   allow_failures:
     - rvm: ruby-head
     - rvm: ruby-head-clang
