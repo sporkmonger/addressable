@@ -26,9 +26,9 @@ shared_examples_for "converting from unicode to ASCII" do
     expect(Addressable::IDNA.to_ascii("www.google.com")).to eq("www.google.com")
   end
 
-  LONG = 'AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com'
-  it "should convert '#{LONG}' correctly" do
-    expect(Addressable::IDNA.to_ascii(LONG)).to eq(LONG)
+  long = 'AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com'
+  it "should convert '#{long}' correctly" do
+    expect(Addressable::IDNA.to_ascii(long)).to eq(long)
   end
 
   it "should convert 'www.詹姆斯.com' correctly" do
@@ -148,9 +148,9 @@ shared_examples_for "converting from unicode to ASCII" do
 end
 
 shared_examples_for "converting from ASCII to unicode" do
-  LONG = 'AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com'
-  it "should convert '#{LONG}' correctly" do
-    expect(Addressable::IDNA.to_unicode(LONG)).to eq(LONG)
+  long = 'AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com'
+  it "should convert '#{long}' correctly" do
+    expect(Addressable::IDNA.to_unicode(long)).to eq(long)
   end
 
   it "should return the identity conversion when punycode decode fails" do
