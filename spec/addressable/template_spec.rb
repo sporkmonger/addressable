@@ -82,7 +82,7 @@ describe "Type conversion" do
       :hello => 1234,
       :nothing => nil,
       :sym => :symbolic,
-      :decimal => BigDecimal.new('1')
+      :decimal => BigDecimal('1')
     }
   }
 
