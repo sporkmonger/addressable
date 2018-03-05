@@ -58,7 +58,7 @@ For more details, see [RFC 6570](https://www.rfc-editor.org/rfc/rfc6570.txt).
 
 require "addressable/template"
 
-template = Addressable::Template.new("http://example.com/{?query*}/")
+template = Addressable::Template.new("http://example.com/{?query*}")
 template.expand({
   "query" => {
     'foo' => 'bar',
