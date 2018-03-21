@@ -5490,6 +5490,31 @@ describe Addressable::URI, "when given the path '/one/two/'" do
   end
 end
 
+describe Addressable::URI, "when given the tld " do
+  it "'uk' should have a tld of 'uk'" do
+    uri = Addressable::URI.parse("http://example.com")
+    uri.tld = "uk"
+
+    expect(uri.tld).to eq("uk")
+  end
+
+  context "witch " do
+    let (:uri) { Addressable::URI.parse("http://comrade.net/path/to/source/") }
+
+    it "contains a subdomain" do
+      uri.tld = "co.uk"
+
+      expect(uri.to_s).to eq("http://comrade.co.uk/path/to/source/")
+    end
+
+    it "is part of the domain" do
+      uri.tld = "com"
+
+      expect(uri.to_s).to eq("http://comrade.com/path/to/source/")
+    end
+  end
+end
+
 describe Addressable::URI, "when given the path " +
     "'c:\\windows\\My Documents 100%20\\foo.txt'" do
   before do
