@@ -1169,6 +1169,15 @@ module Addressable
     end
 
     ##
+    # Sets the top-level domain for this URI.
+    #
+    # @param [String, #to_str] new_tld The new top-level domain.
+    def tld=(new_tld)
+      replaced_tld = domain.sub(/#{tld}\z/, new_tld)
+      self.host = PublicSuffix::Domain.new(replaced_tld).to_s
+    end
+
+    ##
     # Returns the public suffix domain for this host.
     #
     # @example
