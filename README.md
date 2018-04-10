@@ -105,7 +105,7 @@ $ gem install idn-ruby
 
 # Semantic Versioning
 
-This project uses sementic versioning. You can (and should) specify your
+This project uses [Semantic Versioning](https://semver.org/). You can (and should) specify your
 dependency using a pessimistic version constraint covering the major and minor
 values:
 
