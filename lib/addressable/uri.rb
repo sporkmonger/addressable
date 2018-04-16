@@ -194,6 +194,8 @@ module Addressable
         uri.sub!(/^file:\/+/i, "file:///")
       when /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
         uri.sub!(/^/, hints[:scheme] + "://")
+      when /\A\d+\..*:\d+\z/
+        uri = "#{hints[:scheme]}://#{uri}"
       end
       match = uri.match(URIREGEX)
       fragments = match.captures
