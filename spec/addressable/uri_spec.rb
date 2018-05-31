@@ -5498,7 +5498,7 @@ describe Addressable::URI, "when given the tld " do
     expect(uri.tld).to eq("uk")
   end
 
-  context "witch " do
+  context "which " do
     let (:uri) { Addressable::URI.parse("http://comrade.net/path/to/source/") }
 
     it "contains a subdomain" do
@@ -6249,6 +6249,18 @@ describe Addressable::URI, "when given the input " +
   it "should heuristically parse to 'http://example.com'" do
     @uri = Addressable::URI.heuristic_parse(@input)
     expect(@uri.to_s).to eq("http://example.com")
+  end
+end
+
+describe Addressable::URI, "when given the input which "\
+  "start with digits and has specified port" do
+  before do
+    @input = "7777.example.org:8089"
+  end
+
+  it "should heuristically parse to 'http://7777.example.org:8089'" do
+    uri = Addressable::URI.heuristic_parse(@input)
+    expect(uri.to_s).to eq("http://7777.example.org:8089")
   end
 end
 
