@@ -1987,6 +1987,20 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should have the correct request URI after assignment" do
+    @uri.request_uri = "/pub/WWW/TheProject.html?"
+    expect(@uri.request_uri).to eq("/pub/WWW/TheProject.html?")
+    expect(@uri.path).to eq("/pub/WWW/TheProject.html")
+    expect(@uri.query).to eq("")
+  end
+
+  it "should have the correct request URI after assignment" do
+    @uri.request_uri = "/some/where/else.html"
+    expect(@uri.request_uri).to eq("/some/where/else.html")
+    expect(@uri.path).to eq("/some/where/else.html")
+    expect(@uri.query).to eq(nil)
+  end
+
+  it "should have the correct request URI after assignment" do
     @uri.request_uri = "/some/where/else.html?query?string"
     expect(@uri.request_uri).to eq("/some/where/else.html?query?string")
     expect(@uri.path).to eq("/some/where/else.html")
