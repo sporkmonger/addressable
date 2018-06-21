@@ -6338,6 +6338,44 @@ describe Addressable::URI, "when given the input " +
   end
 end
 
+describe Addressable::URI, "when given the input: 'user@domain.com'" do
+  before do
+    @input = "user@domain.com"
+  end
+
+  context "for heuristic parse" do
+    it "should remain 'mailto:user@domain.com'" do
+      uri = Addressable::URI.heuristic_parse("mailto:#{@input}")
+      expect(uri.to_s).to eq("mailto:user@domain.com")
+    end
+
+    it "should have a scheme of 'mailto'" do
+      uri = Addressable::URI.heuristic_parse(@input)
+      expect(uri.to_s).to   eq("mailto:user@domain.com")
+      expect(uri.scheme).to eq("mailto")
+    end
+
+    it "should remain 'acct:user@domain.com'" do
+      uri = Addressable::URI.heuristic_parse("acct:#{@input}")
+      expect(uri.to_s).to eq("acct:user@domain.com")
+    end
+
+    context "HTTP" do
+      before do
+        @uri = Addressable::URI.heuristic_parse("http://#{@input}/")
+      end
+
+      it "should remain 'http://user@domain.com/'" do
+        expect(@uri.to_s).to eq("http://user@domain.com/")
+      end
+
+      it "should have the username 'user' for HTTP basic authentication" do
+        expect(@uri.user).to eq("user")
+      end
+    end
+  end
+end
+
 describe Addressable::URI, "when assigning query values" do
   before do
     @uri = Addressable::URI.new

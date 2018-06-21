@@ -218,8 +218,9 @@ module Addressable
         parsed = self.parse(hints[:scheme] + "://" + uri)
       end
       if parsed.path.include?(".")
-        new_host = parsed.path[/^([^\/]+\.[^\/]*)/, 1]
-        if new_host
+        if parsed.path[/\b@\b/]
+          parsed.scheme = "mailto" unless parsed.scheme
+        elsif new_host = parsed.path[/^([^\/]+\.[^\/]*)/, 1]
           parsed.defer_validation do
             new_path = parsed.path.sub(
               Regexp.new("^" + Regexp.escape(new_host)), EMPTY_STR)
