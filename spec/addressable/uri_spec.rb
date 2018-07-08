@@ -5601,6 +5601,22 @@ describe Addressable::URI, "when given the tld " do
   end
 end
 
+describe Addressable::URI, "when given the input" \
+    "'http://test.com/category/sub_category/categories'" do
+  before do
+    @input = "http://test.com/category/sub_category/categories"
+  end
+
+  it "should have former path but with the new basename: 'category' "\
+     "when the replaceable basename is contained in uri path" do
+    # to prevent regressions of path, for example shouldn't be: http://test.com/category
+    uri = Addressable::URI.parse(@input)
+    uri.basename = "category"
+
+    expect(uri.to_s).to eq("http://test.com/category/sub_category/category")
+  end
+end
+
 describe Addressable::URI, "when given the path " +
     "'c:\\windows\\My Documents 100%20\\foo.txt'" do
   before do
@@ -6062,6 +6078,13 @@ describe Addressable::URI, "when given the input " +
     @input = "http://example.com/"
   end
 
+  it "should set the new basename: 'index.html'" do
+    uri = Addressable::URI.parse(@input)
+
+    expect(uri.basename = "index.html").to eq("index.html")
+    expect(uri.to_s).to eq("http://example.com/index.html")
+  end
+
   it "should heuristically parse to 'http://example.com/'" do
     @uri = Addressable::URI.heuristic_parse(@input)
     expect(@uri.to_s).to eq("http://example.com/")
@@ -6126,6 +6149,20 @@ describe Addressable::URI, "when given the input " +
     "'http://example.com/example.com/'" do
   before do
     @input = "http://example.com/example.com/"
+  end
+
+  it "should have the correct basename: 'example.com'" do
+    uri = Addressable::URI.parse(@input)
+    uri.basename = "example.com"
+
+    expect(uri.basename).to eq("example.com")
+  end
+
+  it "should change the basename into 'categories'" do
+    uri = Addressable::URI.parse(@input)
+
+    expect(uri.basename = "categories").to eq("categories")
+    expect(uri.to_s).to eq("http://example.com/categories")
   end
 
   it "should heuristically parse to 'http://example.com/example.com/'" do

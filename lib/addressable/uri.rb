@@ -1605,6 +1605,20 @@ module Addressable
     end
 
     ##
+    # Sets the basename component for this URI.
+    #
+    # @param [String, #to_str] new_basename. The new basename value
+    def basename=(new_basename)
+      self.path = begin
+        if path.empty? || path == "/"
+          new_basename
+        else
+          path.sub(%r{\b#{basename}(\/)?\z}, new_basename)
+        end
+      end
+    end
+
+    ##
     # The extname, if any, of the file in the path component.
     # Empty string if there is no extension.
     #
