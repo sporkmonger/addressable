@@ -190,8 +190,12 @@ module Addressable
         uri.sub!(/^feed:\/+http:\/+/i, "feed:http://")
       when /^feed:\//i
         uri.sub!(/^feed:\/+/i, "feed://")
-      when /^file:\//i
-        uri.sub!(/^file:\/+/i, "file:///")
+      when %r[^file:/{4}]i
+        uri.sub!(%r[^file:/+]i, "file:////")
+      when %r[^file://localhost/]i
+        uri.sub!(%r[^file://localhost/+]i, "file:///")
+      when %r[^file:/+]i
+        uri.sub!(%r[^file:/+]i, "file:///")
       when /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
         uri.sub!(/^/, hints[:scheme] + "://")
       when /\A\d+\..*:\d+\z/
