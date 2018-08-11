@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # encoding:utf-8
 #--
 # Copyright (C) Bob Aman
@@ -208,6 +210,7 @@ module Addressable
         new_authority = authority.gsub(/\\/, '/').gsub(/ /, '%20')
         # NOTE: We want offset 4, not 3!
         offset = match.offset(4)
+        uri = uri.dup
         uri[offset[0]...offset[1]] = new_authority
       end
       parsed = self.parse(uri)

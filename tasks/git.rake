@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 namespace :git do
   namespace :tag do
     desc "List tags from the Git repository"
