@@ -2367,10 +2367,10 @@ module Addressable
     #
     # @param [Proc] block
     #   A set of operations to perform on a given URI.
-    def defer_validation(&block)
-      raise LocalJumpError, "No block given." unless block
+    def defer_validation
+      raise LocalJumpError, "No block given." unless block_given?
       @validation_deferred = true
-      block.call()
+      yield
       @validation_deferred = false
       validate
       return nil
