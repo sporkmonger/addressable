@@ -10,7 +10,6 @@ end
 group :development do
   gem "launchy", "~> 2.4", ">= 2.4.3"
   gem "redcarpet", :platform => :mri_19
-  gem "rubocop", "0.58.2"
   gem "yard"
 end
 
@@ -26,6 +25,7 @@ group :test, :development do
   if RUBY_VERSION.start_with?("2.0", "2.1")
     gem "rack", "< 2", :require => false
   else
+    gem "rubocop", "0.58.2"
     gem "rack", :require => false
   end
 end
