@@ -284,7 +284,7 @@ module Addressable
         uri.path.tr!("\\", SLASH)
         if File.exist?(uri.path) &&
             File.stat(uri.path).directory?
-          uri.path.sub!(/\/$/, EMPTY_STR)
+          uri.path.chomp!(SLASH)
           uri.path = uri.path + '/'
         end
 
