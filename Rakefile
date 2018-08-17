@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'rubygems'
-require 'rake'
+require "rubygems"
+require "rake"
 
-require File.join(File.dirname(__FILE__), 'lib', 'addressable', 'version')
+require File.join(File.dirname(__FILE__), "lib", "addressable", "version")
 
-PKG_DISPLAY_NAME   = 'Addressable'
+PKG_DISPLAY_NAME   = "Addressable"
 PKG_NAME           = PKG_DISPLAY_NAME.downcase
 PKG_VERSION        = Addressable::VERSION::STRING
 PKG_FILE_NAME      = "#{PKG_NAME}-#{PKG_VERSION}"
@@ -29,6 +29,6 @@ PKG_FILES = FileList[
 task :default => "spec"
 
 WINDOWS = (RUBY_PLATFORM =~ /mswin|win32|mingw|bccwin|cygwin/) rescue false
-SUDO = WINDOWS ? '' : ('sudo' unless ENV['SUDOLESS'])
+SUDO = WINDOWS ? "" : ("sudo" unless ENV["SUDOLESS"])
 
-Dir['tasks/**/*.rake'].each { |rake| load rake }
+Dir["tasks/**/*.rake"].each { |rake| load rake }

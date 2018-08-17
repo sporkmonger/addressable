@@ -23,7 +23,7 @@ Gem::Specification.new do |s|
   if s.respond_to? :specification_version then
     s.specification_version = 4
 
-    if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
+    if Gem::Version.new(Gem::VERSION) >= Gem::Version.new("1.2.0") then
       s.add_runtime_dependency(%q<public_suffix>, ["< 4.0", ">= 2.0.2"])
       s.add_development_dependency(%q<bundler>, ["~> 1.0"])
     else

@@ -34,7 +34,7 @@ module Addressable
 
     variable_char_class =
       Addressable::URI::CharacterClasses::ALPHA +
-      Addressable::URI::CharacterClasses::DIGIT + '_'
+      Addressable::URI::CharacterClasses::DIGIT + "_"
 
     var_char =
       "(?:(?:[#{variable_char_class}]|%[a-fA-F0-9][a-fA-F0-9])+)"
@@ -61,19 +61,19 @@ module Addressable
 
 
     LEADERS = {
-      '?' => '?',
-      '/' => '/',
-      '#' => '#',
-      '.' => '.',
-      ';' => ';',
-      '&' => '&'
+      "?" => "?",
+      "/" => "/",
+      "#" => "#",
+      "." => ".",
+      ";" => ";",
+      "&" => "&"
     }
     JOINERS = {
-      '?' => '&',
-      '.' => '.',
-      ';' => ';',
-      '&' => '&',
-      '/' => '/'
+      "?" => "&",
+      "." => ".",
+      ";" => ";",
+      "&" => "&",
+      "/" => "/"
     }
 
     ##
@@ -428,21 +428,21 @@ module Addressable
         index = 0
         expansions.each do |expansion|
           _, operator, varlist = *expansion.match(EXPRESSION)
-          varlist.split(',').each do |varspec|
+          varlist.split(",").each do |varspec|
             _, name, modifier = *varspec.match(VARSPEC)
             mapping[name] ||= nil
             case operator
-            when nil, '+', '#', '/', '.'
+            when nil, "+", "#", "/", "."
               unparsed_value = unparsed_values[index]
               name = varspec[VARSPEC, 1]
               value = unparsed_value
-              value = value.split(JOINERS[operator]) if value && modifier == '*'
-            when ';', '?', '&'
-              if modifier == '*'
+              value = value.split(JOINERS[operator]) if value && modifier == "*"
+            when ";", "?", "&"
+              if modifier == "*"
                 if unparsed_values[index]
                   value = unparsed_values[index].split(JOINERS[operator])
                   value = value.inject({}) do |acc, v|
-                    key, val = v.split('=')
+                    key, val = v.split("=")
                     val = "" if val.nil?
                     acc[key] = val
                     acc
@@ -450,7 +450,7 @@ module Addressable
                 end
               else
                 if (unparsed_values[index])
-                  name, value = unparsed_values[index].split('=')
+                  name, value = unparsed_values[index].split("=")
                   value = "" if value.nil?
                 end
               end
@@ -693,7 +693,7 @@ module Addressable
         expansions, _ = parse_template_pattern(pattern)
         expansions.map do |capture|
           _, _, varlist = *capture.match(EXPRESSION)
-          varlist.split(',').map do |varspec|
+          varlist.split(",").map do |varspec|
             varspec[VARSPEC, 1]
           end
         end.flatten
@@ -730,9 +730,9 @@ module Addressable
                                   normalize_values = true)
       _, operator, varlist = *capture.match(EXPRESSION)
 
-      vars = varlist.split(',')
+      vars = varlist.split(",")
 
-      if '?' == operator
+      if "?" == operator
         # partial expansion of form style query variables sometimes requires a
         # slight reordering of the variables to produce a valid url.
         first_to_expand = vars.find { |varspec|
@@ -810,7 +810,7 @@ module Addressable
     def transform_capture(mapping, capture, processor=nil,
                           normalize_values=true)
       _, operator, varlist = *capture.match(EXPRESSION)
-      return_value = varlist.split(',').inject([]) do |acc, varspec|
+      return_value = varlist.split(",").inject([]) do |acc, varspec|
         _, name, modifier = *varspec.match(VARSPEC)
         value = mapping[name]
         unless value == nil || value == {}
@@ -820,7 +820,7 @@ module Addressable
               value == true || value == false
             value = value.to_s
           end
-          length = modifier.gsub(':', '').to_i if modifier =~ /^:\d+/
+          length = modifier.gsub(":", "").to_i if modifier =~ /^:\d+/
 
           unless (Hash === value) ||
             value.respond_to?(:to_ary) || value.respond_to?(:to_str)
@@ -848,7 +848,7 @@ module Addressable
                 end
               end
               unless modifier == "*"
-                transformed_value = transformed_value.join(',')
+                transformed_value = transformed_value.join(",")
               end
             elsif value.kind_of?(Hash)
               transformed_value = value.map do |key, val|
@@ -867,7 +867,7 @@ module Addressable
                 end
               end
               unless modifier == "*"
-                transformed_value = transformed_value.join(',')
+                transformed_value = transformed_value.join(",")
               end
             else
               if length
@@ -916,10 +916,10 @@ module Addressable
     #
     # @return [String] The transformed mapped value
     def join_values(operator, return_value)
-      leader = LEADERS.fetch(operator, '')
-      joiner = JOINERS.fetch(operator, ',')
+      leader = LEADERS.fetch(operator, "")
+      joiner = JOINERS.fetch(operator, ",")
       case operator
-      when '&', '?'
+      when "&", "?"
         leader + return_value.map{|k,v|
           if v.is_a?(Array) && v.first =~ /=/
             v.join(joiner)
@@ -929,14 +929,14 @@ module Addressable
             "#{k}=#{v}"
           end
         }.join(joiner)
-      when ';'
+      when ";"
         return_value.map{|k,v|
           if v.is_a?(Array) && v.first =~ /=/
-            ';' + v.join(";")
+            ";" + v.join(";")
           elsif v.is_a?(Array)
-            ';' + v.map{|inner_value| "#{k}=#{inner_value}"}.join(";")
+            ";" + v.map{|inner_value| "#{k}=#{inner_value}"}.join(";")
           else
-            v && v != '' ?  ";#{k}=#{v}" : ";#{k}"
+            v && v != "" ?  ";#{k}=#{v}" : ";#{k}"
           end
         }.join
       else
@@ -1021,9 +1021,9 @@ module Addressable
 
         expansions << expansion
         _, operator, varlist = *expansion.match(EXPRESSION)
-        leader = Regexp.escape(LEADERS.fetch(operator, ''))
-        joiner = Regexp.escape(JOINERS.fetch(operator, ','))
-        combined = varlist.split(',').map do |varspec|
+        leader = Regexp.escape(LEADERS.fetch(operator, ""))
+        joiner = Regexp.escape(JOINERS.fetch(operator, ","))
+        combined = varlist.split(",").map do |varspec|
           _, name, modifier = *varspec.match(VARSPEC)
 
           result = processor && processor.respond_to?(:match) ? processor.match(name) : nil
@@ -1031,24 +1031,24 @@ module Addressable
             "(?<#{name}>#{ result })"
           else
             group = case operator
-            when '+'
+            when "+"
               "#{ RESERVED }*?"
-            when '#'
+            when "#"
               "#{ RESERVED }*?"
-            when '/'
+            when "/"
               "#{ UNRESERVED }*?"
-            when '.'
-              "#{ UNRESERVED.gsub('\.', '') }*?"
-            when ';'
+            when "."
+              "#{ UNRESERVED.gsub('\.', "") }*?"
+            when ";"
               "#{ UNRESERVED }*=?#{ UNRESERVED }*?"
-            when '?'
+            when "?"
               "#{ UNRESERVED }*=#{ UNRESERVED }*?"
-            when '&'
+            when "&"
               "#{ UNRESERVED }*=#{ UNRESERVED }*?"
             else
               "#{ UNRESERVED }*?"
             end
-            if modifier == '*'
+            if modifier == "*"
               "(?<#{name}>#{group}(?:#{joiner}?#{group})*)?"
             else
               "(?<#{name}>#{group})?"

@@ -28,7 +28,7 @@ shared_examples_for "converting from unicode to ASCII" do
     expect(Addressable::IDNA.to_ascii("www.google.com")).to eq("www.google.com")
   end
 
-  long = 'AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com'
+  long = "AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com"
   it "should convert '#{long}' correctly" do
     expect(Addressable::IDNA.to_ascii(long)).to eq(long)
   end
@@ -150,7 +150,7 @@ shared_examples_for "converting from unicode to ASCII" do
 end
 
 shared_examples_for "converting from ASCII to unicode" do
-  long = 'AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com'
+  long = "AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com"
   it "should convert '#{long}' correctly" do
     expect(Addressable::IDNA.to_unicode(long)).to eq(long)
   end
@@ -278,7 +278,7 @@ describe Addressable::IDNA, "when using the pure-Ruby implementation" do
     end
   rescue LoadError
     # Fibers aren't supported in this version of Ruby, skip this test.
-    warn('Fibers unsupported.')
+    warn("Fibers unsupported.")
   end
 end
 
@@ -296,5 +296,5 @@ begin
   end
 rescue LoadError
   # Cannot test the native implementation without libidn support.
-  warn('Could not load native IDN implementation.')
+  warn("Could not load native IDN implementation.")
 end

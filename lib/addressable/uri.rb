@@ -54,8 +54,8 @@ module Addressable
       FRAGMENT = PCHAR + "\\/\\?"
     end
 
-    SLASH = '/'
-    EMPTY_STR = ''
+    SLASH = "/"
+    EMPTY_STR = ""
 
     URIREGEX = /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/
 
@@ -207,7 +207,7 @@ module Addressable
       fragments = match.captures
       authority = fragments[3]
       if authority && authority.length > 0
-        new_authority = authority.gsub(/\\/, '/').gsub(/ /, '%20')
+        new_authority = authority.gsub(/\\/, "/").gsub(/ /, "%20")
         # NOTE: We want offset 4, not 3!
         offset = match.offset(4)
         uri = uri.dup
@@ -285,7 +285,7 @@ module Addressable
         if File.exist?(uri.path) &&
             File.stat(uri.path).directory?
           uri.path.sub!(/\/$/, EMPTY_STR)
-          uri.path = uri.path + '/'
+          uri.path = uri.path + "/"
         end
 
         # If the path is absolute, set the scheme and host.
@@ -363,7 +363,7 @@ module Addressable
     #   => "simple%2Fexample"
     def self.encode_component(component, character_class=
         CharacterClasses::RESERVED + CharacterClasses::UNRESERVED,
-        upcase_encoded='')
+        upcase_encoded="")
       return nil if component.nil?
 
       begin
@@ -392,7 +392,7 @@ module Addressable
       component.force_encoding(Encoding::ASCII_8BIT)
       # Avoiding gsub! because there are edge cases with frozen strings
       component = component.gsub(character_class) do |sequence|
-        (sequence.unpack('C*').map { |c| "%" + ("%02x" % c).upcase }).join
+        (sequence.unpack("C*").map { |c| "%" + ("%02x" % c).upcase }).join
       end
       if upcase_encoded.length > 0
         component = component.gsub(/%(#{upcase_encoded.chars.map do |char|
@@ -429,7 +429,7 @@ module Addressable
     #   The unencoded component or URI.
     #   The return type is determined by the <code>return_type</code>
     #   parameter.
-    def self.unencode(uri, return_type=String, leave_encoded='')
+    def self.unencode(uri, return_type=String, leave_encoded="")
       return nil if uri.nil?
 
       begin
@@ -513,7 +513,7 @@ module Addressable
     #   => "one two%2Fthree&four"
     def self.normalize_component(component, character_class=
         CharacterClasses::RESERVED + CharacterClasses::UNRESERVED,
-        leave_encoded='')
+        leave_encoded="")
       return nil if component.nil?
 
       begin
@@ -528,12 +528,12 @@ module Addressable
       end
       if character_class.kind_of?(String)
         leave_re = if leave_encoded.length > 0
-          character_class = "#{character_class}%" unless character_class.include?('%')
+          character_class = "#{character_class}%" unless character_class.include?("%")
 
           "|%(?!#{leave_encoded.chars.map do |char|
-            seq = char.unpack('C*').map { |c| '%02x' % c }.join
+            seq = char.unpack("C*").map { |c| "%02x" % c }.join
             [seq.upcase, seq.downcase]
-          end.flatten.join('|')})"
+          end.flatten.join("|")})"
         end
 
         character_class = /[^#{character_class}]#{leave_re}/
@@ -1309,11 +1309,11 @@ module Addressable
         new_origin = new_origin.to_str
         new_scheme = new_origin[/^([^:\/?#]+):\/\//, 1]
         unless new_scheme
-          raise InvalidURIError, 'An origin cannot omit the scheme.'
+          raise InvalidURIError, "An origin cannot omit the scheme."
         end
         new_host = new_origin[/:\/\/([^\/?#:]+)/, 1]
         unless new_host
-          raise InvalidURIError, 'An origin cannot omit the host.'
+          raise InvalidURIError, "An origin cannot omit the host."
         end
         new_port = new_origin[/:([^:@\[\]\/]*?)$/, 1]
       end
@@ -2091,7 +2091,7 @@ module Addressable
                 self_dir = self_splitted_path.shift
                 uri_dir = uri_splitted_path.shift
               end
-              components[:path] = (uri_splitted_path.fill('..') + [self_dir] + self_splitted_path).join(SLASH)
+              components[:path] = (uri_splitted_path.fill("..") + [self_dir] + self_splitted_path).join(SLASH)
             end
           end
         end
@@ -2377,8 +2377,8 @@ module Addressable
     end
 
   protected
-    SELF_REF = '.'
-    PARENT = '..'
+    SELF_REF = "."
+    PARENT = ".."
 
     RULE_2A = /\/\.\/|\/\.$/
     RULE_2B_2C = /\/([^\/]*)\/\.\.\/|\/([^\/]*)\/\.\.$/
