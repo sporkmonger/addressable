@@ -207,7 +207,7 @@ module Addressable
       fragments = match.captures
       authority = fragments[3]
       if authority && authority.length > 0
-        new_authority = authority.gsub(/\\/, '/').gsub(/ /, '%20')
+        new_authority = authority.tr('\\', '/').gsub(' ', '%20')
         # NOTE: We want offset 4, not 3!
         offset = match.offset(4)
         uri = uri.dup
@@ -281,7 +281,7 @@ module Addressable
         uri.path.sub!(/^\/?([a-zA-Z])[\|:][\\\/]/) do
           "/#{$1.downcase}:/"
         end
-        uri.path.gsub!(/\\/, SLASH)
+        uri.path.tr!('\\', SLASH)
         if File.exist?(uri.path) &&
             File.stat(uri.path).directory?
           uri.path.sub!(/\/$/, EMPTY_STR)
@@ -289,7 +289,7 @@ module Addressable
         end
 
         # If the path is absolute, set the scheme and host.
-        if uri.path =~ /^\//
+        if uri.path.start_with?(SLASH)
           uri.scheme = "file"
           uri.host = EMPTY_STR
         end
@@ -1660,7 +1660,7 @@ module Addressable
           # Treating '+' as a space was just an unbelievably bad idea.
           # There was nothing wrong with '%20'!
           # If it ain't broke, don't fix it!
-          pair[1] = URI.unencode_component(pair[1].to_str.gsub(/\+/, " "))
+          pair[1] = URI.unencode_component(pair[1].to_str.tr("+", " "))
         end
         if return_type == Hash
           accu[pair[0]] = pair[1]
@@ -1917,7 +1917,7 @@ module Addressable
               # Section 5.2.3 of RFC 3986
               #
               # Removes the right-most path segment from the base path.
-              if base_path =~ /\//
+              if base_path.include?(SLASH)
                 base_path.sub!(/\/[^\/]+$/, SLASH)
               else
                 base_path = EMPTY_STR
