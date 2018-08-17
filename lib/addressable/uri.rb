@@ -531,9 +531,9 @@ module Addressable
           character_class = "#{character_class}%" unless character_class.include?("%")
 
           "|%(?!#{leave_encoded.chars.map do |char|
-            seq = char.unpack("C*").map { |c| "%02x" % c }.join
+            seq = char.unpack('C*').map { |c| '%02x' % c }.join
             [seq.upcase, seq.downcase]
-          end.flatten.join("|")})"
+          end.flatten.join('|')})"
         end
 
         character_class = /[^#{character_class}]#{leave_re}/

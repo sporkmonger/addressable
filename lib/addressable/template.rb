@@ -1038,7 +1038,7 @@ module Addressable
             when "/"
               "#{ UNRESERVED }*?"
             when "."
-              "#{ UNRESERVED.gsub('\.', "") }*?"
+              "#{ UNRESERVED.gsub('\.', '') }*?"
             when ";"
               "#{ UNRESERVED }*=?#{ UNRESERVED }*?"
             when "?"
