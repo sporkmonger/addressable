@@ -207,7 +207,7 @@ module Addressable
       fragments = match.captures
       authority = fragments[3]
       if authority && authority.length > 0
-        new_authority = authority.tr('\\', '/').gsub(' ', '%20')
+        new_authority = authority.tr("\\", "/").gsub(" ", "%20")
         # NOTE: We want offset 4, not 3!
         offset = match.offset(4)
         uri = uri.dup
@@ -281,7 +281,7 @@ module Addressable
         uri.path.sub!(/^\/?([a-zA-Z])[\|:][\\\/]/) do
           "/#{$1.downcase}:/"
         end
-        uri.path.tr!('\\', SLASH)
+        uri.path.tr!("\\", SLASH)
         if File.exist?(uri.path) &&
             File.stat(uri.path).directory?
           uri.path.sub!(/\/$/, EMPTY_STR)
