@@ -951,6 +951,36 @@ describe Addressable::Template do
         )
       end
     end
+    context "issue #307 - partial_expand form query with nil params" do
+      subject do
+        Addressable::Template.new("http://example.com/{?one,two,three}/")
+      end
+      it "builds a new pattern with two=nil" do
+        expect(subject.partial_expand(two: nil).pattern).to eq(
+          "http://example.com/{?one}{&three}/"
+        )
+      end
+      it "builds a new pattern with one=nil and two=nil" do
+        expect(subject.partial_expand(one: nil, two: nil).pattern).to eq(
+          "http://example.com/{?three}/"
+        )
+      end
+      it "builds a new pattern with one=1 and two=nil" do
+        expect(subject.partial_expand(one: 1, two: nil).pattern).to eq(
+          "http://example.com/?one=1{&three}/"
+        )
+      end
+      it "builds a new pattern with one=nil and two=2" do
+        expect(subject.partial_expand(one: nil, two: 2).pattern).to eq(
+          "http://example.com/?two=2{&three}/"
+        )
+      end
+      it "builds a new pattern with one=nil" do
+        expect(subject.partial_expand(one: nil).pattern).to eq(
+          "http://example.com/{?two}{&three}/"
+        )
+      end
+    end
     context "partial_expand with query string" do
       subject {
         Addressable::Template.new("http://example.com/{?two,one}/")
