@@ -150,7 +150,7 @@ module Addressable
         ch = unpacked[i]
 
         if (starter_cc == 0 &&
-            (composite = unicode_compose_pair(starter, ch)) != nil)
+            !!(composite = unicode_compose_pair(starter, ch)))
           starter = composite
         else
           unpacked_result << starter

@@ -455,7 +455,7 @@ module Addressable
                 end
               end
             end
-            if processor != nil && processor.respond_to?(:restore)
+            if !!processor && processor.respond_to?(:restore)
               value = processor.restore(name, value)
             end
             if processor == nil
@@ -881,7 +881,7 @@ module Addressable
           end
 
           # Process, if we've got a processor
-          if processor != nil
+          if !!processor
             if processor.respond_to?(:validate)
               if !processor.validate(name, value)
                 display_value = value.kind_of?(Array) ? value.inspect : value
