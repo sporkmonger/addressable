@@ -29,11 +29,38 @@ module Addressable
   # This is an implementation of a URI parser based on
   # <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>,
   # <a href="http://www.ietf.org/rfc/rfc3987.txt">RFC 3987</a>.
+
+  # All normalized values should be UTF-8
+  module Normalized
+    %w(
+      scheme user password userinfo host authority
+      site path query fragment
+    ).each do |key|
+
+      method = "normalized_#{key}"
+      i_var  = "@#{method}"
+
+      define_method method.to_sym do |*args|
+        super(*args)
+
+        if instance_variable_defined?(i_var)
+          unless instance_variable_get(i_var).nil?
+            instance_variable_get(i_var).force_encoding(Encoding::UTF_8)
+          end
+
+          instance_variable_get(i_var)
+        end
+      end
+    end
+  end
+
   class URI
     ##
     # Raised if something other than a uri is supplied.
     class InvalidURIError < StandardError
     end
+
+    prepend Normalized
 
     ##
     # Container for the character classes specified in
@@ -864,9 +891,6 @@ module Addressable
           )
         end
       end
-      # All normalized values should be UTF-8
-      @normalized_scheme.force_encoding(Encoding::UTF_8) if @normalized_scheme
-      @normalized_scheme
     end
 
     ##
@@ -919,9 +943,6 @@ module Addressable
           )
         end
       end
-      # All normalized values should be UTF-8
-      @normalized_user.force_encoding(Encoding::UTF_8) if @normalized_user
-      @normalized_user
     end
 
     ##
@@ -976,11 +997,6 @@ module Addressable
           )
         end
       end
-      # All normalized values should be UTF-8
-      if @normalized_password
-        @normalized_password.force_encoding(Encoding::UTF_8)
-      end
-      @normalized_password
     end
 
     ##
@@ -1046,11 +1062,6 @@ module Addressable
           "#{current_user}".dup
         end
       end
-      # All normalized values should be UTF-8
-      if @normalized_userinfo
-        @normalized_userinfo.force_encoding(Encoding::UTF_8)
-      end
-      @normalized_userinfo
     end
 
     ##
@@ -1113,9 +1124,6 @@ module Addressable
           EMPTY_STR.dup
         end
       end
-      # All normalized values should be UTF-8
-      @normalized_host.force_encoding(Encoding::UTF_8) if @normalized_host
-      @normalized_host
     end
 
     ##
@@ -1231,11 +1239,6 @@ module Addressable
         end
         authority
       end
-      # All normalized values should be UTF-8
-      if @normalized_authority
-        @normalized_authority.force_encoding(Encoding::UTF_8)
-      end
-      @normalized_authority
     end
 
     ##
@@ -1467,9 +1470,6 @@ module Addressable
         end
         site_string
       end
-      # All normalized values should be UTF-8
-      @normalized_site.force_encoding(Encoding::UTF_8) if @normalized_site
-      @normalized_site
     end
 
     ##
@@ -1530,9 +1530,6 @@ module Addressable
         end
         result
       end
-      # All normalized values should be UTF-8
-      @normalized_path.force_encoding(Encoding::UTF_8) if @normalized_path
-      @normalized_path
     end
 
     ##
@@ -1601,9 +1598,6 @@ module Addressable
         end.join("&")
         component == "" ? nil : component
       end
-      # All normalized values should be UTF-8
-      @normalized_query.force_encoding(Encoding::UTF_8) if @normalized_query
-      @normalized_query
     end
 
     ##
@@ -1795,11 +1789,6 @@ module Addressable
         )
         component == "" ? nil : component
       end
-      # All normalized values should be UTF-8
-      if @normalized_fragment
-        @normalized_fragment.force_encoding(Encoding::UTF_8)
-      end
-      @normalized_fragment
     end
 
     ##
