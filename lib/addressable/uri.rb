@@ -32,11 +32,12 @@ module Addressable
 
   # All normalized values should be UTF-8
   module Normalized
-    %w(
+    ENCODING_METHODS = %w(
       scheme user password userinfo host authority
       site path query fragment
-    ).each do |key|
+    ).freeze
 
+    ENCODING_METHODS.each do |key|
       method = "normalized_#{key}"
       i_var  = "@#{method}"
 

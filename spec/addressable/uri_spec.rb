@@ -63,6 +63,103 @@ module Fake
   end
 end
 
+describe Addressable::Normalized, "when given the string with some encode" do
+  class Normalized
+    prepend Addressable::Normalized
+
+    def normalized_scheme;    end
+    def normalized_user;      end
+    def normalized_password;  end
+    def normalized_userinfo;  end
+    def normalized_host;      end
+    def normalized_authority; end
+    def normalized_site;      end
+    def normalized_path;      end
+    def normalized_query;     end
+    def normalized_fragment;  end
+    def normalized_port;      end
+  end
+
+  before do
+    @normalized = Normalized.new
+  end
+
+  context "should become value with UTF-8 encode by normalized method" do
+    it "Addressable::Normalized#normalized_scheme" do
+      string = "".encode "ISO-8859-1"
+      @normalized.instance_variable_set("@normalized_scheme", string)
+
+      expect(@normalized.normalized_scheme.encoding.to_s).to eq("UTF-8")
+    end
+
+    it "Addressable::Normalized#normalized_user" do
+      string = "".encode "ISO-8859-1"
+      @normalized.instance_variable_set("@normalized_user", string)
+
+      expect(@normalized.normalized_user.encoding.to_s).to eq("UTF-8")
+    end
+
+    it "Addressable::Normalized#normalized_password" do
+      string = "".encode "ISO-8859-1"
+      @normalized.instance_variable_set("@normalized_password", string)
+      expect(@normalized.normalized_password.encoding.to_s).to eq("UTF-8")
+    end
+
+    it "Addressable::Normalized#normalized_userinfo" do
+      string = "".encode "ISO-8859-1"
+      @normalized.instance_variable_set("@normalized_userinfo", string)
+      expect(@normalized.normalized_userinfo.encoding.to_s).to eq("UTF-8")
+    end
+
+    it "Addressable::Normalized#normalized_host" do
+      string = "".encode "ISO-8859-1"
+      @normalized.instance_variable_set("@normalized_host", string)
+      expect(@normalized.normalized_host.encoding.to_s).to eq("UTF-8")
+    end
+
+    it "Addressable::Normalized#normalized_authority" do
+      string = "".encode "ISO-8859-1"
+      @normalized.instance_variable_set("@normalized_authority", string)
+      expect(@normalized.normalized_authority.encoding.to_s).to eq("UTF-8")
+    end
+
+    it "Addressable::Normalized#normalized_site" do
+      string = "".encode "ISO-8859-1"
+      @normalized.instance_variable_set("@normalized_site", string)
+
+      expect(@normalized.normalized_site.encoding.to_s).to eq("UTF-8")
+    end
+
+    it "Addressable::Normalized#normalized_path" do
+      string = "".encode "ISO-8859-1"
+      @normalized.instance_variable_set("@normalized_path", string)
+
+      expect(@normalized.normalized_path.encoding.to_s).to eq("UTF-8")
+    end
+
+    it "Addressable::Normalized#normalized_query" do
+      string = "".encode "ISO-8859-1"
+      @normalized.instance_variable_set("@normalized_query", string)
+
+      expect(@normalized.normalized_query.encoding.to_s).to eq("UTF-8")
+    end
+
+    it "Addressable::Normalized#normalized_fragment" do
+      string = "".encode "ISO-8859-1"
+      @normalized.instance_variable_set("@normalized_fragment", string)
+
+      expect(@normalized.normalized_fragment.encoding.to_s).to eq("UTF-8")
+    end
+  end
+
+  it "should become nil if method is not contains in encoding methods" do
+    string = "".encode "ISO-8859-1"
+    @normalized.instance_variable_set("@normalized_port", string)
+
+    expect(@normalized.normalized_port).to be_nil
+  end
+end
+
 describe Addressable::URI, "when created with a non-numeric port number" do
   it "should raise an error" do
     expect(lambda do
