@@ -12,6 +12,7 @@
 [![Dependency Status](https://gemnasium.com/sporkmonger/addressable.svg?travis)][gemnasium]
 [![Test Coverage Status](https://img.shields.io/coveralls/sporkmonger/addressable.svg)][coveralls]
 [![Documentation Coverage Status](http://inch-ci.org/github/sporkmonger/addressable.svg?branch=master)][inch]
+[![Reviewed by Hound](https://img.shields.io/badge/Reviewed_by-Hound-8E64B0.svg)](https://houndci.com)
 
 [gem]: https://rubygems.org/gems/addressable
 [travis]: http://travis-ci.org/sporkmonger/addressable
