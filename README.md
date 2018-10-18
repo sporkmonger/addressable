@@ -9,13 +9,11 @@
 
 [![Gem Version](http://img.shields.io/gem/dt/addressable.svg)][gem]
 [![Build Status](https://secure.travis-ci.org/sporkmonger/addressable.svg?branch=master)][travis]
-[![Dependency Status](https://gemnasium.com/sporkmonger/addressable.svg?travis)][gemnasium]
 [![Test Coverage Status](https://img.shields.io/coveralls/sporkmonger/addressable.svg)][coveralls]
 [![Documentation Coverage Status](http://inch-ci.org/github/sporkmonger/addressable.svg?branch=master)][inch]
 
 [gem]: https://rubygems.org/gems/addressable
 [travis]: http://travis-ci.org/sporkmonger/addressable
-[gemnasium]: https://gemnasium.com/sporkmonger/addressable
 [coveralls]: https://coveralls.io/r/sporkmonger/addressable
 [inch]: http://inch-ci.org/github/sporkmonger/addressable
 
