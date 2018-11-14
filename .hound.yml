@@ -1,3 +1,2 @@
 rubocop:
   config_file: .rubocop.yml
-  version: 0.58.2
