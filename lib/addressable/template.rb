@@ -612,7 +612,7 @@ module Addressable
     # .../resources
     # when calling `attach_variables('second_variable', 'third_variable')`
     # we expect a new template with a pattern ending in
-    #.../resources{?second_variable,third_variable}
+    # .../resources{?second_variable,third_variable}
     # @return [Addressable::Template] The template generated after attaching all new variables
     def attach_variables(*variables)
       variables.inject(self) do |template, variable|
