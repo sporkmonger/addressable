@@ -616,7 +616,9 @@ module Addressable
     #.../resources{?second_variable,third_variable}
     # @return [Addressable::Template] The template generated after attaching all new variables
     def attach_variables(*variables)
-      variables.reduce(self) { |template, variable| template.attach_variable(variable) }
+      variables.inject(self) do |template, variable|
+        template.attach_variable(variable)
+      end
     end
 
     ##
@@ -711,7 +713,7 @@ module Addressable
     FINISHING_PARAMS_EXPRESSION = /\{[\?&](#{varspec}(?:,#{varspec})*)\}$/
 
     ##
-    # @return [Boolean] If the patterns ends in expression that describes a variable
+    # @return [Boolean] The patterns ends in anexpression describing a variable
     # @api private
     def ends_in_param_variable?
       pattern.match(FINISHING_PARAMS_EXPRESSION)
@@ -720,7 +722,7 @@ module Addressable
     CONTAIN_PARAMS = /\?#{variable}/
 
     ##
-    # @return [Boolean] If the patterns contains params
+    # @return [Boolean] The patterns contains params
     # @api private
     def contain_params?
       pattern.match(CONTAIN_PARAMS)
@@ -732,11 +734,13 @@ module Addressable
     # @param variable [String] The variable being appended to the Template
     #
     # @example
-    # for a pattern including ending in ...?variable=value{&second_variable}
+    # for a pattern including ending in:
+    # ...?variable=value{&second_variable}
     # when attaching the variable: third_variable
-    # we expect a new template with a pattern ending in ...?variable=value{&second_variable,third_variable}
+    # we expect a new template with a pattern ending in:
+    # ...?variable=value{&second_variable,third_variable}
     #
-    # @return [Addressable::Template] The template generated after attaching a new variable
+    # @return [Addressable::Template] The template generated after attaching the variable
     # @api private
     def attach_variable(variable)
       raise NotAVariableError, "#{variable} is not a valid variable" unless variable.match(VARNAME)
