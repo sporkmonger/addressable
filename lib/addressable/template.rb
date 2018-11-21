@@ -723,7 +723,7 @@ module Addressable
     ##
     # @return [Boolean] The patterns contains params
     # @api private
-    def contain_params?
+    def contains_params?
       pattern.match(CONTAIN_PARAMS)
     end
 
@@ -744,9 +744,17 @@ module Addressable
     def attach_variable(variable)
       raise NotAVariableError, "#{variable} is not a valid variable" unless variable.match(VARNAME)
       if ends_in_param_variable?
-        new_expression = "#{pattern[pattern.index(FINISHING_PARAMS_EXPRESSION)..-2]},#{variable}}"
-        new_pattern = pattern[0...pattern.index(FINISHING_PARAMS_EXPRESSION)] + new_expression
-      elsif contain_params?
+        # Fetches the last expression
+        position_of_last_expression = pattern.index(FINISHING_PARAMS_EXPRESSION)
+        prior_last_expression = pattern[position_of_last_expression..-1]
+        patern_without_last_expression = pattern[0...position_of_last_expression]
+        # Extracts the external curly brackets: "{...}"
+        open_last_expression = prior_last_expression[1...-1]
+        # Attaches the variable and re-adds the curly brackets
+        new_expression = "{#{open_last_expression},#{variable}}"
+        # Re constructs the pattern
+        new_pattern = "#{patern_without_last_expression}#{new_expression}"
+      elsif contains_params?
         new_pattern = "#{pattern}{&#{variable}}"
       else
         new_pattern = "#{pattern}{?#{variable}}"
