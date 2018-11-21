@@ -48,6 +48,7 @@ module Addressable
       "(?:#{var_char}(?:\\.?#{var_char})*)"
     varspec =
       "(?:(#{variable})(\\*|:\\d+)?)"
+
     VARNAME =
       /^#{variable}$/
     VARSPEC =
@@ -58,7 +59,6 @@ module Addressable
       "+#./;?&=,!@|"
     EXPRESSION =
       /\{([#{operator}])?(#{varspec}(?:,#{varspec})*)\}/
-
 
     LEADERS = {
       '?' => '?',
@@ -79,6 +79,11 @@ module Addressable
     ##
     # Raised if an invalid template value is supplied.
     class InvalidTemplateValueError < StandardError
+    end
+
+    ##
+    # Raised if an invalid variable is supplied
+    class NotAVariableError < StandardError
     end
 
     ##
@@ -599,6 +604,22 @@ module Addressable
     end
 
     ##
+    # Creates a new template in which a new variable is appended at the end of the pattern.
+    # Generally you should be using: attach_variables rather than this.
+    # @param variables [*String] The variable being appended to the Template
+    #
+    # @example
+    # for a pattern including ending in:
+    # .../resources
+    # when calling `attach_variables('second_variable', 'third_variable')`
+    # we expect a new template with a pattern ending in
+    #.../resources{?second_variable,third_variable}
+    # @return [Addressable::Template] The template generated after attaching all new variables
+    def attach_variables(*variables)
+      variables.reduce(self) { |template, variable| template.attach_variable(variable) }
+    end
+
+    ##
     # Returns an Array of variables used within the template pattern.
     # The variables are listed in the Array in the order they appear within
     # the pattern.  Multiple occurrences of a variable within a pattern are
@@ -685,6 +706,49 @@ module Addressable
       end
       result = self.expand(merged, processor)
       result.to_s if result
+    end
+
+    FINISHING_PARAMS_EXPRESSION = /\{[\?&](#{varspec}(?:,#{varspec})*)\}$/
+
+    ##
+    # @return [Boolean] If the patterns ends in expression that describes a variable
+    # @api private
+    def ends_in_param_variable?
+      pattern.match(FINISHING_PARAMS_EXPRESSION)
+    end
+
+    CONTAIN_PARAMS = /\?#{variable}/
+
+    ##
+    # @return [Boolean] If the patterns contains params
+    # @api private
+    def contain_params?
+      pattern.match(CONTAIN_PARAMS)
+    end
+
+    ##
+    # Creates a new template in which a new variable is appended at the end of the pattern.
+    # Generally you should be using: attach_variables rather than this.
+    # @param variable [String] The variable being appended to the Template
+    #
+    # @example
+    # for a pattern including ending in ...?variable=value{&second_variable}
+    # when attaching the variable: third_variable
+    # we expect a new template with a pattern ending in ...?variable=value{&second_variable,third_variable}
+    #
+    # @return [Addressable::Template] The template generated after attaching a new variable
+    # @api private
+    def attach_variable(variable)
+      raise NotAVariableError, "#{variable} is not a valid variable" unless variable.match(VARNAME)
+      if ends_in_param_variable?
+        new_expression = "#{pattern[pattern.index(FINISHING_PARAMS_EXPRESSION)..-2]},#{variable}}"
+        new_pattern = pattern[0...pattern.index(FINISHING_PARAMS_EXPRESSION)] + new_expression
+      elsif contain_params?
+        new_pattern = "#{pattern}{&#{variable}}"
+      else
+        new_pattern = "#{pattern}{?#{variable}}"
+      end
+      self.class.new(new_pattern)
     end
 
   private
