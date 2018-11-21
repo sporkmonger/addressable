@@ -48,7 +48,6 @@ module Addressable
       "(?:#{var_char}(?:\\.?#{var_char})*)"
     varspec =
       "(?:(#{variable})(\\*|:\\d+)?)"
-
     VARNAME =
       /^#{variable}$/
     VARSPEC =
