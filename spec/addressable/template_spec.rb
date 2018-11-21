@@ -1352,12 +1352,16 @@ describe Addressable::Template do
       context "a single variable" do
         it "represents the variable" do
           result = uri.attach_variables("description")
-          expect(result.pattern).to eq "http://example.com/resources{?description}"
+          expect(result.pattern).to eq(
+            "http://example.com/resources{?description}"
+          )
         end
 
         context "when it is invalid" do
           it "raises an error" do
-            expect { uri.attach_variables("%invalid") }.to raise_error(Addressable::Template::NotAVariableError)
+            expect { uri.attach_variables("%invalid") }.to(
+              raise_error(Addressable::Template::NotAVariableError)
+            )
           end
         end
       end
@@ -1365,13 +1369,20 @@ describe Addressable::Template do
       context "multiple variables" do
         it "can partially expand the variable" do
           result = uri.attach_variables("description", "name")
-          expect(result.pattern).to eq "http://example.com/resources{?description,name}"
+          expect(result.pattern).to eq(
+            "http://example.com/resources{?description,name}"
+          )
           result = result.attach_variables("last_name")
-          expect(result.pattern).to eq "http://example.com/resources{?description,name,last_name}"
+          expect(result.pattern).to eq(
+            "http://example.com/resources{?description,name,last_name}"
+          )
         end
 
         context "when one of them is invalid" do
-          subject(:attach_invalid) { -> { uri.attach_variables("valid_var", "%invalid") } }
+          subject(:attach_invalid) do
+            -> { uri.attach_variables("valid_var", "%invalid") }
+          end
+
           it { is_expected.to raise_error(Addressable::Template::NotAVariableError) }
           it { is_expected.to raise_error(/%invalid/) }
           it { is_expected.not_to raise_error(/valid_var/) }
@@ -1379,13 +1390,21 @@ describe Addressable::Template do
 
         it "matches matching URIs" do
           result = uri.attach_variables("description", "name")
-          expect(result).to eq Addressable::Template.new("http://example.com/resources{?description,name}")
+          expect(result).to eq(
+            Addressable::Template.new(
+              "http://example.com/resources{?description,name}"
+            )
+          )
         end
       end
     end
 
     context "when the URI contained variables" do
-      let(:original_template) { Addressable::Template.new("http://example.com/resources{/id}{?decorated}") }
+      let(:original_template) do
+        Addressable::Template.new(
+          "http://example.com/resources{/id}{?decorated}"
+        )
+      end
       let(:result) { original_template.attach_variables("expanded") }
 
       it "maintains the original variables" do
@@ -1395,45 +1414,58 @@ describe Addressable::Template do
 
       it "attaches the new variables" do
         expect(result.variables).to include "expanded"
-        expect(result.pattern).to eq "http://example.com/resources{/id}{?decorated,expanded}"
+        expect(result.pattern).to eq(
+          "http://example.com/resources{/id}{?decorated,expanded}"
+        )
       end
 
       it "allows you to expand both previous and new variables" do
-        expect(result.partial_expand(id: 3, decorated: true).pattern)
-          .to eq "http://example.com/resources/3?decorated=true{&expanded}"
+        expect(result.partial_expand(id: 3, decorated: true).pattern).to eq(
+          "http://example.com/resources/3?decorated=true{&expanded}"
+        )
       end
 
       context "when the last variable is part of the URI" do
-        let(:original_template) { Addressable::Template.new("http://example.com/resources{/id}") }
+        let(:original_template) do
+          Addressable::Template.new("http://example.com/resources{/id}")
+        end
 
         it "attaches the new variables" do
           expect(result.variables).to include "expanded"
-          expect(result.pattern).to eq "http://example.com/resources{/id}{?expanded}"
+          expect(result.pattern).to eq(
+            "http://example.com/resources{/id}{?expanded}"
+          )
         end
       end
 
       context "when the URI was partially expanded" do
         context "with a trailing param" do
           let(:original_template) do
-            Addressable::Template.new("http://example.com/resources{/id}{?decorated,translated,additional}")
-              .partial_expand(id: 14, decorated: true, translated: "es")
+            Addressable::Template.new(
+              "http://example.com/resources{/id}{?decorated,translated,additional}"
+            ).partial_expand(id: 14, decorated: true, translated: "es")
           end
 
           it "attaches the new variables" do
             expect(result.variables).to include "expanded"
-            expect(result.pattern).to eq "http://example.com/resources/14?decorated=true&translated=es{&additional,expanded}"
+            expect(result.pattern).to eq(
+              "http://example.com/resources/14?decorated=true&translated=es{&additional,expanded}"
+            )
           end
         end
 
         context "without trailing params" do
           let(:original_template) do
-            Addressable::Template.new("http://example.com/resources{/id}{?decorated}")
-              .partial_expand(id: 14, decorated: true)
+            Addressable::Template.new(
+              "http://example.com/resources{/id}{?decorated}"
+            ).partial_expand(id: 14, decorated: true)
           end
 
           it "attaches the new variables" do
             expect(result.variables).to include "expanded"
-            expect(result.pattern).to eq "http://example.com/resources/14?decorated=true{&expanded}"
+            expect(result.pattern).to eq(
+              "http://example.com/resources/14?decorated=true{&expanded}"
+            )
           end
         end
       end
