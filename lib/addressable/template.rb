@@ -716,7 +716,7 @@ module Addressable
     # @return [Boolean] The patterns ends in anexpression describing a variable
     # @api private
     def ends_in_param_variable?
-      pattern.match(FINISHING_PARAMS_EXPRESSION)
+      pattern.match(FINISHING_PARAMS_EXPRESSION).present?
     end
 
     CONTAIN_PARAMS = /\?#{variable}/
@@ -725,7 +725,7 @@ module Addressable
     # @return [Boolean] The patterns contains params
     # @api private
     def contains_params?
-      pattern.match(CONTAIN_PARAMS)
+      pattern.match(CONTAIN_PARAMS).present?
     end
 
     ##
@@ -743,7 +743,7 @@ module Addressable
     # @return [Addressable::Template] Thew new template with the variable
     # @api private
     def attach_variable(variable)
-      unless variable.match(VARNAME)
+      unless variable.match(VARNAME).present?
         raise NotAVariableError, "#{variable} is not a valid variable"
       end
 
