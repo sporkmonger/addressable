@@ -743,8 +743,10 @@ module Addressable
     # @return [Addressable::Template] Thew new template with the variable
     # @api private
     def attach_variable(variable)
-      raise NotAVariableError,
-            "#{variable} is not a valid variable" unless variable.match(VARNAME)
+      unless variable.match(VARNAME)
+        raise NotAVariableError, "#{variable} is not a valid variable"
+      end
+
       if ends_in_param_variable?
         # Fetches the last expression
         position_of_last_expression = pattern.index(FINISHING_PARAMS_EXPRESSION)
