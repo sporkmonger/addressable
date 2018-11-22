@@ -603,7 +603,8 @@ module Addressable
     end
 
     ##
-    # Creates a new template in which a new variable is appended at the end of the pattern.
+    # Creates a new template:
+    # A new variable is appended at the end of the pattern.
     # Generally you should be using: attach_variables rather than this.
     # @param variables [*String] The variable being appended to the Template
     #
@@ -613,7 +614,7 @@ module Addressable
     # when calling `attach_variables('second_variable', 'third_variable')`
     # we expect a new template with a pattern ending in
     # .../resources{?second_variable,third_variable}
-    # @return [Addressable::Template] The template generated after attaching all new variables
+    # @return [Addressable::Template] The new template with more variables
     def attach_variables(*variables)
       variables.inject(self) do |template, variable|
         template.attach_variable(variable)
@@ -739,21 +740,22 @@ module Addressable
     # we expect a new template with a pattern ending in:
     # ...?variable=value{&second_variable,third_variable}
     #
-    # @return [Addressable::Template] The template generated after attaching the variable
+    # @return [Addressable::Template] Thew new template with the variable
     # @api private
     def attach_variable(variable)
-      raise NotAVariableError, "#{variable} is not a valid variable" unless variable.match(VARNAME)
+      raise NotAVariableError,
+            "#{variable} is not a valid variable" unless variable.match(VARNAME)
       if ends_in_param_variable?
         # Fetches the last expression
         position_of_last_expression = pattern.index(FINISHING_PARAMS_EXPRESSION)
         prior_last_expression = pattern[position_of_last_expression..-1]
-        patern_without_last_expression = pattern[0...position_of_last_expression]
+        without_last_expression = pattern[0...position_of_last_expression]
         # Extracts the external curly brackets: "{...}"
         open_last_expression = prior_last_expression[1...-1]
         # Attaches the variable and re-adds the curly brackets
         new_expression = "{#{open_last_expression},#{variable}}"
         # Re constructs the pattern
-        new_pattern = "#{patern_without_last_expression}#{new_expression}"
+        new_pattern = "#{without_last_expression}#{new_expression}"
       elsif contains_params?
         new_pattern = "#{pattern}{&#{variable}}"
       else
