@@ -410,9 +410,11 @@ module Addressable
         SEQUENCE_UPCASED_PERCENT_ENCODING_TABLE[sequence]
       end
       if upcase_encoded.length > 0
-        component = component.gsub(/%(#{upcase_encoded.chars.map do |char|
+        upcase_encoded_chars = upcase_encoded.chars.map do |char|
           SEQUENCE_ENCODING_TABLE[char]
-        end.join('|')})/) { |s| s.upcase }
+        end
+        component = component.gsub(/%(#{upcase_encoded_chars.join('|')})/,
+                                   &:upcase)
       end
       return component
     end
