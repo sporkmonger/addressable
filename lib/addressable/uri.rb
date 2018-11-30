@@ -337,8 +337,8 @@ module Addressable
 
     SEQUENCE_UPCASED_PERCENT_ENCODING_TABLE = Hash.new do |hash, sequence|
       hash[sequence] = sequence.unpack("C*").map do |c|
-        format("%%%02x", c)
-      end.join.upcase
+        format("%%%02X", c)
+      end.join
     end
 
     ##
