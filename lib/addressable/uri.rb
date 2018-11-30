@@ -327,6 +327,21 @@ module Addressable
     end
 
     ##
+    # Tables used to optimize encoding operations in `self.encode_component`
+    # and `self.normalize_component`
+    SEQUENCE_ENCODING_TABLE = Hash.new do |hash, sequence|
+      hash[sequence] = sequence.unpack("C*").map do |c|
+        format("%02x", c)
+      end.join
+    end
+
+    SEQUENCE_UPCASED_PERCENT_ENCODING_TABLE = Hash.new do |hash, sequence|
+      hash[sequence] = sequence.unpack("C*").map do |c|
+        format("%%%02x", c)
+      end.join.upcase
+    end
+
+    ##
     # Percent encodes a URI component.
     #
     # @param [String, #to_str] component The URI component to encode.
@@ -392,11 +407,11 @@ module Addressable
       component.force_encoding(Encoding::ASCII_8BIT)
       # Avoiding gsub! because there are edge cases with frozen strings
       component = component.gsub(character_class) do |sequence|
-        (sequence.unpack('C*').map { |c| "%" + ("%02x" % c).upcase }).join
+        SEQUENCE_UPCASED_PERCENT_ENCODING_TABLE[sequence]
       end
       if upcase_encoded.length > 0
         component = component.gsub(/%(#{upcase_encoded.chars.map do |char|
-          char.unpack('C*').map { |c| '%02x' % c }.join
+          SEQUENCE_ENCODING_TABLE[char]
         end.join('|')})/i) { |s| s.upcase }
       end
       return component
@@ -531,7 +546,7 @@ module Addressable
           character_class = "#{character_class}%" unless character_class.include?('%')
 
           "|%(?!#{leave_encoded.chars.map do |char|
-            seq = char.unpack('C*').map { |c| '%02x' % c }.join
+            seq = SEQUENCE_ENCODING_TABLE[char]
             [seq.upcase, seq.downcase]
           end.flatten.join('|')})"
         end
