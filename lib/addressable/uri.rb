@@ -412,7 +412,7 @@ module Addressable
       if upcase_encoded.length > 0
         component = component.gsub(/%(#{upcase_encoded.chars.map do |char|
           SEQUENCE_ENCODING_TABLE[char]
-        end.join('|')})/i) { |s| s.upcase }
+        end.join('|')})/) { |s| s.upcase }
       end
       return component
     end
