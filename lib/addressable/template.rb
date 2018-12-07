@@ -730,54 +730,32 @@ module Addressable
                                   normalize_values = true)
       _, operator, varlist = *capture.match(EXPRESSION)
 
-      vars = varlist.split(',')
+      vars = varlist.split(",")
 
-      if '?' == operator
+      if operator == "?"
         # partial expansion of form style query variables sometimes requires a
         # slight reordering of the variables to produce a valid url.
         first_to_expand = vars.find { |varspec|
           _, name, _ =  *varspec.match(VARSPEC)
-          mapping.key? name
+          mapping.key?(name) && !mapping[name].nil?
         }
 
         vars = [first_to_expand] + vars.reject {|varspec| varspec == first_to_expand}  if first_to_expand
       end
 
-      vars
-        .zip(operator_sequence(operator).take(vars.length))
-        .reduce("".dup) do |acc, (varspec, op)|
+      vars.
+        inject("".dup) do |acc, varspec|
           _, name, _ =  *varspec.match(VARSPEC)
-
-          acc << if mapping.key? name
-                   transform_capture(mapping, "{#{op}#{varspec}}",
-                                     processor, normalize_values)
-                 else
-                   "{#{op}#{varspec}}"
-                 end
-      end
-    end
-
-    ##
-    # Creates a lazy Enumerator of the operators that should be used to expand
-    # variables in a varlist starting with `operator`. For example, an operator
-    # `"?"` results in the sequence `"?","&","&"...`
-    #
-    # @param [String] operator from which to generate a sequence
-    #
-    # @return [Enumerator] sequence of operators
-    def operator_sequence(operator)
-      rest_operator = if "?" == operator
-                        "&"
-                      else
-                        operator
-                      end
-      head_operator = operator
-
-      Enumerator.new do |y|
-        y << head_operator.to_s
-        while true
-          y << rest_operator.to_s
-        end
+          next_val = if mapping.key? name
+                       transform_capture(mapping, "{#{operator}#{varspec}}",
+                                         processor, normalize_values)
+                     else
+                       "{#{operator}#{varspec}}"
+                     end
+          # If we've already expanded at least one '?' operator with non-empty
+          # value, change to '&'
+          operator = "&" if (operator == "?") && (next_val != "")
+          acc << next_val
       end
     end
 
