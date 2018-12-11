@@ -39,19 +39,19 @@ module Addressable
     # Container for the character classes specified in
     # <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
     module CharacterClasses
-      ALPHA = "a-zA-Z"
-      DIGIT = "0-9"
+      ALPHA      = "a-zA-Z"
+      DIGIT      = "0-9"
       GEN_DELIMS = "\\:\\/\\?\\#\\[\\]\\@"
       SUB_DELIMS = "\\!\\$\\&\\'\\(\\)\\*\\+\\,\\;\\="
-      RESERVED = GEN_DELIMS + SUB_DELIMS
+      RESERVED   = GEN_DELIMS + SUB_DELIMS
       UNRESERVED = ALPHA + DIGIT + "\\-\\.\\_\\~"
-      PCHAR = UNRESERVED + SUB_DELIMS + "\\:\\@"
-      SCHEME = ALPHA + DIGIT + "\\-\\+\\."
-      HOST = UNRESERVED + SUB_DELIMS + "\\[\\:\\]"
-      AUTHORITY = PCHAR
-      PATH = PCHAR + "\\/"
-      QUERY = PCHAR + "\\/\\?"
-      FRAGMENT = PCHAR + "\\/\\?"
+      PCHAR      = UNRESERVED + SUB_DELIMS + "\\:\\@"
+      SCHEME     = ALPHA + DIGIT + "\\-\\+\\."
+      HOST       = UNRESERVED + SUB_DELIMS + "\\[\\:\\]"
+      AUTHORITY  = PCHAR
+      PATH       = PCHAR + "\\/"
+      QUERY      = PCHAR + "\\/\\?"
+      FRAGMENT   = PCHAR + "\\/\\?"
     end
 
     SLASH = '/'
@@ -60,18 +60,18 @@ module Addressable
     URIREGEX = /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/
 
     PORT_MAPPING = {
-      "http" => 80,
-      "https" => 443,
-      "ftp" => 21,
-      "tftp" => 69,
-      "sftp" => 22,
-      "ssh" => 22,
-      "svn+ssh" => 22,
-      "telnet" => 23,
-      "nntp" => 119,
-      "gopher" => 70,
-      "wais" => 210,
-      "ldap" => 389,
+      "http"     => 80,
+      "https"    => 443,
+      "ftp"      => 21,
+      "tftp"     => 69,
+      "sftp"     => 22,
+      "ssh"      => 22,
+      "svn+ssh"  => 22,
+      "telnet"   => 23,
+      "nntp"     => 119,
+      "gopher"   => 70,
+      "wais"     => 210,
+      "ldap"     => 389,
       "prospero" => 1525
     }
 
@@ -87,6 +87,7 @@ module Addressable
     def self.parse(uri)
       # If we were given nil, return nil.
       return nil unless uri
+
       # If a URI object is passed, just return itself.
       return uri.dup if uri.kind_of?(self)
 
@@ -106,17 +107,17 @@ module Addressable
       end if not uri.is_a? String
 
       # This Regexp supplied as an example in RFC 3986, and it works great.
-      scan = uri.scan(URIREGEX)
+      scan      = uri.scan(URIREGEX)
       fragments = scan[0]
-      scheme = fragments[1]
+      scheme    = fragments[1]
       authority = fragments[3]
-      path = fragments[4]
-      query = fragments[6]
-      fragment = fragments[8]
-      user = nil
-      password = nil
-      host = nil
-      port = nil
+      path      = fragments[4]
+      query     = fragments[6]
+      fragment  = fragments[8]
+      user      = nil
+      password  = nil
+      host      = nil
+      port      = nil
       if authority != nil
         # The Regexp above doesn't split apart the authority.
         userinfo = authority[/^([^\[\]]*)@/, 1]
@@ -136,13 +137,13 @@ module Addressable
       end
 
       return new(
-        :scheme => scheme,
-        :user => user,
+        :scheme   => scheme,
+        :user     => user,
         :password => password,
-        :host => host,
-        :port => port,
-        :path => path,
-        :query => query,
+        :host     => host,
+        :port     => port,
+        :path     => path,
+        :query    => query,
         :fragment => fragment
       )
     end
@@ -264,11 +265,14 @@ module Addressable
     def self.convert_path(path)
       # If we were given nil, return nil.
       return nil unless path
+
       # If a URI object is passed, just return itself.
       return path if path.kind_of?(self)
+
       if !path.respond_to?(:to_str)
         raise TypeError, "Can't convert #{path.class} into String."
       end
+
       # Otherwise, convert to a String
       path = path.to_str.strip
 
@@ -282,8 +286,8 @@ module Addressable
           "/#{$1.downcase}:/"
         end
         uri.path.gsub!(/\\/, SLASH)
-        if File.exist?(uri.path) &&
-            File.stat(uri.path).directory?
+
+        if File.exist?(uri.path) && File.stat(uri.path).directory?
           uri.path.sub!(/\/$/, EMPTY_STR)
           uri.path = uri.path + '/'
         end
@@ -641,13 +645,13 @@ module Addressable
       end
       uri_object = uri.kind_of?(self) ? uri : self.parse(uri)
       components = {
-        :scheme => self.unencode_component(uri_object.scheme),
-        :user => self.unencode_component(uri_object.user),
+        :scheme   => self.unencode_component(uri_object.scheme),
+        :user     => self.unencode_component(uri_object.user),
         :password => self.unencode_component(uri_object.password),
-        :host => self.unencode_component(uri_object.host),
-        :port => (uri_object.port.nil? ? nil : uri_object.port.to_s),
-        :path => self.unencode_component(uri_object.path),
-        :query => self.unencode_component(uri_object.query),
+        :host     => self.unencode_component(uri_object.host),
+        :port     => (uri_object.port.nil? ? nil : uri_object.port.to_s),
+        :path     => self.unencode_component(uri_object.path),
+        :query    => self.unencode_component(uri_object.query),
         :fragment => self.unencode_component(uri_object.fragment)
       }
       components.each do |key, value|
@@ -795,6 +799,7 @@ module Addressable
             "within the authority."
         end
       end
+
       if options.has_key?(:userinfo)
         if (options.keys & [:user, :password]).any?
           raise ArgumentError,
@@ -805,17 +810,17 @@ module Addressable
       self.defer_validation do
         # Bunch of crazy logic required because of the composite components
         # like userinfo and authority.
-        self.scheme = options[:scheme] if options[:scheme]
-        self.user = options[:user] if options[:user]
-        self.password = options[:password] if options[:password]
-        self.userinfo = options[:userinfo] if options[:userinfo]
-        self.host = options[:host] if options[:host]
-        self.port = options[:port] if options[:port]
-        self.authority = options[:authority] if options[:authority]
-        self.path = options[:path] if options[:path]
-        self.query = options[:query] if options[:query]
+        self.scheme       = options[:scheme]       if options[:scheme]
+        self.user         = options[:user]         if options[:user]
+        self.password     = options[:password]     if options[:password]
+        self.userinfo     = options[:userinfo]     if options[:userinfo]
+        self.host         = options[:host]         if options[:host]
+        self.port         = options[:port]         if options[:port]
+        self.authority    = options[:authority]    if options[:authority]
+        self.path         = options[:path]         if options[:path]
+        self.query        = options[:query]        if options[:query]
         self.query_values = options[:query_values] if options[:query_values]
-        self.fragment = options[:fragment] if options[:fragment]
+        self.fragment     = options[:fragment]     if options[:fragment]
       end
       self.to_s
     end
@@ -940,10 +945,10 @@ module Addressable
       end
 
       # Reset dependent values
-      remove_instance_variable(:@userinfo) if defined?(@userinfo)
+      remove_instance_variable(:@userinfo)            if defined?(@userinfo)
       remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
-      remove_instance_variable(:@authority) if defined?(@authority)
-      remove_instance_variable(:@normalized_user) if defined?(@normalized_user)
+      remove_instance_variable(:@authority)           if defined?(@authority)
+      remove_instance_variable(:@normalized_user)     if defined?(@normalized_user)
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -1001,9 +1006,9 @@ module Addressable
       end
 
       # Reset dependent values
-      remove_instance_variable(:@userinfo) if defined?(@userinfo)
+      remove_instance_variable(:@userinfo)            if defined?(@userinfo)
       remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
-      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_instance_variable(:@authority)           if defined?(@authority)
       remove_instance_variable(:@normalized_password) if defined?(@normalized_password)
       remove_composite_values
 
@@ -1129,7 +1134,7 @@ module Addressable
       @host = new_host ? new_host.to_str : nil
 
       # Reset dependent values
-      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_instance_variable(:@authority)       if defined?(@authority)
       remove_instance_variable(:@normalized_host) if defined?(@normalized_host)
       remove_composite_values
 
@@ -1248,9 +1253,9 @@ module Addressable
           raise TypeError, "Can't convert #{new_authority.class} into String."
         end
         new_authority = new_authority.to_str
-        new_userinfo = new_authority[/^([^\[\]]*)@/, 1]
+        new_userinfo  = new_authority[/^([^\[\]]*)@/, 1]
         if new_userinfo
-          new_user = new_userinfo.strip[/^([^:]*):?/, 1]
+          new_user     = new_userinfo.strip[/^([^:]*):?/, 1]
           new_password = new_userinfo.strip[/:(.*)$/, 1]
         end
         new_host = new_authority.sub(
@@ -1258,18 +1263,17 @@ module Addressable
         ).sub(
           /:([^:@\[\]]*?)$/, EMPTY_STR
         )
-        new_port =
-          new_authority[/:([^:@\[\]]*?)$/, 1]
+        new_port = new_authority[/:([^:@\[\]]*?)$/, 1]
       end
 
       # Password assigned first to ensure validity in case of nil
       self.password = defined?(new_password) ? new_password : nil
-      self.user = defined?(new_user) ? new_user : nil
-      self.host = defined?(new_host) ? new_host : nil
-      self.port = defined?(new_port) ? new_port : nil
+      self.user     = defined?(new_user)     ? new_user     : nil
+      self.host     = defined?(new_host)     ? new_host     : nil
+      self.port     = defined?(new_port)     ? new_port     : nil
 
       # Reset dependent values
-      remove_instance_variable(:@userinfo) if defined?(@userinfo)
+      remove_instance_variable(:@userinfo)            if defined?(@userinfo)
       remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
       remove_composite_values
 
@@ -1319,14 +1323,14 @@ module Addressable
       end
 
       self.scheme = defined?(new_scheme) ? new_scheme : nil
-      self.host = defined?(new_host) ? new_host : nil
-      self.port = defined?(new_port) ? new_port : nil
+      self.host   = defined?(new_host)   ? new_host   : nil
+      self.port   = defined?(new_port)   ? new_port   : nil
       self.userinfo = nil
 
       # Reset dependent values
-      remove_instance_variable(:@userinfo) if defined?(@userinfo)
-      remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
-      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_instance_variable(:@userinfo)             if defined?(@userinfo)
+      remove_instance_variable(:@normalized_userinfo)  if defined?(@normalized_userinfo)
+      remove_instance_variable(:@authority)            if defined?(@authority)
       remove_instance_variable(:@normalized_authority) if defined?(@normalized_authority)
       remove_composite_values
 
@@ -1396,7 +1400,7 @@ module Addressable
       @port = nil if @port == 0
 
       # Reset dependent values
-      remove_instance_variable(:@authority) if defined?(@authority)
+      remove_instance_variable(:@authority)       if defined?(@authority)
       remove_instance_variable(:@normalized_port) if defined?(@normalized_port)
       remove_composite_values
 
@@ -1440,7 +1444,7 @@ module Addressable
     def site
       (self.scheme || self.authority) && @site ||= begin
         site_string = "".dup
-        site_string << "#{self.scheme}:" if self.scheme != nil
+        site_string << "#{self.scheme}:"     if self.scheme    != nil
         site_string << "//#{self.authority}" if self.authority != nil
         site_string
       end
@@ -1762,11 +1766,12 @@ module Addressable
           "Cannot set an HTTP request URI for a non-HTTP URI."
       end
       new_request_uri = new_request_uri.to_str
-      path_component = new_request_uri[/^([^\?]*)\?(?:.*)$/, 1]
+      path_component  = new_request_uri[/^([^\?]*)\?(?:.*)$/, 1]
       query_component = new_request_uri[/^(?:[^\?]*)\?(.*)$/, 1]
-      path_component = path_component.to_s
-      path_component = (!path_component.empty? ? path_component : SLASH)
-      self.path = path_component
+      path_component  = path_component.to_s
+      path_component  = (!path_component.empty? ? path_component : SLASH)
+
+      self.path  = path_component
       self.query = query_component
 
       # Reset dependent values
@@ -1872,32 +1877,32 @@ module Addressable
         return self.dup
       end
 
-      joined_scheme = nil
-      joined_user = nil
+      joined_scheme   = nil
+      joined_user     = nil
       joined_password = nil
-      joined_host = nil
-      joined_port = nil
-      joined_path = nil
-      joined_query = nil
+      joined_host     = nil
+      joined_port     = nil
+      joined_path     = nil
+      joined_query    = nil
       joined_fragment = nil
 
       # Section 5.2.2 of RFC 3986
       if uri.scheme != nil
-        joined_scheme = uri.scheme
-        joined_user = uri.user
+        joined_scheme   = uri.scheme
+        joined_user     = uri.user
         joined_password = uri.password
-        joined_host = uri.host
-        joined_port = uri.port
-        joined_path = URI.normalize_path(uri.path)
-        joined_query = uri.query
+        joined_host     = uri.host
+        joined_port     = uri.port
+        joined_path     = URI.normalize_path(uri.path)
+        joined_query    = uri.query
       else
         if uri.authority != nil
-          joined_user = uri.user
+          joined_user     = uri.user
           joined_password = uri.password
-          joined_host = uri.host
-          joined_port = uri.port
-          joined_path = URI.normalize_path(uri.path)
-          joined_query = uri.query
+          joined_host     = uri.host
+          joined_port     = uri.port
+          joined_path     = URI.normalize_path(uri.path)
+          joined_query    = uri.query
         else
           if uri.path == nil || uri.path.empty?
             joined_path = self.path
@@ -1933,23 +1938,23 @@ module Addressable
             end
             joined_query = uri.query
           end
-          joined_user = self.user
+          joined_user     = self.user
           joined_password = self.password
-          joined_host = self.host
-          joined_port = self.port
+          joined_host     = self.host
+          joined_port     = self.port
         end
         joined_scheme = self.scheme
       end
       joined_fragment = uri.fragment
 
       return self.class.new(
-        :scheme => joined_scheme,
-        :user => joined_user,
+        :scheme   => joined_scheme,
+        :user     => joined_user,
         :password => joined_password,
-        :host => joined_host,
-        :port => joined_port,
-        :path => joined_path,
-        :query => joined_query,
+        :host     => joined_host,
+        :port     => joined_port,
+        :path     => joined_path,
+        :query    => joined_query,
         :fragment => joined_fragment
       )
     end
@@ -2072,10 +2077,10 @@ module Addressable
       if normalized_self.scheme == uri.scheme
         components[:scheme] = nil
         if normalized_self.authority == uri.authority
-          components[:user] = nil
+          components[:user]     = nil
           components[:password] = nil
-          components[:host] = nil
-          components[:port] = nil
+          components[:host]     = nil
+          components[:port]     = nil
           if normalized_self.path == uri.path
             components[:path] = nil
             if normalized_self.query == uri.query
@@ -2084,12 +2089,12 @@ module Addressable
           else
             if uri.path != SLASH and components[:path]
               self_splitted_path = split_path(components[:path])
-              uri_splitted_path = split_path(uri.path)
+              uri_splitted_path  = split_path(uri.path)
               self_dir = self_splitted_path.shift
-              uri_dir = uri_splitted_path.shift
+              uri_dir  = uri_splitted_path.shift
               while !self_splitted_path.empty? && !uri_splitted_path.empty? and self_dir == uri_dir
                 self_dir = self_splitted_path.shift
-                uri_dir = uri_splitted_path.shift
+                uri_dir  = uri_splitted_path.shift
               end
               components[:path] = (uri_splitted_path.fill('..') + [self_dir] + self_splitted_path).join(SLASH)
             end
@@ -2101,13 +2106,13 @@ module Addressable
         components[:scheme] = normalized_self.scheme
       end
       return Addressable::URI.new(
-        :scheme => components[:scheme],
-        :user => components[:user],
+        :scheme   => components[:scheme],
+        :user     => components[:user],
         :password => components[:password],
-        :host => components[:host],
-        :port => components[:port],
-        :path => components[:path],
-        :query => components[:query],
+        :host     => components[:host],
+        :port     => components[:port],
+        :path     => components[:path],
+        :query    => components[:query],
         :fragment => components[:fragment]
       )
     end
@@ -2147,11 +2152,11 @@ module Addressable
       end
 
       return self.class.new(
-        :scheme => normalized_scheme,
+        :scheme    => normalized_scheme,
         :authority => normalized_authority,
-        :path => normalized_path,
-        :query => normalized_query,
-        :fragment => normalized_fragment
+        :path      => normalized_path,
+        :query     => normalized_query,
+        :fragment  => normalized_fragment
       )
     end
 
@@ -2244,13 +2249,13 @@ module Addressable
     # @return [Addressable::URI] The cloned URI.
     def dup
       duplicated_uri = self.class.new(
-        :scheme => self.scheme ? self.scheme.dup : nil,
-        :user => self.user ? self.user.dup : nil,
+        :scheme   => self.scheme   ? self.scheme.dup   : nil,
+        :user     => self.user     ? self.user.dup     : nil,
         :password => self.password ? self.password.dup : nil,
-        :host => self.host ? self.host.dup : nil,
-        :port => self.port,
-        :path => self.path ? self.path.dup : nil,
-        :query => self.query ? self.query.dup : nil,
+        :host     => self.host     ? self.host.dup     : nil,
+        :port     => self.port,
+        :path     => self.path     ? self.path.dup     : nil,
+        :query    => self.query    ? self.query.dup    : nil,
         :fragment => self.fragment ? self.fragment.dup : nil
       )
       return duplicated_uri
@@ -2320,11 +2325,11 @@ module Addressable
       end
       @uri_string ||= begin
         uri_string = String.new
-        uri_string << "#{self.scheme}:" if self.scheme != nil
+        uri_string << "#{self.scheme}:"     if self.scheme    != nil
         uri_string << "//#{self.authority}" if self.authority != nil
         uri_string << self.path.to_s
-        uri_string << "?#{self.query}" if self.query != nil
-        uri_string << "##{self.fragment}" if self.fragment != nil
+        uri_string << "?#{self.query}"      if self.query     != nil
+        uri_string << "##{self.fragment}"   if self.fragment  != nil
         uri_string.force_encoding(Encoding::UTF_8)
         uri_string
       end
@@ -2340,13 +2345,13 @@ module Addressable
     # @return [Hash] The URI as a <code>Hash</code> of components.
     def to_hash
       return {
-        :scheme => self.scheme,
-        :user => self.user,
+        :scheme   => self.scheme,
+        :user     => self.user,
         :password => self.password,
-        :host => self.host,
-        :port => self.port,
-        :path => self.path,
-        :query => self.query,
+        :host     => self.host,
+        :port     => self.port,
+        :path     => self.path,
+        :query    => self.query,
         :fragment => self.fragment
       }
     end
@@ -2378,11 +2383,11 @@ module Addressable
 
   protected
     SELF_REF = '.'
-    PARENT = '..'
+    PARENT   = '..'
 
-    RULE_2A = /\/\.\/|\/\.$/
+    RULE_2A    = /\/\.\/|\/\.$/
     RULE_2B_2C = /\/([^\/]*)\/\.\.\/|\/([^\/]*)\/\.\.$/
-    RULE_2D = /^\.\.?\/?/
+    RULE_2D    = /^\.\.?\/?/
     RULE_PREFIXED_PARENT = /^\/\.\.?\/|^(\/\.\.?)+\/?$/
 
     ##
@@ -2431,7 +2436,7 @@ module Addressable
           "Absolute URI missing hierarchical segment: '#{self.to_s}'"
       end
       if self.host == nil
-        if self.port != nil ||
+        if self.port  != nil ||
             self.user != nil ||
             self.password != nil
           raise InvalidURIError, "Hostname not supplied: '#{self.to_s}'"
@@ -2473,13 +2478,13 @@ module Addressable
         end
       end
 
-      @scheme = uri.scheme
-      @user = uri.user
+      @scheme   = uri.scheme
+      @user     = uri.user
       @password = uri.password
-      @host = uri.host
-      @port = uri.port
-      @path = uri.path
-      @query = uri.query
+      @host     = uri.host
+      @port     = uri.port
+      @path     = uri.path
+      @query    = uri.query
       @fragment = uri.fragment
       return self
     end
@@ -2504,7 +2509,7 @@ module Addressable
     # @api private
     def remove_composite_values
       remove_instance_variable(:@uri_string) if defined?(@uri_string)
-      remove_instance_variable(:@hash) if defined?(@hash)
+      remove_instance_variable(:@hash)       if defined?(@hash)
     end
   end
 end
