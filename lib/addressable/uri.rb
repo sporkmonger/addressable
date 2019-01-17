@@ -1762,7 +1762,7 @@ module Addressable
           "Cannot set an HTTP request URI for a non-HTTP URI."
       end
       new_request_uri = new_request_uri.to_str
-      path_component = new_request_uri[/^([^\?]*)\?(?:.*)$/, 1]
+      path_component = new_request_uri[/^([^\?]*)\??(?:.*)$/, 1]
       query_component = new_request_uri[/^(?:[^\?]*)\?(.*)$/, 1]
       path_component = path_component.to_s
       path_component = (!path_component.empty? ? path_component : SLASH)
