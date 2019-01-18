@@ -1,3 +1,14 @@
+# Addressable 2.6.0
+- added `tld=` method to allow assignment to the public suffix
+- most `heuristic_parse` patterns are now case-insensitive
+- `heuristic_parse` handles more `file://` URI variations
+- fixes bug in `heuristic_parse` when uri starts with digit
+- fixes bug in `request_uri=` with query strings
+- fixes template issues with `nil` and `?` operator
+- `frozen_string_literal` pragmas added
+- minor performance improvements in regexps
+- fixes to eliminate warnings
+
 # Addressable 2.5.2
 - better support for frozen string literals
 - fixed bug w/ uppercase characters in scheme
