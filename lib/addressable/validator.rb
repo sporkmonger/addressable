@@ -32,13 +32,13 @@ module Addressable
 
       if path_presence
         if relative_path? && !authority.nil?
-          error_msg = 'Cannot have a relative path'
+          error_msg = "Cannot have a relative path"
           error_msg += " with an authority set: '#{self}'"
           raise URI::InvalidURIError, error_msg
         end
 
         if path_with_two_leading_slashes? && authority.nil?
-          error_msg = 'Cannot have a path with two leading slashes'
+          error_msg = "Cannot have a path with two leading slashes"
           error_msg += " without an authority set: '#{self}'"
           raise URI::InvalidURIError, error_msg
         end
