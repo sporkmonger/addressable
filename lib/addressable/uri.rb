@@ -66,13 +66,13 @@ module Addressable
     SLASH = '/'
     EMPTY_STR = ''
 
-    SELF_REF = '.'
-    PARENT = '..'
+    SELF_REF = "."
+    PARENT   = ".."
 
-    RULE_2A = /\/\.\/|\/\.$/
-    RULE_2B_2C = /\/([^\/]*)\/\.\.\/|\/([^\/]*)\/\.\.$/
-    RULE_2D = /^\.\.?\/?/
-    RULE_PREFIXED_PARENT = /^\/\.\.?\/|^(\/\.\.?)+\/?$/
+    RULE_2A              = %r{\/\.\/|\/\.$}
+    RULE_2B_2C           = %r{\/([^\/]*)\/\.\.\/|\/([^\/]*)\/\.\.$}
+    RULE_2D              = %r{^\.\.?\/?}
+    RULE_PREFIXED_PARENT = %r{^\/\.\.?\/|^(\/\.\.?)+\/?$}
 
     URIREGEX = /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/
 
@@ -819,19 +819,18 @@ module Addressable
     # @return [String] The normalized path.
     def self.normalize_path(path)
       # Section 5.2.4 of RFC 3986
-
       return if path.nil?
+
       normalized_path = path.dup
       loop do
         mod ||= normalized_path.gsub!(RULE_2A, SLASH)
-
         pair = normalized_path.match(RULE_2B_2C)
         if pair
           parent  = pair[1]
           current = pair[2]
         else
-          parent  = nil
-          current = nil
+          parent  = pair[1]
+          current = pair[2]
         end
 
         regexp = "/#{Regexp.escape(parent.to_s)}/\\.\\./|"
@@ -855,7 +854,7 @@ module Addressable
     # use a similar URI form:
     # <code>//<user>:<password>@<host>:<port>/<url-path></code>
     def self.ip_based_schemes
-      return self.port_mapping.keys
+      port_mapping.keys
     end
 
     # Returns a hash of common IP-based schemes and their default port
