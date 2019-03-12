@@ -829,8 +829,8 @@ module Addressable
           parent  = pair[1]
           current = pair[2]
         else
-          parent  = pair[1]
-          current = pair[2]
+          parent  = nil
+          current = nil
         end
 
         regexp = "/#{Regexp.escape(parent.to_s)}/\\.\\./|"
@@ -844,6 +844,7 @@ module Addressable
         mod ||= normalized_path.gsub!(RULE_2D, EMPTY_STR)
         # Non-standard, removes prefixed dotted segments from path.
         mod ||= normalized_path.gsub!(RULE_PREFIXED_PARENT, SLASH)
+
         break if mod.nil?
       end
 
