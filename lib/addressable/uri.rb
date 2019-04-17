@@ -865,7 +865,9 @@ module Addressable
         end
       end
       # All normalized values should be UTF-8
-      @normalized_scheme.force_encoding(Encoding::UTF_8) if @normalized_scheme
+      if @normalized_scheme && @normalized_scheme.encoding != Encoding::UTF_8
+        @normalized_scheme.force_encoding(Encoding::UTF_8)
+      end
       @normalized_scheme
     end
 
@@ -920,7 +922,9 @@ module Addressable
         end
       end
       # All normalized values should be UTF-8
-      @normalized_user.force_encoding(Encoding::UTF_8) if @normalized_user
+      if @normalized_user && @normalized_user.encoding != Encoding::UTF_8
+        @normalized_user.force_encoding(Encoding::UTF_8)
+      end
       @normalized_user
     end
 
@@ -977,7 +981,7 @@ module Addressable
         end
       end
       # All normalized values should be UTF-8
-      if @normalized_password
+      if @normalized_password && @normalized_password.encoding != Encoding::UTF_8
         @normalized_password.force_encoding(Encoding::UTF_8)
       end
       @normalized_password
@@ -1047,7 +1051,7 @@ module Addressable
         end
       end
       # All normalized values should be UTF-8
-      if @normalized_userinfo
+      if @normalized_userinfo && @normalized_userinfo.encoding != Encoding::UTF_8
         @normalized_userinfo.force_encoding(Encoding::UTF_8)
       end
       @normalized_userinfo
@@ -1114,7 +1118,9 @@ module Addressable
         end
       end
       # All normalized values should be UTF-8
-      @normalized_host.force_encoding(Encoding::UTF_8) if @normalized_host
+      if @normalized_host && @normalized_host.encoding != Encoding::UTF_8
+        @normalized_host.force_encoding(Encoding::UTF_8)
+      end
       @normalized_host
     end
 
@@ -1232,7 +1238,7 @@ module Addressable
         authority
       end
       # All normalized values should be UTF-8
-      if @normalized_authority
+      if @normalized_authority && @normalized_authority.encoding != Encoding::UTF_8
         @normalized_authority.force_encoding(Encoding::UTF_8)
       end
       @normalized_authority
@@ -1468,7 +1474,9 @@ module Addressable
         site_string
       end
       # All normalized values should be UTF-8
-      @normalized_site.force_encoding(Encoding::UTF_8) if @normalized_site
+      if @normalized_site && @normalized_site.encoding != Encoding::UTF_8
+        @normalized_site.force_encoding(Encoding::UTF_8)
+      end
       @normalized_site
     end
 
@@ -1531,7 +1539,9 @@ module Addressable
         result
       end
       # All normalized values should be UTF-8
-      @normalized_path.force_encoding(Encoding::UTF_8) if @normalized_path
+      if @normalized_path && @normalized_path.encoding != Encoding::UTF_8
+         @normalized_path.force_encoding(Encoding::UTF_8)
+      end
       @normalized_path
     end
 
@@ -1602,7 +1612,9 @@ module Addressable
         component == "" ? nil : component
       end
       # All normalized values should be UTF-8
-      @normalized_query.force_encoding(Encoding::UTF_8) if @normalized_query
+      if @normalized_query && @normalized_query.encoding != Encoding::UTF_8
+        @normalized_query.force_encoding(Encoding::UTF_8)
+      end
       @normalized_query
     end
 
@@ -1796,7 +1808,7 @@ module Addressable
         component == "" ? nil : component
       end
       # All normalized values should be UTF-8
-      if @normalized_fragment
+      if @normalized_fragment && @normalized_fragment.encoding != Encoding::UTF_8
         @normalized_fragment.force_encoding(Encoding::UTF_8)
       end
       @normalized_fragment
