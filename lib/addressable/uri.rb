@@ -552,7 +552,7 @@ module Addressable
       rescue ArgumentError
         encoded = self.encode_component(unencoded)
       end
-      encoded.force_encoding(Encoding::UTF_8)
+      encoded.encode!(Encoding::UTF_8, invalid: :replace, replace: "")
       return encoded
     end
 
@@ -866,7 +866,7 @@ module Addressable
       end
       # All normalized values should be UTF-8
       if @normalized_scheme && @normalized_scheme.encoding != Encoding::UTF_8
-        @normalized_scheme.force_encoding(Encoding::UTF_8)
+        @normalized_scheme.encode!(Encoding::UTF_8, invalid: :replace, replace: "")
       end
       @normalized_scheme
     end
@@ -923,7 +923,7 @@ module Addressable
       end
       # All normalized values should be UTF-8
       if @normalized_user && @normalized_user.encoding != Encoding::UTF_8
-        @normalized_user.force_encoding(Encoding::UTF_8)
+        @normalized_user.encode!(Encoding::UTF_8, invalid: :replace, replace: "")
       end
       @normalized_user
     end
@@ -982,7 +982,7 @@ module Addressable
       end
       # All normalized values should be UTF-8
       if @normalized_password && @normalized_password.encoding != Encoding::UTF_8
-        @normalized_password.force_encoding(Encoding::UTF_8)
+        @normalized_password.encode!(Encoding::UTF_8, invalid: :replace, replace: "")
       end
       @normalized_password
     end
@@ -1052,7 +1052,7 @@ module Addressable
       end
       # All normalized values should be UTF-8
       if @normalized_userinfo && @normalized_userinfo.encoding != Encoding::UTF_8
-        @normalized_userinfo.force_encoding(Encoding::UTF_8)
+        @normalized_userinfo.encode!(Encoding::UTF_8, invalid: :replace, replace: "")
       end
       @normalized_userinfo
     end
@@ -1119,7 +1119,7 @@ module Addressable
       end
       # All normalized values should be UTF-8
       if @normalized_host && @normalized_host.encoding != Encoding::UTF_8
-        @normalized_host.force_encoding(Encoding::UTF_8)
+        @normalized_host.encode!(Encoding::UTF_8, invalid: :replace, replace: "")
       end
       @normalized_host
     end
@@ -1239,7 +1239,7 @@ module Addressable
       end
       # All normalized values should be UTF-8
       if @normalized_authority && @normalized_authority.encoding != Encoding::UTF_8
-        @normalized_authority.force_encoding(Encoding::UTF_8)
+        @normalized_authority.encode!(Encoding::UTF_8, invalid: :replace, replace: "")
       end
       @normalized_authority
     end
@@ -1475,7 +1475,7 @@ module Addressable
       end
       # All normalized values should be UTF-8
       if @normalized_site && @normalized_site.encoding != Encoding::UTF_8
-        @normalized_site.force_encoding(Encoding::UTF_8)
+        @normalized_site.encode!(Encoding::UTF_8, invalid: :replace, replace: "")
       end
       @normalized_site
     end
@@ -1540,7 +1540,7 @@ module Addressable
       end
       # All normalized values should be UTF-8
       if @normalized_path && @normalized_path.encoding != Encoding::UTF_8
-         @normalized_path.force_encoding(Encoding::UTF_8)
+         @normalized_path.encode!(Encoding::UTF_8, invalid: :replace, replace: "")
       end
       @normalized_path
     end
@@ -1613,7 +1613,7 @@ module Addressable
       end
       # All normalized values should be UTF-8
       if @normalized_query && @normalized_query.encoding != Encoding::UTF_8
-        @normalized_query.force_encoding(Encoding::UTF_8)
+        @normalized_query.encode!(Encoding::UTF_8, invalid: :replace, replace: "")
       end
       @normalized_query
     end
@@ -1809,7 +1809,7 @@ module Addressable
       end
       # All normalized values should be UTF-8
       if @normalized_fragment && @normalized_fragment.encoding != Encoding::UTF_8
-        @normalized_fragment.force_encoding(Encoding::UTF_8)
+        @normalized_fragment.encode!(Encoding::UTF_8, invalid: :replace, replace: "")
       end
       @normalized_fragment
     end
@@ -2337,7 +2337,7 @@ module Addressable
         uri_string << self.path.to_s
         uri_string << "?#{self.query}" if self.query != nil
         uri_string << "##{self.fragment}" if self.fragment != nil
-        uri_string.force_encoding(Encoding::UTF_8)
+        uri_string.encode!(Encoding::UTF_8, invalid: :replace, replace: "")
         uri_string
       end
     end
