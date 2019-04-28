@@ -341,7 +341,7 @@ module Addressable
     end
 
     COMPOSITION_TABLE = {}
-    for codepoint, data in UNICODE_DATA
+    UNICODE_DATA.each do |codepoint, data|
       canonical = data[UNICODE_DATA_CANONICAL]
       exclusion = data[UNICODE_DATA_EXCLUSION]
 
