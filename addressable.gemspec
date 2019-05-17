@@ -34,4 +34,14 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<public_suffix>, ["< 4.0", ">= 2.0.2"])
     s.add_dependency(%q<bundler>, ["< 3.0", ">= 1.0"])
   end
+
+  if s.respond_to?(:metadata)
+    s.metadata = {
+      "bug_tracker_uri" => "https://github.com/sporkmonger/addressable/issues",
+      "changelog_uri" => "https://github.com/sporkmonger/addressable/blob/master/CHANGELOG.md",
+      "documentation_uri" => "http://rubydoc.info/gems/addressable",
+      "homepage_uri" => "https://github.com/sporkmonger/addressable",
+      "source_code_uri" => "https://github.com/sporkmonger/addressable"
+    }
+  end
 end
