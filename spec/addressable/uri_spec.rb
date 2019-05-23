@@ -6518,6 +6518,31 @@ describe Addressable::URI, "when assigning path values" do
   end
 end
 
+describe Addressable::URI, "when directly testing a 'string input' to be absolute" do
+  it "should mostly be a drop-in substitute for 'Addressable::URI.parse('string').absolute?'" do
+    samples = [
+      "example.com/acct:bob@sporkmonger.com",
+      "/example.com/acct:bob@sporkmonger.com",
+      "//example.com/acct:bob@sporkmonger.com",
+      "http://example.com/acct:bob@sporkmonger.com",
+      "svn://example.com/acct:bob@sporkmonger.com",
+      "foo://example.com/acct:bob@sporkmonger.com",
+    ]
+    samples.each do |sample|
+      expect(described_class.absolute_uri?(sample)).to eql(described_class.parse(sample).absolute?)
+    end
+  end
+
+  it "should return a boolean true or false" do
+    expect(Addressable::URI.absolute_uri?("example.com/acct:bob@sporkmonger.com")).to be false
+    expect(Addressable::URI.absolute_uri?("/example.com/acct:bob@sporkmonger.com")).to be false
+    expect(Addressable::URI.absolute_uri?("//example.com/acct:bob@sporkmonger.com")).to be false
+    expect(Addressable::URI.absolute_uri?("http://example.com/acct:bob@sporkmonger.com")).to be true
+    expect(Addressable::URI.absolute_uri?("svn://example.com/acct:bob@sporkmonger.com")).to be true
+    expect(Addressable::URI.absolute_uri?("foo://example.com/acct:bob@sporkmonger.com")).to be true
+  end
+end
+
 describe Addressable::URI, "when initializing a subclass of Addressable::URI" do
   before do
     @uri = Class.new(Addressable::URI).new

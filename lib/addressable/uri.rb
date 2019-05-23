@@ -769,6 +769,22 @@ module Addressable
     end
 
     ##
+    # Determines if given string is an absolute URI.
+    #
+    # An optimized alternative to <code>URI.parse(str).absolute?</code> that
+    #   generates fewer intermediaries and therefore faster as well.
+    #
+    # @param [String, #to_str] input The string value to test.
+    #
+    # @return [TrueClass, FalseClass]
+    #   <code>true</code> if given string is valid URI as per RFC 3986 and
+    #   has a non-nil "URI Scheme". <code>false</code> otherwise.
+    def self.absolute_uri?(input)
+      return false unless input =~ URIREGEX
+      !Regexp.last_match(1).nil?
+    end
+
+    ##
     # Creates a new uri object from component parts.
     #
     # @option [String, #to_str] scheme The scheme component.
