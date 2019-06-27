@@ -3944,7 +3944,7 @@ describe Addressable::URI, "when parsed from " +
   it "should raise an error if assigning a bogus object to the hostname" do
     expect(lambda do
       @uri.hostname = Object.new
-    end).to raise_error
+    end).to raise_error(TypeError)
   end
 
   it "should have the correct port after assignment" do
@@ -4417,7 +4417,7 @@ describe Addressable::URI, "when parsed from " +
     expect(lambda do
       # This would create an invalid URI
       @uri.authority = nil
-    end).to raise_error
+    end).to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
@@ -4820,7 +4820,7 @@ describe Addressable::URI, "when parsed from '?one=1&two=2&three=3'" do
 
   it "should raise an error for invalid return type values" do
     expect(lambda do
-      @uri.query_values(Fixnum)
+      @uri.query_values(Integer)
     end).to raise_error(ArgumentError)
   end
 
