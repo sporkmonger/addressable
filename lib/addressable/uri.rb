@@ -1182,7 +1182,7 @@ module Addressable
     #
     # @param [String, #to_str] new_tld The new top-level domain.
     def tld=(new_tld)
-      replaced_tld = domain.sub(/#{tld}\z/, new_tld)
+      replaced_tld = host.sub(/#{tld}\z/, new_tld)
       self.host = PublicSuffix::Domain.new(replaced_tld).to_s
     end
 

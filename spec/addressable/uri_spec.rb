@@ -5535,18 +5535,18 @@ describe Addressable::URI, "when given the tld " do
   end
 
   context "which " do
-    let (:uri) { Addressable::URI.parse("http://comrade.net/path/to/source/") }
+    let (:uri) { Addressable::URI.parse("http://www.comrade.net/path/to/source/") }
 
     it "contains a subdomain" do
       uri.tld = "co.uk"
 
-      expect(uri.to_s).to eq("http://comrade.co.uk/path/to/source/")
+      expect(uri.to_s).to eq("http://www.comrade.co.uk/path/to/source/")
     end
 
     it "is part of the domain" do
       uri.tld = "com"
 
-      expect(uri.to_s).to eq("http://comrade.com/path/to/source/")
+      expect(uri.to_s).to eq("http://www.comrade.com/path/to/source/")
     end
   end
 end
