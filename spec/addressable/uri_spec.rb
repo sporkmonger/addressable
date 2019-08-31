@@ -4340,7 +4340,7 @@ describe Addressable::URI, "when parsed from " +
     @uri = Addressable::URI.parse("http://example.com/?a=1&a=2")
   end
 
-  it "should have a normalized query of 'a=1'" do
+  it "should have a normalized query of 'a=1&a=2'" do
     expect(@uri.normalized_query).to eq("a=1&a=2")
   end
 end
