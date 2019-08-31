@@ -14,9 +14,9 @@ RELEASE_NAME       = "REL #{PKG_VERSION}"
 
 PKG_SUMMARY        = "URI Implementation"
 PKG_DESCRIPTION    = <<-TEXT
-Addressable is a replacement for the URI implementation that is part of
-Ruby's standard library. It more closely conforms to the relevant RFCs and
-adds support for IRIs and URI templates.
+Addressable is an alternative implementation to the URI implementation that is
+part of Ruby's standard library. It is flexible, offers heuristic parsing, and
+additionally provides extensive support for IRIs and URI templates.
 TEXT
 
 PKG_FILES = FileList[

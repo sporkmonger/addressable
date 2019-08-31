@@ -20,10 +20,10 @@ namespace :gem do
       exit(1)
     end
 
-    s.required_ruby_version = '>= 2.0'
+    s.required_ruby_version = ">= 2.0"
 
-    s.add_runtime_dependency 'public_suffix', '>= 2.0.2', '< 4.0'
-    s.add_development_dependency 'bundler', '>= 1.0', '< 3.0'
+    s.add_runtime_dependency "public_suffix", ">= 2.0.2", "< 5.0"
+    s.add_development_dependency "bundler", ">= 1.0", "< 3.0"
 
     s.require_path = "lib"
 
@@ -42,7 +42,7 @@ namespace :gem do
   desc "Generates .gemspec file"
   task :gemspec do
     spec_string = GEM_SPEC.to_ruby
-    File.open("#{GEM_SPEC.name}.gemspec", 'w') do |file|
+    File.open("#{GEM_SPEC.name}.gemspec", "w") do |file|
       file.write spec_string
     end
   end
@@ -72,9 +72,9 @@ namespace :gem do
   desc "Reinstall the gem"
   task :reinstall => [:uninstall, :install]
 
-  desc 'Package for release'
+  desc "Package for release"
   task :release => ["gem:package", "gem:gemspec"] do |t|
-    v = ENV['VERSION'] or abort 'Must supply VERSION=x.y.z'
+    v = ENV["VERSION"] or abort "Must supply VERSION=x.y.z"
     abort "Versions don't match #{v} vs #{PROJ.version}" if v != PKG_VERSION
     pkg = "pkg/#{GEM_SPEC.full_name}"
 
