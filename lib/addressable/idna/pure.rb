@@ -135,7 +135,7 @@ module Addressable
       unpacked.map! { |codepoint| lookup_unicode_lowercase(codepoint) }
       return unpacked.pack("U*")
     end
-    (class <<self; private :unicode_downcase; end)
+    private_class_method :unicode_downcase
 
     def self.unicode_compose(unpacked)
       unpacked_result = []
@@ -160,7 +160,7 @@ module Addressable
       unpacked_result << starter
       return unpacked_result
     end
-    (class <<self; private :unicode_compose; end)
+    private_class_method :unicode_compose
 
     def self.unicode_compose_pair(ch_one, ch_two)
       if ch_one >= HANGUL_LBASE && ch_one < HANGUL_LBASE + HANGUL_LCOUNT &&
@@ -214,7 +214,7 @@ module Addressable
 
       return lookup_unicode_composition(p)
     end
-    (class <<self; private :unicode_compose_pair; end)
+    private_class_method :unicode_compose_pair
 
     def self.unicode_sort_canonical(unpacked)
       unpacked = unpacked.dup
@@ -238,7 +238,7 @@ module Addressable
       end
       return unpacked
     end
-    (class <<self; private :unicode_sort_canonical; end)
+    private_class_method :unicode_sort_canonical
 
     def self.unicode_decompose(unpacked)
       unpacked_result = []
@@ -259,7 +259,7 @@ module Addressable
       end
       return unpacked_result
     end
-    (class <<self; private :unicode_decompose; end)
+    private_class_method :unicode_decompose
 
     def self.unicode_decompose_hangul(codepoint)
       sindex = codepoint - HANGUL_SBASE;
@@ -276,7 +276,7 @@ module Addressable
       end
       return l, v, t
     end
-    (class <<self; private :unicode_decompose_hangul; end)
+    private_class_method :unicode_decompose_hangul
 
     def self.lookup_unicode_combining_class(codepoint)
       codepoint_data = UNICODE_DATA[codepoint]
@@ -284,14 +284,14 @@ module Addressable
         (codepoint_data[UNICODE_DATA_COMBINING_CLASS] || 0) :
         0)
     end
-    (class <<self; private :lookup_unicode_combining_class; end)
+    private_class_method :lookup_unicode_combining_class
 
     def self.lookup_unicode_compatibility(codepoint)
       codepoint_data = UNICODE_DATA[codepoint]
       (codepoint_data ?
         codepoint_data[UNICODE_DATA_COMPATIBILITY] : nil)
     end
-    (class <<self; private :lookup_unicode_compatibility; end)
+    private_class_method :lookup_unicode_compatibility
 
     def self.lookup_unicode_lowercase(codepoint)
       codepoint_data = UNICODE_DATA[codepoint]
@@ -299,12 +299,12 @@ module Addressable
         (codepoint_data[UNICODE_DATA_LOWERCASE] || codepoint) :
         codepoint)
     end
-    (class <<self; private :lookup_unicode_lowercase; end)
+    private_class_method :lookup_unicode_lowercase
 
     def self.lookup_unicode_composition(unpacked)
       return COMPOSITION_TABLE[unpacked]
     end
-    (class <<self; private :lookup_unicode_composition; end)
+    private_class_method :lookup_unicode_composition
 
     HANGUL_SBASE =  0xac00
     HANGUL_LBASE =  0x1100
@@ -500,7 +500,7 @@ module Addressable
 
       output[0..outlen].map { |x| x.chr }.join("").sub(/\0+\z/, "")
     end
-    (class <<self; private :punycode_encode; end)
+    private_class_method :punycode_encode
 
     def self.punycode_decode(punycode)
       input = []
@@ -622,22 +622,22 @@ module Addressable
 
       output.pack("U*")
     end
-    (class <<self; private :punycode_decode; end)
+    private_class_method :punycode_decode
 
     def self.punycode_basic?(codepoint)
       codepoint < 0x80
     end
-    (class <<self; private :punycode_basic?; end)
+    private_class_method :punycode_basic?
 
     def self.punycode_delimiter?(codepoint)
       codepoint == PUNYCODE_DELIMITER
     end
-    (class <<self; private :punycode_delimiter?; end)
+    private_class_method :punycode_delimiter?
 
     def self.punycode_encode_digit(d)
       d + 22 + 75 * ((d < 26) ? 1 : 0)
     end
-    (class <<self; private :punycode_encode_digit; end)
+    private_class_method :punycode_encode_digit
 
     # Returns the numeric value of a basic codepoint
     # (for use in representing integers) in the range 0 to
@@ -653,7 +653,7 @@ module Addressable
         PUNYCODE_BASE
       end
     end
-    (class <<self; private :punycode_decode_digit; end)
+    private_class_method :punycode_decode_digit
 
     # Bias adaptation method
     def self.punycode_adapt(delta, numpoints, firsttime)
@@ -670,7 +670,7 @@ module Addressable
 
       k + (difference + 1) * delta / (delta + PUNYCODE_SKEW)
     end
-    (class <<self; private :punycode_adapt; end)
+    private_class_method :punycode_adapt
   end
   # :startdoc:
 end
