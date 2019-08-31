@@ -3,8 +3,8 @@ source 'https://rubygems.org'
 gemspec
 
 group :test do
-  gem 'rspec', '~> 3.5'
-  gem 'rspec-its', '~> 1.1'
+  gem 'rspec', '~> 3.8'
+  gem 'rspec-its', '~> 1.3'
 end
 
 group :development do
