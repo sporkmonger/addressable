@@ -17,7 +17,6 @@
 #    limitations under the License.
 #++
 
-
 module Addressable
   module IDNA
     # This module is loosely based on idn_actionmailer by Mick Staugaard,
@@ -33,9 +32,8 @@ module Addressable
     # http://www.yoshidam.net/Ruby.html#unicode
     # http://rubyforge.org/frs/?group_id=2550
 
-
     UNICODE_TABLE = File.expand_path(
-      File.join(File.dirname(__FILE__), '../../..', 'data/unicode.data')
+      File.join(File.dirname(__FILE__), "../../..", "data/unicode.data")
     )
 
     ACE_PREFIX = "xn--"
@@ -49,7 +47,7 @@ module Addressable
       | \xF0[\x90-\xBF][\x80-\xBF]{2}       # planes 1-3
       | [\xF1-\xF3][\x80-\xBF]{3}           # planes 4nil5
       | \xF4[\x80-\x8F][\x80-\xBF]{2}       # plane 16
-      )*\z/mnx
+      )*\z/mnx.freeze
 
     UTF8_REGEX_MULTIBYTE = /(?:
       [\xC2-\xDF][\x80-\xBF]                # non-overlong 2-byte
@@ -59,7 +57,7 @@ module Addressable
       | \xF0[\x90-\xBF][\x80-\xBF]{2}       # planes 1-3
       | [\xF1-\xF3][\x80-\xBF]{3}           # planes 4nil5
       | \xF4[\x80-\x8F][\x80-\xBF]{2}       # plane 16
-      )/mnx
+      )/mnx.freeze
 
     # :startdoc:
 
@@ -72,7 +70,7 @@ module Addressable
         input.force_encoding(Encoding::ASCII_8BIT)
       end
       if input =~ UTF8_REGEX && input =~ UTF8_REGEX_MULTIBYTE
-        parts = unicode_downcase(input).split('.')
+        parts = unicode_downcase(input).split(".")
         parts.map! do |part|
           if part.respond_to?(:force_encoding)
             part.force_encoding(Encoding::ASCII_8BIT)
@@ -83,7 +81,7 @@ module Addressable
             part
           end
         end
-        parts.join('.')
+        parts.join(".")
       else
         input
       end
@@ -93,7 +91,7 @@ module Addressable
     # domain name as described in RFC 3490.
     def self.to_unicode(input)
       input = input.to_s unless input.is_a?(String)
-      parts = input.split('.')
+      parts = input.split(".")
       parts.map! do |part|
         if part =~ /^#{ACE_PREFIX}(.+)/
           begin
@@ -106,7 +104,7 @@ module Addressable
           part
         end
       end
-      output = parts.join('.')
+      output = parts.join(".")
       if output.respond_to?(:force_encoding)
         output.force_encoding(Encoding::UTF_8)
       end
@@ -119,7 +117,7 @@ module Addressable
       unpacked = input.unpack("U*")
       unpacked =
         unicode_compose(unicode_sort_canonical(unicode_decompose(unpacked)))
-      return unpacked.pack("U*")
+      unpacked.pack("U*")
     end
 
     ##
@@ -133,7 +131,7 @@ module Addressable
       input = input.to_s unless input.is_a?(String)
       unpacked = input.unpack("U*")
       unpacked.map! { |codepoint| lookup_unicode_lowercase(codepoint) }
-      return unpacked.pack("U*")
+      unpacked.pack("U*")
     end
     private_class_method :unicode_downcase
 
@@ -146,11 +144,11 @@ module Addressable
       starter = unpacked[0]
       starter_cc = lookup_unicode_combining_class(starter)
       starter_cc = 256 if starter_cc != 0
-      for i in 1...length
+      (1...length).each do |i|
         ch = unpacked[i]
 
-        if (starter_cc == 0 &&
-            (composite = unicode_compose_pair(starter, ch)) != nil)
+        if starter_cc == 0 &&
+           (composite = unicode_compose_pair(starter, ch)) != nil
           starter = composite
         else
           unpacked_result << starter
@@ -158,22 +156,22 @@ module Addressable
         end
       end
       unpacked_result << starter
-      return unpacked_result
+      unpacked_result
     end
     private_class_method :unicode_compose
 
     def self.unicode_compose_pair(ch_one, ch_two)
       if ch_one >= HANGUL_LBASE && ch_one < HANGUL_LBASE + HANGUL_LCOUNT &&
-          ch_two >= HANGUL_VBASE && ch_two < HANGUL_VBASE + HANGUL_VCOUNT
+         ch_two >= HANGUL_VBASE && ch_two < HANGUL_VBASE + HANGUL_VCOUNT
         # Hangul L + V
         return HANGUL_SBASE + (
           (ch_one - HANGUL_LBASE) * HANGUL_VCOUNT + (ch_two - HANGUL_VBASE)
         ) * HANGUL_TCOUNT
       elsif ch_one >= HANGUL_SBASE &&
-          ch_one < HANGUL_SBASE + HANGUL_SCOUNT &&
-          (ch_one - HANGUL_SBASE) % HANGUL_TCOUNT == 0 &&
-          ch_two >= HANGUL_TBASE && ch_two < HANGUL_TBASE + HANGUL_TCOUNT
-           # Hangul LV + T
+            ch_one < HANGUL_SBASE + HANGUL_SCOUNT &&
+            (ch_one - HANGUL_SBASE) % HANGUL_TCOUNT == 0 &&
+            ch_two >= HANGUL_TBASE && ch_two < HANGUL_TBASE + HANGUL_TCOUNT
+        # Hangul LV + T
         return ch_one + (ch_two - HANGUL_TBASE)
       end
 
@@ -212,7 +210,7 @@ module Addressable
       ucs4_to_utf8.call(ch_one)
       ucs4_to_utf8.call(ch_two)
 
-      return lookup_unicode_composition(p)
+      lookup_unicode_composition(p)
     end
     private_class_method :unicode_compose_pair
 
@@ -224,25 +222,25 @@ module Addressable
       return unpacked if length < 2
 
       while i < length
-        last = unpacked[i-1]
+        last = unpacked[i - 1]
         ch = unpacked[i]
         last_cc = lookup_unicode_combining_class(last)
         cc = lookup_unicode_combining_class(ch)
         if cc != 0 && last_cc != 0 && last_cc > cc
           unpacked[i] = last
-          unpacked[i-1] = ch
+          unpacked[i - 1] = ch
           i -= 1 if i > 1
         else
           i += 1
         end
       end
-      return unpacked
+      unpacked
     end
     private_class_method :unicode_sort_canonical
 
     def self.unicode_decompose(unpacked)
       unpacked_result = []
-      for cp in unpacked
+      unpacked.each do |cp|
         if cp >= HANGUL_SBASE && cp < HANGUL_SBASE + HANGUL_SCOUNT
           l, v, t = unicode_decompose_hangul(cp)
           unpacked_result << l
@@ -250,19 +248,19 @@ module Addressable
           unpacked_result << t if t
         else
           dc = lookup_unicode_compatibility(cp)
-          unless dc
-            unpacked_result << cp
-          else
+          if dc
             unpacked_result.concat(unicode_decompose(dc.unpack("U*")))
+          else
+            unpacked_result << cp
           end
         end
       end
-      return unpacked_result
+      unpacked_result
     end
     private_class_method :unicode_decompose
 
     def self.unicode_decompose_hangul(codepoint)
-      sindex = codepoint - HANGUL_SBASE;
+      sindex = codepoint - HANGUL_SBASE
       if sindex < 0 || sindex >= HANGUL_SCOUNT
         l = codepoint
         v = t = nil
@@ -271,10 +269,8 @@ module Addressable
       l = HANGUL_LBASE + sindex / HANGUL_NCOUNT
       v = HANGUL_VBASE + (sindex % HANGUL_NCOUNT) / HANGUL_TCOUNT
       t = HANGUL_TBASE + sindex % HANGUL_TCOUNT
-      if t == HANGUL_TBASE
-        t = nil
-      end
-      return l, v, t
+      t = nil if t == HANGUL_TBASE
+      [l, v, t]
     end
     private_class_method :unicode_decompose_hangul
 
@@ -302,7 +298,7 @@ module Addressable
     private_class_method :lookup_unicode_lowercase
 
     def self.lookup_unicode_composition(unpacked)
-      return COMPOSITION_TABLE[unpacked]
+      COMPOSITION_TABLE[unpacked]
     end
     private_class_method :lookup_unicode_composition
 
@@ -340,7 +336,7 @@ module Addressable
       end
     end
 
-    COMPOSITION_TABLE = {}
+    COMPOSITION_TABLE = {}.freeze
     UNICODE_DATA.each do |codepoint, data|
       canonical = data[UNICODE_DATA_CANONICAL]
       exclusion = data[UNICODE_DATA_EXCLUSION]
@@ -365,13 +361,13 @@ module Addressable
     PUNYCODE_MAXINT = 1 << 64
 
     PUNYCODE_PRINT_ASCII =
-      "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" +
-      "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" +
-      " !\"\#$%&'()*+,-./" +
-      "0123456789:;<=>?" +
-      "@ABCDEFGHIJKLMNO" +
-      "PQRSTUVWXYZ[\\]^_" +
-      "`abcdefghijklmno" +
+      "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" \
+      "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" \
+      " !\"\#$%&'()*+,-./" \
+      "0123456789:;<=>?" \
+      "@ABCDEFGHIJKLMNO" \
+      "PQRSTUVWXYZ[\\]^_" \
+      "`abcdefghijklmno" \
       "pqrstuvwxyz{|}~\n"
 
     # Input is invalid.
@@ -396,14 +392,14 @@ module Addressable
 
       # Handle the basic code points:
       input_length.times do |j|
-        if punycode_basic?(input[j])
-          if max_out - out < 2
-            raise PunycodeBigOutput,
-              "Output would exceed the space provided."
-          end
-          output[out] = input[j]
-          out += 1
+        next unless punycode_basic?(input[j])
+
+        if max_out - out < 2
+          raise PunycodeBigOutput,
+                "Output would exceed the space provided."
         end
+        output[out] = input[j]
+        out += 1
       end
 
       h = b = out
@@ -434,6 +430,7 @@ module Addressable
         if m - n > (PUNYCODE_MAXINT - delta) / (h + 1)
           raise PunycodeOverflow, "Input needs wider integers to process."
         end
+
         delta += (m - n) * (h + 1)
         n = m
 
@@ -443,42 +440,43 @@ module Addressable
             delta += 1
             if delta == 0
               raise PunycodeOverflow,
-                "Input needs wider integers to process."
+                    "Input needs wider integers to process."
             end
           end
 
-          if input[j] == n
-            # Represent delta as a generalized variable-length integer:
+          next unless input[j] == n
 
-            q = delta; k = PUNYCODE_BASE
-            while true
-              if out >= max_out
-                raise PunycodeBigOutput,
-                  "Output would exceed the space provided."
+          # Represent delta as a generalized variable-length integer:
+
+          q = delta; k = PUNYCODE_BASE
+          loop do
+            if out >= max_out
+              raise PunycodeBigOutput,
+                    "Output would exceed the space provided."
+            end
+            t = (
+              if k <= bias
+                PUNYCODE_TMIN
+              elsif k >= bias + PUNYCODE_TMAX
+                PUNYCODE_TMAX
+              else
+                k - bias
               end
-              t = (
-                if k <= bias
-                  PUNYCODE_TMIN
-                elsif k >= bias + PUNYCODE_TMAX
-                  PUNYCODE_TMAX
-                else
-                  k - bias
-                end
-              )
-              break if q < t
-              output[out] =
-                punycode_encode_digit(t + (q - t) % (PUNYCODE_BASE - t))
-              out += 1
-              q = (q - t) / (PUNYCODE_BASE - t)
-              k += PUNYCODE_BASE
-            end
+            )
+            break if q < t
 
-            output[out] = punycode_encode_digit(q)
+            output[out] =
+              punycode_encode_digit(t + (q - t) % (PUNYCODE_BASE - t))
             out += 1
-            bias = punycode_adapt(delta, h + 1, h == b)
-            delta = 0
-            h += 1
+            q = (q - t) / (PUNYCODE_BASE - t)
+            k += PUNYCODE_BASE
           end
+
+          output[out] = punycode_encode_digit(q)
+          out += 1
+          bias = punycode_adapt(delta, h + 1, h == b)
+          delta = 0
+          h += 1
         end
 
         delta += 1
@@ -490,15 +488,13 @@ module Addressable
       outlen = out
       outlen.times do |j|
         c = output[j]
-        unless c >= 0 && c <= 127
-          raise StandardError, "Invalid output char."
-        end
+        raise StandardError, "Invalid output char." unless c >= 0 && c <= 127
         unless PUNYCODE_PRINT_ASCII[c]
           raise PunycodeBadInput, "Input is invalid."
         end
       end
 
-      output[0..outlen].map { |x| x.chr }.join("").sub(/\0+\z/, "")
+      output[0..outlen].map(&:chr).join("").sub(/\0+\z/, "")
     end
     private_class_method :punycode_encode
 
@@ -509,10 +505,10 @@ module Addressable
       if ACE_MAX_LENGTH * 2 < punycode.size
         raise PunycodeBigOutput, "Output would exceed the space provided."
       end
+
       punycode.each_byte do |c|
-        unless c >= 0 && c <= 127
-          raise PunycodeBadInput, "Input is invalid."
-        end
+        raise PunycodeBadInput, "Input is invalid." unless c >= 0 && c <= 127
+
         input.push(c)
       end
 
@@ -542,8 +538,9 @@ module Addressable
         unless punycode_basic?(input[j])
           raise PunycodeBadInput, "Input is invalid."
         end
+
         output[out] = input[j]
-        out+=1
+        out += 1
       end
 
       # Main decoding loop:  Start just after the last delimiter if any
@@ -561,18 +558,16 @@ module Addressable
         # value at the end to obtain delta.
 
         oldi = i; w = 1; k = PUNYCODE_BASE
-        while true
-          if in_ >= input_length
-            raise PunycodeBadInput, "Input is invalid."
-          end
+        loop do
+          raise PunycodeBadInput, "Input is invalid." if in_ >= input_length
+
           digit = punycode_decode_digit(input[in_])
-          in_+=1
-          if digit >= PUNYCODE_BASE
-            raise PunycodeBadInput, "Input is invalid."
-          end
+          in_ += 1
+          raise PunycodeBadInput, "Input is invalid." if digit >= PUNYCODE_BASE
           if digit > (PUNYCODE_MAXINT - i) / w
             raise PunycodeOverflow, "Input needs wider integers to process."
           end
+
           i += digit * w
           t = (
             if k <= bias
@@ -587,6 +582,7 @@ module Addressable
           if w > PUNYCODE_MAXINT / (PUNYCODE_BASE - t)
             raise PunycodeOverflow, "Input needs wider integers to process."
           end
+
           w *= PUNYCODE_BASE - t
           k += PUNYCODE_BASE
         end
@@ -599,6 +595,7 @@ module Addressable
         if i / (out + 1) > PUNYCODE_MAXINT - n
           raise PunycodeOverflow, "Input needs wider integers to process."
         end
+
         n += i / (out + 1)
         i %= out + 1
 
@@ -610,7 +607,7 @@ module Addressable
           raise PunycodeBigOutput, "Output would exceed the space provided."
         end
 
-        #memmove(output + i + 1, output + i, (out - i) * sizeof *output)
+        # memmove(output + i + 1, output + i, (out - i) * sizeof *output)
         output[i + 1, out - i] = output[i, out - i]
         output[i] = n
         i += 1
@@ -635,7 +632,7 @@ module Addressable
     private_class_method :punycode_delimiter?
 
     def self.punycode_encode_digit(d)
-      d + 22 + 75 * ((d < 26) ? 1 : 0)
+      d + 22 + 75 * (d < 26 ? 1 : 0)
     end
     private_class_method :punycode_encode_digit
 
