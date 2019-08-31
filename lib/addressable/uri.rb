@@ -1595,6 +1595,7 @@ module Addressable
         # Make sure possible key-value pair delimiters are escaped.
         modified_query_class.sub!("\\&", "").sub!("\\;", "")
         pairs = (self.query || "").split("&", -1)
+        pairs.delete_if(&:empty?) if flags.include?(:compacted)
         pairs.sort! if flags.include?(:sorted)
         component = pairs.map do |pair|
           Addressable::URI.normalize_component(pair, modified_query_class, "+")
