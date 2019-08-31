@@ -1,3 +1,7 @@
+# Addressable 2.6.1
+- dropped explicit support for JRuby 9.0.5.0
+- compatibility w/ public_suffix 4.x
+
 # Addressable 2.6.0
 - added `tld=` method to allow assignment to the public suffix
 - most `heuristic_parse` patterns are now case-insensitive
