@@ -1,4 +1,5 @@
-# Addressable 2.6.1
+# Addressable 2.7.0
+- added `:compacted` flag to `normalized_query`
 - dropped explicit support for JRuby 9.0.5.0
 - compatibility w/ public_suffix 4.x
 
