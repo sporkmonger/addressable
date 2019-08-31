@@ -1172,7 +1172,7 @@ module Addressable
     # Returns the top-level domain for this host.
     #
     # @example
-    #   Addressable::URI.parse("www.example.co.uk").tld # => "co.uk"
+    #   Addressable::URI.parse("http://www.example.co.uk").tld # => "co.uk"
     def tld
       PublicSuffix.parse(self.host, ignore_private: true).tld
     end
@@ -1190,7 +1190,7 @@ module Addressable
     # Returns the public suffix domain for this host.
     #
     # @example
-    #   Addressable::URI.parse("www.example.co.uk").domain # => "example.co.uk"
+    #   Addressable::URI.parse("http://www.example.co.uk").domain # => "example.co.uk"
     def domain
       PublicSuffix.domain(self.host, ignore_private: true)
     end
