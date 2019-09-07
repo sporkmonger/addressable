@@ -67,6 +67,7 @@ module Addressable
     end
 
     SLASH = '/'
+    DOUBLE_SLASH = SLASH * 2
     EMPTY_STR = ''
 
     URIREGEX = /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/

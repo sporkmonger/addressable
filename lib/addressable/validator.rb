@@ -64,11 +64,11 @@ module Addressable
     end
 
     def relative_path?
-      path[0..0] != URI::SLASH
+      !path.start_with?(URI::SLASH)
     end
 
     def path_with_two_leading_slashes?
-      path[0..1] == URI::SLASH + URI::SLASH
+      path.start_with?(URI::DOUBLE_SLASH)
     end
 
     def invalid_host_character?
