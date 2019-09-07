@@ -76,10 +76,15 @@ module Addressable
     end
 
     def unescaped_backslashes?
-      unreserved = URI::CharacterClasses::UNRESERVED
-      sub_delims = URI::CharacterClasses::SUB_DELIMS
-      regexp     = Regexp.new("^[#{unreserved}#{sub_delims}:]*$")
-      !host[/^\[(.*)\]$/, 1].nil? && host[/^\[(.*)\]$/, 1] !~ regexp
+      !host[/^\[(.*)\]$/, 1].nil? && host[/^\[(.*)\]$/, 1] !~ unreserved_sub_delims_regexp
+    end
+
+    def unreserved_sub_delims_regexp
+      @unreserved_sub_delims_regexp ||= begin
+        unreserved = URI::CharacterClasses::UNRESERVED
+        sub_delims = URI::CharacterClasses::SUB_DELIMS
+        Regexp.new("^[#{unreserved}#{sub_delims}:]*$")
+      end
     end
   end
 end
