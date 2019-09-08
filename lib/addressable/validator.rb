@@ -30,7 +30,7 @@ module Addressable
         raise URI::InvalidURIError, "Hostname not supplied: '#{self}'"
       end
 
-      if path_presence
+      if path_presence?
         if relative_path? && !authority.nil?
           error_msg = "Cannot have a relative path"
           error_msg += " with an authority set: '#{self}'"
@@ -59,7 +59,7 @@ module Addressable
       host.nil? && (!port.nil? || !user.nil? || !password.nil?)
     end
 
-    def path_presence
+    def path_presence?
       !path.nil? && !path.empty?
     end
 
