@@ -4,6 +4,7 @@ language: ruby
 rvm:
   - jruby-9.1.17.0
   - jruby-9.2.6.0
+  - truffleruby
   - ruby-head
   - ruby-head-clang
   - 2.0.0
