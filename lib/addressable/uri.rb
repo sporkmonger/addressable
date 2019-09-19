@@ -71,6 +71,11 @@ module Addressable
     EMPTY_STR = ''
 
     URIREGEX = /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/
+    UNRESERVED_SUB_DELIMITERS_REGEXP = begin
+      unreserved = CharacterClasses::UNRESERVED
+      sub_delimiters = CharacterClasses::SUB_DELIMS
+      Regexp.new("^[#{unreserved}#{sub_delimiters}:]*$")
+    end
 
     PORT_MAPPING = {
       "http" => 80,

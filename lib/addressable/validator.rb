@@ -72,13 +72,13 @@ module Addressable
     end
 
     def invalid_host_character?
-      (host =~ %r/[<>{}\/\\\?\#\@"[[:space:]]]/ || unescaped_backslashes?)
+      host =~ %r/[<>{}\/\\\?\#\@"[[:space:]]]/ || unescaped_backslashes?
     end
 
     def unescaped_backslashes?
       return unless unescaped_backslashes_exist?
 
-      unescaped_backslashes !~ unreserved_sub_delims_regexp
+      unescaped_backslashes !~ URI::UNRESERVED_SUB_DELIMITERS_REGEXP
     end
 
     def unescaped_backslashes
@@ -87,14 +87,6 @@ module Addressable
 
     def unescaped_backslashes_exist?
       !unescaped_backslashes.nil?
-    end
-
-    def unreserved_sub_delims_regexp
-      @unreserved_sub_delims_regexp ||= begin
-        unreserved = URI::CharacterClasses::UNRESERVED
-        sub_delimiters = URI::CharacterClasses::SUB_DELIMS
-        Regexp.new("^[#{unreserved}#{sub_delimiters}:]*$")
-      end
     end
   end
 end
