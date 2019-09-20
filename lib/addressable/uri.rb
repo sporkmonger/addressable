@@ -36,8 +36,6 @@ module Addressable
     class InvalidURIError < StandardError
     end
 
-    prepend Validator
-
     ##
     # Container for the character classes specified in
     # <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
@@ -2498,5 +2496,7 @@ module Addressable
       remove_instance_variable(:@uri_string) if defined?(@uri_string)
       remove_instance_variable(:@hash) if defined?(@hash)
     end
+
+    prepend Validator
   end
 end
