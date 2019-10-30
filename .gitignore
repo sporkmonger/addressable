@@ -9,3 +9,4 @@ heckling
 pkg
 specdoc
 vendor/
+*.gem
