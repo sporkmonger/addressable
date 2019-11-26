@@ -13,13 +13,7 @@ Gem::Specification.new do |s|
   s.description = "Addressable is an alternative implementation to the URI implementation that is\npart of Ruby's standard library. It is flexible, offers heuristic parsing, and\nadditionally provides extensive support for IRIs and URI templates.\n"
   s.email = "bob@sporkmonger.com"
   s.extra_rdoc_files = ["README.md"]
-  s.files = [
-    "CHANGELOG.md", "Gemfile", "LICENSE.txt", "README.md", "Rakefile", "data/unicode.data", "lib/addressable", "lib/addressable.rb",
-    "lib/addressable/idna", "lib/addressable/idna.rb", "lib/addressable/idna/native.rb", "lib/addressable/idna/pure.rb", "lib/addressable/template.rb",
-    "lib/addressable/uri.rb", "lib/addressable/version.rb", "spec/addressable", "spec/addressable/idna_spec.rb", "spec/addressable/net_http_compat_spec.rb",
-    "spec/addressable/rack_mount_compat_spec.rb", "spec/addressable/security_spec.rb", "spec/addressable/template_spec.rb", "spec/addressable/uri_spec.rb",
-    "spec/spec_helper.rb", "tasks/clobber.rake", "tasks/gem.rake", "tasks/git.rake", "tasks/metrics.rake", "tasks/rspec.rake", "tasks/yard.rake"
-    ]
+  s.files = ["CHANGELOG.md", "Gemfile", "LICENSE.txt", "README.md", "Rakefile", "data/unicode.data", "lib/addressable", "lib/addressable.rb","lib/addressable/idna", "lib/addressable/idna.rb", "lib/addressable/idna/native.rb", "lib/addressable/idna/pure.rb", "lib/addressable/template.rb","lib/addressable/uri.rb", "lib/addressable/version.rb", "spec/addressable", "spec/addressable/idna_spec.rb", "spec/addressable/net_http_compat_spec.rb","spec/addressable/rack_mount_compat_spec.rb", "spec/addressable/security_spec.rb", "spec/addressable/template_spec.rb", "spec/addressable/uri_spec.rb","spec/spec_helper.rb", "tasks/clobber.rake", "tasks/gem.rake", "tasks/git.rake", "tasks/metrics.rake", "tasks/rspec.rake", "tasks/yard.rake"]
   s.homepage = "https://github.com/sporkmonger/addressable"
   s.licenses = ["Apache-2.0"]
   s.rdoc_options = ["--main", "README.md"]
