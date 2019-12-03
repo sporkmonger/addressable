@@ -1033,6 +1033,19 @@ describe Addressable::URI, "when created with a nil host but " +
   end
 end
 
+describe Addressable::URI, "when created has a host but is setup to \
+  be omitted" do
+
+  before do
+    @uri = Addressable::URI.parse("https://example").omit(:scheme, :host, :port,
+                                                          :user, :password)
+  end
+
+  it "avoid to be raised" do
+    expect(@uri).to be_instance_of(Addressable::URI)
+  end
+end
+
 describe Addressable::URI, "when created with both an authority and a user" do
   it "should raise an error" do
     expect(lambda do

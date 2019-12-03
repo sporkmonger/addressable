@@ -74,6 +74,9 @@ module Addressable
       "ldap" => 389,
       "prospero" => 1525
     }
+    ##
+    #  @@avoid_host_omitted is to avoid host validate when is set to be omitted
+    @@avoid_host_omitted = true
 
     ##
     # Returns a URI object based on the parsed string.
@@ -2292,11 +2295,15 @@ module Addressable
         :scheme, :user, :password, :userinfo, :host, :port, :authority,
         :path, :query, :fragment
       ]
+
       unless invalid_components.empty?
         raise ArgumentError,
           "Invalid component names: #{invalid_components.inspect}."
       end
       duplicated_uri = self.dup
+
+      @avoid_host_omitted = !components.include?(:host)
+
       duplicated_uri.defer_validation do
         components.each do |component|
           duplicated_uri.send((component.to_s + "=").to_sym, nil)
@@ -2449,10 +2456,8 @@ module Addressable
         raise InvalidURIError,
           "Absolute URI missing hierarchical segment: '#{self.to_s}'"
       end
-      if self.host == nil
-        if self.port != nil ||
-            self.user != nil ||
-            self.password != nil
+      if host.nil? && @@avoid_host_omitted
+        if !port.nil? || !user.nil? || !password.nil?
           raise InvalidURIError, "Hostname not supplied: '#{self.to_s}'"
         end
       end
