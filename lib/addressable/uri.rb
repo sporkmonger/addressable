@@ -421,7 +421,7 @@ module Addressable
     end
 
     class << self
-      alias_method :encode_component, :encode_component
+      alias_method :escape_component, :encode_component
     end
 
     ##
