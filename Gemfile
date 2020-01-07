@@ -27,6 +27,10 @@ group :test, :development do
   else
     gem 'rack', :require => false
   end
+
+  # Remove when truffleruby 19.3.1 is out, see
+  # https://github.com/oracle/truffleruby/issues/1857#issuecomment-567976167
+  gem 'json', '~> 2.2.0' if RUBY_ENGINE == 'truffleruby'
 end
 
 gem 'idn-ruby', :platform => [:mri_20, :mri_21, :mri_22, :mri_23, :mri_24]
