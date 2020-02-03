@@ -548,10 +548,10 @@ module Addressable
         leave_re = if leave_encoded.length > 0
           character_class = "#{character_class}%" unless character_class.include?('%')
 
-          "|%(?!#{leave_encoded.chars.map do |char|
+          "|%(?!#{leave_encoded.chars.flat_map do |char|
             seq = SEQUENCE_ENCODING_TABLE[char]
             [seq.upcase, seq.downcase]
-          end.flatten.join('|')})"
+          end.join('|')})"
         end
 
         character_class = /[^#{character_class}]#{leave_re}/

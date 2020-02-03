@@ -691,12 +691,12 @@ module Addressable
     def ordered_variable_defaults
       @ordered_variable_defaults ||= begin
         expansions, _ = parse_template_pattern(pattern)
-        expansions.map do |capture|
+        expansions.flat_map do |capture|
           _, _, varlist = *capture.match(EXPRESSION)
           varlist.split(',').map do |varspec|
             varspec[VARSPEC, 1]
           end
-        end.flatten
+        end
       end
     end
 
