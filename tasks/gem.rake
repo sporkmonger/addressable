@@ -31,6 +31,14 @@ namespace :gem do
     s.email = "bob@sporkmonger.com"
     s.homepage = "https://github.com/sporkmonger/addressable"
     s.license = "Apache-2.0"
+    s.metadata = {
+      "bug_tracker_uri" => "#{s.homepage}/issues",
+      "changelog_uri" => "#{s.homepage}/blob/master/CHANGELOG.md",
+      "documentation_uri" =>
+        "https://rubydoc.info/gems/#{PKG_NAME}/#{PKG_VERSION}",
+      "homepage_uri" => s.homepage,
+      "source_code_uri" => "#{s.homepage}/tree/#{PKG_NAME}-#{PKG_VERSION}"
+    }
   end
 
   Gem::PackageTask.new(GEM_SPEC) do |p|
