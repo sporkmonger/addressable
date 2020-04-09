@@ -14,6 +14,7 @@ group :development do
 end
 
 group :test, :development do
+  gem 'memory_profiler'
   gem 'rake', '> 10.0', '< 12'
   gem 'simplecov', :require => false
   gem 'coveralls', :require => false, :platforms => [
