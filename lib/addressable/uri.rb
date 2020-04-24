@@ -1141,7 +1141,7 @@ module Addressable
         end
       end
       # All normalized values should be UTF-8
-      unless @normalized_host.empty?
+      if @normalized_host && !@normalized_host.empty?
         @normalized_host.force_encoding(Encoding::UTF_8)
       end
       @normalized_host
