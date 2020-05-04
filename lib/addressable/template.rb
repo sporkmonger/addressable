@@ -412,7 +412,7 @@ module Addressable
     #   match.captures
     #   #=> ["a", ["b", "c"]]
     def match(uri, processor=nil)
-      uri = Addressable::URI.parse(uri)
+      uri = Addressable::URI.parse(uri) unless uri.kind_of?(Addressable::URI)
       mapping = {}
 
       # First, we need to process the pattern, and extract the values.
