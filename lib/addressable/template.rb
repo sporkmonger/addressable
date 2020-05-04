@@ -1038,7 +1038,18 @@ module Addressable
 
       # Ensure that the regular expression matches the whole URI.
       regexp_string = "^#{regexp_string}$"
-      return expansions, Regexp.new(regexp_string)
+
+      # Cache the regexp as generating it is expensive
+      @previous_template_pattern ||= regexp_string
+      @template_pattern_regexp ||= Regexp.new(regexp_string)
+
+      # Update the cache if the regexp_string has changed
+      if regexp_string != @previous_template_pattern
+        @previous_template_pattern = regexp_string
+        @template_pattern_regexp = Regexp.new(regexp_string)
+      end
+
+      return expansions, @template_pattern_regexp
     end
 
   end
