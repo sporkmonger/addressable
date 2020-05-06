@@ -982,6 +982,10 @@ module Addressable
     # @return [Regexp]
     #   A regular expression which may be used to parse a template pattern.
     def parse_template_pattern(pattern, processor=nil)
+      if processor.nil? && defined?(@expansions) && defined?(@template_pattern_regexp)
+        return [@expansions, @template_pattern_regexp]
+      end
+
       # Escape the pattern. The two gsubs restore the escaped curly braces
       # back to their original form. Basically, escape everything that isn't
       # within an expansion.
@@ -991,13 +995,13 @@ module Addressable
         escaped.gsub(/\\(.)/, "\\1")
       end
 
-      expansions = []
+      @expansions = []
 
       # Create a regular expression that captures the values of the
       # variables in the URI.
       regexp_string = escaped_pattern.gsub( EXPRESSION ) do |expansion|
 
-        expansions << expansion
+        @expansions << expansion
         _, operator, varlist = *expansion.match(EXPRESSION)
         leader = Regexp.escape(LEADERS.fetch(operator, ''))
         joiner = Regexp.escape(JOINERS.fetch(operator, ','))
@@ -1049,7 +1053,7 @@ module Addressable
         @template_pattern_regexp = Regexp.new(regexp_string)
       end
 
-      [expansions, @template_pattern_regexp]
+      [@expansions, @template_pattern_regexp]
     end
 
   end
