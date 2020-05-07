@@ -823,7 +823,7 @@ module Addressable
       self.defer_validation do
         # Bunch of crazy logic required because of the composite components
         # like userinfo and authority.
-        self.scheme = options[:scheme] if options[:scheme]
+        self.scheme = options[:scheme] if options[:scheme] && !options[:host].to_s.empty?
         self.user = options[:user] if options[:user]
         self.password = options[:password] if options[:password]
         self.userinfo = options[:userinfo] if options[:userinfo]
