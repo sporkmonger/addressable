@@ -131,7 +131,7 @@ module Addressable
         end
       end
       unpacked = unicode_compose(unicode_sort_canonical(unpacked))
-      return unpacked.pack("U*")
+      unpacked.pack("U*")
     end
 
     # Unicode normalization form C.
@@ -142,7 +142,7 @@ module Addressable
         [cp]
       end
       unpacked = unicode_compose(unicode_sort_canonical(unpacked))
-      return unpacked.pack("U*")
+      unpacked.pack("U*")
     end
 
     ##

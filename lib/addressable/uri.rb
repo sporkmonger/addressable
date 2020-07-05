@@ -532,8 +532,9 @@ module Addressable
     def self.normalize_component(component, character_class=
         CharacterClasses::RESERVED + CharacterClasses::UNRESERVED,
         leave_encoded='',
-        unicode_normalizer: IDNA.method(:unicode_normalize_kc)
-    )
+        unicode_normalizer: lambda do |input|
+          ::Addressable::IDNA.unicode_normalize_kc(input)
+        end)
       return nil if component.nil?
 
       begin
@@ -881,8 +882,9 @@ module Addressable
           Addressable::URI.normalize_component(
             self.scheme.strip.downcase,
             Addressable::URI::CharacterClasses::SCHEME,
-            unicode_normalizer: IDNA.method(:unicode_normalize_c)
-          )
+            unicode_normalizer: lambda do |input|
+              ::Addressable::IDNA.unicode_normalize_c(input)
+            end)
         end
       end
       # All normalized values should be UTF-8
@@ -994,8 +996,9 @@ module Addressable
           Addressable::URI.normalize_component(
             self.password.strip,
             Addressable::URI::CharacterClasses::UNRESERVED,
-            unicode_normalizer: IDNA.method(:unicode_normalize_c)
-          )
+            unicode_normalizer: lambda do |input|
+              ::Addressable::IDNA.unicode_normalize_c(input)
+            end)
         end
       end
       # All normalized values should be UTF-8
@@ -1542,8 +1545,9 @@ module Addressable
           Addressable::URI.normalize_component(
             segment,
             Addressable::URI::CharacterClasses::PCHAR,
-            unicode_normalizer: IDNA.method(:unicode_normalize_c)
-          )
+            unicode_normalizer: lambda do |input|
+              ::Addressable::IDNA.unicode_normalize_c(input)
+            end)
         end.join(SLASH)
 
         result = URI.normalize_path(result)
@@ -1625,8 +1629,9 @@ module Addressable
             pair,
             modified_query_class,
             "+",
-            unicode_normalizer: IDNA.method(:unicode_normalize_c)
-          )
+            unicode_normalizer: lambda do |input|
+              ::Addressable::IDNA.unicode_normalize_c(input)
+            end)
         end.join("&")
         component == "" ? nil : component
       end
@@ -1821,8 +1826,9 @@ module Addressable
         component = Addressable::URI.normalize_component(
           self.fragment,
           Addressable::URI::CharacterClasses::FRAGMENT,
-          unicode_normalizer: IDNA.method(:unicode_normalize_c)
-        )
+          unicode_normalizer: lambda do |input|
+            ::Addressable::IDNA.unicode_normalize_c(input)
+          end)
         component == "" ? nil : component
       end
       # All normalized values should be UTF-8
