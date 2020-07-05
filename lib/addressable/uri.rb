@@ -881,7 +881,7 @@ module Addressable
           Addressable::URI.normalize_component(
             self.scheme.strip.downcase,
             Addressable::URI::CharacterClasses::SCHEME,
-            unicode_normalizer: method(:identity_function)
+            unicode_normalizer: IDNA.method(:unicode_normalize_c)
           )
         end
       end
@@ -994,7 +994,7 @@ module Addressable
           Addressable::URI.normalize_component(
             self.password.strip,
             Addressable::URI::CharacterClasses::UNRESERVED,
-            unicode_normalizer: method(:identity_function)
+            unicode_normalizer: IDNA.method(:unicode_normalize_c)
           )
         end
       end
@@ -1542,7 +1542,7 @@ module Addressable
           Addressable::URI.normalize_component(
             segment,
             Addressable::URI::CharacterClasses::PCHAR,
-            unicode_normalizer: method(:identity_function)
+            unicode_normalizer: IDNA.method(:unicode_normalize_c)
           )
         end.join(SLASH)
 
@@ -1625,7 +1625,7 @@ module Addressable
             pair,
             modified_query_class,
             "+",
-            unicode_normalizer: method(:identity_function)
+            unicode_normalizer: IDNA.method(:unicode_normalize_c)
           )
         end.join("&")
         component == "" ? nil : component
@@ -1821,7 +1821,7 @@ module Addressable
         component = Addressable::URI.normalize_component(
           self.fragment,
           Addressable::URI::CharacterClasses::FRAGMENT,
-          unicode_normalizer: method(:identity_function)
+          unicode_normalizer: IDNA.method(:unicode_normalize_c)
         )
         component == "" ? nil : component
       end
@@ -2535,14 +2535,6 @@ module Addressable
     def remove_composite_values
       remove_instance_variable(:@uri_string) if defined?(@uri_string)
       remove_instance_variable(:@hash) if defined?(@hash)
-    end
-
-    private
-
-    # for Ruby < 2.2 compatibilities
-    # equivalent of lambda(&:itself)
-    def identity_function(x)
-      x
     end
   end
 end

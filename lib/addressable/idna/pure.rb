@@ -117,8 +117,31 @@ module Addressable
     def self.unicode_normalize_kc(input)
       input = input.to_s unless input.is_a?(String)
       unpacked = input.unpack("U*")
-      unpacked =
-        unicode_compose(unicode_sort_canonical(unicode_decompose(unpacked)))
+      unpacked = unicode_decompose(unpacked) do |cp, self_block|
+        if cp >= HANGUL_SBASE && cp < HANGUL_SBASE + HANGUL_SCOUNT
+          l, v, t = unicode_decompose_hangul(cp)
+          [l, *(v ? [v] : []), *(t ? [t] : [])]
+        else
+          dc = lookup_unicode_compatibility(cp)
+          if !dc
+            [cp]
+          else
+            unicode_decompose(dc.unpack("U*"), &self_block)
+          end
+        end
+      end
+      unpacked = unicode_compose(unicode_sort_canonical(unpacked))
+      return unpacked.pack("U*")
+    end
+
+    # Unicode normalization form C.
+    def self.unicode_normalize_c(input)
+      input = input.to_s unless input.is_a?(String)
+      unpacked = input.unpack("U*")
+      unpacked = unicode_decompose(unpacked) do |cp, _self_block|
+        [cp]
+      end
+      unpacked = unicode_compose(unicode_sort_canonical(unpacked))
       return unpacked.pack("U*")
     end
 
@@ -240,22 +263,10 @@ module Addressable
     end
     private_class_method :unicode_sort_canonical
 
-    def self.unicode_decompose(unpacked)
+    def self.unicode_decompose(unpacked, &handler)
       unpacked_result = []
-      for cp in unpacked
-        if cp >= HANGUL_SBASE && cp < HANGUL_SBASE + HANGUL_SCOUNT
-          l, v, t = unicode_decompose_hangul(cp)
-          unpacked_result << l
-          unpacked_result << v if v
-          unpacked_result << t if t
-        else
-          dc = lookup_unicode_compatibility(cp)
-          unless dc
-            unpacked_result << cp
-          else
-            unpacked_result.concat(unicode_decompose(dc.unpack("U*")))
-          end
-        end
+      unpacked.each do |cp|
+        handler.call(cp, handler).each(&unpacked_result.method(:<<))
       end
       return unpacked_result
     end
