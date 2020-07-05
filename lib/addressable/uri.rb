@@ -531,7 +531,9 @@ module Addressable
     #   => "one two%2Fthree&four"
     def self.normalize_component(component, character_class=
         CharacterClasses::RESERVED + CharacterClasses::UNRESERVED,
-        leave_encoded='')
+        leave_encoded='',
+        unicode_normalizer: IDNA.method(:unicode_normalize_kc)
+    )
       return nil if component.nil?
 
       begin
@@ -563,7 +565,7 @@ module Addressable
       unencoded = self.unencode_component(component, String, leave_encoded)
       begin
         encoded = self.encode_component(
-          Addressable::IDNA.unicode_normalize_kc(unencoded),
+          unicode_normalizer.call(unencoded),
           character_class,
           leave_encoded
         )
@@ -878,7 +880,8 @@ module Addressable
         else
           Addressable::URI.normalize_component(
             self.scheme.strip.downcase,
-            Addressable::URI::CharacterClasses::SCHEME
+            Addressable::URI::CharacterClasses::SCHEME,
+            unicode_normalizer: method(:identity_function)
           )
         end
       end
@@ -990,7 +993,8 @@ module Addressable
         else
           Addressable::URI.normalize_component(
             self.password.strip,
-            Addressable::URI::CharacterClasses::UNRESERVED
+            Addressable::URI::CharacterClasses::UNRESERVED,
+            unicode_normalizer: method(:identity_function)
           )
         end
       end
@@ -1537,7 +1541,8 @@ module Addressable
         result = path.strip.split(SLASH, -1).map do |segment|
           Addressable::URI.normalize_component(
             segment,
-            Addressable::URI::CharacterClasses::PCHAR
+            Addressable::URI::CharacterClasses::PCHAR,
+            unicode_normalizer: method(:identity_function)
           )
         end.join(SLASH)
 
@@ -1616,7 +1621,12 @@ module Addressable
         pairs.delete_if(&:empty?) if flags.include?(:compacted)
         pairs.sort! if flags.include?(:sorted)
         component = pairs.map do |pair|
-          Addressable::URI.normalize_component(pair, modified_query_class, "+")
+          Addressable::URI.normalize_component(
+            pair,
+            modified_query_class,
+            "+",
+            unicode_normalizer: method(:identity_function)
+          )
         end.join("&")
         component == "" ? nil : component
       end
@@ -1810,7 +1820,8 @@ module Addressable
       @normalized_fragment ||= begin
         component = Addressable::URI.normalize_component(
           self.fragment,
-          Addressable::URI::CharacterClasses::FRAGMENT
+          Addressable::URI::CharacterClasses::FRAGMENT,
+          unicode_normalizer: method(:identity_function)
         )
         component == "" ? nil : component
       end
@@ -2524,6 +2535,14 @@ module Addressable
     def remove_composite_values
       remove_instance_variable(:@uri_string) if defined?(@uri_string)
       remove_instance_variable(:@hash) if defined?(@hash)
+    end
+
+    private
+
+    # for Ruby < 2.2 compatibilities
+    # equivalent of lambda(&:itself)
+    def identity_function(x)
+      x
     end
   end
 end
