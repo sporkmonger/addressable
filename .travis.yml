@@ -28,6 +28,9 @@ matrix:
       env: IDNA_MODE=pure
       script: bundle exec rake profile:memory
       name: "Profile Memory Allocation with pure Ruby IDNA"
+    - rvm: 2.5.7
+      script: bundle exec rake profile:template_match_memory
+      name: "Profile Memory Allocation during Addressable::Template#match"
   allow_failures:
     - rvm: ruby-head
     - rvm: ruby-head-clang
