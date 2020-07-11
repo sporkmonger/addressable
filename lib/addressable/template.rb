@@ -974,14 +974,34 @@ module Addressable
     end
 
     ##
+    # Generates the <tt>Regexp</tt> that parses a template pattern. Memoizes the
+    # value if template processor not set (processors may not be deterministic)
+    #
+    # @param [String] pattern The URI template pattern.
+    # @param [#match] processor The template processor to use.
+    #
+    # @return [Array, Regexp]
+    #   An array of expansion variables nad a regular expression which may be
+    #   used to parse a template pattern
+    def parse_template_pattern(pattern, processor = nil)
+      if processor.nil? && pattern == @pattern
+        @cached_template_parse ||=
+          parse_new_template_pattern(pattern, processor)
+      else
+        parse_new_template_pattern(pattern, processor)
+      end
+    end
+
+    ##
     # Generates the <tt>Regexp</tt> that parses a template pattern.
     #
     # @param [String] pattern The URI template pattern.
     # @param [#match] processor The template processor to use.
     #
-    # @return [Regexp]
-    #   A regular expression which may be used to parse a template pattern.
-    def parse_template_pattern(pattern, processor=nil)
+    # @return [Array, Regexp]
+    #   An array of expansion variables nad a regular expression which may be
+    #   used to parse a template pattern
+    def parse_new_template_pattern(pattern, processor = nil)
       # Escape the pattern. The two gsubs restore the escaped curly braces
       # back to their original form. Basically, escape everything that isn't
       # within an expansion.
@@ -1038,18 +1058,7 @@ module Addressable
 
       # Ensure that the regular expression matches the whole URI.
       regexp_string = "^#{regexp_string}$"
-
-      # Cache the regexp as generating it is expensive
-      @previous_template_pattern ||= regexp_string
-      @template_pattern_regexp ||= Regexp.new(regexp_string)
-
-      # Update the cache if the regexp_string has changed
-      if regexp_string != @previous_template_pattern
-        @previous_template_pattern = regexp_string
-        @template_pattern_regexp = Regexp.new(regexp_string)
-      end
-
-      [expansions, @template_pattern_regexp]
+      return expansions, Regexp.new(regexp_string)
     end
 
   end
