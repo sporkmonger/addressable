@@ -3,7 +3,7 @@ cache: bundler
 language: ruby
 rvm:
   - jruby-9.2.9.0
-  - truffleruby-19.3.1
+  - truffleruby-head
   - ruby-head
   - ruby-head-clang
   - 2.0.0
@@ -20,6 +20,14 @@ matrix:
       env: BUNDLER_VERSION=2.0.2
     - rvm: 2.5.5
       gemfile: gemfiles/Gemfile.public_suffix_2
+    - rvm: 2.5.7
+      env: IDNA_MODE=native
+      script: bundle exec rake profile:memory
+      name: "Profile Memory Allocation with native IDNA"
+    - rvm: 2.5.7
+      env: IDNA_MODE=pure
+      script: bundle exec rake profile:memory
+      name: "Profile Memory Allocation with pure Ruby IDNA"
   allow_failures:
     - rvm: ruby-head
     - rvm: ruby-head-clang
