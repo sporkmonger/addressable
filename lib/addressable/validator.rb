@@ -4,18 +4,6 @@ module Addressable
   ##
   # Ensures that the URI is valid.
   module Validator
-    VALIDATE_METHODS = %w[
-      scheme user password userinfo host authority
-      origin port path fragment
-    ].freeze
-
-    VALIDATE_METHODS.each do |m|
-      define_method "#{m}=".to_sym do |*args|
-        super(*args)
-        validate
-      end
-    end
-
     private
 
     def validate

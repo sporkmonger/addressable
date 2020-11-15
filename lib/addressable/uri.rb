@@ -64,7 +64,7 @@ module Addressable
       QUERY = %r{[^a-zA-Z0-9\-\.\_\~\!\$\'\(\)\*\+\,\=\:\@\/\?%]|%(?!2B|2b)}
     end
 
-    prepend Validator
+    include Validator
 
     SLASH = '/'
     DOUBLE_SLASH = SLASH * 2
@@ -932,6 +932,9 @@ module Addressable
       # Reset dependent values
       remove_instance_variable(:@normalized_scheme) if defined?(@normalized_scheme)
       remove_composite_values
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     ##
@@ -986,6 +989,9 @@ module Addressable
       remove_instance_variable(:@authority) if defined?(@authority)
       remove_instance_variable(:@normalized_user) if defined?(@normalized_user)
       remove_composite_values
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     ##
@@ -1044,6 +1050,9 @@ module Addressable
       remove_instance_variable(:@authority) if defined?(@authority)
       remove_instance_variable(:@normalized_password) if defined?(@normalized_password)
       remove_composite_values
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     ##
@@ -1112,6 +1121,9 @@ module Addressable
       # Reset dependent values
       remove_instance_variable(:@authority) if defined?(@authority)
       remove_composite_values
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     ##
@@ -1168,6 +1180,9 @@ module Addressable
       remove_instance_variable(:@authority) if defined?(@authority)
       remove_instance_variable(:@normalized_host) if defined?(@normalized_host)
       remove_composite_values
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     ##
@@ -1305,6 +1320,9 @@ module Addressable
       remove_instance_variable(:@userinfo) if defined?(@userinfo)
       remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
       remove_composite_values
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     ##
@@ -1359,6 +1377,9 @@ module Addressable
       remove_instance_variable(:@authority) if defined?(@authority)
       remove_instance_variable(:@normalized_authority) if defined?(@normalized_authority)
       remove_composite_values
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     # Returns an array of known ip-based schemes. These schemes typically
@@ -1426,6 +1447,9 @@ module Addressable
       remove_instance_variable(:@authority) if defined?(@authority)
       remove_instance_variable(:@normalized_port) if defined?(@normalized_port)
       remove_composite_values
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     ##
@@ -1575,6 +1599,9 @@ module Addressable
       # Reset dependent values
       remove_instance_variable(:@normalized_path) if defined?(@normalized_path)
       remove_composite_values
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     ##
@@ -1843,6 +1870,9 @@ module Addressable
       # Reset dependent values
       remove_instance_variable(:@normalized_fragment) if defined?(@normalized_fragment)
       remove_composite_values
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     ##
