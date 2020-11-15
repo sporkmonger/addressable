@@ -64,6 +64,8 @@ module Addressable
       QUERY = %r{[^a-zA-Z0-9\-\.\_\~\!\$\'\(\)\*\+\,\=\:\@\/\?%]|%(?!2B|2b)}
     end
 
+    prepend Validator
+
     SLASH = '/'
     DOUBLE_SLASH = SLASH * 2
     EMPTY_STR = ''
@@ -2496,7 +2498,5 @@ module Addressable
       remove_instance_variable(:@uri_string) if defined?(@uri_string)
       remove_instance_variable(:@hash) if defined?(@hash)
     end
-
-    prepend Validator
   end
 end
