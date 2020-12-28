@@ -54,6 +54,15 @@ module Addressable
       FRAGMENT = PCHAR + "\\/\\?"
     end
 
+    module NormalizeCharacterClasses
+      HOST = /[^#{CharacterClasses::HOST}]/
+      UNRESERVED = /[^#{CharacterClasses::UNRESERVED}]/
+      PCHAR = /[^#{CharacterClasses::PCHAR}]/
+      SCHEME = /[^#{CharacterClasses::SCHEME}]/
+      FRAGMENT = /[^#{CharacterClasses::FRAGMENT}]/
+      MODIFIED_QUERY = /[^a-zA-Z0-9\-\.\_\~\!\$\'\(\)\*\+\,\=\:\@\/\?%]|%(?!2B|2b)/
+    end
+
     SLASH = '/'
     EMPTY_STR = ''
 
@@ -878,7 +887,7 @@ module Addressable
         else
           Addressable::URI.normalize_component(
             self.scheme.strip.downcase,
-            Addressable::URI::CharacterClasses::SCHEME
+            Addressable::URI::NormalizeCharacterClasses::SCHEME
           )
         end
       end
@@ -933,7 +942,7 @@ module Addressable
         else
           Addressable::URI.normalize_component(
             self.user.strip,
-            Addressable::URI::CharacterClasses::UNRESERVED
+            Addressable::URI::NormalizeCharacterClasses::UNRESERVED
           )
         end
       end
@@ -990,7 +999,7 @@ module Addressable
         else
           Addressable::URI.normalize_component(
             self.password.strip,
-            Addressable::URI::CharacterClasses::UNRESERVED
+            Addressable::URI::NormalizeCharacterClasses::UNRESERVED
           )
         end
       end
@@ -1125,7 +1134,7 @@ module Addressable
           end
           result = Addressable::URI.normalize_component(
             result,
-            CharacterClasses::HOST)
+            NormalizeCharacterClasses::HOST)
           result
         else
           EMPTY_STR.dup
@@ -1537,7 +1546,7 @@ module Addressable
         result = path.strip.split(SLASH, -1).map do |segment|
           Addressable::URI.normalize_component(
             segment,
-            Addressable::URI::CharacterClasses::PCHAR
+            Addressable::URI::NormalizeCharacterClasses::PCHAR
           )
         end.join(SLASH)
 
@@ -1609,14 +1618,12 @@ module Addressable
       return nil unless self.query
       return @normalized_query if defined?(@normalized_query)
       @normalized_query ||= begin
-        modified_query_class = Addressable::URI::CharacterClasses::QUERY.dup
-        # Make sure possible key-value pair delimiters are escaped.
-        modified_query_class.sub!("\\&", "").sub!("\\;", "")
         pairs = (self.query || "").split("&", -1)
         pairs.delete_if(&:empty?) if flags.include?(:compacted)
         pairs.sort! if flags.include?(:sorted)
         component = pairs.map do |pair|
-          Addressable::URI.normalize_component(pair, modified_query_class, "+")
+          Addressable::URI.normalize_component(pair,
+            Addressable::URI::NormalizeCharacterClasses::MODIFIED_QUERY, '+')
         end.join("&")
         component == "" ? nil : component
       end
@@ -1810,7 +1817,7 @@ module Addressable
       @normalized_fragment ||= begin
         component = Addressable::URI.normalize_component(
           self.fragment,
-          Addressable::URI::CharacterClasses::FRAGMENT
+          Addressable::URI::NormalizeCharacterClasses::FRAGMENT
         )
         component == "" ? nil : component
       end
