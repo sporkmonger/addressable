@@ -60,7 +60,7 @@ module Addressable
       PCHAR = /[^#{CharacterClasses::PCHAR}]/
       SCHEME = /[^#{CharacterClasses::SCHEME}]/
       FRAGMENT = /[^#{CharacterClasses::FRAGMENT}]/
-      MODIFIED_QUERY = /[^a-zA-Z0-9\-\.\_\~\!\$\'\(\)\*\+\,\=\:\@\/\?%]|%(?!2B|2b)/
+      QUERY = %r{[^a-zA-Z0-9\-\.\_\~\!\$\'\(\)\*\+\,\=\:\@\/\?%]|%(?!2B|2b)}
     end
 
     SLASH = '/'
@@ -1134,7 +1134,8 @@ module Addressable
           end
           result = Addressable::URI.normalize_component(
             result,
-            NormalizeCharacterClasses::HOST)
+            NormalizeCharacterClasses::HOST
+          )
           result
         else
           EMPTY_STR.dup
@@ -1622,8 +1623,11 @@ module Addressable
         pairs.delete_if(&:empty?) if flags.include?(:compacted)
         pairs.sort! if flags.include?(:sorted)
         component = pairs.map do |pair|
-          Addressable::URI.normalize_component(pair,
-            Addressable::URI::NormalizeCharacterClasses::MODIFIED_QUERY, '+')
+          Addressable::URI.normalize_component(
+            pair,
+            Addressable::URI::NormalizeCharacterClasses::QUERY,
+            "+"
+          )
         end.join("&")
         component == "" ? nil : component
       end
