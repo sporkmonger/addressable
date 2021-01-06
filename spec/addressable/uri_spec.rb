@@ -4262,6 +4262,36 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+describe Addressable::URI, "when parsed from 'https://example.com/?q=a+b'" do
+  before do
+    @uri = Addressable::URI.parse("https://example.com/?q=a+b")
+  end
+
+  it "should have query_values of {'q' => 'a b'}" do
+    expect(@uri.query_values).to eq("q" => "a b")
+  end
+end
+
+describe Addressable::URI, "when parsed from 'example.com?q=a+b'" do
+  before do
+    @uri = Addressable::URI.parse("example.com?q=a+b")
+  end
+
+  it "should have query_values of {'q' => 'a b'}" do
+    expect(@uri.query_values).to eq("q" => "a b")
+  end
+end
+
+describe Addressable::URI, "when parsed from 'mailto:?q=a+b'" do
+  before do
+    @uri = Addressable::URI.parse("mailto:?q=a+b")
+  end
+
+  it "should have query_values of {'q' => 'a+b'}" do
+    expect(@uri.query_values).to eq("q" => "a+b")
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://example.com/?q=a%2bb'" do
   before do
