@@ -186,34 +186,34 @@ module Addressable
     end
     private_class_method :unicode_compose_pair
 
-    def self.ucs4_to_utf8(ch, buf)
-      if ch < 128
-        buf << ch
-      elsif ch < 2048
-        buf << (ch >> 6 | 192)
-        buf << (ch & 63 | 128)
-      elsif ch < 0x10000
-        buf << (ch >> 12 | 224)
-        buf << (ch >> 6 & 63 | 128)
-        buf << (ch & 63 | 128)
-      elsif ch < 0x200000
-        buf << (ch >> 18 | 240)
-        buf << (ch >> 12 & 63 | 128)
-        buf << (ch >> 6 & 63 | 128)
-        buf << (ch & 63 | 128)
-      elsif ch < 0x4000000
-        buf << (ch >> 24 | 248)
-        buf << (ch >> 18 & 63 | 128)
-        buf << (ch >> 12 & 63 | 128)
-        buf << (ch >> 6 & 63 | 128)
-        buf << (ch & 63 | 128)
-      elsif ch < 0x80000000
-        buf << (ch >> 30 | 252)
-        buf << (ch >> 24 & 63 | 128)
-        buf << (ch >> 18 & 63 | 128)
-        buf << (ch >> 12 & 63 | 128)
-        buf << (ch >> 6 & 63 | 128)
-        buf << (ch & 63 | 128)
+    def self.ucs4_to_utf8(char, buffer)
+      if char < 128
+        buffer << char
+      elsif char < 2048
+        buffer << (char >> 6 | 192)
+        buffer << (char & 63 | 128)
+      elsif char < 0x10000
+        buffer << (char >> 12 | 224)
+        buffer << (char >> 6 & 63 | 128)
+        buffer << (char & 63 | 128)
+      elsif char < 0x200000
+        buffer << (char >> 18 | 240)
+        buffer << (char >> 12 & 63 | 128)
+        buffer << (char >> 6 & 63 | 128)
+        buffer << (char & 63 | 128)
+      elsif char < 0x4000000
+        buffer << (char >> 24 | 248)
+        buffer << (char >> 18 & 63 | 128)
+        buffer << (char >> 12 & 63 | 128)
+        buffer << (char >> 6 & 63 | 128)
+        buffer << (char & 63 | 128)
+      elsif char < 0x80000000
+        buffer << (char >> 30 | 252)
+        buffer << (char >> 24 & 63 | 128)
+        buffer << (char >> 18 & 63 | 128)
+        buffer << (char >> 12 & 63 | 128)
+        buffer << (char >> 6 & 63 | 128)
+        buffer << (char & 63 | 128)
       end
     end
     private_class_method :ucs4_to_utf8
