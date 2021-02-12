@@ -1,3 +1,6 @@
+# Addressable 2.8.0
+- fixed encoding ipv6 literals
+
 # Addressable 2.7.0
 - added `:compacted` flag to `normalized_query`
 - `heuristic_parse` handles `mailto:` more intuitively
