@@ -16,7 +16,7 @@ rescue LoadError
     add_filter "spec/"
     add_filter "vendor/"
   end
-end if $LOAD_PATH.join.include?("simplecov")
+end if Gem.loaded_specs.key?("simplecov")
 
 class TestHelper
   def self.native_supported?
