@@ -98,7 +98,7 @@ You may optionally turn on native IDN support by installing libidn and the
 idn gem:
 
 ```console
-$ sudo apt-get install idn # Debian/Ubuntu
+$ sudo apt-get install libidn11-dev # Debian/Ubuntu
 $ brew install libidn # OS X
 $ gem install idn-ruby
 ```
