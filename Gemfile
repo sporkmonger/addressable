@@ -10,7 +10,7 @@ group :test do
 end
 
 group :coverage do
-  gem "coveralls", require: false, platforms: :mri
+  gem "coveralls", "> 0.7", require: false, platforms: :mri
   gem "simplecov", require: false
 end
 
