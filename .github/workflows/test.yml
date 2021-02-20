@@ -2,6 +2,9 @@ name: CI
 
 on: [push, pull_request, workflow_dispatch]
 
+env:
+  BUNDLE_JOBS: 4
+
 # jobs defined in the order we want them listed in the Actions UI
 jobs:
   profile:
@@ -20,11 +23,14 @@ jobs:
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
 
-      - name: Setup ruby, install gems
+      - name: Setup ruby
         uses: ruby/setup-ruby@v1
         with:
-          bundler-cache: true
+          bundler-cache: false
           ruby-version: ${{ matrix.ruby }}
+
+      - name: Install gems
+        run: bundle install
 
       - name: >-
           Profile Memory Allocation with ${{ matrix.idna_mode }} IDNA
@@ -45,11 +51,14 @@ jobs:
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
 
-      - name: Setup ruby, install gems
+      - name: Setup ruby
         uses: ruby/setup-ruby@v1
         with:
-          bundler-cache: true
+          bundler-cache: false
           ruby-version: ${{ matrix.ruby }}
+
+      - name: Install gems
+        run: bundle install
 
       - name: Run specs and report coverage
         run: bundle exec rake
@@ -72,7 +81,7 @@ jobs:
         run: gem install bundler -v 1.17.3
 
       - name: Install gems
-        run: bundle install --jobs 4
+        run: bundle install
 
       - name: Run specs
         run: bundle exec rake
@@ -140,13 +149,18 @@ jobs:
         if: startsWith(matrix.os, 'macos')
         run: brew install libidn
 
-      - name: Setup ruby, install gems
+      - name: Setup ruby
         continue-on-error: ${{ matrix.allow-failure || false }}
         id: setupruby
         uses: ruby/setup-ruby@v1
         with:
-          bundler-cache: true
+          bundler-cache: false
           ruby-version: ${{ matrix.ruby }}
+
+      - name: Install gems
+        continue-on-error: ${{ matrix.allow-failure || false }}
+        id: bundle
+        run: bundle install
 
       - name: Run specs
         continue-on-error: ${{ matrix.allow-failure || false }}
@@ -156,6 +170,9 @@ jobs:
       # because continue-on-error marks the steps as pass if they fail
       - name: >-
           Setup ruby outcome: ${{ steps.setupruby.outcome }}
+        run: echo NOOP
+      - name: >-
+          Install gems outcome: ${{ steps.bundle.outcome }}
         run: echo NOOP
       - name: >-
           Run specs outcome: ${{ steps.specs.outcome }}
