@@ -45,6 +45,10 @@ jobs:
         os: [ubuntu-18.04]
     env:
       BUNDLE_WITHOUT: development
+      COVERALLS_SERVICE_NAME: github
+      COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      COVERALLS_DEBUG: true
+      CI_BUILD_NUMBER: ${{ github.run_id }}
     steps:
       - uses: actions/checkout@v2
 
