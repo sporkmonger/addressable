@@ -67,29 +67,6 @@ jobs:
       - name: Run specs and report coverage
         run: bundle exec rake
 
-  test-ruby-2_0:
-    runs-on: ubuntu-20.04
-    container:
-      image: ruby:2.0
-      env:
-        LANG: C.UTF-8
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Install libidn
-        run: |
-          apt-get update
-          apt-get install -y libidn11-dev
-
-      - name: Install bundler 1.17.3
-        run: gem install bundler -v 1.17.3
-
-      - name: Install gems
-        run: bundle install
-
-      - name: Run specs
-        run: bundle exec rake
-
   test:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -97,7 +74,6 @@ jobs:
       matrix:
         # the job name is composed by these attributes
         ruby:
-          - 2.1
           - 2.2
           - 2.3
           - 2.4
