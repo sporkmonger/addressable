@@ -1,10 +1,17 @@
+# frozen_string_literal: true
+
 source 'https://rubygems.org'
 
-gemspec
+gemspec(path: __FILE__ == "(eval)" ? ".." : ".")
 
 group :test do
   gem 'rspec', '~> 3.8'
   gem 'rspec-its', '~> 1.3'
+end
+
+group :coverage do
+  gem "coveralls", "> 0.7", require: false, platforms: :mri
+  gem "simplecov", require: false
 end
 
 group :development do
@@ -15,19 +22,7 @@ end
 
 group :test, :development do
   gem 'memory_profiler'
-  gem 'rake', '> 10.0', '< 12'
-  gem 'simplecov', :require => false
-  gem 'coveralls', :require => false, :platforms => [
-    :ruby_20, :ruby_21, :ruby_22, :ruby_23
-  ]
-  # Used to test compatibility.
-  gem 'rack-mount', git: 'https://github.com/sporkmonger/rack-mount.git', require: 'rack/mount'
-
-  if RUBY_VERSION.start_with?('2.0', '2.1')
-    gem 'rack', '< 2', :require => false
-  else
-    gem 'rack', :require => false
-  end
+  gem "rake", "> 10.0"
 end
 
-gem 'idn-ruby', :platform => [:mri_20, :mri_21, :mri_22, :mri_23, :mri_24, :mri_25]
+gem "idn-ruby", platform: :mri

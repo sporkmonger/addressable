@@ -1,0 +1,163 @@
+name: CI
+
+on: [push, pull_request, workflow_dispatch]
+
+env:
+  BUNDLE_JOBS: 4
+
+# jobs defined in the order we want them listed in the Actions UI
+jobs:
+  profile:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [2.7]
+        idna_mode: [native, pure]
+        os: [ubuntu-18.04]
+    env:
+      IDNA_MODE: ${{ matrix.idna_mode }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install libidn
+        run: sudo apt-get install libidn11-dev
+
+      - name: Setup ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: false
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: Install gems
+        run: bundle install
+
+      - name: >-
+          Profile Memory Allocation with ${{ matrix.idna_mode }} IDNA during Addressable::URI#parse
+        run: bundle exec rake profile:memory
+
+      - name: >-
+          Profile Memory Allocation with ${{ matrix.idna_mode }} IDNA during Addressable::Template#match
+        run: bundle exec rake profile:template_match_memory
+
+  coverage:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [2.7]
+        os: [ubuntu-18.04]
+    env:
+      BUNDLE_WITHOUT: development
+      COVERALLS_SERVICE_NAME: github
+      COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      COVERALLS_DEBUG: true
+      CI_BUILD_NUMBER: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install libidn
+        run: sudo apt-get install libidn11-dev
+
+      - name: Setup ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: false
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: Install gems
+        run: bundle install
+
+      - name: Run specs and report coverage
+        run: bundle exec rake
+
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # the job name is composed by these attributes
+        ruby:
+          - 2.2
+          - 2.3
+          - 2.4
+          - 2.5
+          - 2.6
+          - 2.7
+          # quotes because of YAML gotcha: https://github.com/actions/runner/issues/849
+          - '3.0'
+          - head
+          - jruby-9.1
+          - jruby-9.2
+          - jruby-head
+          - truffleruby
+          - truffleruby-head
+        os:
+          - ubuntu-18.04
+        gemfile:
+          - Gemfile
+        include:
+          - { os: ubuntu-18.04, ruby: 2.7, gemfile: gemfiles/public_suffix_2.rb }
+          - { os: ubuntu-18.04, ruby: 2.7, gemfile: gemfiles/public_suffix_3.rb }
+          # Ubuntu 16.04
+          - { os: ubuntu-16.04, ruby: 2.7 }
+          - { os: ubuntu-16.04, ruby: '3.0' }
+          # Ubuntu 20.04
+          - { os: ubuntu-20.04, ruby: 2.7 }
+          - { os: ubuntu-20.04, ruby: '3.0' }
+          # macOS
+          - { os: macos-10.15,  ruby: 2.7 }
+          - { os: macos-10.15,  ruby: '3.0' }
+          - { os: macos-10.15,  ruby: jruby }
+          - { os: macos-10.15,  ruby: truffleruby }
+          # Windows
+          - { os: windows-2019, ruby: 2.7 }
+          - { os: windows-2019, ruby: '3.0' }
+          - { os: windows-2019, ruby: jruby-9.1 }
+          # fails with "bundler: command not found: rake"
+          - { os: windows-2019, ruby: jruby-9.2, allow-failure: true }
+          # allowed to fail
+          - { os: ubuntu-18.04, ruby: jruby-head, allow-failure: true }
+          - { os: ubuntu-18.04, ruby: truffleruby-head, allow-failure: true }
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+      BUNDLE_WITHOUT: development:coverage
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install libidn (Ubuntu)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo apt-get install libidn11-dev
+
+      - name: Install libidn (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: brew install libidn
+
+      - name: Setup ruby
+        continue-on-error: ${{ matrix.allow-failure || false }}
+        id: setupruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: false
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: Install gems
+        continue-on-error: ${{ matrix.allow-failure || false }}
+        id: bundle
+        run: bundle install
+
+      - name: Run specs
+        continue-on-error: ${{ matrix.allow-failure || false }}
+        id: specs
+        run: bundle exec rake
+
+      # because continue-on-error marks the steps as pass if they fail
+      - name: >-
+          Setup ruby outcome: ${{ steps.setupruby.outcome }}
+        run: echo NOOP
+      - name: >-
+          Install gems outcome: ${{ steps.bundle.outcome }}
+        run: echo NOOP
+      - name: >-
+          Run specs outcome: ${{ steps.specs.outcome }}
+        run: echo NOOP

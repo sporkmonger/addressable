@@ -294,7 +294,9 @@ begin
     it_should_behave_like "converting from unicode to ASCII"
     it_should_behave_like "converting from ASCII to unicode"
   end
-rescue LoadError
+rescue LoadError => error
+  raise error if ENV["CI"] && TestHelper.native_supported?
+
   # Cannot test the native implementation without libidn support.
   warn('Could not load native IDN implementation.')
 end
