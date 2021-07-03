@@ -65,116 +65,116 @@ end
 
 describe Addressable::URI, "when created with a non-numeric port number" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:port => "bogus")
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
 describe Addressable::URI, "when created with a invalid encoded port number" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:port => "%eb")
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
 describe Addressable::URI, "when created with a non-string scheme" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:scheme => :bogus)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
 describe Addressable::URI, "when created with a non-string user" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:user => :bogus)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
 describe Addressable::URI, "when created with a non-string password" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:password => :bogus)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
 describe Addressable::URI, "when created with a non-string userinfo" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:userinfo => :bogus)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
 describe Addressable::URI, "when created with a non-string host" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:host => :bogus)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
 describe Addressable::URI, "when created with a non-string authority" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:authority => :bogus)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
 describe Addressable::URI, "when created with a non-string path" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:path => :bogus)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
 describe Addressable::URI, "when created with a non-string query" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:query => :bogus)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
 describe Addressable::URI, "when created with a non-string fragment" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:fragment => :bogus)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
 describe Addressable::URI, "when created with a scheme but no hierarchical " +
     "segment" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.parse("http:")
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
 describe Addressable::URI, "quote handling" do
   describe 'in host name' do
     it "should raise an error for single quote" do
-      expect(lambda do
+      expect do
         Addressable::URI.parse("http://local\"host/")
-      end).to raise_error(Addressable::URI::InvalidURIError)
+      end.to raise_error(Addressable::URI::InvalidURIError)
     end
   end
 end
 
 describe Addressable::URI, "newline normalization" do
   it "should not accept newlines in scheme" do
-    expect(lambda do
+    expect do
       Addressable::URI.parse("ht%0atp://localhost/")
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should not unescape newline in path" do
@@ -199,47 +199,47 @@ describe Addressable::URI, "newline normalization" do
 
   it "should not accept newline in hostname" do
     uri = Addressable::URI.parse("http://localhost/")
-    expect(lambda do
+    expect do
       uri.host = "local\nhost"
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
 describe Addressable::URI, "when created with ambiguous path" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.parse("::http")
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
 describe Addressable::URI, "when created with an invalid host" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:host => "<invalid>")
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
 describe Addressable::URI, "when created with a host consisting of " +
     "sub-delims characters" do
   it "should not raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(
         :host => Addressable::URI::CharacterClasses::SUB_DELIMS.gsub(/\\/, '')
       )
-    end).not_to raise_error
+    end.not_to raise_error
   end
 end
 
 describe Addressable::URI, "when created with a host consisting of " +
     "unreserved characters" do
   it "should not raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(
         :host => Addressable::URI::CharacterClasses::UNRESERVED.gsub(/\\/, '')
       )
-    end).not_to raise_error
+    end.not_to raise_error
   end
 end
 
@@ -269,83 +269,83 @@ describe Addressable::URI, "when created from nil components" do
   end
 
   it "should raise an error if the scheme is set to whitespace" do
-    expect(lambda do
+    expect do
       @uri.scheme = "\t \n"
-    end).to raise_error(Addressable::URI::InvalidURIError, /'\t \n'/)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'\t \n'/)
   end
 
   it "should raise an error if the scheme is set to all digits" do
-    expect(lambda do
+    expect do
       @uri.scheme = "123"
-    end).to raise_error(Addressable::URI::InvalidURIError, /'123'/)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'123'/)
   end
 
   it "should raise an error if the scheme begins with a digit" do
-    expect(lambda do
+    expect do
       @uri.scheme = "1scheme"
-    end).to raise_error(Addressable::URI::InvalidURIError, /'1scheme'/)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'1scheme'/)
   end
 
   it "should raise an error if the scheme begins with a plus" do
-    expect(lambda do
+    expect do
       @uri.scheme = "+scheme"
-    end).to raise_error(Addressable::URI::InvalidURIError, /'\+scheme'/)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'\+scheme'/)
   end
 
   it "should raise an error if the scheme begins with a dot" do
-    expect(lambda do
+    expect do
       @uri.scheme = ".scheme"
-    end).to raise_error(Addressable::URI::InvalidURIError, /'\.scheme'/)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'\.scheme'/)
   end
 
   it "should raise an error if the scheme begins with a dash" do
-    expect(lambda do
+    expect do
       @uri.scheme = "-scheme"
-    end).to raise_error(Addressable::URI::InvalidURIError, /'-scheme'/)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'-scheme'/)
   end
 
   it "should raise an error if the scheme contains an illegal character" do
-    expect(lambda do
+    expect do
       @uri.scheme = "scheme!"
-    end).to raise_error(Addressable::URI::InvalidURIError, /'scheme!'/)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'scheme!'/)
   end
 
   it "should raise an error if the scheme contains whitespace" do
-    expect(lambda do
+    expect do
       @uri.scheme = "sch eme"
-    end).to raise_error(Addressable::URI::InvalidURIError, /'sch eme'/)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'sch eme'/)
   end
 
   it "should raise an error if the scheme contains a newline" do
-    expect(lambda do
+    expect do
       @uri.scheme = "sch\neme"
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should raise an error if set into an invalid state" do
-    expect(lambda do
+    expect do
       @uri.user = "user"
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should raise an error if set into an invalid state" do
-    expect(lambda do
+    expect do
       @uri.password = "pass"
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should raise an error if set into an invalid state" do
-    expect(lambda do
+    expect do
       @uri.scheme = "http"
       @uri.fragment = "fragment"
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should raise an error if set into an invalid state" do
-    expect(lambda do
+    expect do
       @uri.fragment = "fragment"
       @uri.scheme = "http"
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
@@ -1015,31 +1015,31 @@ describe Addressable::URI, "when created from string components" do
   end
 
   it "should raise an error if invalid components omitted" do
-    expect(lambda do
+    expect do
       @uri.omit(:bogus)
-    end).to raise_error(ArgumentError)
-    expect(lambda do
+    end.to raise_error(ArgumentError)
+    expect do
       @uri.omit(:scheme, :bogus, :path)
-    end).to raise_error(ArgumentError)
+    end.to raise_error(ArgumentError)
   end
 end
 
 describe Addressable::URI, "when created with a nil host but " +
     "non-nil authority components" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:user => "user", :password => "pass", :port => 80)
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
 describe Addressable::URI, "when created with both an authority and a user" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(
         :user => "user", :authority => "user@example.com:80"
       )
-    end).to raise_error(ArgumentError)
+    end.to raise_error(ArgumentError)
   end
 end
 
@@ -1077,33 +1077,33 @@ end
 
 describe Addressable::URI, "when created with a host with a backslash" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:authority => "example\\example")
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
 describe Addressable::URI, "when created with a host with a slash" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:authority => "example/example")
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
 describe Addressable::URI, "when created with a host with a space" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:authority => "example example")
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
 describe Addressable::URI, "when created with both a userinfo and a user" do
   it "should raise an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.new(:user => "user", :userinfo => "user:pass")
-    end).to raise_error(ArgumentError)
+    end.to raise_error(ArgumentError)
   end
 end
 
@@ -1195,18 +1195,18 @@ describe Addressable::URI, "when parsed from something that looks " +
     "like a URI object" do
   it "should parse without error" do
     uri = Addressable::URI.parse(Fake::URI::HTTP.new("http://example.com/"))
-    expect(lambda do
+    expect do
       Addressable::URI.parse(uri)
-    end).not_to raise_error
+    end.not_to raise_error
   end
 end
 
 describe Addressable::URI, "when parsed from a standard library URI object" do
   it "should parse without error" do
     uri = Addressable::URI.parse(URI.parse("http://example.com/"))
-    expect(lambda do
+    expect do
       Addressable::URI.parse(uri)
-    end).not_to raise_error
+    end.not_to raise_error
   end
 end
 
@@ -1366,9 +1366,9 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should not allow request URI assignment" do
-    expect(lambda do
+    expect do
       @uri.request_uri = "/"
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should have a query of 'objectClass?one'" do
@@ -1390,9 +1390,9 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should raise an error if omission would create an invalid URI" do
-    expect(lambda do
+    expect do
       @uri.omit(:authority, :path)
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should have an origin of 'ldap://[2001:db8::7]'" do
@@ -1778,9 +1778,9 @@ describe Addressable::URI, "when parsed from " +
 
   it "should not be roughly equal to the string " +
       "'http://example.com:bogus/'" do
-    expect(lambda do
+    expect do
       expect(@uri === "http://example.com:bogus/").to eq(false)
-    end).not_to raise_error
+    end.not_to raise_error
   end
 
   it "should result in itself when joined with itself" do
@@ -1810,21 +1810,21 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should not allow origin assignment without scheme" do
-    expect(lambda do
+    expect do
       @uri.origin = "example.com"
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should not allow origin assignment without host" do
-    expect(lambda do
+    expect do
       @uri.origin = "http://"
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should not allow origin assignment with bogus type" do
-    expect(lambda do
+    expect do
       @uri.origin = :bogus
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   # Section 6.2.3 of RFC 3986
@@ -1880,9 +1880,9 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "when joined with a bogus object a TypeError should be raised" do
-    expect(lambda do
+    expect do
       @uri.join(42)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should have the correct username after assignment" do
@@ -2015,15 +2015,15 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should raise an error if the site value is set to something bogus" do
-    expect(lambda do
+    expect do
       @uri.site = 42
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should raise an error if the request URI is set to something bogus" do
-    expect(lambda do
+    expect do
       @uri.request_uri = 42
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should correctly convert to a hash" do
@@ -2072,9 +2072,9 @@ describe Addressable::URI, "when parsing IPv6 addresses" do
 
   it "should raise an error for " +
       "'http://[<invalid>]/'" do
-    expect(lambda do
+    expect do
       Addressable::URI.parse("http://[<invalid>]/")
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
@@ -2100,9 +2100,9 @@ describe Addressable::URI, "when assigning IPv6 address" do
   it "should not allow to set bare IPv6 address as host" do
     uri = Addressable::URI.parse("http://[::1]/")
     skip "not checked"
-    expect(lambda do
+    expect do
       uri.host = '3ffe:1900:4545:3:200:f8ff:fe21:67cf'
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
@@ -2134,9 +2134,9 @@ describe Addressable::URI, "when parsing IPvFuture addresses" do
 
   it "should raise an error for " +
       "'http://[v0.<invalid>]/'" do
-    expect(lambda do
+    expect do
       Addressable::URI.parse("http://[v0.<invalid>]/")
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
@@ -2480,9 +2480,9 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should not raise an exception when normalized" do
-    expect(lambda do
+    expect do
       @uri.normalize
-    end).not_to raise_error
+    end.not_to raise_error
   end
 
   it "should be considered to be in normal form" do
@@ -2534,9 +2534,9 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should not raise an exception when normalized" do
-    expect(lambda do
+    expect do
       @uri.normalize
-    end).not_to raise_error
+    end.not_to raise_error
   end
 
   it "should be considered to be in normal form" do
@@ -2559,9 +2559,9 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should not raise an exception when normalized" do
-    expect(lambda do
+    expect do
       @uri.normalize
-    end).not_to raise_error
+    end.not_to raise_error
   end
 
   it "should be considered to be in normal form" do
@@ -2597,9 +2597,9 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should raise an error if encoding with an unexpected return type" do
-    expect(lambda do
+    expect do
       Addressable::URI.normalized_encode(@uri, Integer)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "if percent encoded should be 'http://example.com/C%25CC%25A7'" do
@@ -2615,9 +2615,9 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should raise an error if encoding with an unexpected return type" do
-    expect(lambda do
+    expect do
       Addressable::URI.encode(@uri, Integer)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should be identical to its duplicate" do
@@ -2752,9 +2752,9 @@ describe Addressable::URI, "when parsed from " +
 
   it "should not be roughly equal to the string " +
       "'http://example.com:bogus/'" do
-    expect(lambda do
+    expect do
       expect(@uri === "http://example.com:bogus/").to eq(false)
-    end).not_to raise_error
+    end.not_to raise_error
   end
 
   it "should result in itself when joined with itself" do
@@ -3100,9 +3100,9 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should become invalid when normalized" do
-    expect(lambda do
+    expect do
       @uri.normalize
-    end).to raise_error(Addressable::URI::InvalidURIError, /authority/)
+    end.to raise_error(Addressable::URI::InvalidURIError, /authority/)
   end
 
   it "should have a path of '/..//example.com'" do
@@ -3340,12 +3340,12 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should raise an error if routing is attempted" do
-    expect(lambda do
+    expect do
       @uri.route_to("http://example.com/")
-    end).to raise_error(ArgumentError, /relative\/path\/to\/resource/)
-    expect(lambda do
+    end.to raise_error(ArgumentError, /relative\/path\/to\/resource/)
+    expect do
       @uri.route_from("http://example.com/")
-    end).to raise_error(ArgumentError, /relative\/path\/to\/resource/)
+    end.to raise_error(ArgumentError, /relative\/path\/to\/resource/)
   end
 
   it "when joined with 'another/relative/path' should be " +
@@ -3942,9 +3942,9 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should raise an error if assigning a bogus object to the hostname" do
-    expect(lambda do
+    expect do
       @uri.hostname = Object.new
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should have the correct port after assignment" do
@@ -4023,9 +4023,9 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should raise an error if query values are set to a bogus type" do
-    expect(lambda do
+    expect do
       @uri.query_values = "bogus"
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should have the correct fragment after assignment" do
@@ -4097,39 +4097,39 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should fail to merge with bogus values" do
-    expect(lambda do
+    expect do
       @uri.merge(:port => "bogus")
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should fail to merge with bogus values" do
-    expect(lambda do
+    expect do
       @uri.merge(:authority => "bar@baz:bogus")
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should fail to merge with bogus parameters" do
-    expect(lambda do
+    expect do
       @uri.merge(42)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should fail to merge with bogus parameters" do
-    expect(lambda do
+    expect do
       @uri.merge("http://example.com/")
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should fail to merge with both authority and subcomponents" do
-    expect(lambda do
+    expect do
       @uri.merge(:authority => "foo:bar@baz:42", :port => "42")
-    end).to raise_error(ArgumentError)
+    end.to raise_error(ArgumentError)
   end
 
   it "should fail to merge with both userinfo and subcomponents" do
-    expect(lambda do
+    expect do
       @uri.merge(:userinfo => "foo:bar", :user => "foo")
-    end).to raise_error(ArgumentError)
+    end.to raise_error(ArgumentError)
   end
 
   it "should be identical to its duplicate" do
@@ -4464,10 +4464,10 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should raise an error after nil assignment of authority segment" do
-    expect(lambda do
+    expect do
       # This would create an invalid URI
       @uri.authority = nil
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 end
 
@@ -4696,12 +4696,12 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should raise an error if routing is attempted" do
-    expect(lambda do
+    expect do
       @uri.route_to("http://example.com/")
-    end).to raise_error(ArgumentError, /\/\/example.com\//)
-    expect(lambda do
+    end.to raise_error(ArgumentError, /\/\/example.com\//)
+    expect do
       @uri.route_from("http://example.com/")
-    end).to raise_error(ArgumentError, /\/\/example.com\//)
+    end.to raise_error(ArgumentError, /\/\/example.com\//)
   end
 
   it "should have a 'null' origin" do
@@ -4795,9 +4795,9 @@ end
 describe Addressable::URI, "when parsed from " +
     "'http://under_score.example.com/'" do
   it "should not cause an error" do
-    expect(lambda do
+    expect do
       Addressable::URI.parse("http://under_score.example.com/")
-    end).not_to raise_error
+    end.not_to raise_error
   end
 end
 
@@ -4869,9 +4869,9 @@ describe Addressable::URI, "when parsed from '?one=1&two=2&three=3'" do
   end
 
   it "should raise an error for invalid return type values" do
-    expect(lambda do
+    expect do
       @uri.query_values(Integer)
-    end).to raise_error(ArgumentError)
+    end.to raise_error(ArgumentError)
   end
 
   it "should have the correct array query values" do
@@ -5472,9 +5472,9 @@ describe Addressable::URI, "with a base uri of 'http://a/b/c/d;p?q'" do
   end
 
   it "when joined with a bogus object a TypeError should be raised" do
-    expect(lambda do
+    expect do
       Addressable::URI.join(@uri, 42)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
@@ -5501,9 +5501,9 @@ end
 
 describe Addressable::URI, "when converting a bogus path" do
   it "should raise a TypeError" do
-    expect(lambda do
+    expect do
       Addressable::URI.convert_path(42)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
@@ -5698,9 +5698,9 @@ describe Addressable::URI, "when parsing a non-String object" do
   end
 
   it "should raise a TypeError for objects than cannot be converted" do
-    expect(lambda do
+    expect do
       Addressable::URI.parse(42)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should correctly parse heuristically anything with a 'to_str' method" do
@@ -5708,9 +5708,9 @@ describe Addressable::URI, "when parsing a non-String object" do
   end
 
   it "should raise a TypeError for objects than cannot be converted" do
-    expect(lambda do
+    expect do
       Addressable::URI.heuristic_parse(42)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
@@ -5754,9 +5754,9 @@ end
 
 describe Addressable::URI, "when form encoding a non-Array object" do
   it "should raise a TypeError for objects than cannot be converted" do
-    expect(lambda do
+    expect do
       Addressable::URI.form_encode(42)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
@@ -5822,9 +5822,9 @@ describe Addressable::URI, "when form unencoding a non-String object" do
   end
 
   it "should raise a TypeError for objects than cannot be converted" do
-    expect(lambda do
+    expect do
       Addressable::URI.form_unencode(42)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
@@ -5834,15 +5834,15 @@ describe Addressable::URI, "when normalizing a non-String object" do
   end
 
   it "should raise a TypeError for objects than cannot be converted" do
-    expect(lambda do
+    expect do
       Addressable::URI.normalize_component(42)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should raise a TypeError for objects than cannot be converted" do
-    expect(lambda do
+    expect do
       Addressable::URI.normalize_component("component", 42)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
@@ -5998,41 +5998,41 @@ end
 
 describe Addressable::URI, "when unencoding a bogus object" do
   it "should raise a TypeError" do
-    expect(lambda do
+    expect do
       Addressable::URI.unencode_component(42)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should raise a TypeError" do
-    expect(lambda do
+    expect do
       Addressable::URI.unencode("/path?g%C3%BCnther", Integer)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
 describe Addressable::URI, "when encoding a bogus object" do
   it "should raise a TypeError" do
-    expect(lambda do
+    expect do
       Addressable::URI.encode(Object.new)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should raise a TypeError" do
-    expect(lambda do
+    expect do
       Addressable::URI.normalized_encode(Object.new)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should raise a TypeError" do
-    expect(lambda do
+    expect do
       Addressable::URI.encode_component("günther", Object.new)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should raise a TypeError" do
-    expect(lambda do
+    expect do
       Addressable::URI.encode_component(Object.new)
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 end
 
@@ -6048,9 +6048,9 @@ describe Addressable::URI, "when given the input " +
   end
 
   it "should not raise error when frozen" do
-    expect(lambda do
+    expect do
       Addressable::URI.heuristic_parse(@input).freeze.to_s
-    end).not_to raise_error
+    end.not_to raise_error
   end
 end
 
@@ -6463,54 +6463,54 @@ describe Addressable::URI, "when assigning query values" do
   end
 
   it "should raise an error attempting to assign {'a' => {'b' => ['c']}}" do
-    expect(lambda do
+    expect do
       @uri.query_values = { 'a' => {'b' => ['c'] } }
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should raise an error attempting to assign " +
       "{:b => '2', :a => {:c => '1'}}" do
-    expect(lambda do
+    expect do
       @uri.query_values = {:b => '2', :a => {:c => '1'}}
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should raise an error attempting to assign " +
       "{:a => 'a', :b => [{:c => 'c', :d => 'd'}, " +
       "{:e => 'e', :f => 'f'}]}" do
-    expect(lambda do
+    expect do
       @uri.query_values = {
         :a => "a", :b => [{:c => "c", :d => "d"}, {:e => "e", :f => "f"}]
       }
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should raise an error attempting to assign " +
       "{:a => 'a', :b => [{:c => true, :d => 'd'}, " +
       "{:e => 'e', :f => 'f'}]}" do
-    expect(lambda do
+    expect do
       @uri.query_values = {
         :a => 'a', :b => [{:c => true, :d => 'd'}, {:e => 'e', :f => 'f'}]
       }
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should raise an error attempting to assign " +
       "{:a => 'a', :b => {:c => true, :d => 'd'}}" do
-    expect(lambda do
+    expect do
       @uri.query_values = {
         :a => 'a', :b => {:c => true, :d => 'd'}
       }
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should raise an error attempting to assign " +
       "{:a => 'a', :b => {:c => true, :d => 'd'}}" do
-    expect(lambda do
+    expect do
       @uri.query_values = {
         :a => 'a', :b => {:c => true, :d => 'd'}
       }
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should correctly assign {:a => 1, :b => 1.5}" do
@@ -6521,13 +6521,13 @@ describe Addressable::URI, "when assigning query values" do
   it "should raise an error attempting to assign " +
       "{:z => 1, :f => [2, {999.1 => [3,'4']}, ['h', 'i']], " +
       ":a => {:b => ['c', 'd'], :e => true, :y => 0.5}}" do
-    expect(lambda do
+    expect do
       @uri.query_values = {
         :z => 1,
         :f => [ 2, {999.1 => [3,'4']}, ['h', 'i'] ],
         :a => { :b => ['c', 'd'], :e => true, :y => 0.5 }
       }
-    end).to raise_error(TypeError)
+    end.to raise_error(TypeError)
   end
 
   it "should correctly assign {}" do
@@ -6577,7 +6577,7 @@ describe Addressable::URI, "when assigning path values" do
     @uri.path = "acct:bob@sporkmonger.com"
     expect(@uri.path).to eq("acct:bob@sporkmonger.com")
     expect(@uri.normalize.to_str).to eq("acct%2Fbob@sporkmonger.com")
-    expect(lambda { @uri.to_s }).to raise_error(
+    expect { @uri.to_s }.to raise_error(
       Addressable::URI::InvalidURIError
     )
   end
@@ -6595,26 +6595,26 @@ describe Addressable::URI, "when assigning path values" do
   end
 
   it "should not allow relative paths to be assigned on absolute URIs" do
-    expect(lambda do
+    expect do
       @uri.scheme = "http"
       @uri.host = "example.com"
       @uri.path = "acct:bob@sporkmonger.com"
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should not allow relative paths to be assigned on absolute URIs" do
-    expect(lambda do
+    expect do
       @uri.path = "acct:bob@sporkmonger.com"
       @uri.scheme = "http"
       @uri.host = "example.com"
-    end).to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
   it "should not allow relative paths to be assigned on absolute URIs" do
-    expect(lambda do
+    expect do
       @uri.path = "uuid:0b3ecf60-3f93-11df-a9c3-001f5bfffe12"
       @uri.scheme = "urn"
-    end).not_to raise_error
+    end.not_to raise_error
   end
 end
 
