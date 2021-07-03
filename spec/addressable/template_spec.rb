@@ -19,6 +19,7 @@
 require "spec_helper"
 
 require "bigdecimal"
+require "timeout"
 require "addressable/template"
 
 shared_examples_for 'expands' do |tests|
@@ -1339,6 +1340,14 @@ describe Addressable::Template do
         expect(subject).not_to match("foo_ba%r")
         expect(subject).not_to match("foo_bar*")
         expect(subject).not_to match("foo_bar:20")
+      end
+
+      it 'should parse in a reasonable time' do
+        expect do
+          Timeout.timeout(0.1) do
+            expect(subject).not_to match("0"*25 + "!")
+          end
+        end.not_to raise_error
       end
     end
     context "VARIABLE_LIST" do

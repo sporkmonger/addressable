@@ -37,7 +37,7 @@ module Addressable
       Addressable::URI::CharacterClasses::DIGIT + '_'
 
     var_char =
-      "(?:(?:[#{variable_char_class}]|%[a-fA-F0-9][a-fA-F0-9])+)"
+      "(?>(?:[#{variable_char_class}]|%[a-fA-F0-9][a-fA-F0-9])+)"
     RESERVED =
       "(?:[#{anything}]|%[a-fA-F0-9][a-fA-F0-9])"
     UNRESERVED =
