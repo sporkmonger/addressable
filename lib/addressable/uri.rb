@@ -906,7 +906,7 @@ module Addressable
         new_scheme = new_scheme.to_str
       end
       if new_scheme && new_scheme !~ /\A[a-z][a-z0-9\.\+\-]*\z/i
-        raise InvalidURIError, "Invalid scheme format: #{new_scheme}"
+        raise InvalidURIError, "Invalid scheme format: '#{new_scheme}'"
       end
       @scheme = new_scheme
       @scheme = nil if @scheme.to_s.strip.empty?
