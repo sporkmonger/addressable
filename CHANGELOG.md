@@ -1,3 +1,8 @@
+# Addressable 2.8.0
+- adding Ruby 3.0 compatibility for development tasks
+- drop support for `rack-mount` and remove related Addressable::Template#generate
+- switch CI/CD to GitHub Actions
+
 # Addressable 2.7.0
 - added `:compacted` flag to `normalized_query`
 - `heuristic_parse` handles `mailto:` more intuitively
