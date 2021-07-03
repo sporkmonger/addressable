@@ -16,6 +16,15 @@ rescue LoadError
     add_filter "spec/"
     add_filter "vendor/"
   end
+end if Gem.loaded_specs.key?("simplecov")
+
+class TestHelper
+  def self.native_supported?
+    mri = RUBY_ENGINE == "ruby"
+    windows = RUBY_PLATFORM.include?("mingw")
+
+    mri && !windows
+  end
 end
 
 RSpec.configure do |config|
