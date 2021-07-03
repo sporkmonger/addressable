@@ -85,7 +85,7 @@ module Addressable
     end
 
     def unescaped_backslashes?
-      return unless unescaped_backslashes_exist?
+      return false unless unescaped_backslashes_exist?
 
       unescaped_backslashes !~ URI::UNRESERVED_SUB_DELIMITERS_REGEXP
     end
