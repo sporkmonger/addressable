@@ -271,49 +271,49 @@ describe Addressable::URI, "when created from nil components" do
   it "should raise an error if the scheme is set to whitespace" do
     expect do
       @uri.scheme = "\t \n"
-    end.to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'\t \n'/)
   end
 
   it "should raise an error if the scheme is set to all digits" do
     expect do
       @uri.scheme = "123"
-    end.to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'123'/)
   end
 
   it "should raise an error if the scheme begins with a digit" do
     expect do
       @uri.scheme = "1scheme"
-    end.to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'1scheme'/)
   end
 
   it "should raise an error if the scheme begins with a plus" do
     expect do
       @uri.scheme = "+scheme"
-    end.to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'\+scheme'/)
   end
 
   it "should raise an error if the scheme begins with a dot" do
     expect do
       @uri.scheme = ".scheme"
-    end.to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'\.scheme'/)
   end
 
   it "should raise an error if the scheme begins with a dash" do
     expect do
       @uri.scheme = "-scheme"
-    end.to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'-scheme'/)
   end
 
   it "should raise an error if the scheme contains an illegal character" do
     expect do
       @uri.scheme = "scheme!"
-    end.to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'scheme!'/)
   end
 
   it "should raise an error if the scheme contains whitespace" do
     expect do
       @uri.scheme = "sch eme"
-    end.to raise_error(Addressable::URI::InvalidURIError)
+    end.to raise_error(Addressable::URI::InvalidURIError, /'sch eme'/)
   end
 
   it "should raise an error if the scheme contains a newline" do
