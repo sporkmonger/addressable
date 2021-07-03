@@ -1,8 +1,9 @@
 # Addressable 2.8.0
+- no longer replaces `+` with spaces in queries for non-http(s) schemes
 - fixed encoding ipv6 literals
 - dropping support for Ruby 2.0 and 2.1
 - adding Ruby 3.0 compatibility for development tasks
-- drop support for `rack-mount` and remove related Addressable::Template#generate
+- drop support for `rack-mount` and remove Addressable::Template#generate
 - performance improvements
 - switch CI/CD to GitHub Actions
 
