@@ -5884,6 +5884,18 @@ describe Addressable::URI, "when normalizing a string but leaving some character
   end
 end
 
+describe Addressable::URI, "when encoding IP literals" do
+  it "should work for IPv4" do
+    input = "http://127.0.0.1/"
+    expect(Addressable::URI.encode(input)).to eq(input)
+  end
+
+  it "should work for IPv6" do
+    input = "http://[fe80::200:f8ff:fe21:67cf]/"
+    expect(Addressable::URI.encode(input)).to eq(input)
+  end
+end
+
 describe Addressable::URI, "when encoding a string with existing encodings to upcase" do
   it "should result in correct percent encoded sequence" do
     expect(Addressable::URI.encode_component("JK%4c", "0-9A-IKM-Za-z%", "L")).to eq("%4AK%4C")
