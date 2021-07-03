@@ -5,7 +5,7 @@ require "rspec/core/rake_task"
 namespace :spec do
   RSpec::Core::RakeTask.new(:simplecov) do |t|
     t.pattern = FileList['spec/**/*_spec.rb']
-    t.rspec_opts = ['--color', '--format', 'documentation']
+    t.rspec_opts = %w[--color --format documentation] unless ENV["CI"]
   end
 
   namespace :simplecov do

@@ -412,7 +412,7 @@ module Addressable
     #   match.captures
     #   #=> ["a", ["b", "c"]]
     def match(uri, processor=nil)
-      uri = Addressable::URI.parse(uri)
+      uri = Addressable::URI.parse(uri) unless uri.is_a?(Addressable::URI)
       mapping = {}
 
       # First, we need to process the pattern, and extract the values.
@@ -651,40 +651,6 @@ module Addressable
     # @api private
     def named_captures
       self.to_regexp.named_captures
-    end
-
-    ##
-    # Generates a route result for a given set of parameters.
-    # Should only be used by rack-mount.
-    #
-    # @param params [Hash] The set of parameters used to expand the template.
-    # @param recall [Hash] Default parameters used to expand the template.
-    # @param options [Hash] Either a `:processor` or a `:parameterize` block.
-    #
-    # @api private
-    def generate(params={}, recall={}, options={})
-      merged = recall.merge(params)
-      if options[:processor]
-        processor = options[:processor]
-      elsif options[:parameterize]
-        # TODO: This is sending me into fits trying to shoe-horn this into
-        # the existing API. I think I've got this backwards and processors
-        # should be a set of 4 optional blocks named :validate, :transform,
-        # :match, and :restore. Having to use a singleton here is a huge
-        # code smell.
-        processor = Object.new
-        class <<processor
-          attr_accessor :block
-          def transform(name, value)
-            block.call(name, value)
-          end
-        end
-        processor.block = options[:parameterize]
-      else
-        processor = nil
-      end
-      result = self.expand(merged, processor)
-      result.to_s if result
     end
 
   private
@@ -974,14 +940,34 @@ module Addressable
     end
 
     ##
+    # Generates the <tt>Regexp</tt> that parses a template pattern. Memoizes the
+    # value if template processor not set (processors may not be deterministic)
+    #
+    # @param [String] pattern The URI template pattern.
+    # @param [#match] processor The template processor to use.
+    #
+    # @return [Array, Regexp]
+    #   An array of expansion variables nad a regular expression which may be
+    #   used to parse a template pattern
+    def parse_template_pattern(pattern, processor = nil)
+      if processor.nil? && pattern == @pattern
+        @cached_template_parse ||=
+          parse_new_template_pattern(pattern, processor)
+      else
+        parse_new_template_pattern(pattern, processor)
+      end
+    end
+
+    ##
     # Generates the <tt>Regexp</tt> that parses a template pattern.
     #
     # @param [String] pattern The URI template pattern.
     # @param [#match] processor The template processor to use.
     #
-    # @return [Regexp]
-    #   A regular expression which may be used to parse a template pattern.
-    def parse_template_pattern(pattern, processor=nil)
+    # @return [Array, Regexp]
+    #   An array of expansion variables nad a regular expression which may be
+    #   used to parse a template pattern
+    def parse_new_template_pattern(pattern, processor = nil)
       # Escape the pattern. The two gsubs restore the escaped curly braces
       # back to their original form. Basically, escape everything that isn't
       # within an expansion.

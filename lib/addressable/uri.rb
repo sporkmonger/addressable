@@ -48,10 +48,19 @@ module Addressable
       PCHAR = UNRESERVED + SUB_DELIMS + "\\:\\@"
       SCHEME = ALPHA + DIGIT + "\\-\\+\\."
       HOST = UNRESERVED + SUB_DELIMS + "\\[\\:\\]"
-      AUTHORITY = PCHAR
+      AUTHORITY = PCHAR + "\\[\\:\\]"
       PATH = PCHAR + "\\/"
       QUERY = PCHAR + "\\/\\?"
       FRAGMENT = PCHAR + "\\/\\?"
+    end
+
+    module NormalizeCharacterClasses
+      HOST = /[^#{CharacterClasses::HOST}]/
+      UNRESERVED = /[^#{CharacterClasses::UNRESERVED}]/
+      PCHAR = /[^#{CharacterClasses::PCHAR}]/
+      SCHEME = /[^#{CharacterClasses::SCHEME}]/
+      FRAGMENT = /[^#{CharacterClasses::FRAGMENT}]/
+      QUERY = %r{[^a-zA-Z0-9\-\.\_\~\!\$\'\(\)\*\+\,\=\:\@\/\?%]|%(?!2B|2b)}
     end
 
     SLASH = '/'
@@ -73,7 +82,7 @@ module Addressable
       "wais" => 210,
       "ldap" => 389,
       "prospero" => 1525
-    }
+    }.freeze
 
     ##
     # Returns a URI object based on the parsed string.
@@ -463,7 +472,11 @@ module Addressable
       uri = uri.dup
       # Seriously, only use UTF-8. I'm really not kidding!
       uri.force_encoding("utf-8")
-      leave_encoded = leave_encoded.dup.force_encoding("utf-8")
+
+      unless leave_encoded.empty?
+        leave_encoded = leave_encoded.dup.force_encoding("utf-8")
+      end
+
       result = uri.gsub(/%[0-9a-f]{2}/iu) do |sequence|
         c = sequence[1..3].to_i(16).chr
         c.force_encoding("utf-8")
@@ -554,7 +567,11 @@ module Addressable
           end.flatten.join('|')})"
         end
 
-        character_class = /[^#{character_class}]#{leave_re}/
+        character_class = if leave_re
+                            /[^#{character_class}]#{leave_re}/
+                          else
+                            /[^#{character_class}]/
+                          end
       end
       # We can't perform regexps on invalid UTF sequences, but
       # here we need to, so switch to ASCII.
@@ -878,7 +895,7 @@ module Addressable
         else
           Addressable::URI.normalize_component(
             self.scheme.strip.downcase,
-            Addressable::URI::CharacterClasses::SCHEME
+            Addressable::URI::NormalizeCharacterClasses::SCHEME
           )
         end
       end
@@ -898,7 +915,7 @@ module Addressable
         new_scheme = new_scheme.to_str
       end
       if new_scheme && new_scheme !~ /\A[a-z][a-z0-9\.\+\-]*\z/i
-        raise InvalidURIError, "Invalid scheme format: #{new_scheme}"
+        raise InvalidURIError, "Invalid scheme format: '#{new_scheme}'"
       end
       @scheme = new_scheme
       @scheme = nil if @scheme.to_s.strip.empty?
@@ -933,7 +950,7 @@ module Addressable
         else
           Addressable::URI.normalize_component(
             self.user.strip,
-            Addressable::URI::CharacterClasses::UNRESERVED
+            Addressable::URI::NormalizeCharacterClasses::UNRESERVED
           )
         end
       end
@@ -990,7 +1007,7 @@ module Addressable
         else
           Addressable::URI.normalize_component(
             self.password.strip,
-            Addressable::URI::CharacterClasses::UNRESERVED
+            Addressable::URI::NormalizeCharacterClasses::UNRESERVED
           )
         end
       end
@@ -1114,6 +1131,7 @@ module Addressable
     # @return [String] The host component, normalized.
     def normalized_host
       return nil unless self.host
+
       @normalized_host ||= begin
         if !self.host.strip.empty?
           result = ::Addressable::IDNA.to_ascii(
@@ -1125,14 +1143,17 @@ module Addressable
           end
           result = Addressable::URI.normalize_component(
             result,
-            CharacterClasses::HOST)
+            NormalizeCharacterClasses::HOST
+          )
           result
         else
           EMPTY_STR.dup
         end
       end
       # All normalized values should be UTF-8
-      @normalized_host.force_encoding(Encoding::UTF_8) if @normalized_host
+      if @normalized_host && !@normalized_host.empty?
+        @normalized_host.force_encoding(Encoding::UTF_8)
+      end
       @normalized_host
     end
 
@@ -1537,7 +1558,7 @@ module Addressable
         result = path.strip.split(SLASH, -1).map do |segment|
           Addressable::URI.normalize_component(
             segment,
-            Addressable::URI::CharacterClasses::PCHAR
+            Addressable::URI::NormalizeCharacterClasses::PCHAR
           )
         end.join(SLASH)
 
@@ -1616,7 +1637,11 @@ module Addressable
         pairs.delete_if(&:empty?).uniq! if flags.include?(:compacted)
         pairs.sort! if flags.include?(:sorted)
         component = pairs.map do |pair|
-          Addressable::URI.normalize_component(pair, modified_query_class, "+")
+          Addressable::URI.normalize_component(
+            pair,
+            Addressable::URI::NormalizeCharacterClasses::QUERY,
+            "+"
+          )
         end.join("&")
         component == "" ? nil : component
       end
@@ -1675,11 +1700,13 @@ module Addressable
         # so it's best to make all changes in-place.
         pair[0] = URI.unencode_component(pair[0])
         if pair[1].respond_to?(:to_str)
+          value = pair[1].to_str
           # I loathe the fact that I have to do this. Stupid HTML 4.01.
           # Treating '+' as a space was just an unbelievably bad idea.
           # There was nothing wrong with '%20'!
           # If it ain't broke, don't fix it!
-          pair[1] = URI.unencode_component(pair[1].to_str.tr("+", " "))
+          value = value.tr("+", " ") if ["http", "https", nil].include?(scheme)
+          pair[1] = URI.unencode_component(value)
         end
         if return_type == Hash
           accu[pair[0]] = pair[1]
@@ -1810,7 +1837,7 @@ module Addressable
       @normalized_fragment ||= begin
         component = Addressable::URI.normalize_component(
           self.fragment,
-          Addressable::URI::CharacterClasses::FRAGMENT
+          Addressable::URI::NormalizeCharacterClasses::FRAGMENT
         )
         component == "" ? nil : component
       end

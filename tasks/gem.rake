@@ -11,7 +11,6 @@ namespace :gem do
 
     s.files = PKG_FILES.to_a
 
-    s.has_rdoc = true
     s.extra_rdoc_files = %w( README.md )
     s.rdoc_options.concat ["--main",  "README.md"]
 

@@ -1,7 +1,15 @@
+# Addressable 2.8.0
+- no longer replaces `+` with spaces in queries for non-http(s) schemes
+- fixed encoding ipv6 literals
+- dropping support for Ruby 2.0 and 2.1
+- adding Ruby 3.0 compatibility for development tasks
+- drop support for `rack-mount` and remove Addressable::Template#generate
+- performance improvements
+- switch CI/CD to GitHub Actions
+
 # Addressable 2.7.0
 - added `:compacted` flag to `normalized_query`
 - `heuristic_parse` handles `mailto:` more intuitively
-- refactored validation to use a prepended module
 - dropped explicit support for JRuby 9.0.5.0
 - compatibility w/ public_suffix 4.x
 - performance improvements

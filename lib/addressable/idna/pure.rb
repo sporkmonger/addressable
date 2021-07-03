@@ -178,43 +178,45 @@ module Addressable
       end
 
       p = []
-      ucs4_to_utf8 = lambda do |ch|
-        if ch < 128
-          p << ch
-        elsif ch < 2048
-          p << (ch >> 6 | 192)
-          p << (ch & 63 | 128)
-        elsif ch < 0x10000
-          p << (ch >> 12 | 224)
-          p << (ch >> 6 & 63 | 128)
-          p << (ch & 63 | 128)
-        elsif ch < 0x200000
-          p << (ch >> 18 | 240)
-          p << (ch >> 12 & 63 | 128)
-          p << (ch >> 6 & 63 | 128)
-          p << (ch & 63 | 128)
-        elsif ch < 0x4000000
-          p << (ch >> 24 | 248)
-          p << (ch >> 18 & 63 | 128)
-          p << (ch >> 12 & 63 | 128)
-          p << (ch >> 6 & 63 | 128)
-          p << (ch & 63 | 128)
-        elsif ch < 0x80000000
-          p << (ch >> 30 | 252)
-          p << (ch >> 24 & 63 | 128)
-          p << (ch >> 18 & 63 | 128)
-          p << (ch >> 12 & 63 | 128)
-          p << (ch >> 6 & 63 | 128)
-          p << (ch & 63 | 128)
-        end
-      end
 
-      ucs4_to_utf8.call(ch_one)
-      ucs4_to_utf8.call(ch_two)
+      ucs4_to_utf8(ch_one, p)
+      ucs4_to_utf8(ch_two, p)
 
       return lookup_unicode_composition(p)
     end
     private_class_method :unicode_compose_pair
+
+    def self.ucs4_to_utf8(char, buffer)
+      if char < 128
+        buffer << char
+      elsif char < 2048
+        buffer << (char >> 6 | 192)
+        buffer << (char & 63 | 128)
+      elsif char < 0x10000
+        buffer << (char >> 12 | 224)
+        buffer << (char >> 6 & 63 | 128)
+        buffer << (char & 63 | 128)
+      elsif char < 0x200000
+        buffer << (char >> 18 | 240)
+        buffer << (char >> 12 & 63 | 128)
+        buffer << (char >> 6 & 63 | 128)
+        buffer << (char & 63 | 128)
+      elsif char < 0x4000000
+        buffer << (char >> 24 | 248)
+        buffer << (char >> 18 & 63 | 128)
+        buffer << (char >> 12 & 63 | 128)
+        buffer << (char >> 6 & 63 | 128)
+        buffer << (char & 63 | 128)
+      elsif char < 0x80000000
+        buffer << (char >> 30 | 252)
+        buffer << (char >> 24 & 63 | 128)
+        buffer << (char >> 18 & 63 | 128)
+        buffer << (char >> 12 & 63 | 128)
+        buffer << (char >> 6 & 63 | 128)
+        buffer << (char & 63 | 128)
+      end
+    end
+    private_class_method :ucs4_to_utf8
 
     def self.unicode_sort_canonical(unpacked)
       unpacked = unpacked.dup

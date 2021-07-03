@@ -7,15 +7,15 @@
   <dt>License</dt><dd>Apache 2.0</dd>
 </dl>
 
-[![Gem Version](http://img.shields.io/gem/dt/addressable.svg)][gem]
-[![Build Status](https://secure.travis-ci.org/sporkmonger/addressable.svg?branch=master)][travis]
+[![Gem Version](https://img.shields.io/gem/dt/addressable.svg)][gem]
+[![Build Status](https://github.com/sporkmonger/addressable/workflows/CI/badge.svg)][actions]
 [![Test Coverage Status](https://img.shields.io/coveralls/sporkmonger/addressable.svg)][coveralls]
-[![Documentation Coverage Status](http://inch-ci.org/github/sporkmonger/addressable.svg?branch=master)][inch]
+[![Documentation Coverage Status](https://inch-ci.org/github/sporkmonger/addressable.svg?branch=master)][inch]
 
 [gem]: https://rubygems.org/gems/addressable
-[travis]: http://travis-ci.org/sporkmonger/addressable
+[actions]: https://github.com/sporkmonger/addressable/actions
 [coveralls]: https://coveralls.io/r/sporkmonger/addressable
-[inch]: http://inch-ci.org/github/sporkmonger/addressable
+[inch]: https://inch-ci.org/github/sporkmonger/addressable
 
 # Description
 
@@ -98,7 +98,7 @@ You may optionally turn on native IDN support by installing libidn and the
 idn gem:
 
 ```console
-$ sudo apt-get install idn # Debian/Ubuntu
+$ sudo apt-get install libidn11-dev # Debian/Ubuntu
 $ brew install libidn # OS X
 $ gem install idn-ruby
 ```
