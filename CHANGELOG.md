@@ -2,6 +2,7 @@
 - dropping support for Ruby 2.0 and 2.1
 - adding Ruby 3.0 compatibility for development tasks
 - drop support for `rack-mount` and remove related Addressable::Template#generate
+- performance improvements
 - switch CI/CD to GitHub Actions
 
 # Addressable 2.7.0
