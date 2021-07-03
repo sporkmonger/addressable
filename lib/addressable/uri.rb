@@ -1630,8 +1630,11 @@ module Addressable
       return nil unless self.query
       return @normalized_query if defined?(@normalized_query)
       @normalized_query ||= begin
-        pairs = (self.query || "").split("&", -1)
-        pairs.delete_if(&:empty?) if flags.include?(:compacted)
+        modified_query_class = Addressable::URI::CharacterClasses::QUERY.dup
+        # Make sure possible key-value pair delimiters are escaped.
+        modified_query_class.sub!("\\&", "").sub!("\\;", "")
+        pairs = (query || "").split("&", -1)
+        pairs.delete_if(&:empty?).uniq! if flags.include?(:compacted)
         pairs.sort! if flags.include?(:sorted)
         component = pairs.map do |pair|
           Addressable::URI.normalize_component(

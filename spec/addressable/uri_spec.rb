@@ -4353,6 +4353,26 @@ describe Addressable::URI, "when parsed from 'http://example/?&a&&c&'" do
   end
 end
 
+describe Addressable::URI, "when parsed from 'http://example.com/?a=1&a=1'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/?a=1&a=1")
+  end
+
+  it "should have a compacted normalized query of 'a=1'" do
+    expect(@uri.normalized_query(:compacted)).to eq("a=1")
+  end
+end
+
+describe Addressable::URI, "when parsed from 'http://example.com/?a=1&a=2'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/?a=1&a=2")
+  end
+
+  it "should have a compacted normalized query of 'a=1&a=2'" do
+    expect(@uri.normalized_query(:compacted)).to eq("a=1&a=2")
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://example.com/sound%2bvision'" do
   before do
