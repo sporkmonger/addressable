@@ -1,4 +1,5 @@
 # Addressable 2.8.0
+- fixes ReDoS vulnerability in Addressable::Template#match
 - no longer replaces `+` with spaces in queries for non-http(s) schemes
 - fixed encoding ipv6 literals
 - the `:compacted` flag for `normalized_query` now dedupes parameters
