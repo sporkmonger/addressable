@@ -412,7 +412,7 @@ module Addressable
     #   match.captures
     #   #=> ["a", ["b", "c"]]
     def match(uri, processor=nil)
-      uri = Addressable::URI.parse(uri)
+      uri = Addressable::URI.parse(uri) unless uri.is_a?(Addressable::URI)
       mapping = {}
 
       # First, we need to process the pattern, and extract the values.
@@ -940,14 +940,34 @@ module Addressable
     end
 
     ##
+    # Generates the <tt>Regexp</tt> that parses a template pattern. Memoizes the
+    # value if template processor not set (processors may not be deterministic)
+    #
+    # @param [String] pattern The URI template pattern.
+    # @param [#match] processor The template processor to use.
+    #
+    # @return [Array, Regexp]
+    #   An array of expansion variables nad a regular expression which may be
+    #   used to parse a template pattern
+    def parse_template_pattern(pattern, processor = nil)
+      if processor.nil? && pattern == @pattern
+        @cached_template_parse ||=
+          parse_new_template_pattern(pattern, processor)
+      else
+        parse_new_template_pattern(pattern, processor)
+      end
+    end
+
+    ##
     # Generates the <tt>Regexp</tt> that parses a template pattern.
     #
     # @param [String] pattern The URI template pattern.
     # @param [#match] processor The template processor to use.
     #
-    # @return [Regexp]
-    #   A regular expression which may be used to parse a template pattern.
-    def parse_template_pattern(pattern, processor=nil)
+    # @return [Array, Regexp]
+    #   An array of expansion variables nad a regular expression which may be
+    #   used to parse a template pattern
+    def parse_new_template_pattern(pattern, processor = nil)
       # Escape the pattern. The two gsubs restore the escaped curly braces
       # back to their original form. Basically, escape everything that isn't
       # within an expansion.
