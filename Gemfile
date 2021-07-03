@@ -22,7 +22,7 @@ end
 
 group :test, :development do
   gem 'memory_profiler'
-  gem "rake", "> 10.0"
+  gem "rake", ">= 12.3.3"
 end
 
 gem "idn-ruby", platform: :mri
