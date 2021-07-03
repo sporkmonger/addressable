@@ -1697,11 +1697,13 @@ module Addressable
         # so it's best to make all changes in-place.
         pair[0] = URI.unencode_component(pair[0])
         if pair[1].respond_to?(:to_str)
+          value = pair[1].to_str
           # I loathe the fact that I have to do this. Stupid HTML 4.01.
           # Treating '+' as a space was just an unbelievably bad idea.
           # There was nothing wrong with '%20'!
           # If it ain't broke, don't fix it!
-          pair[1] = URI.unencode_component(pair[1].to_str.tr("+", " "))
+          value = value.tr("+", " ") if ["http", "https", nil].include?(scheme)
+          pair[1] = URI.unencode_component(value)
         end
         if return_type == Hash
           accu[pair[0]] = pair[1]
