@@ -114,8 +114,7 @@ jobs:
           - { os: windows-2019, ruby: 2.7 }
           - { os: windows-2019, ruby: '3.0' }
           - { os: windows-2019, ruby: jruby-9.1 }
-          # fails with "bundler: command not found: rake"
-          - { os: windows-2019, ruby: jruby-9.2, allow-failure: true }
+          - { os: windows-2019, ruby: jruby-9.2 }
           # allowed to fail
           - { os: ubuntu-18.04, ruby: jruby-head, allow-failure: true }
           - { os: ubuntu-18.04, ruby: truffleruby-head, allow-failure: true }
@@ -149,7 +148,7 @@ jobs:
       - name: Run specs
         continue-on-error: ${{ matrix.allow-failure || false }}
         id: specs
-        run: bundle exec rake
+        run: bundle exec rake spec
 
       # because continue-on-error marks the steps as pass if they fail
       - name: >-
