@@ -99,9 +99,6 @@ jobs:
         include:
           - { os: ubuntu-18.04, ruby: 2.7, gemfile: gemfiles/public_suffix_2.rb }
           - { os: ubuntu-18.04, ruby: 2.7, gemfile: gemfiles/public_suffix_3.rb }
-          # Ubuntu 16.04
-          - { os: ubuntu-16.04, ruby: 2.7 }
-          - { os: ubuntu-16.04, ruby: '3.0' }
           # Ubuntu 20.04
           - { os: ubuntu-20.04, ruby: 2.7 }
           - { os: ubuntu-20.04, ruby: '3.0' }
