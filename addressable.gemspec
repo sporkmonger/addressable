@@ -20,10 +20,6 @@ Gem::Specification.new do |s|
   s.rubygems_version = "3.0.3".freeze
   s.summary = "URI Implementation".freeze
 
-  s.metadata = {
-    "changelog_uri" => "https://github.com/sporkmonger/addressable/blob/main/CHANGELOG.md"
-  }
-
   if s.respond_to? :specification_version then
     s.specification_version = 4
 
