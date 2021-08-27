@@ -30,6 +30,9 @@ namespace :gem do
     s.email = "bob@sporkmonger.com"
     s.homepage = "https://github.com/sporkmonger/addressable"
     s.license = "Apache-2.0"
+    s.metadata = {
+      "changelog_uri" => "https://github.com/sporkmonger/addressable/blob/main/CHANGELOG.md"
+    }
   end
 
   Gem::PackageTask.new(GEM_SPEC) do |p|
