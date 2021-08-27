@@ -90,7 +90,8 @@ jobs:
           - jruby-9.1
           - jruby-9.2
           - jruby-head
-          - truffleruby
+          # truffleruby-21.2 fails due to https://github.com/oracle/truffleruby/issues/2408
+          - truffleruby-21.1
           - truffleruby-head
         os:
           - ubuntu-18.04
@@ -106,11 +107,11 @@ jobs:
           - { os: macos-10.15,  ruby: 2.7 }
           - { os: macos-10.15,  ruby: '3.0' }
           - { os: macos-10.15,  ruby: jruby }
-          - { os: macos-10.15,  ruby: truffleruby }
+          - { os: macos-10.15,  ruby: truffleruby-21.1 }
           - { os: macos-11,     ruby: 2.7 }
           - { os: macos-11,     ruby: '3.0' }
           - { os: macos-11,     ruby: jruby }
-          - { os: macos-11,     ruby: truffleruby }
+          - { os: macos-11,     ruby: truffleruby-21.1 }
           # Windows
           - { os: windows-2019, ruby: 2.7 }
           - { os: windows-2019, ruby: '3.0' }
