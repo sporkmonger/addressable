@@ -2,7 +2,7 @@
 
 source 'https://rubygems.org'
 
-gemspec(path: __FILE__ == "(eval)" ? ".." : ".")
+gemspec
 
 group :test do
   gem 'rspec', '~> 3.8'
