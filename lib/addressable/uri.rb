@@ -2440,7 +2440,7 @@ module Addressable
     def self.normalize_path(path)
       # Section 5.2.4 of RFC 3986
 
-      return nil if path.nil?
+      return if path.nil?
       normalized_path = path.dup
       loop do
         mod ||= normalized_path.gsub!(RULE_2A, SLASH)
@@ -2468,7 +2468,7 @@ module Addressable
         break if mod.nil?
       end
 
-      return normalized_path
+      normalized_path
     end
 
     ##
