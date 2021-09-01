@@ -1061,7 +1061,9 @@ describe Addressable::URI, "when normalized and then deeply frozen" do
   end
 
   it "should not allow destructive operations" do
-    expect { @uri.normalize! }.to raise_error(FrozenError)
+    ruby_check = Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.5.0")
+    error = ruby_check ? RuntimeError : FrozenError
+    expect { @uri.normalize! }.to raise_error(error)
   end
 end
 
