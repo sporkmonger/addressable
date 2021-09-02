@@ -1023,7 +1023,7 @@ module Addressable
       end
 
       # Ensure that the regular expression matches the whole URI.
-      regexp_string = "^#{regexp_string}$"
+      regexp_string = "\\A#{regexp_string}\\z"
       return expansions, Regexp.new(regexp_string)
     end
 
