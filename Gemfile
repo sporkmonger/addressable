@@ -26,3 +26,4 @@ group :test, :development do
 end
 
 gem "idn-ruby", platform: :mri
+
