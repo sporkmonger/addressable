@@ -31,7 +31,8 @@ module Addressable
      end
 
     def self.unicode_normalize_kc(value)
-      IDN::Stringprep.nfkc_normalize(value.to_s)
+      str = value.to_s
+      IDN::Stringprep.nfkc_normalize(str) || str
     end
 
     def self.to_ascii(value)
