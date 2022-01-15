@@ -38,20 +38,26 @@ module Addressable
     ##
     # Container for the character classes specified in
     # <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
+    #
+    # Note: Concatenated and interpolated `String`s are not affected by the
+    #       `frozen_string_literal` directive and must be frozen explicitly.
+    #
+    #       Interpolated `String`s *were* frozen this way before Ruby 3.0:
+    #       https://bugs.ruby-lang.org/issues/17104
     module CharacterClasses
       ALPHA = "a-zA-Z"
       DIGIT = "0-9"
       GEN_DELIMS = "\\:\\/\\?\\#\\[\\]\\@"
       SUB_DELIMS = "\\!\\$\\&\\'\\(\\)\\*\\+\\,\\;\\="
-      RESERVED = GEN_DELIMS + SUB_DELIMS
-      UNRESERVED = ALPHA + DIGIT + "\\-\\.\\_\\~"
-      PCHAR = UNRESERVED + SUB_DELIMS + "\\:\\@"
-      SCHEME = ALPHA + DIGIT + "\\-\\+\\."
-      HOST = UNRESERVED + SUB_DELIMS + "\\[\\:\\]"
-      AUTHORITY = PCHAR + "\\[\\:\\]"
-      PATH = PCHAR + "\\/"
-      QUERY = PCHAR + "\\/\\?"
-      FRAGMENT = PCHAR + "\\/\\?"
+      RESERVED = (GEN_DELIMS + SUB_DELIMS).freeze
+      UNRESERVED = (ALPHA + DIGIT + "\\-\\.\\_\\~").freeze
+      PCHAR = (UNRESERVED + SUB_DELIMS + "\\:\\@").freeze
+      SCHEME = (ALPHA + DIGIT + "\\-\\+\\.").freeze
+      HOST = (UNRESERVED + SUB_DELIMS + "\\[\\:\\]").freeze
+      AUTHORITY = (PCHAR + "\\[\\:\\]").freeze
+      PATH = (PCHAR + "\\/").freeze
+      QUERY = (PCHAR + "\\/\\?").freeze
+      FRAGMENT = (PCHAR + "\\/\\?").freeze
     end
 
     module NormalizeCharacterClasses
