@@ -48,7 +48,7 @@ module Addressable
       PCHAR = UNRESERVED + SUB_DELIMS + "\\:\\@"
       SCHEME = ALPHA + DIGIT + "\\-\\+\\."
       HOST = UNRESERVED + SUB_DELIMS + "\\[\\:\\]"
-      AUTHORITY = PCHAR + "\\[\\:\\]"
+      AUTHORITY = PCHAR + "\\[\\]"
       PATH = PCHAR + "\\/"
       QUERY = PCHAR + "\\/\\?"
       FRAGMENT = PCHAR + "\\/\\?"
