@@ -5992,6 +5992,11 @@ describe Addressable::URI, "when unencoding a multibyte string" do
     expect(Addressable::URI.unencode_component("ski=%BA%DAɫ")).to eq("ski=\xBA\xDAɫ")
   end
 
+  it "should not fail with UTF-8 incompatible string" do
+    url = "/M%E9/\xE9?p=\xFC".b
+    expect(Addressable::URI.unencode_component(url)).to eq("/M\xE9/\xE9?p=\xFC")
+  end
+
   it "should result in correct percent encoded sequence as a URI" do
     expect(Addressable::URI.unencode(
       "/path?g%C3%BCnther", ::Addressable::URI
