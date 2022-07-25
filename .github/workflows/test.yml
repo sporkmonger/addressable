@@ -129,6 +129,10 @@ jobs:
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
       BUNDLE_WITHOUT: development:coverage
+      # Workaround for Windows JRuby JDK issue
+      # https://github.com/ruby/setup-ruby/issues/339
+      # https://github.com/jruby/jruby/issues/7182#issuecomment-1112953015
+      JAVA_OPTS: -Djdk.io.File.enableADS=true
     steps:
       - uses: actions/checkout@v2
 
