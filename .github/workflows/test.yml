@@ -93,6 +93,7 @@ jobs:
           - jruby-9.3
           - jruby-head
           - truffleruby-21.3
+          - truffleruby-22.1
           - truffleruby-head
         os:
           - ubuntu-18.04
