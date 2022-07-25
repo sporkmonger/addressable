@@ -96,16 +96,15 @@ jobs:
           - truffleruby-22.1
           - truffleruby-head
         os:
-          - ubuntu-18.04
+          - ubuntu-20.04
         gemfile:
           - Gemfile
         include:
-          - { os: ubuntu-18.04, ruby: 2.7, gemfile: gemfiles/public_suffix_2.rb }
-          - { os: ubuntu-18.04, ruby: 2.7, gemfile: gemfiles/public_suffix_3.rb }
-          # Ubuntu 20.04
-          - { os: ubuntu-20.04, ruby: 2.7 }
-          - { os: ubuntu-20.04, ruby: '3.0' }
-          - { os: ubuntu-20.04, ruby: 3.1 }
+          - { os: ubuntu-20.04, ruby: 2.7, gemfile: gemfiles/public_suffix_2.rb }
+          - { os: ubuntu-20.04, ruby: 2.7, gemfile: gemfiles/public_suffix_3.rb }
+          # Ubuntu
+          - { os: ubuntu-18.04, ruby: 2.7 }
+          - { os: ubuntu-22.04, ruby: 3.1 }
           # macOS
           - { os: macos-11,     ruby: 3.1 }
           - { os: macos-12,     ruby: 3.1 }
