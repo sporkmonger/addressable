@@ -106,11 +106,8 @@ jobs:
           - { os: ubuntu-20.04, ruby: '3.0' }
           - { os: ubuntu-20.04, ruby: 3.1 }
           # macOS
-          - { os: macos-11,     ruby: 2.7 }
-          - { os: macos-11,     ruby: '3.0' }
           - { os: macos-11,     ruby: 3.1 }
-          - { os: macos-11,     ruby: jruby }
-          - { os: macos-11,     ruby: truffleruby-21.3 }
+          - { os: macos-12,     ruby: 3.1 }
           # Windows
           - { os: windows-2019, ruby: 3.1 }
           - { os: windows-2022, ruby: 3.1 }
