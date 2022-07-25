@@ -1,6 +1,6 @@
+# encoding: UTF-8
 # frozen_string_literal: true
 
-# coding: utf-8
 # Copyright (C) Bob Aman
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
