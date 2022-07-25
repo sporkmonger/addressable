@@ -91,10 +91,8 @@ jobs:
           - jruby-9.1
           - jruby-9.2
           - jruby-9.3
-          - jruby-head
           - truffleruby-21.3
           - truffleruby-22.1
-          - truffleruby-head
         os:
           - ubuntu-20.04
         gemfile:
@@ -114,8 +112,8 @@ jobs:
           - { os: windows-2022, ruby: 3.1 }
           - { os: windows-2022, ruby: jruby-9.3 }
           # allowed to fail
-          - { os: ubuntu-18.04, ruby: jruby-head, allow-failure: true }
-          - { os: ubuntu-18.04, ruby: truffleruby-head, allow-failure: true }
+          - { os: ubuntu-20.04, ruby: jruby-head, gemfile: Gemfile, allow-failure: true }
+          - { os: ubuntu-20.04, ruby: truffleruby-head, gemfile: Gemfile, allow-failure: true }
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
       BUNDLE_WITHOUT: development:coverage
