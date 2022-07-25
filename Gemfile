@@ -25,4 +25,6 @@ group :test, :development do
   gem "rake", ">= 12.3.3"
 end
 
-gem "idn-ruby", platform: :mri
+unless ENV["IDNA_MODE"] == "pure"
+  gem "idn-ruby", platform: :mri
+end
