@@ -116,13 +116,9 @@ jobs:
           - { os: macos-11,     ruby: jruby }
           - { os: macos-11,     ruby: truffleruby-21.3 }
           # Windows
-          - { os: windows-2019, ruby: 2.7 }
-          - { os: windows-2019, ruby: '3.0' }
           - { os: windows-2019, ruby: 3.1 }
           - { os: windows-2022, ruby: 3.1 }
-          - { os: windows-2019, ruby: jruby-9.1 }
-          - { os: windows-2019, ruby: jruby-9.2 }
-          - { os: windows-2019, ruby: jruby-9.3 }
+          - { os: windows-2022, ruby: jruby-9.3 }
           # allowed to fail
           - { os: ubuntu-18.04, ruby: jruby-head, allow-failure: true }
           - { os: ubuntu-18.04, ruby: truffleruby-head, allow-failure: true }
