@@ -14,11 +14,11 @@ jobs:
       matrix:
         ruby: [2.7]
         idna_mode: [native, pure]
-        os: [ubuntu-18.04]
+        os: [ubuntu-20.04]
     env:
       IDNA_MODE: ${{ matrix.idna_mode }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
@@ -46,7 +46,7 @@ jobs:
       fail-fast: false
       matrix:
         ruby: [2.7]
-        os: [ubuntu-18.04]
+        os: [ubuntu-20.04]
     env:
       BUNDLE_WITHOUT: development
       COVERALLS_SERVICE_NAME: github
@@ -54,7 +54,7 @@ jobs:
       COVERALLS_DEBUG: true
       CI_BUILD_NUMBER: ${{ github.run_id }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
@@ -86,45 +86,43 @@ jobs:
           - 2.7
           # quotes because of YAML gotcha: https://github.com/actions/runner/issues/849
           - '3.0'
+          - 3.1
           - head
           - jruby-9.1
           - jruby-9.2
-          - jruby-head
-          # truffleruby-21.2 fails due to https://github.com/oracle/truffleruby/issues/2408
-          - truffleruby-21.1
-          - truffleruby-head
+          - jruby-9.3
+          - truffleruby-21.3
+          - truffleruby-22.1
         os:
-          - ubuntu-18.04
+          - ubuntu-20.04
         gemfile:
           - Gemfile
         include:
-          - { os: ubuntu-18.04, ruby: 2.7, gemfile: gemfiles/public_suffix_2.rb }
-          - { os: ubuntu-18.04, ruby: 2.7, gemfile: gemfiles/public_suffix_3.rb }
-          # Ubuntu 20.04
-          - { os: ubuntu-20.04, ruby: 2.7 }
-          - { os: ubuntu-20.04, ruby: '3.0' }
+          - { os: ubuntu-20.04, ruby: 2.7, gemfile: gemfiles/public_suffix_2.rb }
+          - { os: ubuntu-20.04, ruby: 2.7, gemfile: gemfiles/public_suffix_3.rb }
+          - { os: ubuntu-20.04, ruby: 2.7, gemfile: gemfiles/public_suffix_4.rb }
+          # Ubuntu
+          - { os: ubuntu-18.04, ruby: 2.7 }
+          - { os: ubuntu-22.04, ruby: 3.1 }
           # macOS
-          - { os: macos-10.15,  ruby: 2.7 }
-          - { os: macos-10.15,  ruby: '3.0' }
-          - { os: macos-10.15,  ruby: jruby }
-          - { os: macos-10.15,  ruby: truffleruby-21.1 }
-          - { os: macos-11,     ruby: 2.7 }
-          - { os: macos-11,     ruby: '3.0' }
-          - { os: macos-11,     ruby: jruby }
-          - { os: macos-11,     ruby: truffleruby-21.1 }
+          - { os: macos-11,     ruby: 3.1 }
+          - { os: macos-12,     ruby: 3.1 }
           # Windows
-          - { os: windows-2019, ruby: 2.7 }
-          - { os: windows-2019, ruby: '3.0' }
-          - { os: windows-2019, ruby: jruby-9.1 }
-          - { os: windows-2019, ruby: jruby-9.2 }
+          - { os: windows-2019, ruby: 3.1 }
+          - { os: windows-2022, ruby: 3.1 }
+          - { os: windows-2022, ruby: jruby-9.3 }
           # allowed to fail
-          - { os: ubuntu-18.04, ruby: jruby-head, allow-failure: true }
-          - { os: ubuntu-18.04, ruby: truffleruby-head, allow-failure: true }
+          - { os: ubuntu-20.04, ruby: jruby-head, gemfile: Gemfile, allow-failure: true }
+          - { os: ubuntu-20.04, ruby: truffleruby-head, gemfile: Gemfile, allow-failure: true }
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
       BUNDLE_WITHOUT: development:coverage
+      # Workaround for Windows JRuby JDK issue
+      # https://github.com/ruby/setup-ruby/issues/339
+      # https://github.com/jruby/jruby/issues/7182#issuecomment-1112953015
+      JAVA_OPTS: -Djdk.io.File.enableADS=true
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install libidn (Ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
