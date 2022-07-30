@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# encoding:utf-8
 #--
 # Copyright (C) Bob Aman
 #
@@ -38,20 +37,26 @@ module Addressable
     ##
     # Container for the character classes specified in
     # <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
+    #
+    # Note: Concatenated and interpolated `String`s are not affected by the
+    #       `frozen_string_literal` directive and must be frozen explicitly.
+    #
+    #       Interpolated `String`s *were* frozen this way before Ruby 3.0:
+    #       https://bugs.ruby-lang.org/issues/17104
     module CharacterClasses
       ALPHA = "a-zA-Z"
       DIGIT = "0-9"
       GEN_DELIMS = "\\:\\/\\?\\#\\[\\]\\@"
       SUB_DELIMS = "\\!\\$\\&\\'\\(\\)\\*\\+\\,\\;\\="
-      RESERVED = GEN_DELIMS + SUB_DELIMS
-      UNRESERVED = ALPHA + DIGIT + "\\-\\.\\_\\~"
-      PCHAR = UNRESERVED + SUB_DELIMS + "\\:\\@"
-      SCHEME = ALPHA + DIGIT + "\\-\\+\\."
-      HOST = UNRESERVED + SUB_DELIMS + "\\[\\:\\]"
-      AUTHORITY = PCHAR + "\\[\\:\\]"
-      PATH = PCHAR + "\\/"
-      QUERY = PCHAR + "\\/\\?"
-      FRAGMENT = PCHAR + "\\/\\?"
+      RESERVED = (GEN_DELIMS + SUB_DELIMS).freeze
+      UNRESERVED = (ALPHA + DIGIT + "\\-\\.\\_\\~").freeze
+      PCHAR = (UNRESERVED + SUB_DELIMS + "\\:\\@").freeze
+      SCHEME = (ALPHA + DIGIT + "\\-\\+\\.").freeze
+      HOST = (UNRESERVED + SUB_DELIMS + "\\[\\:\\]").freeze
+      AUTHORITY = (PCHAR + "\\[\\:\\]").freeze
+      PATH = (PCHAR + "\\/").freeze
+      QUERY = (PCHAR + "\\/\\?").freeze
+      FRAGMENT = (PCHAR + "\\/\\?").freeze
     end
 
     module NormalizeCharacterClasses
@@ -469,19 +474,13 @@ module Addressable
           "Expected Class (String or Addressable::URI), " +
           "got #{return_type.inspect}"
       end
-      uri = uri.dup
-      # Seriously, only use UTF-8. I'm really not kidding!
-      uri.force_encoding("utf-8")
 
-      unless leave_encoded.empty?
-        leave_encoded = leave_encoded.dup.force_encoding("utf-8")
-      end
-
-      result = uri.gsub(/%[0-9a-f]{2}/iu) do |sequence|
+      result = uri.gsub(/%[0-9a-f]{2}/i) do |sequence|
         c = sequence[1..3].to_i(16).chr
-        c.force_encoding("utf-8")
+        c.force_encoding(sequence.encoding)
         leave_encoded.include?(c) ? sequence : c
       end
+
       result.force_encoding("utf-8")
       if return_type == String
         return result
