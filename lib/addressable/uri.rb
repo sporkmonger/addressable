@@ -474,19 +474,13 @@ module Addressable
           "Expected Class (String or Addressable::URI), " +
           "got #{return_type.inspect}"
       end
-      uri = uri.dup
-      # Seriously, only use UTF-8. I'm really not kidding!
-      uri.force_encoding("utf-8")
 
-      unless leave_encoded.empty?
-        leave_encoded = leave_encoded.dup.force_encoding("utf-8")
-      end
-
-      result = uri.gsub(/%[0-9a-f]{2}/iu) do |sequence|
+      result = uri.gsub(/%[0-9a-f]{2}/i) do |sequence|
         c = sequence[1..3].to_i(16).chr
-        c.force_encoding("utf-8")
+        c.force_encoding(sequence.encoding)
         leave_encoded.include?(c) ? sequence : c
       end
+
       result.force_encoding("utf-8")
       if return_type == String
         return result
