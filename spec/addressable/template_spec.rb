@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# coding: utf-8
 # Copyright (C) Bob Aman
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
@@ -75,6 +74,15 @@ describe "==" do
     addressable_uri = Addressable::URI.parse uri
     expect(addressable_template).not_to eq addressable_uri
     expect(addressable_uri).not_to eq addressable_template
+  end
+end
+
+describe "#to_regexp" do
+  it "does not match the first line of multiline strings" do
+    uri = "https://www.example.com/bar"
+    template = Addressable::Template.new(uri)
+    expect(template.match(uri)).not_to be_nil
+    expect(template.match("#{uri}\ngarbage")).to be_nil
   end
 end
 

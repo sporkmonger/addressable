@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# coding: utf-8
 # Copyright (C) Bob Aman
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
@@ -6061,6 +6060,11 @@ describe Addressable::URI, "when unencoding a multibyte string" do
     expect(Addressable::URI.unencode_component("ski=%BA%DAɫ")).to eq("ski=\xBA\xDAɫ")
   end
 
+  it "should not fail with UTF-8 incompatible string" do
+    url = "/M%E9/\xE9?p=\xFC".b
+    expect(Addressable::URI.unencode_component(url)).to eq("/M\xE9/\xE9?p=\xFC")
+  end
+
   it "should result in correct percent encoded sequence as a URI" do
     expect(Addressable::URI.unencode(
       "/path?g%C3%BCnther", ::Addressable::URI
@@ -6729,5 +6733,15 @@ describe Addressable::URI, "when initializing a subclass of Addressable::URI" do
 
   it "should have the same class after being joined" do
     expect(@uri.class).to eq(@uri.join('path').class)
+  end
+end
+
+describe Addressable::URI, "when initialized in a non-main `Ractor`" do
+  it "should have the same value as if used in the main `Ractor`" do
+    pending("Ruby 3.0+ for `Ractor` support") unless defined?(Ractor)
+    main = Addressable::URI.parse("http://example.com")
+    expect(
+      Ractor.new { Addressable::URI.parse("http://example.com") }.take
+    ).to eq(main)
   end
 end
