@@ -998,6 +998,72 @@ describe Addressable::URI, "when frozen" do
   end
 end
 
+describe Addressable::URI, "when normalized and then deeply frozen" do
+  before do
+    @uri = Addressable::URI.parse(
+      "http://user:password@example.com:8080/path?query=value#fragment"
+    ).normalize!
+
+    @uri.instance_variables.each do |var|
+      @uri.instance_variable_set(var, @uri.instance_variable_get(var).freeze)
+    end
+
+    @uri.freeze
+  end
+
+  it "#normalized_scheme should not error" do
+    expect { @uri.normalized_scheme }.not_to raise_error
+  end
+
+  it "#normalized_user should not error" do
+    expect { @uri.normalized_user }.not_to raise_error
+  end
+
+  it "#normalized_password should not error" do
+    expect { @uri.normalized_password }.not_to raise_error
+  end
+
+  it "#normalized_userinfo should not error" do
+    expect { @uri.normalized_userinfo }.not_to raise_error
+  end
+
+  it "#normalized_host should not error" do
+    expect { @uri.normalized_host }.not_to raise_error
+  end
+
+  it "#normalized_authority should not error" do
+    expect { @uri.normalized_authority }.not_to raise_error
+  end
+
+  it "#normalized_port should not error" do
+    expect { @uri.normalized_port }.not_to raise_error
+  end
+
+  it "#normalized_site should not error" do
+    expect { @uri.normalized_site }.not_to raise_error
+  end
+
+  it "#normalized_path should not error" do
+    expect { @uri.normalized_path }.not_to raise_error
+  end
+
+  it "#normalized_query should not error" do
+    expect { @uri.normalized_query }.not_to raise_error
+  end
+
+  it "#normalized_fragment should not error" do
+    expect { @uri.normalized_fragment }.not_to raise_error
+  end
+
+  it "should be frozen" do
+    expect(@uri).to be_frozen
+  end
+
+  it "should not allow destructive operations" do
+    expect { @uri.normalize! }.to raise_error(RuntimeError)
+  end
+end
+
 describe Addressable::URI, "when created from string components" do
   before do
     @uri = Addressable::URI.new(

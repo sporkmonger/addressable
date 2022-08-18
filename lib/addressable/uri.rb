@@ -899,7 +899,7 @@ module Addressable
         end
       end
       # All normalized values should be UTF-8
-      @normalized_scheme.force_encoding(Encoding::UTF_8) if @normalized_scheme
+      force_utf8_encoding_if_needed(@normalized_scheme)
       @normalized_scheme
     end
 
@@ -954,7 +954,7 @@ module Addressable
         end
       end
       # All normalized values should be UTF-8
-      @normalized_user.force_encoding(Encoding::UTF_8) if @normalized_user
+      force_utf8_encoding_if_needed(@normalized_user)
       @normalized_user
     end
 
@@ -1011,9 +1011,7 @@ module Addressable
         end
       end
       # All normalized values should be UTF-8
-      if @normalized_password
-        @normalized_password.force_encoding(Encoding::UTF_8)
-      end
+      force_utf8_encoding_if_needed(@normalized_password)
       @normalized_password
     end
 
@@ -1081,9 +1079,7 @@ module Addressable
         end
       end
       # All normalized values should be UTF-8
-      if @normalized_userinfo
-        @normalized_userinfo.force_encoding(Encoding::UTF_8)
-      end
+      force_utf8_encoding_if_needed(@normalized_userinfo)
       @normalized_userinfo
     end
 
@@ -1150,9 +1146,7 @@ module Addressable
         end
       end
       # All normalized values should be UTF-8
-      if @normalized_host && !@normalized_host.empty?
-        @normalized_host.force_encoding(Encoding::UTF_8)
-      end
+      force_utf8_encoding_if_needed(@normalized_host)
       @normalized_host
     end
 
@@ -1270,9 +1264,7 @@ module Addressable
         authority
       end
       # All normalized values should be UTF-8
-      if @normalized_authority
-        @normalized_authority.force_encoding(Encoding::UTF_8)
-      end
+      force_utf8_encoding_if_needed(@normalized_authority)
       @normalized_authority
     end
 
@@ -1506,7 +1498,7 @@ module Addressable
         site_string
       end
       # All normalized values should be UTF-8
-      @normalized_site.force_encoding(Encoding::UTF_8) if @normalized_site
+      force_utf8_encoding_if_needed(@normalized_site)
       @normalized_site
     end
 
@@ -1569,7 +1561,7 @@ module Addressable
         result
       end
       # All normalized values should be UTF-8
-      @normalized_path.force_encoding(Encoding::UTF_8) if @normalized_path
+      force_utf8_encoding_if_needed(@normalized_path)
       @normalized_path
     end
 
@@ -1645,7 +1637,7 @@ module Addressable
         component == "" ? nil : component
       end
       # All normalized values should be UTF-8
-      @normalized_query.force_encoding(Encoding::UTF_8) if @normalized_query
+      force_utf8_encoding_if_needed(@normalized_query)
       @normalized_query
     end
 
@@ -1841,9 +1833,7 @@ module Addressable
         component == "" ? nil : component
       end
       # All normalized values should be UTF-8
-      if @normalized_fragment
-        @normalized_fragment.force_encoding(Encoding::UTF_8)
-      end
+      force_utf8_encoding_if_needed(@normalized_fragment)
       @normalized_fragment
     end
 
@@ -2555,6 +2545,16 @@ module Addressable
     def remove_composite_values
       remove_instance_variable(:@uri_string) if defined?(@uri_string)
       remove_instance_variable(:@hash) if defined?(@hash)
+    end
+
+    ##
+    # Converts the string to be UTF-8 if it is not already UTF-8
+    #
+    # @api private
+    def force_utf8_encoding_if_needed(str)
+      if str && str.encoding != Encoding::UTF_8
+        str.force_encoding(Encoding::UTF_8)
+      end
     end
   end
 end
