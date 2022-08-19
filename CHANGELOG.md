@@ -1,3 +1,19 @@
+# Addressable 2.8.1
+- refactor `Addressable::URI.normalize_path` to address linter offenses ([#430](https://github.com/sporkmonger/addressable/pull/430))
+- remove redundant colon in `Addressable::URI::CharacterClasses::AUTHORITY` regex ([#438](https://github.com/sporkmonger/addressable/pull/438))
+- update gemspec to reflect supported Ruby versions ([#466], [#464], [#463])
+- compatibility w/ public_suffix 5.x ([#466], [#465], [#460])
+- fixes "invalid byte sequence in UTF-8" exception when unencoding URLs containing non UTF-8 characters ([#459](https://github.com/sporkmonger/addressable/pull/459))
+- `Ractor` compatibility ([#449](https://github.com/sporkmonger/addressable/pull/449))
+- use the whole string instead of a single line for template match ([#431](https://github.com/sporkmonger/addressable/pull/431))
+- force UTF-8 encoding only if needed ([#341](https://github.com/sporkmonger/addressable/pull/341))
+
+[#460]: https://github.com/sporkmonger/addressable/pull/460
+[#463]: https://github.com/sporkmonger/addressable/pull/463
+[#464]: https://github.com/sporkmonger/addressable/pull/464
+[#465]: https://github.com/sporkmonger/addressable/pull/465
+[#466]: https://github.com/sporkmonger/addressable/pull/466
+
 # Addressable 2.8.0
 - fixes ReDoS vulnerability in Addressable::Template#match
 - no longer replaces `+` with spaces in queries for non-http(s) schemes
