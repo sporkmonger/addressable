@@ -131,10 +131,10 @@ module Addressable
       password = nil
       host = nil
       port = nil
-      if authority != nil
+      if authority
         # The Regexp above doesn't split apart the authority.
         userinfo = authority[/^([^\[\]]*)@/, 1]
-        if userinfo != nil
+        if userinfo
           user = userinfo.strip[/^([^:]*):?/, 1]
           password = userinfo.strip[/:(.*)$/, 1]
         end
@@ -685,7 +685,7 @@ module Addressable
         :fragment => self.unencode_component(uri_object.fragment)
       }
       components.each do |key, value|
-        if value != nil
+        if value
           begin
             components[key] =
               Addressable::IDNA.unicode_normalize_kc(value.to_str)
@@ -969,7 +969,7 @@ module Addressable
       @user = new_user ? new_user.to_str : nil
 
       # You can't have a nil user with a non-nil password
-      if password != nil
+      if password
         @user = EMPTY_STR if @user.nil?
       end
 
@@ -1028,7 +1028,7 @@ module Addressable
       # You can't have a nil user with a non-nil password
       @password ||= nil
       @user ||= nil
-      if @password != nil
+      if @password
         @user = EMPTY_STR if @user.nil?
       end
 
@@ -1235,11 +1235,11 @@ module Addressable
     def authority
       self.host && @authority ||= begin
         authority = String.new
-        if self.userinfo != nil
+        if self.userinfo
           authority << "#{self.userinfo}@"
         end
         authority << self.host
-        if self.port != nil
+        if self.port
           authority << ":#{self.port}"
         end
         authority
@@ -1254,11 +1254,11 @@ module Addressable
       return nil unless self.authority
       @normalized_authority ||= begin
         authority = String.new
-        if self.normalized_userinfo != nil
+        if self.normalized_userinfo
           authority << "#{self.normalized_userinfo}@"
         end
         authority << self.normalized_host
-        if self.normalized_port != nil
+        if self.normalized_port
           authority << ":#{self.normalized_port}"
         end
         authority
@@ -1409,7 +1409,7 @@ module Addressable
     #
     # @param [String, Integer, #to_s] new_port The new port component.
     def port=(new_port)
-      if new_port != nil && new_port.respond_to?(:to_str)
+      if new_port && new_port.respond_to?(:to_str)
         new_port = Addressable::URI.unencode_component(new_port.to_str)
       end
 
@@ -1417,9 +1417,8 @@ module Addressable
         raise InvalidURIError, "Invalid encoding in port"
       end
 
-      if new_port != nil && !(new_port.to_s =~ /^\d+$/)
-        raise InvalidURIError,
-          "Invalid port number: #{new_port.inspect}"
+      if new_port && !(new_port.to_s =~ /^\d+$/)
+        raise InvalidURIError, "Invalid port number: #{new_port.inspect}"
       end
 
       @port = new_port.to_s.to_i
@@ -1470,8 +1469,8 @@ module Addressable
     def site
       (self.scheme || self.authority) && @site ||= begin
         site_string = "".dup
-        site_string << "#{self.scheme}:" if self.scheme != nil
-        site_string << "//#{self.authority}" if self.authority != nil
+        site_string << "#{self.scheme}:" if self.scheme
+        site_string << "//#{self.authority}" if self.authority
         site_string
       end
     end
@@ -1489,10 +1488,10 @@ module Addressable
       return nil unless self.site
       @normalized_site ||= begin
         site_string = "".dup
-        if self.normalized_scheme != nil
+        if self.normalized_scheme
           site_string << "#{self.normalized_scheme}:"
         end
-        if self.normalized_authority != nil
+        if self.normalized_authority
           site_string << "//#{self.normalized_authority}"
         end
         site_string
@@ -1574,7 +1573,7 @@ module Addressable
         raise TypeError, "Can't convert #{new_path.class} into String."
       end
       @path = (new_path || EMPTY_STR).to_str
-      if !@path.empty? && @path[0..0] != SLASH && host != nil
+      if !@path.empty? && @path[0..0] != SLASH && host
         @path = "/#{@path}"
       end
 
@@ -1917,7 +1916,7 @@ module Addressable
       joined_fragment = nil
 
       # Section 5.2.2 of RFC 3986
-      if uri.scheme != nil
+      if uri.scheme
         joined_scheme = uri.scheme
         joined_user = uri.user
         joined_password = uri.password
@@ -1926,7 +1925,7 @@ module Addressable
         joined_path = URI.normalize_path(uri.path)
         joined_query = uri.query
       else
-        if uri.authority != nil
+        if uri.authority
           joined_user = uri.user
           joined_password = uri.password
           joined_host = uri.host
@@ -1936,7 +1935,7 @@ module Addressable
         else
           if uri.path == nil || uri.path.empty?
             joined_path = self.path
-            if uri.query != nil
+            if uri.query
               joined_query = uri.query
             else
               joined_query = self.query
@@ -1960,7 +1959,7 @@ module Addressable
 
               # If the base path is empty and an authority segment has been
               # defined, use a base path of SLASH
-              if base_path.empty? && self.authority != nil
+              if base_path.empty? && self.authority
                 base_path = SLASH
               end
 
@@ -2132,7 +2131,7 @@ module Addressable
         end
       end
       # Avoid network-path references.
-      if components[:host] != nil
+      if components[:host]
         components[:scheme] = normalized_self.scheme
       end
       return Addressable::URI.new(
@@ -2348,18 +2347,18 @@ module Addressable
     #
     # @return [String] The URI's <code>String</code> representation.
     def to_s
-      if self.scheme == nil && self.path != nil && !self.path.empty? &&
+      if self.scheme == nil && self.path && !self.path.empty? &&
           self.path =~ NORMPATH
         raise InvalidURIError,
           "Cannot assemble URI string with ambiguous path: '#{self.path}'"
       end
       @uri_string ||= begin
         uri_string = String.new
-        uri_string << "#{self.scheme}:" if self.scheme != nil
-        uri_string << "//#{self.authority}" if self.authority != nil
+        uri_string << "#{self.scheme}:" if self.scheme
+        uri_string << "//#{self.authority}" if self.authority
         uri_string << self.path.to_s
-        uri_string << "?#{self.query}" if self.query != nil
-        uri_string << "##{self.fragment}" if self.fragment != nil
+        uri_string << "?#{self.query}" if self.query
+        uri_string << "##{self.fragment}" if self.fragment
         uri_string.force_encoding(Encoding::UTF_8)
         uri_string
       end
@@ -2464,25 +2463,25 @@ module Addressable
     # Ensures that the URI is valid.
     def validate
       return if !!@validation_deferred
-      if self.scheme != nil && self.ip_based? &&
+      if self.scheme && self.ip_based? &&
           (self.host == nil || self.host.empty?) &&
           (self.path == nil || self.path.empty?)
         raise InvalidURIError,
           "Absolute URI missing hierarchical segment: '#{self.to_s}'"
       end
       if self.host == nil
-        if self.port != nil ||
-            self.user != nil ||
-            self.password != nil
+        if self.port ||
+            self.user ||
+            self.password
           raise InvalidURIError, "Hostname not supplied: '#{self.to_s}'"
         end
       end
-      if self.path != nil && !self.path.empty? && self.path[0..0] != SLASH &&
-          self.authority != nil
+      if self.path && !self.path.empty? && self.path[0..0] != SLASH &&
+          self.authority
         raise InvalidURIError,
           "Cannot have a relative path with an authority set: '#{self.to_s}'"
       end
-      if self.path != nil && !self.path.empty? &&
+      if self.path && !self.path.empty? &&
           self.path[0..1] == SLASH + SLASH && self.authority == nil
         raise InvalidURIError,
           "Cannot have a path with two leading slashes " +
@@ -2491,7 +2490,7 @@ module Addressable
       unreserved = CharacterClasses::UNRESERVED
       sub_delims = CharacterClasses::SUB_DELIMS
       if !self.host.nil? && (self.host =~ /[<>{}\/\\\?\#\@"[[:space:]]]/ ||
-          (self.host[/^\[(.*)\]$/, 1] != nil && self.host[/^\[(.*)\]$/, 1] !~
+          (self.host[/^\[(.*)\]$/, 1] && self.host[/^\[(.*)\]$/, 1] !~
           Regexp.new("^[#{unreserved}#{sub_delims}:]*$")))
         raise InvalidURIError, "Invalid character in host: '#{self.host.to_s}'"
       end
