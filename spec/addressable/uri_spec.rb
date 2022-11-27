@@ -6743,3 +6743,28 @@ describe Addressable::URI, "when initialized in a non-main `Ractor`" do
     ).to eq(main)
   end
 end
+
+describe "Addressable::URI()" do
+  let(:string) { "https://example.com/" }
+  let(:uri) { Addressable::URI.parse(string) }
+
+  context "when given an Addressable::URI object" do
+    it "should return the Addressable::URI object" do
+      expect(Addressable::URI(uri)).to be(uri)
+    end
+  end
+
+  context "when given a String" do
+    it "should parse the URI and return an Addressable::URI object" do
+      expect(Addressable::URI(string)).to eq(uri)
+    end
+  end
+
+  context "when given another kind of object" do
+    it "should raise an ArgumentError" do
+      expect do
+        Addressable::URI([])
+      end.to raise_error(ArgumentError, "bad argument (expected Addressable::URI or URI string)")
+    end
+  end
+end

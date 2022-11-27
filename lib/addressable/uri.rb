@@ -2557,4 +2557,23 @@ module Addressable
       end
     end
   end
+
+  ##
+  # Coerces a URI object into an {Addressable::URI} object.
+  #
+  # @param [Addressable::URI, String] uri
+  #
+  # @return [Addressable::URI]
+  #
+  # @raise [ArgumentError]
+  def self.URI(uri)
+    case uri
+    when Addressable::URI
+      uri
+    when String
+      Addressable::URI.parse(uri)
+    else
+      raise(ArgumentError, "bad argument (expected Addressable::URI or URI string)")
+    end
+  end
 end
