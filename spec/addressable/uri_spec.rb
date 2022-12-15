@@ -3021,6 +3021,20 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+describe Addressable::URI, "when parsed with empty port" do
+  subject(:uri) do
+    Addressable::URI.parse("//example.com:")
+  end
+
+  it "should not infer a port" do
+    expect(uri.port).to be(nil)
+  end
+
+  it "should have a site value of '//example.com'" do
+    expect(uri.site).to eq("//example.com")
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://example.com/%2E/'" do
   before do
