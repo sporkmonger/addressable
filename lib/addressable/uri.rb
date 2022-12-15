@@ -836,6 +836,8 @@ module Addressable
         end
       end
 
+      reset_ivs
+
       self.defer_validation do
         # Bunch of crazy logic required because of the composite components
         # like userinfo and authority.
@@ -878,9 +880,7 @@ module Addressable
     # The scheme component for this URI.
     #
     # @return [String] The scheme component.
-    def scheme
-      return defined?(@scheme) ? @scheme : nil
-    end
+    attr_reader :scheme
 
     ##
     # The scheme component for this URI, normalized.
@@ -888,8 +888,8 @@ module Addressable
     # @return [String] The scheme component, normalized.
     def normalized_scheme
       return nil unless self.scheme
-      @normalized_scheme ||= begin
-        if self.scheme =~ /^\s*ssh\+svn\s*$/i
+      if @normalized_scheme == NONE
+        @normalized_scheme = if self.scheme =~ /^\s*ssh\+svn\s*$/i
           "svn+ssh".dup
         else
           Addressable::URI.normalize_component(
@@ -920,7 +920,7 @@ module Addressable
       @scheme = nil if @scheme.to_s.strip.empty?
 
       # Reset dependent values
-      remove_instance_variable(:@normalized_scheme) if defined?(@normalized_scheme)
+      @normalized_scheme = NONE
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -931,9 +931,7 @@ module Addressable
     # The user component for this URI.
     #
     # @return [String] The user component.
-    def user
-      return defined?(@user) ? @user : nil
-    end
+    attr_reader :user
 
     ##
     # The user component for this URI, normalized.
@@ -941,8 +939,8 @@ module Addressable
     # @return [String] The user component, normalized.
     def normalized_user
       return nil unless self.user
-      return @normalized_user if defined?(@normalized_user)
-      @normalized_user ||= begin
+      return @normalized_user unless @normalized_user == NONE
+      @normalized_user = begin
         if normalized_scheme =~ /https?/ && self.user.strip.empty? &&
             (!self.password || self.password.strip.empty?)
           nil
@@ -970,14 +968,14 @@ module Addressable
 
       # You can't have a nil user with a non-nil password
       if password != nil
-        @user = EMPTY_STR if @user.nil?
+        @user = EMPTY_STR unless user
       end
 
       # Reset dependent values
-      remove_instance_variable(:@userinfo) if defined?(@userinfo)
-      remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
-      remove_instance_variable(:@authority) if defined?(@authority)
-      remove_instance_variable(:@normalized_user) if defined?(@normalized_user)
+      @userinfo = nil
+      @normalized_userinfo = NONE
+      @authority = nil
+      @normalized_user = NONE
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -988,9 +986,7 @@ module Addressable
     # The password component for this URI.
     #
     # @return [String] The password component.
-    def password
-      return defined?(@password) ? @password : nil
-    end
+    attr_reader :password
 
     ##
     # The password component for this URI, normalized.
@@ -998,8 +994,8 @@ module Addressable
     # @return [String] The password component, normalized.
     def normalized_password
       return nil unless self.password
-      return @normalized_password if defined?(@normalized_password)
-      @normalized_password ||= begin
+      return @normalized_password unless @normalized_password == NONE
+      @normalized_password = begin
         if self.normalized_scheme =~ /https?/ && self.password.strip.empty? &&
             (!self.user || self.user.strip.empty?)
           nil
@@ -1026,17 +1022,15 @@ module Addressable
       @password = new_password ? new_password.to_str : nil
 
       # You can't have a nil user with a non-nil password
-      @password ||= nil
-      @user ||= nil
       if @password != nil
-        @user = EMPTY_STR if @user.nil?
+        self.user = EMPTY_STR if user.nil?
       end
 
       # Reset dependent values
-      remove_instance_variable(:@userinfo) if defined?(@userinfo)
-      remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
-      remove_instance_variable(:@authority) if defined?(@authority)
-      remove_instance_variable(:@normalized_password) if defined?(@normalized_password)
+      @userinfo = nil
+      @normalized_userinfo = NONE
+      @authority = nil
+      @normalized_password = NONE
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -1066,8 +1060,8 @@ module Addressable
     # @return [String] The userinfo component, normalized.
     def normalized_userinfo
       return nil unless self.userinfo
-      return @normalized_userinfo if defined?(@normalized_userinfo)
-      @normalized_userinfo ||= begin
+      return @normalized_userinfo unless @normalized_userinfo == NONE
+      @normalized_userinfo = begin
         current_user = self.normalized_user
         current_password = self.normalized_password
         if !current_user && !current_password
@@ -1105,7 +1099,7 @@ module Addressable
       self.user = new_user
 
       # Reset dependent values
-      remove_instance_variable(:@authority) if defined?(@authority)
+      @authority = nil
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -1116,9 +1110,7 @@ module Addressable
     # The host component for this URI.
     #
     # @return [String] The host component.
-    def host
-      return defined?(@host) ? @host : nil
-    end
+    attr_reader :host
 
     ##
     # The host component for this URI, normalized.
@@ -1161,8 +1153,8 @@ module Addressable
       @host = new_host ? new_host.to_str : nil
 
       # Reset dependent values
-      remove_instance_variable(:@authority) if defined?(@authority)
-      remove_instance_variable(:@normalized_host) if defined?(@normalized_host)
+      @authority = nil
+      @normalized_host = nil
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -1293,14 +1285,14 @@ module Addressable
       end
 
       # Password assigned first to ensure validity in case of nil
-      self.password = defined?(new_password) ? new_password : nil
-      self.user = defined?(new_user) ? new_user : nil
-      self.host = defined?(new_host) ? new_host : nil
-      self.port = defined?(new_port) ? new_port : nil
+      self.password = new_password
+      self.user = new_user
+      self.host = new_host
+      self.port = new_port
 
       # Reset dependent values
-      remove_instance_variable(:@userinfo) if defined?(@userinfo)
-      remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
+      @userinfo = nil
+      @normalized_userinfo = NONE
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -1348,16 +1340,16 @@ module Addressable
         new_port = new_origin[/:([^:@\[\]\/]*?)$/, 1]
       end
 
-      self.scheme = defined?(new_scheme) ? new_scheme : nil
-      self.host = defined?(new_host) ? new_host : nil
-      self.port = defined?(new_port) ? new_port : nil
+      self.scheme = new_scheme
+      self.host = new_host
+      self.port = new_port
       self.userinfo = nil
 
       # Reset dependent values
-      remove_instance_variable(:@userinfo) if defined?(@userinfo)
-      remove_instance_variable(:@normalized_userinfo) if defined?(@normalized_userinfo)
-      remove_instance_variable(:@authority) if defined?(@authority)
-      remove_instance_variable(:@normalized_authority) if defined?(@normalized_authority)
+      @userinfo = nil
+      @normalized_userinfo = NONE
+      @authority = nil
+      @normalized_authority = nil
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -1384,9 +1376,7 @@ module Addressable
     # infer port numbers from default values.
     #
     # @return [Integer] The port component.
-    def port
-      return defined?(@port) ? @port : nil
-    end
+    attr_reader :port
 
     ##
     # The port component for this URI, normalized.
@@ -1394,8 +1384,8 @@ module Addressable
     # @return [Integer] The port component, normalized.
     def normalized_port
       return nil unless self.port
-      return @normalized_port if defined?(@normalized_port)
-      @normalized_port ||= begin
+      return @normalized_port unless @normalized_port == NONE
+      @normalized_port = begin
         if URI.port_mapping[self.normalized_scheme] == self.port
           nil
         else
@@ -1426,8 +1416,8 @@ module Addressable
       @port = nil if @port == 0
 
       # Reset dependent values
-      remove_instance_variable(:@authority) if defined?(@authority)
-      remove_instance_variable(:@normalized_port) if defined?(@normalized_port)
+      @authority = nil
+      @normalized_port = NONE
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -1528,9 +1518,7 @@ module Addressable
     # The path component for this URI.
     #
     # @return [String] The path component.
-    def path
-      return defined?(@path) ? @path : EMPTY_STR
-    end
+    attr_reader :path
 
     NORMPATH = /^(?!\/)[^\/:]*:.*$/
     ##
@@ -1579,7 +1567,7 @@ module Addressable
       end
 
       # Reset dependent values
-      remove_instance_variable(:@normalized_path) if defined?(@normalized_path)
+      @normalized_path = nil
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -1609,9 +1597,7 @@ module Addressable
     # The query component for this URI.
     #
     # @return [String] The query component.
-    def query
-      return defined?(@query) ? @query : nil
-    end
+    attr_reader :query
 
     ##
     # The query component for this URI, normalized.
@@ -1619,8 +1605,8 @@ module Addressable
     # @return [String] The query component, normalized.
     def normalized_query(*flags)
       return nil unless self.query
-      return @normalized_query if defined?(@normalized_query)
-      @normalized_query ||= begin
+      return @normalized_query unless @normalized_query == NONE
+      @normalized_query = begin
         modified_query_class = Addressable::URI::CharacterClasses::QUERY.dup
         # Make sure possible key-value pair delimiters are escaped.
         modified_query_class.sub!("\\&", "").sub!("\\;", "")
@@ -1652,7 +1638,7 @@ module Addressable
       @query = new_query ? new_query.to_str : nil
 
       # Reset dependent values
-      remove_instance_variable(:@normalized_query) if defined?(@normalized_query)
+      @normalized_query = NONE
       remove_composite_values
     end
 
@@ -1814,9 +1800,7 @@ module Addressable
     # The fragment component for this URI.
     #
     # @return [String] The fragment component.
-    def fragment
-      return defined?(@fragment) ? @fragment : nil
-    end
+    attr_reader :fragment
 
     ##
     # The fragment component for this URI, normalized.
@@ -1824,8 +1808,8 @@ module Addressable
     # @return [String] The fragment component, normalized.
     def normalized_fragment
       return nil unless self.fragment
-      return @normalized_fragment if defined?(@normalized_fragment)
-      @normalized_fragment ||= begin
+      return @normalized_fragment unless @normalized_fragment == NONE
+      @normalized_fragment = begin
         component = Addressable::URI.normalize_component(
           self.fragment,
           Addressable::URI::NormalizeCharacterClasses::FRAGMENT
@@ -1848,7 +1832,7 @@ module Addressable
       @fragment = new_fragment ? new_fragment.to_str : nil
 
       # Reset dependent values
-      remove_instance_variable(:@normalized_fragment) if defined?(@normalized_fragment)
+      @normalized_fragment = NONE
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -2507,11 +2491,7 @@ module Addressable
     # @return [Addressable::URI] <code>self</code>.
     def replace_self(uri)
       # Reset dependent values
-      instance_variables.each do |var|
-        if instance_variable_defined?(var) && var != :@validation_deferred
-          remove_instance_variable(var)
-        end
-      end
+      reset_ivs
 
       @scheme = uri.scheme
       @user = uri.user
@@ -2543,8 +2523,8 @@ module Addressable
     #
     # @api private
     def remove_composite_values
-      remove_instance_variable(:@uri_string) if defined?(@uri_string)
-      remove_instance_variable(:@hash) if defined?(@hash)
+      @uri_string = nil
+      @hash = nil
     end
 
     ##
@@ -2556,5 +2536,40 @@ module Addressable
         str.force_encoding(Encoding::UTF_8)
       end
     end
+
+    private
+
+    ##
+    # Resets instance variables
+    #
+    # @api private
+    def reset_ivs
+      @scheme = nil
+      @user = nil
+      @normalized_scheme = NONE
+      @normalized_user = NONE
+      @uri_string = nil
+      @hash = nil
+      @userinfo = nil
+      @normalized_userinfo = NONE
+      @authority = nil
+      @password = nil
+      @normalized_authority = nil
+      @port = nil
+      @normalized_password = NONE
+      @host = nil
+      @normalized_host = nil
+      @normalized_port = NONE
+      @path = EMPTY_STR
+      @normalized_path = nil
+      @normalized_query = NONE
+      @fragment = nil
+      @normalized_fragment = NONE
+      @query = nil
+    end
+
+    NONE = Object.new.freeze
+
+    private_constant :NONE
   end
 end
