@@ -2392,7 +2392,8 @@ module Addressable
       yield
       @validation_deferred = false
       validate
-      return nil
+    ensure
+      @validation_deferred = false
     end
 
   protected

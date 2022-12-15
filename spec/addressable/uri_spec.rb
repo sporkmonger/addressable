@@ -6743,3 +6743,25 @@ describe Addressable::URI, "when initialized in a non-main `Ractor`" do
     ).to eq(main)
   end
 end
+
+describe Addressable::URI, "when deferring validation" do
+  subject(:deferred) { uri.instance_variable_get(:@validation_deferred) }
+
+  let(:uri) { Addressable::URI.parse("http://example.com") }
+
+  it "defers validation within the block" do
+    uri.defer_validation do
+      expect(deferred).to be true
+    end
+  end
+
+  it "always resets deferral afterward" do
+    expect { uri.defer_validation { raise "boom" } }.to raise_error("boom")
+    expect(deferred).to be false
+  end
+
+  it "returns nil" do
+    res = uri.defer_validation {}
+    expect(res).to be nil
+  end
+end
