@@ -880,9 +880,7 @@ module Addressable
     # The scheme component for this URI.
     #
     # @return [String] The scheme component.
-    def scheme
-      @scheme
-    end
+    attr_reader :scheme
 
     ##
     # The scheme component for this URI, normalized.
@@ -933,9 +931,7 @@ module Addressable
     # The user component for this URI.
     #
     # @return [String] The user component.
-    def user
-      @user
-    end
+    attr_reader :user
 
     ##
     # The user component for this URI, normalized.
@@ -990,9 +986,7 @@ module Addressable
     # The password component for this URI.
     #
     # @return [String] The password component.
-    def password
-      @password
-    end
+    attr_reader :password
 
     ##
     # The password component for this URI, normalized.
@@ -1116,9 +1110,7 @@ module Addressable
     # The host component for this URI.
     #
     # @return [String] The host component.
-    def host
-      @host
-    end
+    attr_reader :host
 
     ##
     # The host component for this URI, normalized.
@@ -1384,9 +1376,7 @@ module Addressable
     # infer port numbers from default values.
     #
     # @return [Integer] The port component.
-    def port
-      @port
-    end
+    attr_reader :port
 
     ##
     # The port component for this URI, normalized.
@@ -1528,9 +1518,7 @@ module Addressable
     # The path component for this URI.
     #
     # @return [String] The path component.
-    def path
-      @path
-    end
+    attr_reader :path
 
     NORMPATH = /^(?!\/)[^\/:]*:.*$/
     ##
@@ -1609,9 +1597,7 @@ module Addressable
     # The query component for this URI.
     #
     # @return [String] The query component.
-    def query
-      @query
-    end
+    attr_reader :query
 
     ##
     # The query component for this URI, normalized.
@@ -1814,9 +1800,7 @@ module Addressable
     # The fragment component for this URI.
     #
     # @return [String] The fragment component.
-    def fragment
-      @fragment
-    end
+    attr_reader :fragment
 
     ##
     # The fragment component for this URI, normalized.
