@@ -1285,10 +1285,10 @@ module Addressable
       end
 
       # Password assigned first to ensure validity in case of nil
-      self.password = defined?(new_password) ? new_password : nil
-      self.user = defined?(new_user) ? new_user : nil
-      self.host = defined?(new_host) ? new_host : nil
-      self.port = defined?(new_port) ? new_port : nil
+      self.password = new_password
+      self.user = new_user
+      self.host = new_host
+      self.port = new_port
 
       # Reset dependent values
       @userinfo = nil
@@ -1340,9 +1340,9 @@ module Addressable
         new_port = new_origin[/:([^:@\[\]\/]*?)$/, 1]
       end
 
-      self.scheme = defined?(new_scheme) ? new_scheme : nil
-      self.host = defined?(new_host) ? new_host : nil
-      self.port = defined?(new_port) ? new_port : nil
+      self.scheme = new_scheme
+      self.host = new_host
+      self.port = new_port
       self.userinfo = nil
 
       # Reset dependent values
