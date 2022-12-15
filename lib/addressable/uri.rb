@@ -117,7 +117,7 @@ module Addressable
         uri = uri.to_str
       rescue TypeError, NoMethodError
         raise TypeError, "Can't convert #{uri.class} into String."
-      end if not uri.is_a? String
+      end unless uri.is_a?(String)
 
       # This Regexp supplied as an example in RFC 3986, and it works great.
       scan = uri.scan(URIREGEX)
@@ -138,15 +138,15 @@ module Addressable
           user = userinfo.strip[/^([^:]*):?/, 1]
           password = userinfo.strip[/:(.*)$/, 1]
         end
+
         host = authority.sub(
           /^([^\[\]]*)@/, EMPTY_STR
         ).sub(
           /:([^:@\[\]]*?)$/, EMPTY_STR
         )
+
         port = authority[/:([^:@\[\]]*?)$/, 1]
-      end
-      if port == EMPTY_STR
-        port = nil
+        port = nil if port == EMPTY_STR
       end
 
       return new(
@@ -189,7 +189,7 @@ module Addressable
         uri = uri.to_s
       end
 
-      if !uri.respond_to?(:to_str)
+      unless uri.respond_to?(:to_str)
         raise TypeError, "Can't convert #{uri.class} into String."
       end
       # Otherwise, convert to a String
@@ -281,7 +281,7 @@ module Addressable
       return nil unless path
       # If a URI object is passed, just return itself.
       return path if path.kind_of?(self)
-      if !path.respond_to?(:to_str)
+      unless path.respond_to?(:to_str)
         raise TypeError, "Can't convert #{path.class} into String."
       end
       # Otherwise, convert to a String
@@ -329,13 +329,13 @@ module Addressable
     #   #=> #<Addressable::URI:0xcab390 URI:http://example.com/relative/path>
     def self.join(*uris)
       uri_objects = uris.collect do |uri|
-        if !uri.respond_to?(:to_str)
+        unless uri.respond_to?(:to_str)
           raise TypeError, "Can't convert #{uri.class} into String."
         end
         uri.kind_of?(self) ? uri : self.parse(uri.to_str)
       end
       result = uri_objects.shift.dup
-      for uri in uri_objects
+      uri_objects.each do |uri|
         result.join!(uri)
       end
       return result
@@ -838,7 +838,7 @@ module Addressable
 
       reset_ivs
 
-      self.defer_validation do
+      defer_validation do
         # Bunch of crazy logic required because of the composite components
         # like userinfo and authority.
         self.scheme = options[:scheme] if options[:scheme]
@@ -853,7 +853,8 @@ module Addressable
         self.query_values = options[:query_values] if options[:query_values]
         self.fragment = options[:fragment] if options[:fragment]
       end
-      self.to_s
+
+      to_s # force path validation
     end
 
     ##
@@ -1998,7 +1999,7 @@ module Addressable
     #
     # @see Hash#merge
     def merge(hash)
-      if !hash.respond_to?(:to_hash)
+      unless hash.respond_to?(:to_hash)
         raise TypeError, "Can't convert #{hash.class} into Hash."
       end
       hash = hash.to_hash
