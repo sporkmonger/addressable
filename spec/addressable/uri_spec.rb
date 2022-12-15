@@ -6755,7 +6755,7 @@ describe Addressable::URI, "when deferring validation" do
     end
   end
 
-  it "always resets deferal afterward" do
+  it "always resets deferral afterward" do
     expect { uri.defer_validation { raise "boom" } }.to raise_error("boom")
     expect(deferred).to be false
   end
