@@ -93,6 +93,7 @@ jobs:
           - jruby-9.2
           - jruby-9.3
           - jruby-9.4
+          - truffleruby-21.3
           - truffleruby-22.1
           - truffleruby-22.2
           - truffleruby-22.3
@@ -116,8 +117,6 @@ jobs:
           # allowed to fail
           - { os: ubuntu-20.04, ruby: jruby-head, gemfile: Gemfile, allow-failure: true }
           - { os: ubuntu-20.04, ruby: truffleruby-head, gemfile: Gemfile, allow-failure: true }
-          # because of https://github.com/ruby/setup-ruby/issues/433
-          - { os: ubuntu-20.04, ruby: truffleruby-21.3, gemfile: Gemfile, allow-failure: true }
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
       BUNDLE_WITHOUT: development:coverage
