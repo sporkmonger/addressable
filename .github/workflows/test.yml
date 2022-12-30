@@ -116,8 +116,6 @@ jobs:
           # allowed to fail
           - { os: ubuntu-20.04, ruby: jruby-head, gemfile: Gemfile, allow-failure: true }
           - { os: ubuntu-20.04, ruby: truffleruby-head, gemfile: Gemfile, allow-failure: true }
-          # because of https://github.com/ruby/setup-ruby/issues/433
-          - { os: ubuntu-20.04, ruby: truffleruby-21.3, gemfile: Gemfile, allow-failure: true }
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
       BUNDLE_WITHOUT: development:coverage
