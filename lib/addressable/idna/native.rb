@@ -29,10 +29,6 @@ module Addressable
        IDN::Punycode.decode(value.to_s)
      end
 
-    def self.unicode_normalize_kc(value)
-      IDN::Stringprep.nfkc_normalize(value.to_s)
-    end
-
     def self.to_ascii(value)
       value.to_s.split('.', -1).map do |segment|
         if segment.size > 0 && segment.size < 64

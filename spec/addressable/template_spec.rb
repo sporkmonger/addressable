@@ -1021,6 +1021,19 @@ describe Addressable::Template do
         )
       end
 
+      it "normalizes as unicode even with wrong encoding specified" do
+        template = subject.partial_expand("query" => "Cafe\u0301".b)
+        expect(template.pattern).to eq(
+          "http://example.com/{resource}/Caf%C3%A9/"
+        )
+      end
+
+      it "raises on invalid unicode input" do
+        expect {
+          subject.partial_expand("query" => "M\xE9thode".b)
+        }.to raise_error(ArgumentError, "invalid byte sequence in UTF-8")
+      end
+
       it "does not normalize unicode when byte semantics requested" do
         template = subject.partial_expand({"query" => "Cafe\u0301"}, nil, false)
         expect(template.pattern).to eq(
@@ -1079,6 +1092,17 @@ describe Addressable::Template do
       it "normalizes unicode by default" do
         uri = subject.expand("query" => "Cafe\u0301").to_str
         expect(uri).to eq("http://example.com/search/Caf%C3%A9/")
+      end
+
+      it "normalizes as unicode even with wrong encoding specified" do
+        uri = subject.expand("query" => "Cafe\u0301".b).to_str
+        expect(uri).to eq("http://example.com/search/Caf%C3%A9/")
+      end
+
+      it "raises on invalid unicode input" do
+        expect {
+          subject.expand("query" => "M\xE9thode".b).to_str
+        }.to raise_error(ArgumentError, "invalid byte sequence in UTF-8")
       end
 
       it "does not normalize unicode when byte semantics requested" do

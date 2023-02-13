@@ -53,7 +53,7 @@ module Addressable
       PCHAR = (UNRESERVED + SUB_DELIMS + "\\:\\@").freeze
       SCHEME = (ALPHA + DIGIT + "\\-\\+\\.").freeze
       HOST = (UNRESERVED + SUB_DELIMS + "\\[\\:\\]").freeze
-      AUTHORITY = (PCHAR + "\\[\\:\\]").freeze
+      AUTHORITY = (PCHAR + "\\[\\]").freeze
       PATH = (PCHAR + "\\/").freeze
       QUERY = (PCHAR + "\\/\\?").freeze
       FRAGMENT = (PCHAR + "\\/\\?").freeze
@@ -481,7 +481,7 @@ module Addressable
         leave_encoded.include?(c) ? sequence : c
       end
 
-      result.force_encoding("utf-8")
+      result.force_encoding(Encoding::UTF_8)
       if return_type == String
         return result
       elsif return_type == ::Addressable::URI
@@ -579,7 +579,7 @@ module Addressable
       unencoded = self.unencode_component(component, String, leave_encoded)
       begin
         encoded = self.encode_component(
-          Addressable::IDNA.unicode_normalize_kc(unencoded),
+          unencoded.unicode_normalize(:nfc),
           character_class,
           leave_encoded
         )
@@ -687,8 +687,7 @@ module Addressable
       components.each do |key, value|
         if value != nil
           begin
-            components[key] =
-              Addressable::IDNA.unicode_normalize_kc(value.to_str)
+            components[key] = value.to_str.unicode_normalize(:nfc)
           rescue ArgumentError
             # Likely a malformed UTF-8 character, skip unicode normalization
             components[key] = value.to_str

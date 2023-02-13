@@ -5953,6 +5953,26 @@ describe Addressable::URI, "when normalizing a path with an encoded slash" do
   end
 end
 
+describe Addressable::URI, "when normalizing a path with special unicode" do
+  it "does not stop at or ignore null bytes" do
+    expect(Addressable::URI.parse("/path%00segment/").normalize.path).to eq(
+      "/path%00segment/"
+    )
+  end
+
+  it "does apply NFC unicode normalization" do
+    expect(Addressable::URI.parse("/%E2%84%A6").normalize.path).to eq(
+      "/%CE%A9"
+    )
+  end
+
+  it "does not apply NFKC unicode normalization" do
+    expect(Addressable::URI.parse("/%C2%AF%C2%A0").normalize.path).to eq(
+      "/%C2%AF%C2%A0"
+    )
+  end
+end
+
 describe Addressable::URI, "when normalizing a partially encoded string" do
   it "should result in correct percent encoded sequence" do
     expect(Addressable::URI.normalize_component(

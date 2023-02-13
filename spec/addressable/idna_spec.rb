@@ -38,6 +38,12 @@ shared_examples_for "converting from unicode to ASCII" do
     )).to eq("www.xn--8ws00zhy3a.com")
   end
 
+  it "also accepts unicode strings encoded as ascii-8bit" do
+    expect(Addressable::IDNA.to_ascii(
+      "www.詹姆斯.com".b
+    )).to eq("www.xn--8ws00zhy3a.com")
+  end
+
   it "should convert 'www.Iñtërnâtiônàlizætiøn.com' correctly" do
     "www.Iñtërnâtiônàlizætiøn.com"
     expect(Addressable::IDNA.to_ascii(
@@ -248,11 +254,6 @@ shared_examples_for "converting from ASCII to unicode" do
     expect(Addressable::IDNA.to_unicode(
       "example..host"
     )).to eq("example..host")
-  end
-
-  it "should normalize 'string' correctly" do
-    expect(Addressable::IDNA.unicode_normalize_kc(:'string')).to eq("string")
-    expect(Addressable::IDNA.unicode_normalize_kc("string")).to eq("string")
   end
 end
 
