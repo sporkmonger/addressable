@@ -41,7 +41,7 @@ jobs:
       fail-fast: false
       matrix:
         ruby: [ruby]
-        idna_mode: [native, pure]
+        idna_mode: [native2, native, pure]
         os: [ubuntu-latest]
     env:
       IDNA_MODE: ${{ matrix.idna_mode }}

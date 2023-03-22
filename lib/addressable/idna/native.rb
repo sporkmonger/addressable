@@ -16,19 +16,11 @@
 #    limitations under the License.
 #++
 
-
+# libidn1 implementing IDNA2003
 require "idn"
 
 module Addressable
   module IDNA
-    def self.punycode_encode(value)
-      IDN::Punycode.encode(value.to_s)
-    end
-
-     def self.punycode_decode(value)
-       IDN::Punycode.decode(value.to_s)
-     end
-
     class << self
       # @deprecated Use {String#unicode_normalize(:nfkc)} instead
       def unicode_normalize_kc(value)

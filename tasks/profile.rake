@@ -41,13 +41,16 @@ namespace :profile do
     if ENV["IDNA_MODE"] == "pure"
       Addressable.send(:remove_const, :IDNA)
       load "addressable/idna/pure.rb"
+    elsif ENV["IDNA_MODE"] == "native"
+      Addressable.send(:remove_const, :IDNA)
+      load "addressable/idna/native.rb"
     end
 
     start_at = Time.now.to_f
     report = MemoryProfiler.report do
       30_000.times do
         Addressable::URI.parse(
-          "http://google.com/stuff/../?with_lots=of&params=asdff#!stuff"
+          "http://fiᆵリ宠퐱卄.com/stuff/../?with_lots=of&params=asdff#!stuff"
         ).normalize
       end
     end
