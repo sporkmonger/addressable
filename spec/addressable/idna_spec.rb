@@ -258,13 +258,17 @@ shared_examples_for "converting from ASCII to unicode" do
 end
 
 describe Addressable::IDNA, "when using the pure-Ruby implementation" do
-  before do
+  before :all do
     Addressable.send(:remove_const, :IDNA)
     load "addressable/idna/pure.rb"
   end
 
   it_should_behave_like "converting from unicode to ASCII"
   it_should_behave_like "converting from ASCII to unicode"
+
+  it "should implement IDNA2008 non transitional" do
+    expect(Addressable::IDNA.to_ascii("faß.de")).to eq("xn--fa-hia.de")
+  end
 
   begin
     require "fiber"
@@ -285,18 +289,45 @@ end
 begin
   require "idn"
 
-  describe Addressable::IDNA, "when using the native-code implementation" do
-    before do
+  describe Addressable::IDNA, "when using the libidn1 native implementation (idn gem)" do
+    before :all do
       Addressable.send(:remove_const, :IDNA)
       load "addressable/idna/native.rb"
     end
 
     it_should_behave_like "converting from unicode to ASCII"
     it_should_behave_like "converting from ASCII to unicode"
+
+    it "should implement IDNA2003" do
+      expect(Addressable::IDNA.to_ascii("faß.de")).to eq("fass.de")
+    end
   end
 rescue LoadError => error
   raise error if ENV["CI"] && TestHelper.native_supported?
 
-  # Cannot test the native implementation without libidn support.
-  warn('Could not load native IDN implementation.')
+  # Cannot test the native implementation without libidn installed.
+  warn('Could not load native libidn1 implementation.')
+end
+
+begin
+  require "addressable/idna/native2.rb"
+
+  describe Addressable::IDNA, "when using the libidn2 native implementation (ffi)" do
+    before :all do
+      Addressable.send(:remove_const, :IDNA)
+      load "addressable/idna/native2.rb"
+    end
+
+    it_should_behave_like "converting from unicode to ASCII"
+    it_should_behave_like "converting from ASCII to unicode"
+
+    it "should implement IDNA2008 non transitional" do
+      expect(Addressable::IDNA.to_ascii("faß.de")).to eq("xn--fa-hia.de")
+    end
+  end
+rescue LoadError => error
+  raise error if ENV["CI"] && TestHelper.native_supported?
+
+  # Cannot test the native implementation without libidn2 installed.
+  warn('Could not load native libidn2 implementation.')
 end

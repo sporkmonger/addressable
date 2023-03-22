@@ -16,19 +16,11 @@
 #    limitations under the License.
 #++
 
-
+# libidn1 implementing IDNA2003
 require "idn"
 
 module Addressable
   module IDNA
-    def self.punycode_encode(value)
-      IDN::Punycode.encode(value.to_s)
-    end
-
-     def self.punycode_decode(value)
-       IDN::Punycode.decode(value.to_s)
-     end
-
     def self.to_ascii(value)
       value.to_s.split('.', -1).map do |segment|
         if segment.size > 0 && segment.size < 64
