@@ -896,19 +896,16 @@ module Addressable
     #
     # @return [Hash, Array, String] The normalized values
     def normalize_value(value)
-      unless value.is_a?(Hash)
-        value = value.respond_to?(:to_ary) ? value.to_ary : value.to_str
-      end
-
       # Handle unicode normalization
-      if value.kind_of?(Array)
-        value.map! { |val| normalize_value(val) }
+      if value.respond_to?(:to_ary)
+        value.to_ary.map! { |val| normalize_value(val) }
       elsif value.kind_of?(Hash)
         value = value.inject({}) { |acc, (k, v)|
           acc[normalize_value(k)] = normalize_value(v)
           acc
         }
       else
+        value = value.to_s if !value.kind_of?(String)
         if value.encoding != Encoding::UTF_8
           value = value.dup.force_encoding(Encoding::UTF_8)
         end
