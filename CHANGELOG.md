@@ -1,3 +1,9 @@
+# Addressable 2.8.3
+- Fix template expand level 2 hash support for non-string objects ([#499], [#498])
+
+[#499]: https://github.com/sporkmonger/addressable/pull/499
+[#498]: https://github.com/sporkmonger/addressable/pull/498
+
 # Addressable 2.8.2
 - Improve cache hits and JIT friendliness ([#486](https://github.com/sporkmonger/addressable/pull/486))
 - Improve code style and test coverage ([#482](https://github.com/sporkmonger/addressable/pull/482))
