@@ -23,7 +23,7 @@ if !defined?(Addressable::VERSION)
     module VERSION
       MAJOR = 2
       MINOR = 8
-      TINY  = 2
+      TINY  = 3
 
       STRING = [MAJOR, MINOR, TINY].join('.')
     end
