@@ -205,7 +205,7 @@ describe "Level 4" do
       :path => "/foo/bar",
       :semi => ";",
       :list => %w(red green blue),
-      :keys => {"semi" => ';', "dot" => '.', "comma" => ','}
+      :keys => {"semi" => ';', "dot" => '.', :comma => ','}
     }
   }
   context "Expansion with value modifiers" do
@@ -288,7 +288,7 @@ describe "Modifiers" do
     {
       :var => "value",
       :semi => ";",
-      :year => %w(1965 2000 2012),
+      :year => [1965, 2000, 2012],
       :dom => %w(example com)
     }
   }
@@ -321,7 +321,7 @@ describe "Expansion" do
       :base  => "http://example.com/home/",
       :path  => "/foo/bar",
       :list  => ["red", "green", "blue"],
-      :keys  => {"semi" => ";","dot" => ".","comma" => ","},
+      :keys  => {"semi" => ";","dot" => ".",:comma => ","},
       :v     => "6",
       :x     => "1024",
       :y     => "768",
