@@ -29,6 +29,16 @@ module Addressable
        IDN::Punycode.decode(value.to_s)
      end
 
+    class << self
+      # @deprecated Use {String#unicode_normalize(:nfkc)} instead
+      def unicode_normalize_kc(value)
+        value.to_s.unicode_normalize(:nfkc)
+      end
+
+      extend Gem::Deprecate
+      deprecate :unicode_normalize_kc, "String#unicode_normalize(:nfkc)", 2023, 4
+    end
+
     def self.to_ascii(value)
       value.to_s.split('.', -1).map do |segment|
         if segment.size > 0 && segment.size < 64

@@ -112,6 +112,16 @@ module Addressable
       output
     end
 
+    class << self
+      # @deprecated Use {String#unicode_normalize(:nfkc)} instead
+      def unicode_normalize_kc(value)
+        value.to_s.unicode_normalize(:nfkc)
+      end
+
+      extend Gem::Deprecate
+      deprecate :unicode_normalize_kc, "String#unicode_normalize(:nfkc)", 2023, 4
+    end
+
     ##
     # Unicode aware downcase method.
     #
