@@ -1,3 +1,8 @@
+# Addressable 2.8.4
+- Restore `Addressable::IDNA.unicode_normalize_kc` as a deprecated method ([#504])
+
+[#504]: https://github.com/sporkmonger/addressable/pull/504
+
 # Addressable 2.8.3
 - Fix template expand level 2 hash support for non-string objects ([#499], [#498])
 
