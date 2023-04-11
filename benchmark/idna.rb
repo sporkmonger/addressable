@@ -2,32 +2,30 @@
 # frozen_string_literal: true.
 
 require "benchmark"
+require "addressable/idna/libidn2"
+require "addressable/idna/libidn1"
+require "addressable/idna/pure"
 
 value = "fiᆵリ宠퐱卄.com"
 expected = "xn--fi-w1k207vk59a3qk9w9r.com"
 N = 100_000
 
+fail "pure ruby does not match" unless expected == Addressable::IDNA::Pure.to_ascii(value)
+fail "libidn does not match" unless expected == Addressable::IDNA::Libidn1.to_ascii(value)
+fail "addressable does not match" unless expected == Addressable::IDNA::Libidn2.to_ascii(value)
+
 Benchmark.bmbm do |x|
-  x.report("pure") {
-    load "lib/addressable/idna/pure.rb"
-    fail "pure ruby does not match" unless expected == Addressable::IDNA.to_ascii(value)
-    N.times { Addressable::IDNA.to_unicode(Addressable::IDNA.to_ascii(value)) }
-    Addressable.send(:remove_const, :IDNA)
-  }
+  x.report("pure") { N.times {
+    Addressable::IDNA::Pure.to_unicode(Addressable::IDNA::Pure.to_ascii(value))
+  } }
 
-  x.report("libidn") {
-    load "lib/addressable/idna/native.rb"
-    fail "libidn does not match" unless expected == Addressable::IDNA.to_ascii(value)
-    N.times { Addressable::IDNA.to_unicode(Addressable::IDNA.to_ascii(value)) }
-    Addressable.send(:remove_const, :IDNA)
-  }
+  x.report("libidn") { N.times {
+    Addressable::IDNA::Libidn1.to_unicode(Addressable::IDNA::Libidn1.to_ascii(value))
+  } }
 
-  x.report("libidn2") {
-    load "lib/addressable/idna/native2.rb"
-    fail "addressable does not match" unless expected == Addressable::IDNA.to_ascii(value)
-    N.times { Addressable::IDNA.to_unicode(Addressable::IDNA.to_ascii(value)) }
-    Addressable.send(:remove_const, :IDNA)
-  }
+  x.report("libidn2") { N.times {
+    Addressable::IDNA::Libidn2.to_unicode(Addressable::IDNA::Libidn2.to_ascii(value))
+  } }
 end
 
 # > ruby benchmark/idna.rb
@@ -43,10 +41,9 @@ end
 # libidn2   0.764782   0.000000   0.764782 (  0.764863)
 
 puts "\nMemory leak test for libidn2 (memory should stabilize quickly):"
-load "lib/addressable/idna/native2.rb"
 GC.disable # Only run GC when manually called
 10.times do
-  N.times { Addressable::IDNA.to_unicode(Addressable::IDNA.to_ascii(value)) }
+  N.times { Addressable::IDNA::Libidn2.to_unicode(Addressable::IDNA::Libidn2.to_ascii(value)) }
   GC.start # Run a major GC
   pid, size = `ps ax -o pid,rss | grep -E "^[[:space:]]*#{$$}"`.strip.split.map(&:to_i)
   puts " Memory: #{size/1024}MB" # show process memory

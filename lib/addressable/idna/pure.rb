@@ -17,8 +17,8 @@
 #++
 
 
-module Addressable
-  module IDNA
+module Addressable::IDNA
+  module Pure
     # This module is loosely based on idn_actionmailer by Mick Staugaard,
     # the unicode library by Yoshida Masato, and the punycode implementation
     # by Kazuhiro Nishiyama.  Most of the code was copied verbatim, but
@@ -97,7 +97,7 @@ module Addressable
         if part =~ /^#{ACE_PREFIX}(.+)/
           begin
             punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
-          rescue Addressable::IDNA::PunycodeBadInput
+          rescue Addressable::IDNA::Pure::PunycodeBadInput
             # toUnicode is explicitly defined as never-fails by the spec
             part
           end
