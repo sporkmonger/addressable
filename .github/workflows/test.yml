@@ -40,6 +40,10 @@ jobs:
           Profile Memory Allocation with ${{ matrix.idna_mode }} IDNA during Addressable::Template#match
         run: bundle exec rake profile:template_match_memory
 
+      - name: >-
+          Test for ${{ matrix.idna_mode }} IDNA backend memory leaks
+        run: bundle exec rake profile:idna_memory_leak
+
   coverage:
     runs-on: ${{ matrix.os }}
     strategy:

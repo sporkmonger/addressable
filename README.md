@@ -97,9 +97,11 @@ $ gem install addressable
 # IDNA support (unicode hostnames)
 
 Three IDNA implementations are available, the first one available is used:
-- A `libidn2` wrapper (if `libidn2` is installed), supporting IDNA2008+UTS#46.
 - A `libidn1` wrapper (if `libidn` and the `idn` gem are installed), supporting IDNA2003.
 - A pure ruby implementation (slower), [almost](https://github.com/sporkmonger/addressable/issues/491) supporting IDNA2008.
+- A `libidn2` wrapper (if `libidn2` is installed), supporting IDNA2008+UTS#46.
+
+Note: in the future major version, `libidn2` will become the default.
 
 To install `libidn2`:
 
@@ -108,7 +110,7 @@ $ sudo apt-get install libidn2-dev # Debian/Ubuntu
 $ brew install libidn # OS X
 ```
 
-To install the legacy `libidn1` and the `idn` gem (also add it to your Gemfile):
+To install `libidn1` and the `idn` gem (also add it to your Gemfile):
 
 ```console
 $ sudo apt-get install libidn11-dev # Debian/Ubuntu
@@ -127,8 +129,8 @@ Finally if you want to force a different IDNA implementation, you can do so like
 ```ruby
 require "addressable/idna/pure.rb"
 Addressable::IDNA.backend = Addressable::IDNA::Pure
-require "addressable/idna/libidn1"
-Addressable::IDNA.backend = Addressable::IDNA::Libidn1
+require "addressable/idna/libidn2"
+Addressable::IDNA.backend = Addressable::IDNA::Libidn2
 ```
 
 # Semantic Versioning
