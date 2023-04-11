@@ -97,7 +97,7 @@ module Addressable::IDNA
         if part =~ /^#{ACE_PREFIX}(.+)/
           begin
             punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
-          rescue Addressable::IDNA::Pure::PunycodeBadInput
+          rescue Addressable::IDNA::PunycodeBadInput
             # toUnicode is explicitly defined as never-fails by the spec
             part
           end
@@ -202,13 +202,6 @@ module Addressable::IDNA
       "PQRSTUVWXYZ[\\]^_" +
       "`abcdefghijklmno" +
       "pqrstuvwxyz{|}~\n"
-
-    # Input is invalid.
-    class PunycodeBadInput < StandardError; end
-    # Output would exceed the space provided.
-    class PunycodeBigOutput < StandardError; end
-    # Input needs wider integers to process.
-    class PunycodeOverflow < StandardError; end
 
     def self.punycode_encode(unicode)
       unicode = unicode.to_s unless unicode.is_a?(String)

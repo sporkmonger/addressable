@@ -107,7 +107,7 @@ To install `libidn2`:
 
 ```console
 $ sudo apt-get install libidn2-dev # Debian/Ubuntu
-$ brew install libidn # OS X
+$ brew install libidn2 # OS X
 ```
 
 To install `libidn1` and the `idn` gem (also add it to your Gemfile):
@@ -127,7 +127,7 @@ puts Addressable::IDNA.backend.name
 Finally if you want to force a different IDNA implementation, you can do so like this (after addressable is required):
 
 ```ruby
-require "addressable/idna/pure.rb"
+require "addressable/idna/pure"
 Addressable::IDNA.backend = Addressable::IDNA::Pure
 require "addressable/idna/libidn2"
 Addressable::IDNA.backend = Addressable::IDNA::Libidn2
