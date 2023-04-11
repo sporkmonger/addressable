@@ -26,11 +26,7 @@ shared_examples_for 'expands' do |tests|
     exp = expansion.is_a?(Array) ? expansion.first : expansion
     it "#{template} to #{exp}" do
       tmpl = Addressable::Template.new(template).expand(subject)
-      if expansion.is_a?(Array)
-        expect(expansion.any?{|i| i == tmpl.to_str}).to be true
-      else
-        expect(tmpl.to_str).to eq(expansion)
-      end
+      expect(tmpl.to_str).to eq(expansion)
     end
   end
 end
@@ -209,7 +205,7 @@ describe "Level 4" do
       :path => "/foo/bar",
       :semi => ";",
       :list => %w(red green blue),
-      :keys => {"semi" => ';', "dot" => '.', "comma" => ','}
+      :keys => {"semi" => ';', "dot" => '.', :comma => ','}
     }
   }
   context "Expansion with value modifiers" do
@@ -218,22 +214,8 @@ describe "Level 4" do
       '{var:30}' => 'value',
       '{list}' => 'red,green,blue',
       '{list*}' => 'red,green,blue',
-      '{keys}' => [
-        'semi,%3B,dot,.,comma,%2C',
-        'dot,.,semi,%3B,comma,%2C',
-        'comma,%2C,semi,%3B,dot,.',
-        'semi,%3B,comma,%2C,dot,.',
-        'dot,.,comma,%2C,semi,%3B',
-        'comma,%2C,dot,.,semi,%3B'
-      ],
-      '{keys*}' => [
-        'semi=%3B,dot=.,comma=%2C',
-        'dot=.,semi=%3B,comma=%2C',
-        'comma=%2C,semi=%3B,dot=.',
-        'semi=%3B,comma=%2C,dot=.',
-        'dot=.,comma=%2C,semi=%3B',
-        'comma=%2C,dot=.,semi=%3B'
-      ]
+      '{keys}' => 'semi,%3B,dot,.,comma,%2C',
+      '{keys*}' => 'semi=%3B,dot=.,comma=%2C',
     }
   end
   context "Operator + with value modifiers" do
@@ -241,22 +223,8 @@ describe "Level 4" do
       '{+path:6}/here' => '/foo/b/here',
       '{+list}' => 'red,green,blue',
       '{+list*}' => 'red,green,blue',
-      '{+keys}' => [
-        'semi,;,dot,.,comma,,',
-        'dot,.,semi,;,comma,,',
-        'comma,,,semi,;,dot,.',
-        'semi,;,comma,,,dot,.',
-        'dot,.,comma,,,semi,;',
-        'comma,,,dot,.,semi,;'
-      ],
-      '{+keys*}' => [
-        'semi=;,dot=.,comma=,',
-        'dot=.,semi=;,comma=,',
-        'comma=,,semi=;,dot=.',
-        'semi=;,comma=,,dot=.',
-        'dot=.,comma=,,semi=;',
-        'comma=,,dot=.,semi=;'
-      ]
+      '{+keys}' => 'semi,;,dot,.,comma,,',
+      '{+keys*}' => 'semi=;,dot=.,comma=,',
     }
   end
   context "Operator # with value modifiers" do
@@ -264,22 +232,8 @@ describe "Level 4" do
       '{#path:6}/here' => '#/foo/b/here',
       '{#list}' => '#red,green,blue',
       '{#list*}' => '#red,green,blue',
-      '{#keys}' => [
-        '#semi,;,dot,.,comma,,',
-        '#dot,.,semi,;,comma,,',
-        '#comma,,,semi,;,dot,.',
-        '#semi,;,comma,,,dot,.',
-        '#dot,.,comma,,,semi,;',
-        '#comma,,,dot,.,semi,;'
-      ],
-      '{#keys*}' => [
-        '#semi=;,dot=.,comma=,',
-        '#dot=.,semi=;,comma=,',
-        '#comma=,,semi=;,dot=.',
-        '#semi=;,comma=,,dot=.',
-        '#dot=.,comma=,,semi=;',
-        '#comma=,,dot=.,semi=;'
-      ]
+      '{#keys}' => '#semi,;,dot,.,comma,,',
+      '{#keys*}' => '#semi=;,dot=.,comma=,',
     }
   end
   context "Operator . with value modifiers" do
@@ -287,22 +241,8 @@ describe "Level 4" do
       'X{.var:3}' => 'X.val',
       'X{.list}' => 'X.red,green,blue',
       'X{.list*}' => 'X.red.green.blue',
-      'X{.keys}' => [
-        'X.semi,%3B,dot,.,comma,%2C',
-        'X.dot,.,semi,%3B,comma,%2C',
-        'X.comma,%2C,semi,%3B,dot,.',
-        'X.semi,%3B,comma,%2C,dot,.',
-        'X.dot,.,comma,%2C,semi,%3B',
-        'X.comma,%2C,dot,.,semi,%3B'
-      ],
-      'X{.keys*}' => [
-        'X.semi=%3B.dot=..comma=%2C',
-        'X.dot=..semi=%3B.comma=%2C',
-        'X.comma=%2C.semi=%3B.dot=.',
-        'X.semi=%3B.comma=%2C.dot=.',
-        'X.dot=..comma=%2C.semi=%3B',
-        'X.comma=%2C.dot=..semi=%3B'
-      ]
+      'X{.keys}' => 'X.semi,%3B,dot,.,comma,%2C',
+      'X{.keys*}' => 'X.semi=%3B.dot=..comma=%2C',
     }
   end
   context "Operator / with value modifiers" do
@@ -311,22 +251,8 @@ describe "Level 4" do
       '{/list}' => '/red,green,blue',
       '{/list*}' => '/red/green/blue',
       '{/list*,path:4}' => '/red/green/blue/%2Ffoo',
-      '{/keys}' => [
-        '/semi,%3B,dot,.,comma,%2C',
-        '/dot,.,semi,%3B,comma,%2C',
-        '/comma,%2C,semi,%3B,dot,.',
-        '/semi,%3B,comma,%2C,dot,.',
-        '/dot,.,comma,%2C,semi,%3B',
-        '/comma,%2C,dot,.,semi,%3B'
-      ],
-      '{/keys*}' => [
-        '/semi=%3B/dot=./comma=%2C',
-        '/dot=./semi=%3B/comma=%2C',
-        '/comma=%2C/semi=%3B/dot=.',
-        '/semi=%3B/comma=%2C/dot=.',
-        '/dot=./comma=%2C/semi=%3B',
-        '/comma=%2C/dot=./semi=%3B'
-      ]
+      '{/keys}' => '/semi,%3B,dot,.,comma,%2C',
+      '{/keys*}' => '/semi=%3B/dot=./comma=%2C',
     }
   end
   context "Operator ; with value modifiers" do
@@ -334,22 +260,8 @@ describe "Level 4" do
       '{;hello:5}' => ';hello=Hello',
       '{;list}' => ';list=red,green,blue',
       '{;list*}' => ';list=red;list=green;list=blue',
-      '{;keys}' => [
-        ';keys=semi,%3B,dot,.,comma,%2C',
-        ';keys=dot,.,semi,%3B,comma,%2C',
-        ';keys=comma,%2C,semi,%3B,dot,.',
-        ';keys=semi,%3B,comma,%2C,dot,.',
-        ';keys=dot,.,comma,%2C,semi,%3B',
-        ';keys=comma,%2C,dot,.,semi,%3B'
-      ],
-      '{;keys*}' => [
-        ';semi=%3B;dot=.;comma=%2C',
-        ';dot=.;semi=%3B;comma=%2C',
-        ';comma=%2C;semi=%3B;dot=.',
-        ';semi=%3B;comma=%2C;dot=.',
-        ';dot=.;comma=%2C;semi=%3B',
-        ';comma=%2C;dot=.;semi=%3B'
-      ]
+      '{;keys}' => ';keys=semi,%3B,dot,.,comma,%2C',
+      '{;keys*}' => ';semi=%3B;dot=.;comma=%2C',
     }
   end
   context "Operator ? with value modifiers" do
@@ -357,22 +269,8 @@ describe "Level 4" do
       '{?var:3}' => '?var=val',
       '{?list}' => '?list=red,green,blue',
       '{?list*}' => '?list=red&list=green&list=blue',
-      '{?keys}' => [
-        '?keys=semi,%3B,dot,.,comma,%2C',
-        '?keys=dot,.,semi,%3B,comma,%2C',
-        '?keys=comma,%2C,semi,%3B,dot,.',
-        '?keys=semi,%3B,comma,%2C,dot,.',
-        '?keys=dot,.,comma,%2C,semi,%3B',
-        '?keys=comma,%2C,dot,.,semi,%3B'
-      ],
-      '{?keys*}' => [
-        '?semi=%3B&dot=.&comma=%2C',
-        '?dot=.&semi=%3B&comma=%2C',
-        '?comma=%2C&semi=%3B&dot=.',
-        '?semi=%3B&comma=%2C&dot=.',
-        '?dot=.&comma=%2C&semi=%3B',
-        '?comma=%2C&dot=.&semi=%3B'
-      ]
+      '{?keys}' => '?keys=semi,%3B,dot,.,comma,%2C',
+      '{?keys*}' => '?semi=%3B&dot=.&comma=%2C',
     }
   end
   context "Operator & with value modifiers" do
@@ -380,22 +278,8 @@ describe "Level 4" do
       '{&var:3}' => '&var=val',
       '{&list}' => '&list=red,green,blue',
       '{&list*}' => '&list=red&list=green&list=blue',
-      '{&keys}' => [
-        '&keys=semi,%3B,dot,.,comma,%2C',
-        '&keys=dot,.,semi,%3B,comma,%2C',
-        '&keys=comma,%2C,semi,%3B,dot,.',
-        '&keys=semi,%3B,comma,%2C,dot,.',
-        '&keys=dot,.,comma,%2C,semi,%3B',
-        '&keys=comma,%2C,dot,.,semi,%3B'
-      ],
-      '{&keys*}' => [
-        '&semi=%3B&dot=.&comma=%2C',
-        '&dot=.&semi=%3B&comma=%2C',
-        '&comma=%2C&semi=%3B&dot=.',
-        '&semi=%3B&comma=%2C&dot=.',
-        '&dot=.&comma=%2C&semi=%3B',
-        '&comma=%2C&dot=.&semi=%3B'
-      ]
+      '{&keys}' => '&keys=semi,%3B,dot,.,comma,%2C',
+      '{&keys*}' => '&semi=%3B&dot=.&comma=%2C',
     }
   end
 end
@@ -404,7 +288,7 @@ describe "Modifiers" do
     {
       :var => "value",
       :semi => ";",
-      :year => %w(1965 2000 2012),
+      :year => [1965, 2000, 2012],
       :dom => %w(example com)
     }
   }
@@ -437,7 +321,7 @@ describe "Expansion" do
       :base  => "http://example.com/home/",
       :path  => "/foo/bar",
       :list  => ["red", "green", "blue"],
-      :keys  => {"semi" => ";","dot" => ".","comma" => ","},
+      :keys  => {"semi" => ";","dot" => ".",:comma => ","},
       :v     => "6",
       :x     => "1024",
       :y     => "768",
@@ -475,22 +359,8 @@ describe "Expansion" do
       '{var:30}' => 'value',
       '{list}' => 'red,green,blue',
       '{list*}' => 'red,green,blue',
-      '{keys}' => [
-        'semi,%3B,dot,.,comma,%2C',
-        'dot,.,semi,%3B,comma,%2C',
-        'comma,%2C,semi,%3B,dot,.',
-        'semi,%3B,comma,%2C,dot,.',
-        'dot,.,comma,%2C,semi,%3B',
-        'comma,%2C,dot,.,semi,%3B'
-      ],
-      '{keys*}' => [
-        'semi=%3B,dot=.,comma=%2C',
-        'dot=.,semi=%3B,comma=%2C',
-        'comma=%2C,semi=%3B,dot=.',
-        'semi=%3B,comma=%2C,dot=.',
-        'dot=.,comma=%2C,semi=%3B',
-        'comma=%2C,dot=.,semi=%3B'
-      ]
+      '{keys}' => 'semi,%3B,dot,.,comma,%2C',
+      '{keys*}' => 'semi=%3B,dot=.,comma=%2C',
     }
   end
   context "reserved expansion (+)" do
@@ -510,22 +380,8 @@ describe "Expansion" do
       '{+path:6}/here' => '/foo/b/here',
       '{+list}' => 'red,green,blue',
       '{+list*}' => 'red,green,blue',
-      '{+keys}' => [
-        'semi,;,dot,.,comma,,',
-        'dot,.,semi,;,comma,,',
-        'comma,,,semi,;,dot,.',
-        'semi,;,comma,,,dot,.',
-        'dot,.,comma,,,semi,;',
-        'comma,,,dot,.,semi,;'
-      ],
-      '{+keys*}' => [
-        'semi=;,dot=.,comma=,',
-        'dot=.,semi=;,comma=,',
-        'comma=,,semi=;,dot=.',
-        'semi=;,comma=,,dot=.',
-        'dot=.,comma=,,semi=;',
-        'comma=,,dot=.,semi=;'
-      ]
+      '{+keys}' => 'semi,;,dot,.,comma,,',
+      '{+keys*}' => 'semi=;,dot=.,comma=,',
     }
   end
   context "fragment expansion (#)" do
@@ -540,22 +396,8 @@ describe "Expansion" do
       '{#path:6}/here' => '#/foo/b/here',
       '{#list}' => '#red,green,blue',
       '{#list*}' => '#red,green,blue',
-      '{#keys}' => [
-        '#semi,;,dot,.,comma,,',
-        '#dot,.,semi,;,comma,,',
-        '#comma,,,semi,;,dot,.',
-        '#semi,;,comma,,,dot,.',
-        '#dot,.,comma,,,semi,;',
-        '#comma,,,dot,.,semi,;'
-      ],
-      '{#keys*}' => [
-        '#semi=;,dot=.,comma=,',
-        '#dot=.,semi=;,comma=,',
-        '#comma=,,semi=;,dot=.',
-        '#semi=;,comma=,,dot=.',
-        '#dot=.,comma=,,semi=;',
-        '#comma=,,dot=.,semi=;'
-      ]
+      '{#keys}' => '#semi,;,dot,.,comma,,',
+      '{#keys*}' => '#semi=;,dot=.,comma=,',
     }
   end
   context "label expansion (.)" do
@@ -570,22 +412,8 @@ describe "Expansion" do
       'X{.var:3}' => 'X.val',
       'X{.list}' => 'X.red,green,blue',
       'X{.list*}' => 'X.red.green.blue',
-      'X{.keys}' => [
-        'X.semi,%3B,dot,.,comma,%2C',
-        'X.dot,.,semi,%3B,comma,%2C',
-        'X.comma,%2C,semi,%3B,dot,.',
-        'X.semi,%3B,comma,%2C,dot,.',
-        'X.dot,.,comma,%2C,semi,%3B',
-        'X.comma,%2C,dot,.,semi,%3B'
-      ],
-      'X{.keys*}' => [
-        'X.semi=%3B.dot=..comma=%2C',
-        'X.dot=..semi=%3B.comma=%2C',
-        'X.comma=%2C.semi=%3B.dot=.',
-        'X.semi=%3B.comma=%2C.dot=.',
-        'X.dot=..comma=%2C.semi=%3B',
-        'X.comma=%2C.dot=..semi=%3B'
-      ],
+      'X{.keys}' => 'X.semi,%3B,dot,.,comma,%2C',
+      'X{.keys*}' => 'X.semi=%3B.dot=..comma=%2C',
       'X{.empty_keys}' => 'X',
       'X{.empty_keys*}' => 'X'
     }
@@ -604,22 +432,8 @@ describe "Expansion" do
       '{/list}' => '/red,green,blue',
       '{/list*}' => '/red/green/blue',
       '{/list*,path:4}' => '/red/green/blue/%2Ffoo',
-      '{/keys}' => [
-        '/semi,%3B,dot,.,comma,%2C',
-        '/dot,.,semi,%3B,comma,%2C',
-        '/comma,%2C,semi,%3B,dot,.',
-        '/semi,%3B,comma,%2C,dot,.',
-        '/dot,.,comma,%2C,semi,%3B',
-        '/comma,%2C,dot,.,semi,%3B'
-      ],
-      '{/keys*}' => [
-        '/semi=%3B/dot=./comma=%2C',
-        '/dot=./semi=%3B/comma=%2C',
-        '/comma=%2C/semi=%3B/dot=.',
-        '/semi=%3B/comma=%2C/dot=.',
-        '/dot=./comma=%2C/semi=%3B',
-        '/comma=%2C/dot=./semi=%3B'
-      ]
+      '{/keys}' => '/semi,%3B,dot,.,comma,%2C',
+      '{/keys*}' => '/semi=%3B/dot=./comma=%2C',
     }
   end
   context "path-style expansion (;)" do
@@ -635,22 +449,8 @@ describe "Expansion" do
       '{;hello:5}' => ';hello=Hello',
       '{;list}' => ';list=red,green,blue',
       '{;list*}' => ';list=red;list=green;list=blue',
-      '{;keys}' => [
-        ';keys=semi,%3B,dot,.,comma,%2C',
-        ';keys=dot,.,semi,%3B,comma,%2C',
-        ';keys=comma,%2C,semi,%3B,dot,.',
-        ';keys=semi,%3B,comma,%2C,dot,.',
-        ';keys=dot,.,comma,%2C,semi,%3B',
-        ';keys=comma,%2C,dot,.,semi,%3B'
-      ],
-      '{;keys*}' => [
-        ';semi=%3B;dot=.;comma=%2C',
-        ';dot=.;semi=%3B;comma=%2C',
-        ';comma=%2C;semi=%3B;dot=.',
-        ';semi=%3B;comma=%2C;dot=.',
-        ';dot=.;comma=%2C;semi=%3B',
-        ';comma=%2C;dot=.;semi=%3B'
-      ]
+      '{;keys}' => ';keys=semi,%3B,dot,.,comma,%2C',
+      '{;keys*}' => ';semi=%3B;dot=.;comma=%2C',
     }
   end
   context "form query expansion (?)" do
@@ -663,22 +463,8 @@ describe "Expansion" do
       '{?var:3}' => '?var=val',
       '{?list}' => '?list=red,green,blue',
       '{?list*}' => '?list=red&list=green&list=blue',
-      '{?keys}' => [
-        '?keys=semi,%3B,dot,.,comma,%2C',
-        '?keys=dot,.,semi,%3B,comma,%2C',
-        '?keys=comma,%2C,semi,%3B,dot,.',
-        '?keys=semi,%3B,comma,%2C,dot,.',
-        '?keys=dot,.,comma,%2C,semi,%3B',
-        '?keys=comma,%2C,dot,.,semi,%3B'
-      ],
-      '{?keys*}' => [
-        '?semi=%3B&dot=.&comma=%2C',
-        '?dot=.&semi=%3B&comma=%2C',
-        '?comma=%2C&semi=%3B&dot=.',
-        '?semi=%3B&comma=%2C&dot=.',
-        '?dot=.&comma=%2C&semi=%3B',
-        '?comma=%2C&dot=.&semi=%3B'
-      ]
+      '{?keys}' => '?keys=semi,%3B,dot,.,comma,%2C',
+      '{?keys*}' => '?semi=%3B&dot=.&comma=%2C',
     }
   end
   context "form query expansion (&)" do
@@ -691,22 +477,8 @@ describe "Expansion" do
       '{&var:3}' => '&var=val',
       '{&list}' => '&list=red,green,blue',
       '{&list*}' => '&list=red&list=green&list=blue',
-      '{&keys}' => [
-        '&keys=semi,%3B,dot,.,comma,%2C',
-        '&keys=dot,.,semi,%3B,comma,%2C',
-        '&keys=comma,%2C,semi,%3B,dot,.',
-        '&keys=semi,%3B,comma,%2C,dot,.',
-        '&keys=dot,.,comma,%2C,semi,%3B',
-        '&keys=comma,%2C,dot,.,semi,%3B'
-      ],
-      '{&keys*}' => [
-        '&semi=%3B&dot=.&comma=%2C',
-        '&dot=.&semi=%3B&comma=%2C',
-        '&comma=%2C&semi=%3B&dot=.',
-        '&semi=%3B&comma=%2C&dot=.',
-        '&dot=.&comma=%2C&semi=%3B',
-        '&comma=%2C&dot=.&semi=%3B'
-      ]
+      '{&keys}' => '&keys=semi,%3B,dot,.,comma,%2C',
+      '{&keys*}' => '&semi=%3B&dot=.&comma=%2C',
     }
   end
   context "non-string key in match data" do

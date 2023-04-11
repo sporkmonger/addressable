@@ -24,7 +24,8 @@ PKG_FILES = FileList[
     "tasks/**/*",
     "[A-Z]*", "Rakefile"
 ].exclude(/pkg/).exclude(/database\.yml/).
-  exclude(/Gemfile\.lock/).exclude(/[_\.]git$/)
+  exclude(/Gemfile\.lock/).exclude(/[_\.]git$/).
+  exclude(/coverage/)
 
 task :default => "spec"
 

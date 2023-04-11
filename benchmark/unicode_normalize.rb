@@ -2,7 +2,7 @@
 # frozen_string_literal: true.
 
 require "benchmark"
-require "addressable/idna/pure.rb"
+require_relative "../lib/addressable/idna/pure.rb"
 require "idn"
 
 value = "ﬁﾯリ宠퐱卄.com"

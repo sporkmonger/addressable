@@ -33,6 +33,16 @@ module Addressable
     IDN2_TRANSITIONAL = 4
     IDN2_NONTRANSITIONAL = 8
 
+    class << self
+      # @deprecated Use {String#unicode_normalize(:nfkc)} instead
+      def unicode_normalize_kc(value)
+        value.to_s.unicode_normalize(:nfkc)
+      end
+
+      extend Gem::Deprecate
+      deprecate :unicode_normalize_kc, "String#unicode_normalize(:nfkc)", 2023, 4
+    end
+
     def self.to_ascii(value)
       return value if value.ascii_only?
       pointer = FFI::MemoryPointer.new(:pointer)
