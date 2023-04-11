@@ -20,9 +20,9 @@ additionally provides extensive support for IRIs and URI templates.
 TEXT
 
 PKG_FILES = FileList[
-    "lib/**/*", "spec/**/*", "vendor/**/*", "data/**/*",
-    "tasks/**/*",
-    "[A-Z]*", "Rakefile"
+    "lib/**/*.rb", "spec/**/*.rb", "data/**/*",
+    "tasks/**/*.rake",
+    "[A-Z]*", "*.gemspec"
 ].exclude(/pkg/).exclude(/database\.yml/).
   exclude(/Gemfile\.lock/).exclude(/[_\.]git$/).
   exclude(/coverage/)
