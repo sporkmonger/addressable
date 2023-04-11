@@ -18,6 +18,15 @@
 
 module Addressable
   module IDNA
+    # All IDNA conversion related errors
+    class Error < StandardError; end
+    # Input is invalid.
+    class PunycodeBadInput < Error; end
+    # Output would exceed the space provided.
+    class PunycodeBigOutput < Error; end
+    # Input needs wider integers to process.
+    class PunycodeOverflow < Error; end
+
     class << self
       attr_accessor :backend
 

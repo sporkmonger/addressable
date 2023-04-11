@@ -40,7 +40,7 @@ module Addressable
         res = idn2_to_ascii_8z(value, pointer, IDN2_NONTRANSITIONAL)
         # Fallback to Transitional mode in case of disallowed character
         res = idn2_to_ascii_8z(value, pointer, IDN2_TRANSITIONAL) if res != 0
-        raise "libidn2 failed to convert \"#{value}\" to ascii (#{idn2_strerror(res)})" if res != 0
+        raise Error.new("libidn2 failed to convert \"#{value}\" to ascii (#{idn2_strerror(res)})") if res != 0
         result = pointer.read_pointer.read_string
         idn2_free(pointer.read_pointer)
         result
