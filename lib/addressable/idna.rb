@@ -16,15 +16,43 @@
 #    limitations under the License.
 #++
 
+module Addressable
+  module IDNA
+    class << self
+      attr_accessor :backend
+
+      # public interface implemented by all backends
+      def to_ascii(value)
+        backend.to_ascii(value)
+      end
+
+      def to_unicode(value)
+        backend.to_unicode(value)
+      end
+
+      # @deprecated Use {String#unicode_normalize(:nfkc)} instead
+      def unicode_normalize_kc(value)
+        value.to_s.unicode_normalize(:nfkc)
+      end
+
+      extend Gem::Deprecate
+      deprecate :unicode_normalize_kc, "String#unicode_normalize(:nfkc)", 2023, 4
+    end
+  end
+end
+
 begin
-  require "addressable/idna/native2"
+  require "addressable/idna/libidn2"
+  Addressable::IDNA.backend = Addressable::IDNA::Libidn2
 rescue LoadError
   # libidn2 or the ffi gem was not available, fall back on libidn1
   begin
-    require "addressable/idna/native"
+    require "addressable/idna/libidn1"
+    Addressable::IDNA.backend = Addressable::IDNA::Libidn1
   rescue LoadError
     # libidn or the idn gem was not available, fall back on a pure-Ruby
     # implementation...
     require "addressable/idna/pure"
+    Addressable::IDNA.backend = Addressable::IDNA::Pure
   end
 end

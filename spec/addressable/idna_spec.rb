@@ -259,8 +259,8 @@ end
 
 describe Addressable::IDNA, "when using the pure-Ruby implementation" do
   before :all do
-    Addressable.send(:remove_const, :IDNA)
-    load "addressable/idna/pure.rb"
+    require "addressable/idna/pure"
+    Addressable::IDNA.backend = Addressable::IDNA::Pure
   end
 
   it_should_behave_like "converting from unicode to ASCII"
@@ -275,8 +275,9 @@ describe Addressable::IDNA, "when using the pure-Ruby implementation" do
 
     it "should not blow up inside fibers" do
       f = Fiber.new do
-        Addressable.send(:remove_const, :IDNA)
+        Addressable::IDNA.send(:remove_const, :Pure)
         load "addressable/idna/pure.rb"
+        Addressable::IDNA.backend = Addressable::IDNA::Pure
       end
       f.resume
     end
@@ -287,12 +288,11 @@ describe Addressable::IDNA, "when using the pure-Ruby implementation" do
 end
 
 begin
-  require "idn"
+  require "addressable/idna/libidn1"
 
   describe Addressable::IDNA, "when using the libidn1 native implementation (idn gem)" do
     before :all do
-      Addressable.send(:remove_const, :IDNA)
-      load "addressable/idna/native.rb"
+      Addressable::IDNA.backend = Addressable::IDNA::Libidn1
     end
 
     it_should_behave_like "converting from unicode to ASCII"
@@ -310,12 +310,11 @@ rescue LoadError => error
 end
 
 begin
-  require "addressable/idna/native2.rb"
+  require "addressable/idna/libidn2"
 
   describe Addressable::IDNA, "when using the libidn2 native implementation (ffi)" do
     before :all do
-      Addressable.send(:remove_const, :IDNA)
-      load "addressable/idna/native2.rb"
+      Addressable::IDNA.backend = Addressable::IDNA::Libidn2
     end
 
     it_should_behave_like "converting from unicode to ASCII"

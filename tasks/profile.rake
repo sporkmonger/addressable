@@ -39,11 +39,11 @@ namespace :profile do
     require "memory_profiler"
     require "addressable/uri"
     if ENV["IDNA_MODE"] == "pure"
-      Addressable.send(:remove_const, :IDNA)
-      load "addressable/idna/pure.rb"
-    elsif ENV["IDNA_MODE"] == "native"
-      Addressable.send(:remove_const, :IDNA)
-      load "addressable/idna/native.rb"
+      require "addressable/idna/pure"
+      Addressable::IDNA.backend = Addressable::IDNA::Pure
+    elsif ENV["IDNA_MODE"] == "libidn1"
+      require "addressable/idna/libidn1"
+      Addressable::IDNA.backend = Addressable::IDNA::Libidn1
     end
 
     start_at = Time.now.to_f
@@ -56,7 +56,6 @@ namespace :profile do
     end
     end_at = Time.now.to_f
     print_options = { scale_bytes: true, normalize_paths: true }
-    puts "\n\n"
 
     if ENV["CI"]
       report.pretty_print(**print_options)
@@ -67,6 +66,7 @@ namespace :profile do
       puts "Total allocated: #{t_allocated} (#{report.total_allocated} objects)"
       puts "Total retained:  #{t_retained} (#{report.total_retained} objects)"
       puts "Took #{end_at - start_at} seconds"
+      puts "IDNA backend: #{Addressable::IDNA.backend.name}"
 
       FileUtils.mkdir_p("tmp")
       report.pretty_print(to_file: "tmp/memprof.txt", **print_options)
