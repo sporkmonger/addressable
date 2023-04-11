@@ -39,24 +39,3 @@ end
 # pure      6.042877   0.000000   6.042877 (  6.043252)
 # libidn    0.521668   0.000000   0.521668 (  0.521704)
 # libidn2   0.764782   0.000000   0.764782 (  0.764863)
-
-puts "\nMemory leak test for libidn2 (memory should stabilize quickly):"
-GC.disable # Only run GC when manually called
-10.times do
-  N.times { Addressable::IDNA::Libidn2.to_unicode(Addressable::IDNA::Libidn2.to_ascii(value)) }
-  GC.start # Run a major GC
-  pid, size = `ps ax -o pid,rss | grep -E "^[[:space:]]*#{$$}"`.strip.split.map(&:to_i)
-  puts " Memory: #{size/1024}MB" # show process memory
-end
-
-# Memory leak test for libidn2 (memory should stabilize quickly):
-#  Memory: 117MB
-#  Memory: 121MB
-#  Memory: 121MB
-#  Memory: 121MB
-#  Memory: 121MB
-#  Memory: 121MB
-#  Memory: 121MB
-#  Memory: 121MB
-#  Memory: 121MB
-#  Memory: 121MB
