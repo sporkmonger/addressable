@@ -35,11 +35,10 @@ module Addressable
       IDN2_NONTRANSITIONAL = 8
 
       def self.to_ascii(value)
-        return value if value.ascii_only?
         pointer = FFI::MemoryPointer.new(:pointer)
         res = idn2_to_ascii_8z(value, pointer, IDN2_NONTRANSITIONAL)
         # Fallback to Transitional mode in case of disallowed character
-        res = idn2_to_ascii_8z(value, pointer, IDN2_TRANSITIONAL) if res != 0
+        res = idn2_to_ascii_8z(value, pointer, IDN2_TRANSITIONAL) if res == -304
         raise Error.new("libidn2 failed to convert \"#{value}\" to ascii (#{idn2_strerror(res)})") if res != 0
         result = pointer.read_pointer.read_string
         idn2_free(pointer.read_pointer)
@@ -49,7 +48,7 @@ module Addressable
       def self.to_unicode(value)
         pointer = FFI::MemoryPointer.new(:pointer)
         res = idn2_to_unicode_8z8z(value, pointer, IDN2_NONTRANSITIONAL)
-        return value if res != 0
+        raise Error.new("libidn2 failed to convert \"#{value}\" to unicode (#{idn2_strerror(res)})") if res != 0
         result = pointer.read_pointer.read_string
         idn2_free(pointer.read_pointer)
         result.force_encoding('UTF-8')

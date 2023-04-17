@@ -156,6 +156,7 @@ end
 
 shared_examples_for "converting from ASCII to unicode" do
   long = 'AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com'
+
   it "should convert '#{long}' correctly" do
     expect(Addressable::IDNA.to_unicode(long)).to eq(long)
   end
@@ -322,6 +323,33 @@ begin
 
     it "should implement IDNA2008 non transitional" do
       expect(Addressable::IDNA.to_ascii("faß.de")).to eq("xn--fa-hia.de")
+    end
+
+    context "with strict_mode = true" do
+      before { Addressable::IDNA.strict_mode = true }
+      after { Addressable::IDNA.strict_mode = false }
+
+      long = 'AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com'
+      it "should raise on label too long (>63)" do
+        expect {
+          Addressable::IDNA.to_unicode(long)
+        }.to raise_error(/longer than 63 char|too large/)
+        expect {
+          Addressable::IDNA.to_ascii(long)
+        }.to raise_error(/longer than 63 char|too large/)
+      end
+
+      it "should raise when punycode decode fails" do
+        expect {
+          Addressable::IDNA.to_unicode("xn--zckp1cyg1.sblo.jp")
+        }.to raise_error(Addressable::IDNA::Error, /invalid punycode/)
+      end
+
+      it "should raise when the ACE prefix has no suffix" do
+        expect {
+          Addressable::IDNA.to_unicode("xn--...-")
+        }.to raise_error(Addressable::IDNA::Error, /invalid punycode/)
+      end
     end
   end
 rescue LoadError => error
