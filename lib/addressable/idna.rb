@@ -28,15 +28,19 @@ module Addressable
     class PunycodeOverflow < Error; end
 
     class << self
-      attr_accessor :backend
+      attr_accessor :backend, :strict_mode
 
       # public interface implemented by all backends
       def to_ascii(value)
         backend.to_ascii(value)
+      rescue Error, IDN::Idna::IdnaError
+        strict_mode ? raise : value
       end
 
       def to_unicode(value)
         backend.to_unicode(value)
+      rescue Error, IDN::Idna::IdnaError
+        strict_mode ? raise : value
       end
 
       # @deprecated Use {String#unicode_normalize(:nfkc)} instead

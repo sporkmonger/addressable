@@ -118,10 +118,9 @@ $ brew install libidn # OS X
 $ gem install idn-ruby
 ```
 
-You can check which implementation is active with:
-
+Optionally you can turn on the strict mode which will raise exceptions in case of invalid hostname during IDNA conversion. The default (`false`) silently ignores them and keeps the hostname unchanged. The strictness will depend on the backend used, libidn2 is stricted than libidn1 for example.
 ```ruby
-puts Addressable::IDNA.backend.name
+Addressable::IDNA.backend.strict_mode = true # default: false
 ```
 
 Finally if you want to force a different IDNA implementation, you can do so like this (after addressable is required):
@@ -131,6 +130,8 @@ require "addressable/idna/pure"
 Addressable::IDNA.backend = Addressable::IDNA::Pure
 require "addressable/idna/libidn2"
 Addressable::IDNA.backend = Addressable::IDNA::Libidn2
+# Check which implmentation is active:
+puts Addressable::IDNA.backend.name
 ```
 
 # Semantic Versioning
