@@ -271,14 +271,6 @@ describe Addressable::IDNA, "when using the pure-Ruby implementation" do
     expect(Addressable::IDNA.to_ascii("faß.de")).to eq("xn--fa-hia.de")
   end
 
-  it "throws exceptions which inherits Addressable::URI::InvalidURIError" do
-    # this way IDNA exceptions are also caught by existing rescue on InvalidURIError
-    expect(Addressable::IDNA::Error).to be < Addressable::URI::InvalidURIError
-    expect(Addressable::IDNA::PunycodeBadInput).to be < Addressable::IDNA::Error
-    expect(Addressable::IDNA::PunycodeBigOutput).to be < Addressable::IDNA::Error
-    expect(Addressable::IDNA::PunycodeOverflow).to be < Addressable::IDNA::Error
-  end
-
   begin
     require "fiber"
 
@@ -309,6 +301,18 @@ begin
 
     it "should implement IDNA2003" do
       expect(Addressable::IDNA.to_ascii("faß.de")).to eq("fass.de")
+    end
+
+    context "with strict_mode = true" do
+      before { Addressable::IDNA.strict_mode = true }
+      after { Addressable::IDNA.strict_mode = false }
+
+      long = 'AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com'
+      it "should raise on label too long (>63)" do
+        expect {
+          Addressable::IDNA.to_ascii(long)
+        }.to raise_error(Addressable::IDNA::Error, /too large/)
+      end
     end
   end
 rescue LoadError => error
@@ -344,7 +348,7 @@ begin
         }.to raise_error(Addressable::IDNA::Error, /longer than 63 char/)
         expect {
           Addressable::IDNA.to_ascii(long)
-        }.to raise_error(Addressable::URI::InvalidURIError, /longer than 63 char/)
+        }.to raise_error(Addressable::IDNA::Error, /longer than 63 char/)
       end
 
       it "should raise when punycode decode fails" do

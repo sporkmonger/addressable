@@ -17,14 +17,9 @@
 #++
 
 module Addressable
-  # moved from uri.rb here so we can inherit it
-  class URI
-    class InvalidURIError < StandardError; end
-  end
-
   module IDNA
     # All IDNA conversion related errors
-    class Error < Addressable::URI::InvalidURIError; end
+    class Error < StandardError; end
     # Input is invalid.
     class PunycodeBadInput < Error; end
     # Output would exceed the space provided.
