@@ -118,7 +118,7 @@ $ brew install libidn # OS X
 $ gem install idn-ruby
 ```
 
-Optionally you can turn on the strict mode which will raise exceptions in case of invalid hostname during IDNA conversion. The default (`false`) silently ignores them and keeps the hostname unchanged. The strictness will depend on the backend used, libidn2 is stricted than libidn1 for example.
+Optionally you can turn on the strict mode which will raise exceptions in case of invalid hostname during IDNA conversion. The default (`false`) silently ignores them and keeps the hostname unchanged. The strictness will depend on the backend used, libidn2 is stricter than libidn1 for example.
 ```ruby
 Addressable::IDNA.backend.strict_mode = true # default: false
 ```
