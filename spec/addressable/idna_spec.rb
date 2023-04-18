@@ -152,6 +152,13 @@ shared_examples_for "converting from unicode to ASCII" do
       "example..host"
     )).to eq("example..host")
   end
+
+  it "handles nil input" do
+    expect(Addressable::IDNA.to_ascii(nil)).to eq(nil)
+    expect(Addressable::IDNA.to_ascii(45)).to eq(nil)
+    expect(Addressable::IDNA.to_ascii([])).to eq(nil)
+    expect(Addressable::IDNA.to_ascii({})).to eq(nil)
+  end
 end
 
 shared_examples_for "converting from ASCII to unicode" do
@@ -255,6 +262,13 @@ shared_examples_for "converting from ASCII to unicode" do
     expect(Addressable::IDNA.to_unicode(
       "example..host"
     )).to eq("example..host")
+  end
+
+  it "handles unexpected input as nil" do
+    expect(Addressable::IDNA.to_unicode(nil)).to eq(nil)
+    expect(Addressable::IDNA.to_unicode(45)).to eq(nil)
+    expect(Addressable::IDNA.to_unicode([])).to eq(nil)
+    expect(Addressable::IDNA.to_unicode({})).to eq(nil)
   end
 end
 
