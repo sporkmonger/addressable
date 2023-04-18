@@ -1141,7 +1141,7 @@ module Addressable
       force_utf8_encoding_if_needed(@normalized_host)
       @normalized_host
     rescue IDNA::Error => e
-      raise InvalidURIError.new(e)
+      raise InvalidURIError.new(e.message)
     end
 
     ##
@@ -2198,7 +2198,7 @@ module Addressable
       display_uri.host = ::Addressable::IDNA.to_unicode(display_uri.host)
       return display_uri
     rescue IDNA::Error => e
-      raise InvalidURIError.new(e)
+      raise InvalidURIError.new(e.message)
     end
 
     ##

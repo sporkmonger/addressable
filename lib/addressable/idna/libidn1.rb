@@ -35,13 +35,13 @@ module Addressable
       def self.to_ascii(value)
         IDN::Idna.toASCII(value, IDN::Idna::ALLOW_UNASSIGNED)
       rescue IDN::Idna::IdnaError => e
-        Addressable::IDNA.strict_mode ? raise(Error.new(e)) : value
+        Addressable::IDNA.strict_mode ? raise(Error.new(e.message)) : value
       end
 
       def self.to_unicode(value)
         IDN::Idna.toUnicode(value, IDN::Idna::ALLOW_UNASSIGNED)
       rescue IDN::Idna::IdnaError => e
-        Addressable::IDNA.strict_mode ? raise(Error.new(e)) : value
+        Addressable::IDNA.strict_mode ? raise(Error.new(e.message)) : value
       end
     end
   end
