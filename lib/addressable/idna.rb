@@ -32,13 +32,13 @@ module Addressable
 
       # public interface implemented by all backends
       def to_ascii(value)
-        backend.to_ascii(value)
+        backend.to_ascii(value) if value.is_a?(String)
       rescue Error
         strict_mode ? raise : value
       end
 
       def to_unicode(value)
-        backend.to_unicode(value)
+        backend.to_unicode(value) if value.is_a?(String)
       rescue Error
         strict_mode ? raise : value
       end
