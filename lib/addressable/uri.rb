@@ -30,6 +30,11 @@ module Addressable
   # <a href="http://www.ietf.org/rfc/rfc3987.txt">RFC 3987</a>.
   class URI
     ##
+    # Raised if something other than a uri is supplied.
+    class InvalidURIError < StandardError
+    end
+
+    ##
     # Container for the character classes specified in
     # <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
     #
@@ -1135,6 +1140,8 @@ module Addressable
       # All normalized values should be UTF-8
       force_utf8_encoding_if_needed(@normalized_host)
       @normalized_host
+    rescue IDNA::Error => e
+      raise InvalidURIError.new(e)
     end
 
     ##
@@ -2190,6 +2197,8 @@ module Addressable
       display_uri = self.normalize
       display_uri.host = ::Addressable::IDNA.to_unicode(display_uri.host)
       return display_uri
+    rescue IDNA::Error => e
+      raise InvalidURIError.new(e)
     end
 
     ##
