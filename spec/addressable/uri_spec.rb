@@ -20,6 +20,7 @@ require "spec_helper"
 require "addressable/uri"
 require "uri"
 require "ipaddr"
+require "yaml"
 
 if !"".respond_to?("force_encoding")
   class String
@@ -6797,5 +6798,12 @@ describe Addressable::URI, "when deferring validation" do
   it "returns nil" do
     res = uri.defer_validation {}
     expect(res).to be nil
+  end
+end
+
+describe Addressable::URI, "YAML safe loading" do
+  it "doesn't serialize anonymous objects" do
+    url = Addressable::URI.parse("http://example.com/")
+    expect(YAML.dump(url)).to_not include("!ruby/object {}")
   end
 end
