@@ -2569,7 +2569,7 @@ module Addressable
       @query = nil
     end
 
-    NONE = Object.new.freeze
+    NONE = Module.new.freeze
 
     private_constant :NONE
   end

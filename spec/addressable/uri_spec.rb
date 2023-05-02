@@ -20,6 +20,7 @@ require "spec_helper"
 require "addressable/uri"
 require "uri"
 require "ipaddr"
+require "yaml"
 
 if !"".respond_to?("force_encoding")
   class String
@@ -6765,6 +6766,37 @@ describe Addressable::URI, "when initializing a subclass of Addressable::URI" do
 
   it "should have the same class after being joined" do
     expect(@uri.class).to eq(@uri.join('path').class)
+  end
+end
+
+describe Addressable::URI, "support serialization roundtrip" do
+  before do
+    @uri = Addressable::URI.new(
+      :scheme => "http",
+      :user => "user",
+      :password => "password",
+      :host => "example.com",
+      :port => 80,
+      :path => "/path",
+      :query => "query=value",
+      :fragment => "fragment"
+    )
+  end
+
+  it "is in a working state after being serialized with Marshal" do
+    @uri = Addressable::URI.parse("http://example.com")
+    cloned_uri = Marshal.load(Marshal.dump(@uri))
+    expect(cloned_uri.normalized_scheme).to be == @uri.normalized_scheme
+  end
+
+  it "is in a working state after being serialized with YAML" do
+    @uri = Addressable::URI.parse("http://example.com")
+    cloned_uri = if YAML.respond_to?(:unsafe_load)
+      YAML.unsafe_load(YAML.dump(@uri))
+    else
+      YAML.load(YAML.dump(@uri))
+    end
+    expect(cloned_uri.normalized_scheme).to be == @uri.normalized_scheme
   end
 end
 
