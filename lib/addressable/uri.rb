@@ -1198,7 +1198,7 @@ module Addressable
     # @example
     #   Addressable::URI.parse("http://www.example.co.uk").tld # => "co.uk"
     def tld
-      PublicSuffix.parse(self.host, ignore_private: true).tld
+      public_suffix.tld
     end
 
     ##
@@ -1216,7 +1216,16 @@ module Addressable
     # @example
     #   Addressable::URI.parse("http://www.example.co.uk").domain # => "example.co.uk"
     def domain
-      PublicSuffix.domain(self.host, ignore_private: true)
+      public_suffix.domain
+    end
+
+    ##
+    # Returns a PublicSuffix::Domain object for this host.
+    #
+    # @example
+    #   Addressable::URI.parse("http://www.example.org").public_suffix #=> #<PublicSuffix::Domain @sld="example", @tld="org", @trd="www">
+    def public_suffix(**kwargs)
+      PublicSuffix.parse(self.host, **{ignore_private: true}.merge(kwargs))
     end
 
     ##
