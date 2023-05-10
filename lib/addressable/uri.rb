@@ -1220,6 +1220,24 @@ module Addressable
     end
 
     ##
+    # Returns the first subdomain for this host.
+    #
+    # @example
+    #   Addressable::URI.parse("http://www.test.example.co.uk").domain # => "www"
+    def subdomain
+      subdomains.first
+    end
+
+    ##
+    # Returns the subdomains for this host.
+    #
+    # @example
+    #   Addressable::URI.parse("http://www.test.example.co.uk").domain # => ["www", "test"]
+    def subdomains
+      public_suffix.trd.to_s.split(".")
+    end
+
+    ##
     # Returns a PublicSuffix::Domain object for this host.
     #
     # @example

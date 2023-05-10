@@ -6805,3 +6805,23 @@ describe Addressable::URI, "public suffix" do
     expect(Addressable::URI.parse("http://example.org").public_suffix).to be_an(PublicSuffix::Domain)
   end
 end
+
+describe Addressable::URI, "subdomain" do
+  it "should return the first subdomain" do
+    expect(Addressable::URI.parse("http://www.test.example.org").subdomain).to eq("www")
+  end
+
+  it "should return nil if no subdomain" do
+    expect(Addressable::URI.parse("http://example.co.uk").subdomain).to be_nil
+  end
+end
+
+describe Addressable::URI, "subdomains" do
+  it "should return the subdomains" do
+    expect(Addressable::URI.parse("http://www.test.example.org").subdomains).to eq(["www", "test"])
+  end
+
+  it "should return an empty array if no subdomain" do
+    expect(Addressable::URI.parse("http://example.co.uk").subdomains).to eq([])
+  end
+end
