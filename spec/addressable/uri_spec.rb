@@ -6831,3 +6831,10 @@ describe Addressable::URI, "when deferring validation" do
     expect(res).to be nil
   end
 end
+
+describe Addressable::URI, "YAML safe loading" do
+  it "doesn't serialize anonymous objects" do
+    url = Addressable::URI.parse("http://example.com/")
+    expect(YAML.dump(url)).to_not include("!ruby/object {}")
+  end
+end

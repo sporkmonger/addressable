@@ -2396,6 +2396,25 @@ module Addressable
       @validation_deferred = false
     end
 
+    def encode_with(coder)
+      instance_variables.each do |ivar|
+        value = instance_variable_get(ivar)
+        if value != NONE
+          key = ivar.to_s.slice(1..-1)
+          coder[key] = value
+        end
+      end
+      nil
+    end
+
+    def init_with(coder)
+      reset_ivs
+      coder.map.each do |key, value|
+        instance_variable_set("@#{key}", value)
+      end
+      nil
+    end
+
   protected
     SELF_REF = '.'
     PARENT = '..'
