@@ -6769,6 +6769,37 @@ describe Addressable::URI, "when initializing a subclass of Addressable::URI" do
   end
 end
 
+describe Addressable::URI, "support serialization roundtrip" do
+  before do
+    @uri = Addressable::URI.new(
+      :scheme => "http",
+      :user => "user",
+      :password => "password",
+      :host => "example.com",
+      :port => 80,
+      :path => "/path",
+      :query => "query=value",
+      :fragment => "fragment"
+    )
+  end
+
+  it "is in a working state after being serialized with Marshal" do
+    @uri = Addressable::URI.parse("http://example.com")
+    cloned_uri = Marshal.load(Marshal.dump(@uri))
+    expect(cloned_uri.normalized_scheme).to be == @uri.normalized_scheme
+  end
+
+  it "is in a working state after being serialized with YAML" do
+    @uri = Addressable::URI.parse("http://example.com")
+    cloned_uri = if YAML.respond_to?(:unsafe_load)
+      YAML.unsafe_load(YAML.dump(@uri))
+    else
+      YAML.load(YAML.dump(@uri))
+    end
+    expect(cloned_uri.normalized_scheme).to be == @uri.normalized_scheme
+  end
+end
+
 describe Addressable::URI, "when initialized in a non-main `Ractor`" do
   it "should have the same value as if used in the main `Ractor`" do
     pending("Ruby 3.0+ for `Ractor` support") unless defined?(Ractor)
