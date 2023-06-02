@@ -1155,6 +1155,7 @@ module Addressable
       # Reset dependent values
       @authority = nil
       @normalized_host = nil
+      @public_suffix = nil
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -1235,15 +1236,6 @@ module Addressable
     #   Addressable::URI.parse("http://www.test.example.co.uk").domain # => ["www", "test"]
     def subdomains
       public_suffix.trd.to_s.split(".")
-    end
-
-    ##
-    # Returns a PublicSuffix::Domain object for this host.
-    #
-    # @example
-    #   Addressable::URI.parse("http://www.example.org").public_suffix #=> #<PublicSuffix::Domain @sld="example", @tld="org", @trd="www">
-    def public_suffix(**kwargs)
-      PublicSuffix.parse(self.host, **{ignore_private: true}.merge(kwargs))
     end
 
     ##
@@ -2566,6 +2558,14 @@ module Addressable
     end
 
     private
+
+    ##
+    # Returns a PublicSuffix::Domain object for this host.
+    #
+    # @api private
+    def public_suffix
+      @public_suffix ||= PublicSuffix.parse(self.host, ignore_private: true)
+    end
 
     ##
     # Resets instance variables

@@ -6800,12 +6800,6 @@ describe Addressable::URI, "when deferring validation" do
   end
 end
 
-describe Addressable::URI, "public suffix" do
-  it "should return a PublicSuffix::Domain object" do
-    expect(Addressable::URI.parse("http://example.org").public_suffix).to be_an(PublicSuffix::Domain)
-  end
-end
-
 describe Addressable::URI, "subdomain" do
   it "should return the first subdomain" do
     expect(Addressable::URI.parse("http://www.test.example.org").subdomain).to eq("www")
