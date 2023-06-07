@@ -1,6 +1,7 @@
-# encoding:utf-8
+# frozen_string_literal: true
+
 #--
-# Copyright (C) 2006-2013 Bob Aman
+# Copyright (C) Bob Aman
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -64,7 +65,8 @@ module Addressable
     # Converts from a Unicode internationalized domain name to an ASCII
     # domain name as described in RFC 3490.
     def self.to_ascii(input)
-      input = input.dup
+      input = input.to_s unless input.is_a?(String)
+      input = input.dup.force_encoding(Encoding::UTF_8).unicode_normalize(:nfkc)
       if input.respond_to?(:force_encoding)
         input.force_encoding(Encoding::ASCII_8BIT)
       end
@@ -75,7 +77,7 @@ module Addressable
             part.force_encoding(Encoding::ASCII_8BIT)
           end
           if part =~ UTF8_REGEX && part =~ UTF8_REGEX_MULTIBYTE
-            ACE_PREFIX + punycode_encode(unicode_normalize_kc(part))
+            ACE_PREFIX + punycode_encode(part)
           else
             part
           end
@@ -89,10 +91,16 @@ module Addressable
     # Converts from an ASCII domain name to a Unicode internationalized
     # domain name as described in RFC 3490.
     def self.to_unicode(input)
+      input = input.to_s unless input.is_a?(String)
       parts = input.split('.')
       parts.map! do |part|
-        if part =~ /^#{ACE_PREFIX}/
-          punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
+        if part =~ /^#{ACE_PREFIX}(.+)/
+          begin
+            punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
+          rescue Addressable::IDNA::PunycodeBadInput
+            # toUnicode is explicitly defined as never-fails by the spec
+            part
+          end
         else
           part
         end
@@ -104,13 +112,14 @@ module Addressable
       output
     end
 
-    # Unicode normalization form KC.
-    def self.unicode_normalize_kc(input)
-      input = input.to_s unless input.is_a?(String)
-      unpacked = input.unpack("U*")
-      unpacked =
-        unicode_compose(unicode_sort_canonical(unicode_decompose(unpacked)))
-      return unpacked.pack("U*")
+    class << self
+      # @deprecated Use {String#unicode_normalize(:nfkc)} instead
+      def unicode_normalize_kc(value)
+        value.to_s.unicode_normalize(:nfkc)
+      end
+
+      extend Gem::Deprecate
+      deprecate :unicode_normalize_kc, "String#unicode_normalize(:nfkc)", 2023, 4
     end
 
     ##
@@ -121,171 +130,12 @@ module Addressable
     #   The input string.
     # @return [String] The downcased result.
     def self.unicode_downcase(input)
+      input = input.to_s unless input.is_a?(String)
       unpacked = input.unpack("U*")
       unpacked.map! { |codepoint| lookup_unicode_lowercase(codepoint) }
       return unpacked.pack("U*")
     end
-    (class <<self; private :unicode_downcase; end)
-
-    def self.unicode_compose(unpacked)
-      unpacked_result = []
-      length = unpacked.length
-
-      return unpacked if length == 0
-
-      starter = unpacked[0]
-      starter_cc = lookup_unicode_combining_class(starter)
-      starter_cc = 256 if starter_cc != 0
-      for i in 1...length
-        ch = unpacked[i]
-        cc = lookup_unicode_combining_class(ch)
-
-        if (starter_cc == 0 &&
-            (composite = unicode_compose_pair(starter, ch)) != nil)
-          starter = composite
-          startercc = lookup_unicode_combining_class(composite)
-        else
-          unpacked_result << starter
-          starter = ch
-          startercc = cc
-        end
-      end
-      unpacked_result << starter
-      return unpacked_result
-    end
-    (class <<self; private :unicode_compose; end)
-
-    def self.unicode_compose_pair(ch_one, ch_two)
-      if ch_one >= HANGUL_LBASE && ch_one < HANGUL_LBASE + HANGUL_LCOUNT &&
-          ch_two >= HANGUL_VBASE && ch_two < HANGUL_VBASE + HANGUL_VCOUNT
-        # Hangul L + V
-        return HANGUL_SBASE + (
-          (ch_one - HANGUL_LBASE) * HANGUL_VCOUNT + (ch_two - HANGUL_VBASE)
-        ) * HANGUL_TCOUNT
-      elsif ch_one >= HANGUL_SBASE &&
-          ch_one < HANGUL_SBASE + HANGUL_SCOUNT &&
-          (ch_one - HANGUL_SBASE) % HANGUL_TCOUNT == 0 &&
-          ch_two >= HANGUL_TBASE && ch_two < HANGUL_TBASE + HANGUL_TCOUNT
-           # Hangul LV + T
-        return ch_one + (ch_two - HANGUL_TBASE)
-      end
-
-      p = []
-      ucs4_to_utf8 = lambda do |ch|
-        # For some reason, rcov likes to drop BUS errors here.
-        if ch < 128
-          p << ch
-        elsif ch < 2048
-          p << (ch >> 6 | 192)
-          p << (ch & 63 | 128)
-        elsif ch < 0x10000
-          p << (ch >> 12 | 224)
-          p << (ch >> 6 & 63 | 128)
-          p << (ch & 63 | 128)
-        elsif ch < 0x200000
-          p << (ch >> 18 | 240)
-          p << (ch >> 12 & 63 | 128)
-          p << (ch >> 6 & 63 | 128)
-          p << (ch & 63 | 128)
-        elsif ch < 0x4000000
-          p << (ch >> 24 | 248)
-          p << (ch >> 18 & 63 | 128)
-          p << (ch >> 12 & 63 | 128)
-          p << (ch >> 6 & 63 | 128)
-          p << (ch & 63 | 128)
-        elsif ch < 0x80000000
-          p << (ch >> 30 | 252)
-          p << (ch >> 24 & 63 | 128)
-          p << (ch >> 18 & 63 | 128)
-          p << (ch >> 12 & 63 | 128)
-          p << (ch >> 6 & 63 | 128)
-          p << (ch & 63 | 128)
-        end
-      end
-
-      ucs4_to_utf8.call(ch_one)
-      ucs4_to_utf8.call(ch_two)
-
-      return lookup_unicode_composition(p)
-    end
-    (class <<self; private :unicode_compose_pair; end)
-
-    def self.unicode_sort_canonical(unpacked)
-      unpacked = unpacked.dup
-      i = 1
-      length = unpacked.length
-
-      return unpacked if length < 2
-
-      while i < length
-        last = unpacked[i-1]
-        ch = unpacked[i]
-        last_cc = lookup_unicode_combining_class(last)
-        cc = lookup_unicode_combining_class(ch)
-        if cc != 0 && last_cc != 0 && last_cc > cc
-          unpacked[i] = last
-          unpacked[i-1] = ch
-          i -= 1 if i > 1
-        else
-          i += 1
-        end
-      end
-      return unpacked
-    end
-    (class <<self; private :unicode_sort_canonical; end)
-
-    def self.unicode_decompose(unpacked)
-      unpacked_result = []
-      for cp in unpacked
-        if cp >= HANGUL_SBASE && cp < HANGUL_SBASE + HANGUL_SCOUNT
-          l, v, t = unicode_decompose_hangul(cp)
-          unpacked_result << l
-          unpacked_result << v if v
-          unpacked_result << t if t
-        else
-          dc = lookup_unicode_compatibility(cp)
-          unless dc
-            unpacked_result << cp
-          else
-            unpacked_result.concat(unicode_decompose(dc.unpack("U*")))
-          end
-        end
-      end
-      return unpacked_result
-    end
-    (class <<self; private :unicode_decompose; end)
-
-    def self.unicode_decompose_hangul(codepoint)
-      sindex = codepoint - HANGUL_SBASE;
-      if sindex < 0 || sindex >= HANGUL_SCOUNT
-        l = codepoint
-        v = t = nil
-        return l, v, t
-      end
-      l = HANGUL_LBASE + sindex / HANGUL_NCOUNT
-      v = HANGUL_VBASE + (sindex % HANGUL_NCOUNT) / HANGUL_TCOUNT
-      t = HANGUL_TBASE + sindex % HANGUL_TCOUNT
-      if t == HANGUL_TBASE
-        t = nil
-      end
-      return l, v, t
-    end
-    (class <<self; private :unicode_decompose_hangul; end)
-
-    def self.lookup_unicode_combining_class(codepoint)
-      codepoint_data = UNICODE_DATA[codepoint]
-      (codepoint_data ?
-        (codepoint_data[UNICODE_DATA_COMBINING_CLASS] || 0) :
-        0)
-    end
-    (class <<self; private :lookup_unicode_combining_class; end)
-
-    def self.lookup_unicode_compatibility(codepoint)
-      codepoint_data = UNICODE_DATA[codepoint]
-      (codepoint_data ?
-        codepoint_data[UNICODE_DATA_COMPATIBILITY] : nil)
-    end
-    (class <<self; private :lookup_unicode_compatibility; end)
+    private_class_method :unicode_downcase
 
     def self.lookup_unicode_lowercase(codepoint)
       codepoint_data = UNICODE_DATA[codepoint]
@@ -293,22 +143,7 @@ module Addressable
         (codepoint_data[UNICODE_DATA_LOWERCASE] || codepoint) :
         codepoint)
     end
-    (class <<self; private :lookup_unicode_lowercase; end)
-
-    def self.lookup_unicode_composition(unpacked)
-      return COMPOSITION_TABLE[unpacked]
-    end
-    (class <<self; private :lookup_unicode_composition; end)
-
-    HANGUL_SBASE =  0xac00
-    HANGUL_LBASE =  0x1100
-    HANGUL_LCOUNT = 19
-    HANGUL_VBASE =  0x1161
-    HANGUL_VCOUNT = 21
-    HANGUL_TBASE =  0x11a7
-    HANGUL_TCOUNT = 28
-    HANGUL_NCOUNT = HANGUL_VCOUNT * HANGUL_TCOUNT # 588
-    HANGUL_SCOUNT = HANGUL_LCOUNT * HANGUL_NCOUNT # 11172
+    private_class_method :lookup_unicode_lowercase
 
     UNICODE_DATA_COMBINING_CLASS = 0
     UNICODE_DATA_EXCLUSION = 1
@@ -335,7 +170,7 @@ module Addressable
     end
 
     COMPOSITION_TABLE = {}
-    for codepoint, data in UNICODE_DATA
+    UNICODE_DATA.each do |codepoint, data|
       canonical = data[UNICODE_DATA_CANONICAL]
       exclusion = data[UNICODE_DATA_EXCLUSION]
 
@@ -376,6 +211,7 @@ module Addressable
     class PunycodeOverflow < StandardError; end
 
     def self.punycode_encode(unicode)
+      unicode = unicode.to_s unless unicode.is_a?(String)
       input = unicode.unpack("U*")
       output = [0] * (ACE_MAX_LENGTH + 1)
       input_length = input.size
@@ -484,7 +320,7 @@ module Addressable
       outlen.times do |j|
         c = output[j]
         unless c >= 0 && c <= 127
-          raise Exception, "Invalid output char."
+          raise StandardError, "Invalid output char."
         end
         unless PUNYCODE_PRINT_ASCII[c]
           raise PunycodeBadInput, "Input is invalid."
@@ -493,7 +329,7 @@ module Addressable
 
       output[0..outlen].map { |x| x.chr }.join("").sub(/\0+\z/, "")
     end
-    (class <<self; private :punycode_encode; end)
+    private_class_method :punycode_encode
 
     def self.punycode_decode(punycode)
       input = []
@@ -615,22 +451,22 @@ module Addressable
 
       output.pack("U*")
     end
-    (class <<self; private :punycode_decode; end)
+    private_class_method :punycode_decode
 
     def self.punycode_basic?(codepoint)
       codepoint < 0x80
     end
-    (class <<self; private :punycode_basic?; end)
+    private_class_method :punycode_basic?
 
     def self.punycode_delimiter?(codepoint)
       codepoint == PUNYCODE_DELIMITER
     end
-    (class <<self; private :punycode_delimiter?; end)
+    private_class_method :punycode_delimiter?
 
     def self.punycode_encode_digit(d)
       d + 22 + 75 * ((d < 26) ? 1 : 0)
     end
-    (class <<self; private :punycode_encode_digit; end)
+    private_class_method :punycode_encode_digit
 
     # Returns the numeric value of a basic codepoint
     # (for use in representing integers) in the range 0 to
@@ -646,7 +482,7 @@ module Addressable
         PUNYCODE_BASE
       end
     end
-    (class <<self; private :punycode_decode_digit; end)
+    private_class_method :punycode_decode_digit
 
     # Bias adaptation method
     def self.punycode_adapt(delta, numpoints, firsttime)
@@ -663,7 +499,7 @@ module Addressable
 
       k + (difference + 1) * delta / (delta + PUNYCODE_SKEW)
     end
-    (class <<self; private :punycode_adapt; end)
+    private_class_method :punycode_adapt
   end
   # :startdoc:
 end

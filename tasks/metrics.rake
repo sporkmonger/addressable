@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 namespace :metrics do
   task :lines do
     lines, codelines, total_lines, total_codelines = 0, 0, 0, 0

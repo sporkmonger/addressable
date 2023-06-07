@@ -1,6 +1,7 @@
-# encoding:utf-8
+# frozen_string_literal: true
+
 #--
-# Copyright (C) 2006-2013 Bob Aman
+# Copyright (C) Bob Aman
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -18,6 +19,7 @@
 
 require "addressable/version"
 require "addressable/idna"
+require "public_suffix"
 
 ##
 # Addressable is a library for processing links and URIs.
@@ -35,19 +37,35 @@ module Addressable
     ##
     # Container for the character classes specified in
     # <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986</a>.
+    #
+    # Note: Concatenated and interpolated `String`s are not affected by the
+    #       `frozen_string_literal` directive and must be frozen explicitly.
+    #
+    #       Interpolated `String`s *were* frozen this way before Ruby 3.0:
+    #       https://bugs.ruby-lang.org/issues/17104
     module CharacterClasses
       ALPHA = "a-zA-Z"
       DIGIT = "0-9"
       GEN_DELIMS = "\\:\\/\\?\\#\\[\\]\\@"
       SUB_DELIMS = "\\!\\$\\&\\'\\(\\)\\*\\+\\,\\;\\="
-      RESERVED = GEN_DELIMS + SUB_DELIMS
-      UNRESERVED = ALPHA + DIGIT + "\\-\\.\\_\\~"
-      PCHAR = UNRESERVED + SUB_DELIMS + "\\:\\@"
-      SCHEME = ALPHA + DIGIT + "\\-\\+\\."
-      AUTHORITY = PCHAR
-      PATH = PCHAR + "\\/"
-      QUERY = PCHAR + "\\/\\?"
-      FRAGMENT = PCHAR + "\\/\\?"
+      RESERVED = (GEN_DELIMS + SUB_DELIMS).freeze
+      UNRESERVED = (ALPHA + DIGIT + "\\-\\.\\_\\~").freeze
+      PCHAR = (UNRESERVED + SUB_DELIMS + "\\:\\@").freeze
+      SCHEME = (ALPHA + DIGIT + "\\-\\+\\.").freeze
+      HOST = (UNRESERVED + SUB_DELIMS + "\\[\\:\\]").freeze
+      AUTHORITY = (PCHAR + "\\[\\]").freeze
+      PATH = (PCHAR + "\\/").freeze
+      QUERY = (PCHAR + "\\/\\?").freeze
+      FRAGMENT = (PCHAR + "\\/\\?").freeze
+    end
+
+    module NormalizeCharacterClasses
+      HOST = /[^#{CharacterClasses::HOST}]/
+      UNRESERVED = /[^#{CharacterClasses::UNRESERVED}]/
+      PCHAR = /[^#{CharacterClasses::PCHAR}]/
+      SCHEME = /[^#{CharacterClasses::SCHEME}]/
+      FRAGMENT = /[^#{CharacterClasses::FRAGMENT}]/
+      QUERY = %r{[^a-zA-Z0-9\-\.\_\~\!\$\'\(\)\*\+\,\=\:\@\/\?%]|%(?!2B|2b)}
     end
 
     SLASH = '/'
@@ -69,7 +87,7 @@ module Addressable
       "wais" => 210,
       "ldap" => 389,
       "prospero" => 1525
-    }
+    }.freeze
 
     ##
     # Returns a URI object based on the parsed string.
@@ -99,7 +117,7 @@ module Addressable
         uri = uri.to_str
       rescue TypeError, NoMethodError
         raise TypeError, "Can't convert #{uri.class} into String."
-      end if not uri.is_a? String
+      end unless uri.is_a?(String)
 
       # This Regexp supplied as an example in RFC 3986, and it works great.
       scan = uri.scan(URIREGEX)
@@ -120,15 +138,15 @@ module Addressable
           user = userinfo.strip[/^([^:]*):?/, 1]
           password = userinfo.strip[/:(.*)$/, 1]
         end
-        host = authority.gsub(
+
+        host = authority.sub(
           /^([^\[\]]*)@/, EMPTY_STR
-        ).gsub(
+        ).sub(
           /:([^:@\[\]]*?)$/, EMPTY_STR
         )
+
         port = authority[/:([^:@\[\]]*?)$/, 1]
-      end
-      if port == EMPTY_STR
-        port = nil
+        port = nil if port == EMPTY_STR
       end
 
       return new(
@@ -162,37 +180,63 @@ module Addressable
       return nil unless uri
       # If a URI object is passed, just return itself.
       return uri.dup if uri.kind_of?(self)
-      if !uri.respond_to?(:to_str)
+
+      # If a URI object of the Ruby standard library variety is passed,
+      # convert it to a string, then parse the string.
+      # We do the check this way because we don't want to accidentally
+      # cause a missing constant exception to be thrown.
+      if uri.class.name =~ /^URI\b/
+        uri = uri.to_s
+      end
+
+      unless uri.respond_to?(:to_str)
         raise TypeError, "Can't convert #{uri.class} into String."
       end
       # Otherwise, convert to a String
-      uri = uri.to_str.dup
+      uri = uri.to_str.dup.strip
       hints = {
         :scheme => "http"
       }.merge(hints)
       case uri
-      when /^http:\/+/
-        uri.gsub!(/^http:\/+/, "http://")
-      when /^https:\/+/
-        uri.gsub!(/^https:\/+/, "https://")
-      when /^feed:\/+http:\/+/
-        uri.gsub!(/^feed:\/+http:\/+/, "feed:http://")
-      when /^feed:\/+/
-        uri.gsub!(/^feed:\/+/, "feed://")
-      when /^file:\/+/
-        uri.gsub!(/^file:\/+/, "file:///")
+      when /^http:\//i
+        uri.sub!(/^http:\/+/i, "http://")
+      when /^https:\//i
+        uri.sub!(/^https:\/+/i, "https://")
+      when /^feed:\/+http:\//i
+        uri.sub!(/^feed:\/+http:\/+/i, "feed:http://")
+      when /^feed:\//i
+        uri.sub!(/^feed:\/+/i, "feed://")
+      when %r[^file:/{4}]i
+        uri.sub!(%r[^file:/+]i, "file:////")
+      when %r[^file://localhost/]i
+        uri.sub!(%r[^file://localhost/+]i, "file:///")
+      when %r[^file:/+]i
+        uri.sub!(%r[^file:/+]i, "file:///")
       when /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/
-        uri.gsub!(/^/, hints[:scheme] + "://")
+        uri.sub!(/^/, hints[:scheme] + "://")
+      when /\A\d+\..*:\d+\z/
+        uri = "#{hints[:scheme]}://#{uri}"
+      end
+      match = uri.match(URIREGEX)
+      fragments = match.captures
+      authority = fragments[3]
+      if authority && authority.length > 0
+        new_authority = authority.tr("\\", "/").gsub(" ", "%20")
+        # NOTE: We want offset 4, not 3!
+        offset = match.offset(4)
+        uri = uri.dup
+        uri[offset[0]...offset[1]] = new_authority
       end
       parsed = self.parse(uri)
       if parsed.scheme =~ /^[^\/?#\.]+\.[^\/?#]+$/
         parsed = self.parse(hints[:scheme] + "://" + uri)
       end
       if parsed.path.include?(".")
-        new_host = parsed.path[/^([^\/]+\.[^\/]*)/, 1]
-        if new_host
+        if parsed.path[/\b@\b/]
+          parsed.scheme = "mailto" unless parsed.scheme
+        elsif new_host = parsed.path[/^([^\/]+\.[^\/]*)/, 1]
           parsed.defer_validation do
-            new_path = parsed.path.gsub(
+            new_path = parsed.path.sub(
               Regexp.new("^" + Regexp.escape(new_host)), EMPTY_STR)
             parsed.host = new_host
             parsed.path = new_path
@@ -237,30 +281,30 @@ module Addressable
       return nil unless path
       # If a URI object is passed, just return itself.
       return path if path.kind_of?(self)
-      if !path.respond_to?(:to_str)
+      unless path.respond_to?(:to_str)
         raise TypeError, "Can't convert #{path.class} into String."
       end
       # Otherwise, convert to a String
       path = path.to_str.strip
 
-      path.gsub!(/^file:\/?\/?/, EMPTY_STR) if path =~ /^file:\/?\/?/
+      path.sub!(/^file:\/?\/?/, EMPTY_STR) if path =~ /^file:\/?\/?/
       path = SLASH + path if path =~ /^([a-zA-Z])[\|:]/
       uri = self.parse(path)
 
       if uri.scheme == nil
         # Adjust windows-style uris
-        uri.path.gsub!(/^\/?([a-zA-Z])[\|:][\\\/]/) do
+        uri.path.sub!(/^\/?([a-zA-Z])[\|:][\\\/]/) do
           "/#{$1.downcase}:/"
         end
-        uri.path.gsub!(/\\/, SLASH)
-        if File.exists?(uri.path) &&
+        uri.path.tr!("\\", SLASH)
+        if File.exist?(uri.path) &&
             File.stat(uri.path).directory?
-          uri.path.gsub!(/\/$/, EMPTY_STR)
+          uri.path.chomp!(SLASH)
           uri.path = uri.path + '/'
         end
 
         # If the path is absolute, set the scheme and host.
-        if uri.path =~ /^\//
+        if uri.path.start_with?(SLASH)
           uri.scheme = "file"
           uri.host = EMPTY_STR
         end
@@ -285,16 +329,31 @@ module Addressable
     #   #=> #<Addressable::URI:0xcab390 URI:http://example.com/relative/path>
     def self.join(*uris)
       uri_objects = uris.collect do |uri|
-        if !uri.respond_to?(:to_str)
+        unless uri.respond_to?(:to_str)
           raise TypeError, "Can't convert #{uri.class} into String."
         end
         uri.kind_of?(self) ? uri : self.parse(uri.to_str)
       end
       result = uri_objects.shift.dup
-      for uri in uri_objects
+      uri_objects.each do |uri|
         result.join!(uri)
       end
       return result
+    end
+
+    ##
+    # Tables used to optimize encoding operations in `self.encode_component`
+    # and `self.normalize_component`
+    SEQUENCE_ENCODING_TABLE = Hash.new do |hash, sequence|
+      hash[sequence] = sequence.unpack("C*").map do |c|
+        format("%02x", c)
+      end.join
+    end
+
+    SEQUENCE_UPCASED_PERCENT_ENCODING_TABLE = Hash.new do |hash, sequence|
+      hash[sequence] = sequence.unpack("C*").map do |c|
+        format("%%%02X", c)
+      end.join
     end
 
     ##
@@ -357,26 +416,26 @@ module Addressable
       if character_class.kind_of?(String)
         character_class = /[^#{character_class}]/
       end
-      if component.respond_to?(:force_encoding)
-        # We can't perform regexps on invalid UTF sequences, but
-        # here we need to, so switch to ASCII.
-        component = component.dup
-        component.force_encoding(Encoding::ASCII_8BIT)
-      end
+      # We can't perform regexps on invalid UTF sequences, but
+      # here we need to, so switch to ASCII.
+      component = component.dup
+      component.force_encoding(Encoding::ASCII_8BIT)
       # Avoiding gsub! because there are edge cases with frozen strings
       component = component.gsub(character_class) do |sequence|
-        (sequence.unpack('C*').map { |c| "%" + ("%02x" % c).upcase }).join
+        SEQUENCE_UPCASED_PERCENT_ENCODING_TABLE[sequence]
       end
       if upcase_encoded.length > 0
-        component = component.gsub(/%(#{upcase_encoded.chars.map do |char|
-          char.unpack('C*').map { |c| '%02x' % c }.join
-        end.join('|')})/i) { |s| s.upcase }
+        upcase_encoded_chars = upcase_encoded.chars.map do |char|
+          SEQUENCE_ENCODING_TABLE[char]
+        end
+        component = component.gsub(/%(#{upcase_encoded_chars.join('|')})/,
+                                   &:upcase)
       end
       return component
     end
 
     class << self
-      alias_method :encode_component, :encode_component
+      alias_method :escape_component, :encode_component
     end
 
     ##
@@ -415,11 +474,14 @@ module Addressable
           "Expected Class (String or Addressable::URI), " +
           "got #{return_type.inspect}"
       end
+
       result = uri.gsub(/%[0-9a-f]{2}/i) do |sequence|
         c = sequence[1..3].to_i(16).chr
+        c.force_encoding(sequence.encoding)
         leave_encoded.include?(c) ? sequence : c
       end
-      result.force_encoding("utf-8") if result.respond_to?(:force_encoding)
+
+      result.force_encoding(Encoding::UTF_8)
       if return_type == String
         return result
       elsif return_type == ::Addressable::URI
@@ -496,32 +558,35 @@ module Addressable
       end
       if character_class.kind_of?(String)
         leave_re = if leave_encoded.length > 0
-          character_class << '%'
+          character_class = "#{character_class}%" unless character_class.include?('%')
 
-          "|%(?!#{leave_encoded.chars.map do |char|
-            seq = char.unpack('C*').map { |c| '%02x' % c }.join
+          "|%(?!#{leave_encoded.chars.flat_map do |char|
+            seq = SEQUENCE_ENCODING_TABLE[char]
             [seq.upcase, seq.downcase]
-          end.flatten.join('|')})"
+          end.join('|')})"
         end
 
-        character_class = /[^#{character_class}]#{leave_re}/
+        character_class = if leave_re
+                            /[^#{character_class}]#{leave_re}/
+                          else
+                            /[^#{character_class}]/
+                          end
       end
-      if component.respond_to?(:force_encoding)
-        # We can't perform regexps on invalid UTF sequences, but
-        # here we need to, so switch to ASCII.
-        component = component.dup
-        component.force_encoding(Encoding::ASCII_8BIT)
-      end
+      # We can't perform regexps on invalid UTF sequences, but
+      # here we need to, so switch to ASCII.
+      component = component.dup
+      component.force_encoding(Encoding::ASCII_8BIT)
       unencoded = self.unencode_component(component, String, leave_encoded)
       begin
         encoded = self.encode_component(
-          Addressable::IDNA.unicode_normalize_kc(unencoded),
+          unencoded.unicode_normalize(:nfc),
           character_class,
           leave_encoded
         )
       rescue ArgumentError
         encoded = self.encode_component(unencoded)
       end
+      encoded.force_encoding(Encoding::UTF_8)
       return encoded
     end
 
@@ -622,8 +687,7 @@ module Addressable
       components.each do |key, value|
         if value != nil
           begin
-            components[key] =
-              Addressable::IDNA.unicode_normalize_kc(value.to_str)
+            components[key] = value.to_str.unicode_normalize(:nfc)
           rescue ArgumentError
             # Likely a malformed UTF-8 character, skip unicode normalization
             components[key] = value.to_str
@@ -703,9 +767,9 @@ module Addressable
           ).gsub("%20", "+")
         ]
       end
-      return (escaped_form_values.map do |(key, value)|
+      return escaped_form_values.map do |(key, value)|
         "#{key}=#{value}"
-      end).join("&")
+      end.join("&")
     end
 
     ##
@@ -771,7 +835,9 @@ module Addressable
         end
       end
 
-      self.defer_validation do
+      reset_ivs
+
+      defer_validation do
         # Bunch of crazy logic required because of the composite components
         # like userinfo and authority.
         self.scheme = options[:scheme] if options[:scheme]
@@ -786,6 +852,8 @@ module Addressable
         self.query_values = options[:query_values] if options[:query_values]
         self.fragment = options[:fragment] if options[:fragment]
       end
+
+      to_s # force path validation
     end
 
     ##
@@ -812,25 +880,27 @@ module Addressable
     # The scheme component for this URI.
     #
     # @return [String] The scheme component.
-    def scheme
-      return instance_variable_defined?(:@scheme) ? @scheme : nil
-    end
+    attr_reader :scheme
 
     ##
     # The scheme component for this URI, normalized.
     #
     # @return [String] The scheme component, normalized.
     def normalized_scheme
-      self.scheme && @normalized_scheme ||= (begin
-        if self.scheme =~ /^\s*ssh\+svn\s*$/i
-          "svn+ssh"
+      return nil unless self.scheme
+      if @normalized_scheme == NONE
+        @normalized_scheme = if self.scheme =~ /^\s*ssh\+svn\s*$/i
+          "svn+ssh".dup
         else
           Addressable::URI.normalize_component(
             self.scheme.strip.downcase,
-            Addressable::URI::CharacterClasses::SCHEME
+            Addressable::URI::NormalizeCharacterClasses::SCHEME
           )
         end
-      end)
+      end
+      # All normalized values should be UTF-8
+      force_utf8_encoding_if_needed(@normalized_scheme)
+      @normalized_scheme
     end
 
     ##
@@ -843,16 +913,15 @@ module Addressable
       elsif new_scheme
         new_scheme = new_scheme.to_str
       end
-      if new_scheme && new_scheme !~ /[a-z][a-z0-9\.\+\-]*/i
-        raise InvalidURIError, "Invalid scheme format."
+      if new_scheme && new_scheme !~ /\A[a-z][a-z0-9\.\+\-]*\z/i
+        raise InvalidURIError, "Invalid scheme format: '#{new_scheme}'"
       end
       @scheme = new_scheme
       @scheme = nil if @scheme.to_s.strip.empty?
 
-      # Reset dependant values
-      @normalized_scheme = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      @normalized_scheme = NONE
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -862,26 +931,29 @@ module Addressable
     # The user component for this URI.
     #
     # @return [String] The user component.
-    def user
-      return instance_variable_defined?(:@user) ? @user : nil
-    end
+    attr_reader :user
 
     ##
     # The user component for this URI, normalized.
     #
     # @return [String] The user component, normalized.
     def normalized_user
-      self.user && @normalized_user ||= (begin
+      return nil unless self.user
+      return @normalized_user unless @normalized_user == NONE
+      @normalized_user = begin
         if normalized_scheme =~ /https?/ && self.user.strip.empty? &&
             (!self.password || self.password.strip.empty?)
           nil
         else
           Addressable::URI.normalize_component(
             self.user.strip,
-            Addressable::URI::CharacterClasses::UNRESERVED
+            Addressable::URI::NormalizeCharacterClasses::UNRESERVED
           )
         end
-      end)
+      end
+      # All normalized values should be UTF-8
+      force_utf8_encoding_if_needed(@normalized_user)
+      @normalized_user
     end
 
     ##
@@ -896,16 +968,15 @@ module Addressable
 
       # You can't have a nil user with a non-nil password
       if password != nil
-        @user = EMPTY_STR if @user.nil?
+        @user = EMPTY_STR unless user
       end
 
-      # Reset dependant values
+      # Reset dependent values
       @userinfo = nil
-      @normalized_userinfo = nil
+      @normalized_userinfo = NONE
       @authority = nil
-      @normalized_user = nil
-      @uri_string = nil
-      @hash = nil
+      @normalized_user = NONE
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -915,26 +986,29 @@ module Addressable
     # The password component for this URI.
     #
     # @return [String] The password component.
-    def password
-      return instance_variable_defined?(:@password) ? @password : nil
-    end
+    attr_reader :password
 
     ##
     # The password component for this URI, normalized.
     #
     # @return [String] The password component, normalized.
     def normalized_password
-      self.password && @normalized_password ||= (begin
+      return nil unless self.password
+      return @normalized_password unless @normalized_password == NONE
+      @normalized_password = begin
         if self.normalized_scheme =~ /https?/ && self.password.strip.empty? &&
             (!self.user || self.user.strip.empty?)
           nil
         else
           Addressable::URI.normalize_component(
             self.password.strip,
-            Addressable::URI::CharacterClasses::UNRESERVED
+            Addressable::URI::NormalizeCharacterClasses::UNRESERVED
           )
         end
-      end)
+      end
+      # All normalized values should be UTF-8
+      force_utf8_encoding_if_needed(@normalized_password)
+      @normalized_password
     end
 
     ##
@@ -948,19 +1022,16 @@ module Addressable
       @password = new_password ? new_password.to_str : nil
 
       # You can't have a nil user with a non-nil password
-      @password ||= nil
-      @user ||= nil
       if @password != nil
-        @user = EMPTY_STR if @user.nil?
+        self.user = EMPTY_STR if user.nil?
       end
 
-      # Reset dependant values
+      # Reset dependent values
       @userinfo = nil
-      @normalized_userinfo = nil
+      @normalized_userinfo = NONE
       @authority = nil
-      @normalized_password = nil
-      @uri_string = nil
-      @hash = nil
+      @normalized_password = NONE
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -974,13 +1045,13 @@ module Addressable
     def userinfo
       current_user = self.user
       current_password = self.password
-      (current_user || current_password) && @userinfo ||= (begin
+      (current_user || current_password) && @userinfo ||= begin
         if current_user && current_password
           "#{current_user}:#{current_password}"
         elsif current_user && !current_password
           "#{current_user}"
         end
-      end)
+      end
     end
 
     ##
@@ -988,17 +1059,22 @@ module Addressable
     #
     # @return [String] The userinfo component, normalized.
     def normalized_userinfo
-      self.userinfo && @normalized_userinfo ||= (begin
+      return nil unless self.userinfo
+      return @normalized_userinfo unless @normalized_userinfo == NONE
+      @normalized_userinfo = begin
         current_user = self.normalized_user
         current_password = self.normalized_password
         if !current_user && !current_password
           nil
         elsif current_user && current_password
-          "#{current_user}:#{current_password}"
+          "#{current_user}:#{current_password}".dup
         elsif current_user && !current_password
-          "#{current_user}"
+          "#{current_user}".dup
         end
-      end)
+      end
+      # All normalized values should be UTF-8
+      force_utf8_encoding_if_needed(@normalized_userinfo)
+      @normalized_userinfo
     end
 
     ##
@@ -1022,10 +1098,9 @@ module Addressable
       self.password = new_password
       self.user = new_user
 
-      # Reset dependant values
+      # Reset dependent values
       @authority = nil
-      @uri_string = nil
-      @hash = nil
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1035,29 +1110,36 @@ module Addressable
     # The host component for this URI.
     #
     # @return [String] The host component.
-    def host
-      return instance_variable_defined?(:@host) ? @host : nil
-    end
+    attr_reader :host
 
     ##
     # The host component for this URI, normalized.
     #
     # @return [String] The host component, normalized.
     def normalized_host
-      self.host && @normalized_host ||= (begin
+      return nil unless self.host
+
+      @normalized_host ||= begin
         if !self.host.strip.empty?
           result = ::Addressable::IDNA.to_ascii(
             URI.unencode_component(self.host.strip.downcase)
           )
-          if result[-1..-1] == "."
-            # Trailing dots are unnecessary
+          if result =~ /[^\.]\.$/
+            # Single trailing dots are unnecessary.
             result = result[0...-1]
           end
+          result = Addressable::URI.normalize_component(
+            result,
+            NormalizeCharacterClasses::HOST
+          )
           result
         else
-          EMPTY_STR
+          EMPTY_STR.dup
         end
-      end)
+      end
+      # All normalized values should be UTF-8
+      force_utf8_encoding_if_needed(@normalized_host)
+      @normalized_host
     end
 
     ##
@@ -1070,19 +1152,10 @@ module Addressable
       end
       @host = new_host ? new_host.to_str : nil
 
-      unreserved = CharacterClasses::UNRESERVED
-      sub_delims = CharacterClasses::SUB_DELIMS
-      if @host != nil && (@host =~ /[<>{}\/\?\#\@]/ ||
-          (@host[/^\[(.*)\]$/, 1] != nil && @host[/^\[(.*)\]$/, 1] !~
-          Regexp.new("^[#{unreserved}#{sub_delims}:]*$")))
-        raise InvalidURIError, "Invalid character in host: '#{@host.to_s}'"
-      end
-
-      # Reset dependant values
+      # Reset dependent values
       @authority = nil
       @normalized_host = nil
-      @uri_string = nil
-      @hash = nil
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1108,7 +1181,10 @@ module Addressable
     #
     # @param [String, #to_str] new_hostname The new hostname for this URI.
     def hostname=(new_hostname)
-      if new_hostname && !new_hostname.respond_to?(:to_str)
+      if new_hostname &&
+          (new_hostname.respond_to?(:ipv4?) || new_hostname.respond_to?(:ipv6?))
+        new_hostname = new_hostname.to_s
+      elsif new_hostname && !new_hostname.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_hostname.class} into String."
       end
       v = new_hostname ? new_hostname.to_str : nil
@@ -1117,13 +1193,40 @@ module Addressable
     end
 
     ##
+    # Returns the top-level domain for this host.
+    #
+    # @example
+    #   Addressable::URI.parse("http://www.example.co.uk").tld # => "co.uk"
+    def tld
+      PublicSuffix.parse(self.host, ignore_private: true).tld
+    end
+
+    ##
+    # Sets the top-level domain for this URI.
+    #
+    # @param [String, #to_str] new_tld The new top-level domain.
+    def tld=(new_tld)
+      replaced_tld = host.sub(/#{tld}\z/, new_tld)
+      self.host = PublicSuffix::Domain.new(replaced_tld).to_s
+    end
+
+    ##
+    # Returns the public suffix domain for this host.
+    #
+    # @example
+    #   Addressable::URI.parse("http://www.example.co.uk").domain # => "example.co.uk"
+    def domain
+      PublicSuffix.domain(self.host, ignore_private: true)
+    end
+
+    ##
     # The authority component for this URI.
     # Combines the user, password, host, and port components.
     #
     # @return [String] The authority component.
     def authority
-      self.host && @authority ||= (begin
-        authority = ""
+      self.host && @authority ||= begin
+        authority = String.new
         if self.userinfo != nil
           authority << "#{self.userinfo}@"
         end
@@ -1132,7 +1235,7 @@ module Addressable
           authority << ":#{self.port}"
         end
         authority
-      end)
+      end
     end
 
     ##
@@ -1140,8 +1243,9 @@ module Addressable
     #
     # @return [String] The authority component, normalized.
     def normalized_authority
-      self.authority && @normalized_authority ||= (begin
-        authority = ""
+      return nil unless self.authority
+      @normalized_authority ||= begin
+        authority = String.new
         if self.normalized_userinfo != nil
           authority << "#{self.normalized_userinfo}@"
         end
@@ -1150,7 +1254,10 @@ module Addressable
           authority << ":#{self.normalized_port}"
         end
         authority
-      end)
+      end
+      # All normalized values should be UTF-8
+      force_utf8_encoding_if_needed(@normalized_authority)
+      @normalized_authority
     end
 
     ##
@@ -1168,9 +1275,9 @@ module Addressable
           new_user = new_userinfo.strip[/^([^:]*):?/, 1]
           new_password = new_userinfo.strip[/:(.*)$/, 1]
         end
-        new_host = new_authority.gsub(
+        new_host = new_authority.sub(
           /^([^\[\]]*)@/, EMPTY_STR
-        ).gsub(
+        ).sub(
           /:([^:@\[\]]*?)$/, EMPTY_STR
         )
         new_port =
@@ -1178,16 +1285,15 @@ module Addressable
       end
 
       # Password assigned first to ensure validity in case of nil
-      self.password = defined?(new_password) ? new_password : nil
-      self.user = defined?(new_user) ? new_user : nil
-      self.host = defined?(new_host) ? new_host : nil
-      self.port = defined?(new_port) ? new_port : nil
+      self.password = new_password
+      self.user = new_user
+      self.host = new_host
+      self.port = new_port
 
-      # Reset dependant values
+      # Reset dependent values
       @userinfo = nil
-      @normalized_userinfo = nil
-      @uri_string = nil
-      @hash = nil
+      @normalized_userinfo = NONE
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1199,18 +1305,55 @@ module Addressable
     #
     # @return [String] The serialized origin.
     def origin
-      return (if self.scheme && self.authority
+      if self.scheme && self.authority
         if self.normalized_port
-          (
-            "#{self.normalized_scheme}://#{self.normalized_host}" +
-            ":#{self.normalized_port}"
-          )
+          "#{self.normalized_scheme}://#{self.normalized_host}" +
+          ":#{self.normalized_port}"
         else
           "#{self.normalized_scheme}://#{self.normalized_host}"
         end
       else
         "null"
-      end)
+      end
+    end
+
+    ##
+    # Sets the origin for this URI, serialized to ASCII, as per
+    # RFC 6454, section 6.2. This assignment will reset the `userinfo`
+    # component.
+    #
+    # @param [String, #to_str] new_origin The new origin component.
+    def origin=(new_origin)
+      if new_origin
+        if !new_origin.respond_to?(:to_str)
+          raise TypeError, "Can't convert #{new_origin.class} into String."
+        end
+        new_origin = new_origin.to_str
+        new_scheme = new_origin[/^([^:\/?#]+):\/\//, 1]
+        unless new_scheme
+          raise InvalidURIError, 'An origin cannot omit the scheme.'
+        end
+        new_host = new_origin[/:\/\/([^\/?#:]+)/, 1]
+        unless new_host
+          raise InvalidURIError, 'An origin cannot omit the host.'
+        end
+        new_port = new_origin[/:([^:@\[\]\/]*?)$/, 1]
+      end
+
+      self.scheme = new_scheme
+      self.host = new_host
+      self.port = new_port
+      self.userinfo = nil
+
+      # Reset dependent values
+      @userinfo = nil
+      @normalized_userinfo = NONE
+      @authority = nil
+      @normalized_authority = nil
+      remove_composite_values
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     # Returns an array of known ip-based schemes. These schemes typically
@@ -1233,19 +1376,21 @@ module Addressable
     # infer port numbers from default values.
     #
     # @return [Integer] The port component.
-    def port
-      return instance_variable_defined?(:@port) ? @port : nil
-    end
+    attr_reader :port
 
     ##
     # The port component for this URI, normalized.
     #
     # @return [Integer] The port component, normalized.
     def normalized_port
-      if URI.port_mapping[self.normalized_scheme] == self.port
-        nil
-      else
-        self.port
+      return nil unless self.port
+      return @normalized_port unless @normalized_port == NONE
+      @normalized_port = begin
+        if URI.port_mapping[self.normalized_scheme] == self.port
+          nil
+        else
+          self.port
+        end
       end
     end
 
@@ -1257,6 +1402,11 @@ module Addressable
       if new_port != nil && new_port.respond_to?(:to_str)
         new_port = Addressable::URI.unencode_component(new_port.to_str)
       end
+
+      if new_port.respond_to?(:valid_encoding?) && !new_port.valid_encoding?
+        raise InvalidURIError, "Invalid encoding in port"
+      end
+
       if new_port != nil && !(new_port.to_s =~ /^\d+$/)
         raise InvalidURIError,
           "Invalid port number: #{new_port.inspect}"
@@ -1265,11 +1415,10 @@ module Addressable
       @port = new_port.to_s.to_i
       @port = nil if @port == 0
 
-      # Reset dependant values
+      # Reset dependent values
       @authority = nil
-      @normalized_port = nil
-      @uri_string = nil
-      @hash = nil
+      @normalized_port = NONE
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1309,12 +1458,12 @@ module Addressable
     #
     # @return [String] The components that identify a site.
     def site
-      (self.scheme || self.authority) && @site ||= (begin
-        site_string = ""
+      (self.scheme || self.authority) && @site ||= begin
+        site_string = "".dup
         site_string << "#{self.scheme}:" if self.scheme != nil
         site_string << "//#{self.authority}" if self.authority != nil
         site_string
-      end)
+      end
     end
 
     ##
@@ -1327,8 +1476,9 @@ module Addressable
     #
     # @return [String] The normalized components that identify a site.
     def normalized_site
-      self.site && @normalized_site ||= (begin
-        site_string = ""
+      return nil unless self.site
+      @normalized_site ||= begin
+        site_string = "".dup
         if self.normalized_scheme != nil
           site_string << "#{self.normalized_scheme}:"
         end
@@ -1336,7 +1486,10 @@ module Addressable
           site_string << "//#{self.normalized_authority}"
         end
         site_string
-      end)
+      end
+      # All normalized values should be UTF-8
+      force_utf8_encoding_if_needed(@normalized_site)
+      @normalized_site
     end
 
     ##
@@ -1365,9 +1518,7 @@ module Addressable
     # The path component for this URI.
     #
     # @return [String] The path component.
-    def path
-      return instance_variable_defined?(:@path) ? @path : EMPTY_STR
-    end
+    attr_reader :path
 
     NORMPATH = /^(?!\/)[^\/:]*:.*$/
     ##
@@ -1375,7 +1526,7 @@ module Addressable
     #
     # @return [String] The path component, normalized.
     def normalized_path
-      @normalized_path ||= (begin
+      @normalized_path ||= begin
         path = self.path.to_s
         if self.scheme == nil && path =~ NORMPATH
           # Relative paths with colons in the first segment are ambiguous.
@@ -1383,20 +1534,23 @@ module Addressable
         end
         # String#split(delimeter, -1) uses the more strict splitting behavior
         # found by default in Python.
-        result = (path.strip.split(SLASH, -1).map do |segment|
+        result = path.strip.split(SLASH, -1).map do |segment|
           Addressable::URI.normalize_component(
             segment,
-            Addressable::URI::CharacterClasses::PCHAR
+            Addressable::URI::NormalizeCharacterClasses::PCHAR
           )
-        end).join(SLASH)
+        end.join(SLASH)
 
         result = URI.normalize_path(result)
         if result.empty? &&
             ["http", "https", "ftp", "tftp"].include?(self.normalized_scheme)
-          result = SLASH
+          result = SLASH.dup
         end
         result
-      end)
+      end
+      # All normalized values should be UTF-8
+      force_utf8_encoding_if_needed(@normalized_path)
+      @normalized_path
     end
 
     ##
@@ -1412,10 +1566,12 @@ module Addressable
         @path = "/#{@path}"
       end
 
-      # Reset dependant values
+      # Reset dependent values
       @normalized_path = nil
-      @uri_string = nil
-      @hash = nil
+      remove_composite_values
+
+      # Ensure we haven't created an invalid URI
+      validate()
     end
 
     ##
@@ -1424,7 +1580,7 @@ module Addressable
     # @return [String] The path's basename.
     def basename
       # Path cannot be nil
-      return File.basename(self.path).gsub(/;[^\/]*$/, EMPTY_STR)
+      return File.basename(self.path).sub(/;[^\/]*$/, EMPTY_STR)
     end
 
     ##
@@ -1441,29 +1597,34 @@ module Addressable
     # The query component for this URI.
     #
     # @return [String] The query component.
-    def query
-      return instance_variable_defined?(:@query) ? @query : nil
-    end
+    attr_reader :query
 
     ##
     # The query component for this URI, normalized.
     #
     # @return [String] The query component, normalized.
-    def normalized_query
-      self.query && @normalized_query ||= (begin
-        modified_query_class = Addressable::URI::CharacterClasses::QUERY
+    def normalized_query(*flags)
+      return nil unless self.query
+      return @normalized_query unless @normalized_query == NONE
+      @normalized_query = begin
+        modified_query_class = Addressable::URI::CharacterClasses::QUERY.dup
         # Make sure possible key-value pair delimiters are escaped.
-        modified_query_class = modified_query_class.sub("\\&", "")
-        modified_query_class = modified_query_class.sub("\\;", "")
-        component = (self.query.split("&", -1).map do |pair|
+        modified_query_class.sub!("\\&", "").sub!("\\;", "")
+        pairs = (query || "").split("&", -1)
+        pairs.delete_if(&:empty?).uniq! if flags.include?(:compacted)
+        pairs.sort! if flags.include?(:sorted)
+        component = pairs.map do |pair|
           Addressable::URI.normalize_component(
             pair,
-            modified_query_class,
+            Addressable::URI::NormalizeCharacterClasses::QUERY,
             "+"
           )
-        end).join("&")
+        end.join("&")
         component == "" ? nil : component
-      end)
+      end
+      # All normalized values should be UTF-8
+      force_utf8_encoding_if_needed(@normalized_query)
+      @normalized_query
     end
 
     ##
@@ -1476,10 +1637,9 @@ module Addressable
       end
       @query = new_query ? new_query.to_str : nil
 
-      # Reset dependant values
-      @normalized_query = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      @normalized_query = NONE
+      remove_composite_values
     end
 
     ##
@@ -1488,7 +1648,8 @@ module Addressable
     # @param [Class] return_type The return type desired. Value must be either
     #   `Hash` or `Array`.
     #
-    # @return [Hash, Array] The query string parsed as a Hash or Array object.
+    # @return [Hash, Array, nil] The query string parsed as a Hash or Array
+    #   or nil if the query string is blank.
     #
     # @example
     #   Addressable::URI.parse("?one=1&two=2&three=3").query_values
@@ -1497,26 +1658,32 @@ module Addressable
     #   #=> [["one", "two"], ["one", "three"]]
     #   Addressable::URI.parse("?one=two&one=three").query_values(Hash)
     #   #=> {"one" => "three"}
+    #   Addressable::URI.parse("?").query_values
+    #   #=> {}
+    #   Addressable::URI.parse("").query_values
+    #   #=> nil
     def query_values(return_type=Hash)
       empty_accumulator = Array == return_type ? [] : {}
       if return_type != Hash && return_type != Array
         raise ArgumentError, "Invalid return type. Must be Hash or Array."
       end
       return nil if self.query == nil
-      split_query = (self.query.split("&").map do |pair|
+      split_query = self.query.split("&").map do |pair|
         pair.split("=", 2) if pair && !pair.empty?
-      end).compact
+      end.compact
       return split_query.inject(empty_accumulator.dup) do |accu, pair|
         # I'd rather use key/value identifiers instead of array lookups,
         # but in this case I really want to maintain the exact pair structure,
         # so it's best to make all changes in-place.
         pair[0] = URI.unencode_component(pair[0])
         if pair[1].respond_to?(:to_str)
+          value = pair[1].to_str
           # I loathe the fact that I have to do this. Stupid HTML 4.01.
           # Treating '+' as a space was just an unbelievably bad idea.
           # There was nothing wrong with '%20'!
           # If it ain't broke, don't fix it!
-          pair[1] = URI.unencode_component(pair[1].to_str.gsub(/\+/, " "))
+          value = value.tr("+", " ") if ["http", "https", nil].include?(scheme)
+          pair[1] = URI.unencode_component(value)
         end
         if return_type == Hash
           accu[pair[0]] = pair[1]
@@ -1568,7 +1735,7 @@ module Addressable
       end
 
       # new_query_values have form [['key1', 'value1'], ['key2', 'value2']]
-      buffer = ""
+      buffer = "".dup
       new_query_values.each do |key, value|
         encoded_key = URI.encode_component(
           key, CharacterClasses::UNRESERVED
@@ -1598,7 +1765,7 @@ module Addressable
     #
     # @return [String] The request URI required for an HTTP request.
     def request_uri
-      return nil if self.absolute? && self.scheme !~ /^https?$/
+      return nil if self.absolute? && self.scheme !~ /^https?$/i
       return (
         (!self.path.empty? ? self.path : SLASH) +
         (self.query ? "?#{self.query}" : EMPTY_STR)
@@ -1613,43 +1780,45 @@ module Addressable
       if !new_request_uri.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_request_uri.class} into String."
       end
-      if self.absolute? && self.scheme !~ /^https?$/
+      if self.absolute? && self.scheme !~ /^https?$/i
         raise InvalidURIError,
           "Cannot set an HTTP request URI for a non-HTTP URI."
       end
       new_request_uri = new_request_uri.to_str
-      path_component = new_request_uri[/^([^\?]*)\?(?:.*)$/, 1]
+      path_component = new_request_uri[/^([^\?]*)\??(?:.*)$/, 1]
       query_component = new_request_uri[/^(?:[^\?]*)\?(.*)$/, 1]
       path_component = path_component.to_s
       path_component = (!path_component.empty? ? path_component : SLASH)
       self.path = path_component
       self.query = query_component
 
-      # Reset dependant values
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      remove_composite_values
     end
 
     ##
     # The fragment component for this URI.
     #
     # @return [String] The fragment component.
-    def fragment
-      return instance_variable_defined?(:@fragment) ? @fragment : nil
-    end
+    attr_reader :fragment
 
     ##
     # The fragment component for this URI, normalized.
     #
     # @return [String] The fragment component, normalized.
     def normalized_fragment
-      self.fragment && @normalized_fragment ||= (begin
+      return nil unless self.fragment
+      return @normalized_fragment unless @normalized_fragment == NONE
+      @normalized_fragment = begin
         component = Addressable::URI.normalize_component(
           self.fragment,
-          Addressable::URI::CharacterClasses::FRAGMENT
+          Addressable::URI::NormalizeCharacterClasses::FRAGMENT
         )
         component == "" ? nil : component
-      end)
+      end
+      # All normalized values should be UTF-8
+      force_utf8_encoding_if_needed(@normalized_fragment)
+      @normalized_fragment
     end
 
     ##
@@ -1662,10 +1831,9 @@ module Addressable
       end
       @fragment = new_fragment ? new_fragment.to_str : nil
 
-      # Reset dependant values
-      @normalized_fragment = nil
-      @uri_string = nil
-      @hash = nil
+      # Reset dependent values
+      @normalized_fragment = NONE
+      remove_composite_values
 
       # Ensure we haven't created an invalid URI
       validate()
@@ -1768,8 +1936,8 @@ module Addressable
               # Section 5.2.3 of RFC 3986
               #
               # Removes the right-most path segment from the base path.
-              if base_path =~ /\//
-                base_path.gsub!(/\/[^\/]+$/, SLASH)
+              if base_path.include?(SLASH)
+                base_path.sub!(/\/[^\/]+$/, SLASH)
               else
                 base_path = EMPTY_STR
               end
@@ -1830,7 +1998,7 @@ module Addressable
     #
     # @see Hash#merge
     def merge(hash)
-      if !hash.respond_to?(:to_hash)
+      unless hash.respond_to?(:to_hash)
         raise TypeError, "Can't convert #{hash.class} into Hash."
       end
       hash = hash.to_hash
@@ -2086,7 +2254,7 @@ module Addressable
     #
     # @return [Integer] A hash of the URI.
     def hash
-      return @hash ||= (self.to_s.hash * -1)
+      @hash ||= self.to_s.hash * -1
     end
 
     ##
@@ -2169,18 +2337,16 @@ module Addressable
         raise InvalidURIError,
           "Cannot assemble URI string with ambiguous path: '#{self.path}'"
       end
-      @uri_string ||= (begin
-        uri_string = ""
+      @uri_string ||= begin
+        uri_string = String.new
         uri_string << "#{self.scheme}:" if self.scheme != nil
         uri_string << "//#{self.authority}" if self.authority != nil
         uri_string << self.path.to_s
         uri_string << "?#{self.query}" if self.query != nil
         uri_string << "##{self.fragment}" if self.fragment != nil
-        if uri_string.respond_to?(:force_encoding)
-          uri_string.force_encoding(Encoding::UTF_8)
-        end
+        uri_string.force_encoding(Encoding::UTF_8)
         uri_string
-      end)
+      end
     end
 
     ##
@@ -2220,16 +2386,36 @@ module Addressable
     #
     # @param [Proc] block
     #   A set of operations to perform on a given URI.
-    def defer_validation(&block)
-      raise LocalJumpError, "No block given." unless block
+    def defer_validation
+      raise LocalJumpError, "No block given." unless block_given?
       @validation_deferred = true
-      block.call()
+      yield
       @validation_deferred = false
       validate
-      return nil
+    ensure
+      @validation_deferred = false
     end
 
-  private
+    def encode_with(coder)
+      instance_variables.each do |ivar|
+        value = instance_variable_get(ivar)
+        if value != NONE
+          key = ivar.to_s.slice(1..-1)
+          coder[key] = value
+        end
+      end
+      nil
+    end
+
+    def init_with(coder)
+      reset_ivs
+      coder.map.each do |key, value|
+        instance_variable_set("@#{key}", value)
+      end
+      nil
+    end
+
+  protected
     SELF_REF = '.'
     PARENT = '..'
 
@@ -2247,30 +2433,35 @@ module Addressable
     def self.normalize_path(path)
       # Section 5.2.4 of RFC 3986
 
-      return nil if path.nil?
+      return if path.nil?
       normalized_path = path.dup
-      begin
-        mod = nil
+      loop do
         mod ||= normalized_path.gsub!(RULE_2A, SLASH)
 
         pair = normalized_path.match(RULE_2B_2C)
-        parent, current = pair[1], pair[2] if pair
+        if pair
+          parent  = pair[1]
+          current = pair[2]
+        else
+          parent  = nil
+          current = nil
+        end
+
+        regexp = "/#{Regexp.escape(parent.to_s)}/\\.\\./|"
+        regexp += "(/#{Regexp.escape(current.to_s)}/\\.\\.$)"
+
         if pair && ((parent != SELF_REF && parent != PARENT) ||
             (current != SELF_REF && current != PARENT))
-          mod ||= normalized_path.gsub!(
-            Regexp.new(
-              "/#{Regexp.escape(parent.to_s)}/\\.\\./|" +
-              "(/#{Regexp.escape(current.to_s)}/\\.\\.$)"
-            ), SLASH
-          )
+          mod ||= normalized_path.gsub!(Regexp.new(regexp), SLASH)
         end
 
         mod ||= normalized_path.gsub!(RULE_2D, EMPTY_STR)
         # Non-standard, removes prefixed dotted segments from path.
         mod ||= normalized_path.gsub!(RULE_PREFIXED_PARENT, SLASH)
-      end until mod.nil?
+        break if mod.nil?
+      end
 
-      return normalized_path
+      normalized_path
     end
 
     ##
@@ -2295,6 +2486,19 @@ module Addressable
         raise InvalidURIError,
           "Cannot have a relative path with an authority set: '#{self.to_s}'"
       end
+      if self.path != nil && !self.path.empty? &&
+          self.path[0..1] == SLASH + SLASH && self.authority == nil
+        raise InvalidURIError,
+          "Cannot have a path with two leading slashes " +
+          "without an authority set: '#{self.to_s}'"
+      end
+      unreserved = CharacterClasses::UNRESERVED
+      sub_delims = CharacterClasses::SUB_DELIMS
+      if !self.host.nil? && (self.host =~ /[<>{}\/\\\?\#\@"[[:space:]]]/ ||
+          (self.host[/^\[(.*)\]$/, 1] != nil && self.host[/^\[(.*)\]$/, 1] !~
+          Regexp.new("^[#{unreserved}#{sub_delims}:]*$")))
+        raise InvalidURIError, "Invalid character in host: '#{self.host.to_s}'"
+      end
       return nil
     end
 
@@ -2306,10 +2510,8 @@ module Addressable
     #
     # @return [Addressable::URI] <code>self</code>.
     def replace_self(uri)
-      # Reset dependant values
-      instance_variables.each do |var|
-        instance_variable_set(var, nil)
-      end
+      # Reset dependent values
+      reset_ivs
 
       @scheme = uri.scheme
       @user = uri.user
@@ -2323,7 +2525,7 @@ module Addressable
     end
 
     ##
-    # Splits path string with "/"(slash).
+    # Splits path string with "/" (slash).
     # It is considered that there is empty string after last slash when
     # path ends with slash.
     #
@@ -2335,5 +2537,59 @@ module Addressable
       splitted << EMPTY_STR if path.end_with? SLASH
       splitted
     end
+
+    ##
+    # Resets composite values for the entire URI
+    #
+    # @api private
+    def remove_composite_values
+      @uri_string = nil
+      @hash = nil
+    end
+
+    ##
+    # Converts the string to be UTF-8 if it is not already UTF-8
+    #
+    # @api private
+    def force_utf8_encoding_if_needed(str)
+      if str && str.encoding != Encoding::UTF_8
+        str.force_encoding(Encoding::UTF_8)
+      end
+    end
+
+    private
+
+    ##
+    # Resets instance variables
+    #
+    # @api private
+    def reset_ivs
+      @scheme = nil
+      @user = nil
+      @normalized_scheme = NONE
+      @normalized_user = NONE
+      @uri_string = nil
+      @hash = nil
+      @userinfo = nil
+      @normalized_userinfo = NONE
+      @authority = nil
+      @password = nil
+      @normalized_authority = nil
+      @port = nil
+      @normalized_password = NONE
+      @host = nil
+      @normalized_host = nil
+      @normalized_port = NONE
+      @path = EMPTY_STR
+      @normalized_path = nil
+      @normalized_query = NONE
+      @fragment = nil
+      @normalized_fragment = NONE
+      @query = nil
+    end
+
+    NONE = Module.new.freeze
+
+    private_constant :NONE
   end
 end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rubygems'
 require 'rake'
 
@@ -10,25 +12,21 @@ PKG_FILE_NAME      = "#{PKG_NAME}-#{PKG_VERSION}"
 
 RELEASE_NAME       = "REL #{PKG_VERSION}"
 
-RUBY_FORGE_PROJECT = PKG_NAME
-RUBY_FORGE_USER    = "sporkmonger"
-RUBY_FORGE_PATH    = "/var/www/gforge-projects/#{RUBY_FORGE_PROJECT}"
-RUBY_FORGE_URL     = "http://#{RUBY_FORGE_PROJECT}.rubyforge.org/"
-
 PKG_SUMMARY        = "URI Implementation"
 PKG_DESCRIPTION    = <<-TEXT
-Addressable is a replacement for the URI implementation that is part of
-Ruby's standard library. It more closely conforms to the relevant RFCs and
-adds support for IRIs and URI templates.
+Addressable is an alternative implementation to the URI implementation that is
+part of Ruby's standard library. It is flexible, offers heuristic parsing, and
+additionally provides extensive support for IRIs and URI templates.
 TEXT
 
 PKG_FILES = FileList[
     "lib/**/*", "spec/**/*", "vendor/**/*", "data/**/*",
-    "tasks/**/*", "website/**/*",
+    "tasks/**/*",
     "[A-Z]*", "Rakefile"
-].exclude(/database\.yml/).exclude(/Gemfile\.lock/).exclude(/[_\.]git$/)
+].exclude(/pkg/).exclude(/database\.yml/).
+  exclude(/Gemfile\.lock/).exclude(/[_\.]git$/).
+  exclude(/coverage/)
 
-RCOV_ENABLED = (RUBY_PLATFORM != "java" && RUBY_VERSION =~ /^1\.8/)
 task :default => "spec"
 
 WINDOWS = (RUBY_PLATFORM =~ /mswin|win32|mingw|bccwin|cygwin/) rescue false

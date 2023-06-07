@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "rubygems/package_task"
 
 namespace :gem do
@@ -9,7 +11,6 @@ namespace :gem do
 
     s.files = PKG_FILES.to_a
 
-    s.has_rdoc = true
     s.extra_rdoc_files = %w( README.md )
     s.rdoc_options.concat ["--main",  "README.md"]
 
@@ -18,17 +19,20 @@ namespace :gem do
       exit(1)
     end
 
-    s.add_development_dependency("rake", ">= 0.7.3")
-    s.add_development_dependency("rspec", ">= 2.9.0")
-    s.add_development_dependency("launchy", ">= 0.3.2")
+    s.required_ruby_version = ">= 2.2"
+
+    s.add_runtime_dependency "public_suffix", ">= 2.0.2", "< 6.0"
+    s.add_development_dependency "bundler", ">= 1.0", "< 3.0"
 
     s.require_path = "lib"
 
     s.author = "Bob Aman"
     s.email = "bob@sporkmonger.com"
-    s.homepage = RUBY_FORGE_URL
-    s.rubyforge_project = RUBY_FORGE_PROJECT
-    s.license = "Apache License 2.0"
+    s.homepage = "https://github.com/sporkmonger/addressable"
+    s.license = "Apache-2.0"
+    s.metadata = {
+      "changelog_uri" => "https://github.com/sporkmonger/addressable/blob/main/CHANGELOG.md"
+    }
   end
 
   Gem::PackageTask.new(GEM_SPEC) do |p|
@@ -40,15 +44,8 @@ namespace :gem do
   desc "Generates .gemspec file"
   task :gemspec do
     spec_string = GEM_SPEC.to_ruby
-
-    begin
-      Thread.new { eval("$SAFE = 3\n#{spec_string}", binding) }.join
-    rescue
-      abort "unsafe gemspec: #{$!}"
-    else
-      File.open("#{GEM_SPEC.name}.gemspec", 'w') do |file|
-        file.write spec_string
-      end
+    File.open("#{GEM_SPEC.name}.gemspec", "w") do |file|
+      file.write spec_string
     end
   end
 
@@ -76,6 +73,18 @@ namespace :gem do
 
   desc "Reinstall the gem"
   task :reinstall => [:uninstall, :install]
+
+  desc "Package for release"
+  task :release => ["gem:package", "gem:gemspec"] do |t|
+    v = ENV["VERSION"] or abort "Must supply VERSION=x.y.z"
+    abort "Versions don't match #{v} vs #{PROJ.version}" if v != PKG_VERSION
+    pkg = "pkg/#{GEM_SPEC.full_name}"
+
+    changelog = File.open("CHANGELOG.md") { |file| file.read }
+
+    puts "Releasing #{PKG_NAME} v. #{PKG_VERSION}"
+    Rake::Task["git:tag:create"].invoke
+  end
 end
 
 desc "Alias to gem:package"

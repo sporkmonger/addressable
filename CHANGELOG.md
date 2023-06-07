@@ -1,3 +1,124 @@
+# Addressable 2.8.4
+- Restore `Addressable::IDNA.unicode_normalize_kc` as a deprecated method ([#504])
+
+[#504]: https://github.com/sporkmonger/addressable/pull/504
+
+# Addressable 2.8.3
+- Fix template expand level 2 hash support for non-string objects ([#499], [#498])
+
+[#499]: https://github.com/sporkmonger/addressable/pull/499
+[#498]: https://github.com/sporkmonger/addressable/pull/498
+
+# Addressable 2.8.2
+- Improve cache hits and JIT friendliness ([#486](https://github.com/sporkmonger/addressable/pull/486))
+- Improve code style and test coverage ([#482](https://github.com/sporkmonger/addressable/pull/482))
+- Ensure reset of deferred validation ([#481](https://github.com/sporkmonger/addressable/pull/481))
+- Resolve normalization differences between `IDNA::Native` and `IDNA::Pure` ([#408](https://github.com/sporkmonger/addressable/issues/408), [#492])
+- Remove redundant colon in `Addressable::URI::CharacterClasses::AUTHORITY` regex ([#438](https://github.com/sporkmonger/addressable/pull/438)) (accidentally reverted by [#449] merge but [added back](https://github.com/sporkmonger/addressable/pull/492#discussion_r1105125280) in [#492])
+
+[#492]: https://github.com/sporkmonger/addressable/pull/492
+
+# Addressable 2.8.1
+- refactor `Addressable::URI.normalize_path` to address linter offenses ([#430](https://github.com/sporkmonger/addressable/pull/430))
+- update gemspec to reflect supported Ruby versions ([#466], [#464], [#463])
+- compatibility w/ public_suffix 5.x ([#466], [#465], [#460])
+- fixes "invalid byte sequence in UTF-8" exception when unencoding URLs containing non UTF-8 characters ([#459](https://github.com/sporkmonger/addressable/pull/459))
+- `Ractor` compatibility ([#449])
+- use the whole string instead of a single line for template match ([#431](https://github.com/sporkmonger/addressable/pull/431))
+- force UTF-8 encoding only if needed ([#341](https://github.com/sporkmonger/addressable/pull/341))
+
+[#449]: https://github.com/sporkmonger/addressable/pull/449
+[#460]: https://github.com/sporkmonger/addressable/pull/460
+[#463]: https://github.com/sporkmonger/addressable/pull/463
+[#464]: https://github.com/sporkmonger/addressable/pull/464
+[#465]: https://github.com/sporkmonger/addressable/pull/465
+[#466]: https://github.com/sporkmonger/addressable/pull/466
+
+# Addressable 2.8.0
+- fixes ReDoS vulnerability in Addressable::Template#match
+- no longer replaces `+` with spaces in queries for non-http(s) schemes
+- fixed encoding ipv6 literals
+- the `:compacted` flag for `normalized_query` now dedupes parameters
+- fix broken `escape_component` alias
+- dropping support for Ruby 2.0 and 2.1
+- adding Ruby 3.0 compatibility for development tasks
+- drop support for `rack-mount` and remove Addressable::Template#generate
+- performance improvements
+- switch CI/CD to GitHub Actions
+
+# Addressable 2.7.0
+- added `:compacted` flag to `normalized_query`
+- `heuristic_parse` handles `mailto:` more intuitively
+- dropped explicit support for JRuby 9.0.5.0
+- compatibility w/ public_suffix 4.x
+- performance improvements
+
+# Addressable 2.6.0
+- added `tld=` method to allow assignment to the public suffix
+- most `heuristic_parse` patterns are now case-insensitive
+- `heuristic_parse` handles more `file://` URI variations
+- fixes bug in `heuristic_parse` when uri starts with digit
+- fixes bug in `request_uri=` with query strings
+- fixes template issues with `nil` and `?` operator
+- `frozen_string_literal` pragmas added
+- minor performance improvements in regexps
+- fixes to eliminate warnings
+
+# Addressable 2.5.2
+- better support for frozen string literals
+- fixed bug w/ uppercase characters in scheme
+- IDNA errors w/ emoji URLs
+- compatibility w/ public_suffix 3.x
+
+# Addressable 2.5.1
+- allow unicode normalization to be disabled for URI Template expansion
+- removed duplicate test
+
+# Addressable 2.5.0
+- dropping support for Ruby 1.9
+- adding support for Ruby 2.4 preview
+- add support for public suffixes and tld; first runtime dependency
+- hostname escaping should match RFC; underscores in hostnames no longer escaped
+- paths beginning with // and missing an authority are now considered invalid
+- validation now also takes place after setting a path
+- handle backslashes in authority more like a browser for `heuristic_parse`
+- unescaped backslashes in host now raise an `InvalidURIError`
+- `merge!`, `join!`, `omit!` and `normalize!` don't disable deferred validation
+- `heuristic_parse` now trims whitespace before parsing
+- host parts longer than 63 bytes will be ignored and not passed to libidn
+- normalized values always encoded as UTF-8
+
+# Addressable 2.4.0
+- support for 1.8.x dropped
+- double quotes in a host now raises an error
+- newlines in host will no longer get unescaped during normalization
+- stricter handling of bogus scheme values
+- stricter handling of encoded port values
+- calling `require 'addressable'` will now load both the URI and Template files
+- assigning to the `hostname` component with an `IPAddr` object is now supported
+- assigning to the `origin` component is now supported
+- fixed minor bug where an exception would be thrown for a missing ACE suffix
+- better partial expansion of URI templates
+
+# Addressable 2.3.8
+- fix warnings
+- update dependency gems
+- support for 1.8.x officially deprecated
+
+# Addressable 2.3.7
+- fix scenario in which invalid URIs don't get an exception until inspected
+- handle hostnames with two adjacent periods correctly
+- upgrade of RSpec
+
+# Addressable 2.3.6
+- normalization drops empty query string
+- better handling in template extract for missing values
+- template modifier for `'?'` now treated as optional
+- fixed issue where character class parameters were modified
+- templates can now be tested for equality
+- added `:sorted` option to normalization of query strings
+- fixed issue with normalization of hosts given in `'example.com.'` form
+
 # Addressable 2.3.5
 - added Addressable::URI#empty? method
 - Addressable::URI#hostname methods now strip square brackets from IPv6 hosts
@@ -149,11 +270,11 @@
 - improved normalization
 - fixed bug in joining algorithm
 - updated specifications
-  
+
 # Addressable 0.1.1
 - updated documentation
 - added URI Template variable extraction
-  
+
 # Addressable 0.1.0
 - initial release
 - implementation based on RFC 3986, 3987

@@ -1,6 +1,7 @@
-# encoding:utf-8
+# frozen_string_literal: true
+
 #--
-# Copyright (C) 2006-2013 Bob Aman
+# Copyright (C) Bob Aman
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -35,7 +36,7 @@ module Addressable
       Addressable::URI::CharacterClasses::DIGIT + '_'
 
     var_char =
-      "(?:(?:[#{variable_char_class}]|%[a-fA-F0-9][a-fA-F0-9])+)"
+      "(?>(?:[#{variable_char_class}]|%[a-fA-F0-9][a-fA-F0-9])+)"
     RESERVED =
       "(?:[#{anything}]|%[a-fA-F0-9][a-fA-F0-9])"
     UNRESERVED =
@@ -234,7 +235,18 @@ module Addressable
       if !pattern.respond_to?(:to_str)
         raise TypeError, "Can't convert #{pattern.class} into String."
       end
-      @pattern = pattern.to_str.freeze
+      @pattern = pattern.to_str.dup.freeze
+    end
+
+    ##
+    # Freeze URI, initializing instance variables.
+    #
+    # @return [Addressable::URI] The frozen URI object.
+    def freeze
+      self.variables
+      self.variable_defaults
+      self.named_captures
+      super
     end
 
     ##
@@ -249,6 +261,26 @@ module Addressable
       sprintf("#<%s:%#0x PATTERN:%s>",
         self.class.to_s, self.object_id, self.pattern)
     end
+
+    ##
+    # Returns <code>true</code> if the Template objects are equal. This method
+    # does NOT normalize either Template before doing the comparison.
+    #
+    # @param [Object] template The Template to compare.
+    #
+    # @return [TrueClass, FalseClass]
+    #   <code>true</code> if the Templates are equivalent, <code>false</code>
+    #   otherwise.
+    def ==(template)
+      return false unless template.kind_of?(Template)
+      return self.pattern == template.pattern
+    end
+
+    ##
+    # Addressable::Template makes no distinction between `==` and `eql?`.
+    #
+    # @see #==
+    alias_method :eql?, :==
 
     ##
     # Extracts a mapping from the URI using a URI Template pattern.
@@ -379,7 +411,7 @@ module Addressable
     #   match.captures
     #   #=> ["a", ["b", "c"]]
     def match(uri, processor=nil)
-      uri = Addressable::URI.parse(uri)
+      uri = Addressable::URI.parse(uri) unless uri.is_a?(Addressable::URI)
       mapping = {}
 
       # First, we need to process the pattern, and extract the values.
@@ -397,6 +429,7 @@ module Addressable
           _, operator, varlist = *expansion.match(EXPRESSION)
           varlist.split(',').each do |varspec|
             _, name, modifier = *varspec.match(VARSPEC)
+            mapping[name] ||= nil
             case operator
             when nil, '+', '#', '/', '.'
               unparsed_value = unparsed_values[index]
@@ -405,12 +438,14 @@ module Addressable
               value = value.split(JOINERS[operator]) if value && modifier == '*'
             when ';', '?', '&'
               if modifier == '*'
-                value = unparsed_values[index].split(JOINERS[operator])
-                value = value.inject({}) do |acc, v|
-                  key, val = v.split('=')
-                  val = "" if val.nil?
-                  acc[key] = val
-                  acc
+                if unparsed_values[index]
+                  value = unparsed_values[index].split(JOINERS[operator])
+                  value = value.inject({}) do |acc, v|
+                    key, val = v.split('=')
+                    val = "" if val.nil?
+                    acc[key] = val
+                    acc
+                  end
                 end
               else
                 if (unparsed_values[index])
@@ -435,10 +470,9 @@ module Addressable
                 value = Addressable::URI.unencode_component(value)
               end
             end
-            if mapping[name] == nil || mapping[name] == value
+            if !mapping.has_key?(name) || mapping[name].nil?
+              # Doesn't exist, set to value (even if value is nil)
               mapping[name] = value
-            else
-              return nil
             end
             index = index + 1
           end
@@ -455,6 +489,8 @@ module Addressable
     # @param [Hash] mapping The mapping that corresponds to the pattern.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
+    # @param [Boolean] normalize_values
+    #   Optional flag to enable/disable unicode normalization. Default: true
     #
     # The object should respond to either the <tt>validate</tt> or
     # <tt>transform</tt> messages or both. Both the <tt>validate</tt> and
@@ -485,11 +521,11 @@ module Addressable
     #     "http://example.com/{?one,two,three}/"
     #   ).partial_expand({"one" => "1", "three" => 3}).pattern
     #   #=> "http://example.com/?one=1{&two}&three=3"
-    def partial_expand(mapping, processor=nil)
+    def partial_expand(mapping, processor=nil, normalize_values=true)
       result = self.pattern.dup
       mapping = normalize_keys(mapping)
       result.gsub!( EXPRESSION ) do |capture|
-        transform_partial_capture(mapping, capture, processor)
+        transform_partial_capture(mapping, capture, processor, normalize_values)
       end
       return Addressable::Template.new(result)
     end
@@ -500,6 +536,8 @@ module Addressable
     # @param [Hash] mapping The mapping that corresponds to the pattern.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
+    # @param [Boolean] normalize_values
+    #   Optional flag to enable/disable unicode normalization. Default: true
     #
     # The object should respond to either the <tt>validate</tt> or
     # <tt>transform</tt> messages or both. Both the <tt>validate</tt> and
@@ -550,11 +588,11 @@ module Addressable
     #     ExampleProcessor
     #   ).to_str
     #   #=> Addressable::Template::InvalidTemplateValueError
-    def expand(mapping, processor=nil)
+    def expand(mapping, processor=nil, normalize_values=true)
       result = self.pattern.dup
       mapping = normalize_keys(mapping)
       result.gsub!( EXPRESSION ) do |capture|
-        transform_capture(mapping, capture, processor)
+        transform_capture(mapping, capture, processor, normalize_values)
       end
       return Addressable::URI.parse(result)
     end
@@ -570,6 +608,7 @@ module Addressable
       @variables ||= ordered_variable_defaults.map { |var, val| var }.uniq
     end
     alias_method :keys, :variables
+    alias_method :names, :variables
 
     ##
     # Returns a mapping of variables to their default values specified
@@ -581,17 +620,49 @@ module Addressable
         Hash[*ordered_variable_defaults.reject { |k, v| v.nil? }.flatten]
     end
 
+    ##
+    # Coerces a template into a `Regexp` object. This regular expression will
+    # behave very similarly to the actual template, and should match the same
+    # URI values, but it cannot fully handle, for example, values that would
+    # extract to an `Array`.
+    #
+    # @return [Regexp] A regular expression which should match the template.
+    def to_regexp
+      _, source = parse_template_pattern(pattern)
+      Regexp.new(source)
+    end
+
+    ##
+    # Returns the source of the coerced `Regexp`.
+    #
+    # @return [String] The source of the `Regexp` given by {#to_regexp}.
+    #
+    # @api private
+    def source
+      self.to_regexp.source
+    end
+
+    ##
+    # Returns the named captures of the coerced `Regexp`.
+    #
+    # @return [Hash] The named captures of the `Regexp` given by {#to_regexp}.
+    #
+    # @api private
+    def named_captures
+      self.to_regexp.named_captures
+    end
+
   private
     def ordered_variable_defaults
-      @ordered_variable_defaults ||= (
+      @ordered_variable_defaults ||= begin
         expansions, _ = parse_template_pattern(pattern)
-        expansions.map do |capture|
+        expansions.flat_map do |capture|
           _, _, varlist = *capture.match(EXPRESSION)
           varlist.split(',').map do |varspec|
             varspec[VARSPEC, 1]
           end
-        end.flatten
-      )
+        end
+      end
     end
 
 
@@ -604,6 +675,8 @@ module Addressable
     #   The expression to expand
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
+    # @param [Boolean] normalize_values
+    #   Optional flag to enable/disable unicode normalization. Default: true
     #
     # The object should respond to either the <tt>validate</tt> or
     # <tt>transform</tt> messages or both. Both the <tt>validate</tt> and
@@ -618,21 +691,36 @@ module Addressable
     # after sending the value to the transform method.
     #
     # @return [String] The expanded expression
-    def transform_partial_capture(mapping, capture, processor = nil)
+    def transform_partial_capture(mapping, capture, processor = nil,
+                                  normalize_values = true)
       _, operator, varlist = *capture.match(EXPRESSION)
-      is_first = true
-      varlist.split(',').inject('') do |acc, varspec|
-        _, name, _ = *varspec.match(VARSPEC)
-        value = mapping[name]
-        if value
-          operator = '&' if !is_first && operator == '?'
-          acc << transform_capture(mapping, "{#{operator}#{varspec}}", processor)
-        else
-          operator = '&' if !is_first && operator == '?'
-          acc << "{#{operator}#{varspec}}"
-        end
-        is_first = false
-        acc
+
+      vars = varlist.split(",")
+
+      if operator == "?"
+        # partial expansion of form style query variables sometimes requires a
+        # slight reordering of the variables to produce a valid url.
+        first_to_expand = vars.find { |varspec|
+          _, name, _ =  *varspec.match(VARSPEC)
+          mapping.key?(name) && !mapping[name].nil?
+        }
+
+        vars = [first_to_expand] + vars.reject {|varspec| varspec == first_to_expand}  if first_to_expand
+      end
+
+      vars.
+        inject("".dup) do |acc, varspec|
+          _, name, _ =  *varspec.match(VARSPEC)
+          next_val = if mapping.key? name
+                       transform_capture(mapping, "{#{operator}#{varspec}}",
+                                         processor, normalize_values)
+                     else
+                       "{#{operator}#{varspec}}"
+                     end
+          # If we've already expanded at least one '?' operator with non-empty
+          # value, change to '&'
+          operator = "&" if (operator == "?") && (next_val != "")
+          acc << next_val
       end
     end
 
@@ -645,6 +733,9 @@ module Addressable
     #   The expression to replace
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
+    # @param [Boolean] normalize_values
+    #   Optional flag to enable/disable unicode normalization. Default: true
+    #
     #
     # The object should respond to either the <tt>validate</tt> or
     # <tt>transform</tt> messages or both. Both the <tt>validate</tt> and
@@ -659,7 +750,8 @@ module Addressable
     # after sending the value to the transform method.
     #
     # @return [String] The expanded expression
-    def transform_capture(mapping, capture, processor=nil)
+    def transform_capture(mapping, capture, processor=nil,
+                          normalize_values=true)
       _, operator, varlist = *capture.match(EXPRESSION)
       return_value = varlist.split(',').inject([]) do |acc, varspec|
         _, name, modifier = *varspec.match(VARSPEC)
@@ -679,7 +771,7 @@ module Addressable
               "Can't convert #{value.class} into String or Array."
           end
 
-          value = normalize_value(value)
+          value = normalize_value(value) if normalize_values
 
           if processor == nil || !processor.respond_to?(:transform)
             # Handle percent escaping
@@ -742,7 +834,9 @@ module Addressable
             end
             if processor.respond_to?(:transform)
               transformed_value = processor.transform(name, value)
-              transformed_value = normalize_value(transformed_value)
+              if normalize_values
+                transformed_value = normalize_value(transformed_value)
+              end
             end
           end
           acc << [name, transformed_value]
@@ -798,25 +892,24 @@ module Addressable
     # operator.
     #
     # @param [Hash, Array, String] value
-    #   Normalizes keys and values with IDNA#unicode_normalize_kc
+    #   Normalizes unicode keys and values with String#unicode_normalize (NFC)
     #
     # @return [Hash, Array, String] The normalized values
     def normalize_value(value)
-      unless value.is_a?(Hash)
-        value = value.respond_to?(:to_ary) ? value.to_ary : value.to_str
-      end
-
       # Handle unicode normalization
-      if value.kind_of?(Array)
-        value.map! { |val| Addressable::IDNA.unicode_normalize_kc(val) }
+      if value.respond_to?(:to_ary)
+        value.to_ary.map! { |val| normalize_value(val) }
       elsif value.kind_of?(Hash)
         value = value.inject({}) { |acc, (k, v)|
-          acc[Addressable::IDNA.unicode_normalize_kc(k)] =
-            Addressable::IDNA.unicode_normalize_kc(v)
+          acc[normalize_value(k)] = normalize_value(v)
           acc
         }
       else
-        value = Addressable::IDNA.unicode_normalize_kc(value)
+        value = value.to_s if !value.kind_of?(String)
+        if value.encoding != Encoding::UTF_8
+          value = value.dup.force_encoding(Encoding::UTF_8)
+        end
+        value = value.unicode_normalize(:nfc)
       end
       value
     end
@@ -846,14 +939,34 @@ module Addressable
     end
 
     ##
+    # Generates the <tt>Regexp</tt> that parses a template pattern. Memoizes the
+    # value if template processor not set (processors may not be deterministic)
+    #
+    # @param [String] pattern The URI template pattern.
+    # @param [#match] processor The template processor to use.
+    #
+    # @return [Array, Regexp]
+    #   An array of expansion variables nad a regular expression which may be
+    #   used to parse a template pattern
+    def parse_template_pattern(pattern, processor = nil)
+      if processor.nil? && pattern == @pattern
+        @cached_template_parse ||=
+          parse_new_template_pattern(pattern, processor)
+      else
+        parse_new_template_pattern(pattern, processor)
+      end
+    end
+
+    ##
     # Generates the <tt>Regexp</tt> that parses a template pattern.
     #
     # @param [String] pattern The URI template pattern.
     # @param [#match] processor The template processor to use.
     #
-    # @return [Regexp]
-    #   A regular expression which may be used to parse a template pattern.
-    def parse_template_pattern(pattern, processor=nil)
+    # @return [Array, Regexp]
+    #   An array of expansion variables nad a regular expression which may be
+    #   used to parse a template pattern
+    def parse_new_template_pattern(pattern, processor = nil)
       # Escape the pattern. The two gsubs restore the escaped curly braces
       # back to their original form. Basically, escape everything that isn't
       # within an expansion.
@@ -873,10 +986,12 @@ module Addressable
         _, operator, varlist = *expansion.match(EXPRESSION)
         leader = Regexp.escape(LEADERS.fetch(operator, ''))
         joiner = Regexp.escape(JOINERS.fetch(operator, ','))
-        leader + varlist.split(',').map do |varspec|
+        combined = varlist.split(',').map do |varspec|
           _, name, modifier = *varspec.match(VARSPEC)
-          if processor != nil && processor.respond_to?(:match)
-            "(#{ processor.match(name) })"
+
+          result = processor && processor.respond_to?(:match) ? processor.match(name) : nil
+          if result
+            "(?<#{name}>#{ result })"
           else
             group = case operator
             when '+'
@@ -897,16 +1012,17 @@ module Addressable
               "#{ UNRESERVED }*?"
             end
             if modifier == '*'
-              "(#{group}(?:#{joiner}?#{group})*)?"
+              "(?<#{name}>#{group}(?:#{joiner}?#{group})*)?"
             else
-              "(#{group})?"
+              "(?<#{name}>#{group})?"
             end
           end
         end.join("#{joiner}?")
+        "(?:|#{leader}#{combined})"
       end
 
       # Ensure that the regular expression matches the whole URI.
-      regexp_string = "^#{regexp_string}$"
+      regexp_string = "\\A#{regexp_string}\\z"
       return expansions, Regexp.new(regexp_string)
     end
 

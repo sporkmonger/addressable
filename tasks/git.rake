@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 namespace :git do
   namespace :tag do
     desc "List tags from the Git repository"
@@ -20,7 +22,7 @@ namespace :git do
       abort "Versions don't match #{v} vs #{PKG_VERSION}" if v != PKG_VERSION
 
       git_status = `git status`
-      if git_status !~ /nothing to commit \(working directory clean\)/
+      if git_status !~ /^nothing to commit/
         abort "Working directory isn't clean."
       end
 

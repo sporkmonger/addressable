@@ -1,39 +1,28 @@
 # -*- encoding: utf-8 -*-
+# stub: addressable 2.8.4 ruby lib
 
 Gem::Specification.new do |s|
-  s.name = "addressable"
-  s.version = "2.3.5"
+  s.name = "addressable".freeze
+  s.version = "2.8.4"
 
-  s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = ["Bob Aman"]
-  s.date = "2013-06-27"
-  s.description = "Addressable is a replacement for the URI implementation that is part of\nRuby's standard library. It more closely conforms to the relevant RFCs and\nadds support for IRIs and URI templates.\n"
-  s.email = "bob@sporkmonger.com"
-  s.extra_rdoc_files = ["README.md"]
-  s.files = ["lib/addressable", "lib/addressable/idna", "lib/addressable/idna.rb", "lib/addressable/idna/native.rb", "lib/addressable/idna/pure.rb", "lib/addressable/template.rb", "lib/addressable/uri.rb", "lib/addressable/version.rb", "spec/addressable", "spec/addressable/idna_spec.rb", "spec/addressable/net_http_compat_spec.rb", "spec/addressable/template_spec.rb", "spec/addressable/uri_spec.rb", "spec/spec_helper.rb", "data/unicode.data", "tasks/clobber.rake", "tasks/gem.rake", "tasks/git.rake", "tasks/metrics.rake", "tasks/rspec.rake", "tasks/rubyforge.rake", "tasks/yard.rake", "website/index.html", "CHANGELOG.md", "Gemfile", "LICENSE.txt", "README.md", "Rakefile"]
-  s.homepage = "http://addressable.rubyforge.org/"
-  s.licenses = ["Apache License 2.0"]
-  s.rdoc_options = ["--main", "README.md"]
-  s.require_paths = ["lib"]
-  s.rubyforge_project = "addressable"
-  s.rubygems_version = "1.8.25"
-  s.summary = "URI Implementation"
+  s.required_rubygems_version = Gem::Requirement.new(">= 0".freeze) if s.respond_to? :required_rubygems_version=
+  s.metadata = { "changelog_uri" => "https://github.com/sporkmonger/addressable/blob/main/CHANGELOG.md" } if s.respond_to? :metadata=
+  s.require_paths = ["lib".freeze]
+  s.authors = ["Bob Aman".freeze]
+  s.date = "2023-04-09"
+  s.description = "Addressable is an alternative implementation to the URI implementation that is\npart of Ruby's standard library. It is flexible, offers heuristic parsing, and\nadditionally provides extensive support for IRIs and URI templates.\n".freeze
+  s.email = "bob@sporkmonger.com".freeze
+  s.extra_rdoc_files = ["README.md".freeze]
+  s.files = ["CHANGELOG.md".freeze, "Gemfile".freeze, "LICENSE.txt".freeze, "README.md".freeze, "Rakefile".freeze, "addressable.gemspec".freeze, "data/unicode.data".freeze, "lib/addressable.rb".freeze, "lib/addressable/idna.rb".freeze, "lib/addressable/idna/native.rb".freeze, "lib/addressable/idna/pure.rb".freeze, "lib/addressable/template.rb".freeze, "lib/addressable/uri.rb".freeze, "lib/addressable/version.rb".freeze, "spec/addressable/idna_spec.rb".freeze, "spec/addressable/net_http_compat_spec.rb".freeze, "spec/addressable/security_spec.rb".freeze, "spec/addressable/template_spec.rb".freeze, "spec/addressable/uri_spec.rb".freeze, "spec/spec_helper.rb".freeze, "tasks/clobber.rake".freeze, "tasks/gem.rake".freeze, "tasks/git.rake".freeze, "tasks/metrics.rake".freeze, "tasks/profile.rake".freeze, "tasks/rspec.rake".freeze, "tasks/yard.rake".freeze]
+  s.homepage = "https://github.com/sporkmonger/addressable".freeze
+  s.licenses = ["Apache-2.0".freeze]
+  s.rdoc_options = ["--main".freeze, "README.md".freeze]
+  s.required_ruby_version = Gem::Requirement.new(">= 2.2".freeze)
+  s.rubygems_version = "3.4.10".freeze
+  s.summary = "URI Implementation".freeze
 
-  if s.respond_to? :specification_version then
-    s.specification_version = 3
+  s.specification_version = 4
 
-    if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
-      s.add_development_dependency(%q<rake>, [">= 0.7.3"])
-      s.add_development_dependency(%q<rspec>, [">= 2.9.0"])
-      s.add_development_dependency(%q<launchy>, [">= 0.3.2"])
-    else
-      s.add_dependency(%q<rake>, [">= 0.7.3"])
-      s.add_dependency(%q<rspec>, [">= 2.9.0"])
-      s.add_dependency(%q<launchy>, [">= 0.3.2"])
-    end
-  else
-    s.add_dependency(%q<rake>, [">= 0.7.3"])
-    s.add_dependency(%q<rspec>, [">= 2.9.0"])
-    s.add_dependency(%q<launchy>, [">= 0.3.2"])
-  end
+  s.add_runtime_dependency(%q<public_suffix>.freeze, [">= 2.0.2", "< 6.0"])
+  s.add_development_dependency(%q<bundler>.freeze, [">= 1.0", "< 3.0"])
 end

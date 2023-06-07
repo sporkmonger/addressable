@@ -1,5 +1,6 @@
-# coding: utf-8
-# Copyright (C) 2006-2013 Bob Aman
+# frozen_string_literal: true
+
+# Copyright (C) Bob Aman
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -23,6 +24,6 @@ describe Net::HTTP do
   it "should be compatible with Addressable" do
     response_body =
       Net::HTTP.get(Addressable::URI.parse('http://www.google.com/'))
-    response_body.should_not be_nil
+    expect(response_body).not_to be_nil
   end
 end
