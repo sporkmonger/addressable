@@ -344,17 +344,13 @@ module Addressable
     ##
     # Tables used to optimize encoding operations in `self.encode_component`
     # and `self.normalize_component`
-    SEQUENCE_ENCODING_TABLE = Hash.new do |hash, sequence|
-      hash[sequence] = sequence.unpack("C*").map do |c|
-        format("%02x", c)
-      end.join
-    end
+    SEQUENCE_ENCODING_TABLE = (0..255).map do |byte|
+      format("%02x", byte).freeze
+    end.freeze
 
-    SEQUENCE_UPCASED_PERCENT_ENCODING_TABLE = Hash.new do |hash, sequence|
-      hash[sequence] = sequence.unpack("C*").map do |c|
-        format("%%%02X", c)
-      end.join
-    end
+    SEQUENCE_UPCASED_PERCENT_ENCODING_TABLE = (0..255).map do |byte|
+      format("%%%02X", byte).freeze
+    end.freeze
 
     ##
     # Percent encodes a URI component.
@@ -421,16 +417,17 @@ module Addressable
       component = component.dup
       component.force_encoding(Encoding::ASCII_8BIT)
       # Avoiding gsub! because there are edge cases with frozen strings
-      component = component.gsub(character_class) do |sequence|
-        SEQUENCE_UPCASED_PERCENT_ENCODING_TABLE[sequence]
+      component = component.gsub(character_class) do |char|
+        SEQUENCE_UPCASED_PERCENT_ENCODING_TABLE[char.ord]
       end
       if upcase_encoded.length > 0
-        upcase_encoded_chars = upcase_encoded.chars.map do |char|
-          SEQUENCE_ENCODING_TABLE[char]
+        upcase_encoded_chars = upcase_encoded.bytes.map do |byte|
+          SEQUENCE_ENCODING_TABLE[byte]
         end
         component = component.gsub(/%(#{upcase_encoded_chars.join('|')})/,
                                    &:upcase)
       end
+
       return component
     end
 
@@ -560,10 +557,9 @@ module Addressable
         leave_re = if leave_encoded.length > 0
           character_class = "#{character_class}%" unless character_class.include?('%')
 
-          "|%(?!#{leave_encoded.chars.flat_map do |char|
-            seq = SEQUENCE_ENCODING_TABLE[char]
-            [seq.upcase, seq.downcase]
-          end.join('|')})"
+          bytes = leave_encoded.bytes
+          leave_encoded_pattern = bytes.map { |b| SEQUENCE_ENCODING_TABLE[b] }.join('|')
+          "|%(?!#{leave_encoded_pattern}|#{leave_encoded_pattern.upcase})"
         end
 
         character_class = if leave_re
