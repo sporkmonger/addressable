@@ -94,13 +94,44 @@ template.extract(uri)
 $ gem install addressable
 ```
 
-You may optionally turn on native IDN support by installing libidn and the
-idn gem:
+# IDNA support (unicode hostnames)
+
+Three IDNA implementations are available, the first one available is used:
+- A `libidn1` wrapper (if `libidn` and the `idn` gem are installed), supporting IDNA2003.
+- A pure ruby implementation (slower), [almost](https://github.com/sporkmonger/addressable/issues/491) supporting IDNA2008.
+- A `libidn2` wrapper (if `libidn2` is installed), supporting IDNA2008+UTS#46.
+
+Note: in the future major version, `libidn2` will become the default.
+
+To install `libidn2`:
+
+```console
+$ sudo apt-get install libidn2-dev # Debian/Ubuntu
+$ brew install libidn2 # OS X
+```
+
+To install `libidn1` and the `idn` gem (also add it to your Gemfile):
 
 ```console
 $ sudo apt-get install libidn11-dev # Debian/Ubuntu
 $ brew install libidn # OS X
 $ gem install idn-ruby
+```
+
+Optionally you can turn on the strict mode which will raise exceptions in case of invalid hostname during IDNA conversion. The default (`false`) silently ignores them and keeps the hostname unchanged. The strictness will depend on the backend used, libidn2 is stricter than libidn1 for example.
+```ruby
+Addressable::IDNA.backend.strict_mode = true # default: false
+```
+
+Finally if you want to force a different IDNA implementation, you can do so like this (after addressable is required):
+
+```ruby
+require "addressable/idna/pure"
+Addressable::IDNA.backend = Addressable::IDNA::Pure
+require "addressable/idna/libidn2"
+Addressable::IDNA.backend = Addressable::IDNA::Libidn2
+# Check which implmentation is active:
+puts Addressable::IDNA.backend.name
 ```
 
 # Semantic Versioning

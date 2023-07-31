@@ -152,10 +152,18 @@ shared_examples_for "converting from unicode to ASCII" do
       "example..host"
     )).to eq("example..host")
   end
+
+  it "handles nil input" do
+    expect(Addressable::IDNA.to_ascii(nil)).to eq(nil)
+    expect(Addressable::IDNA.to_ascii(45)).to eq(nil)
+    expect(Addressable::IDNA.to_ascii([])).to eq(nil)
+    expect(Addressable::IDNA.to_ascii({})).to eq(nil)
+  end
 end
 
 shared_examples_for "converting from ASCII to unicode" do
   long = 'AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com'
+
   it "should convert '#{long}' correctly" do
     expect(Addressable::IDNA.to_unicode(long)).to eq(long)
   end
@@ -255,24 +263,36 @@ shared_examples_for "converting from ASCII to unicode" do
       "example..host"
     )).to eq("example..host")
   end
+
+  it "handles unexpected input as nil" do
+    expect(Addressable::IDNA.to_unicode(nil)).to eq(nil)
+    expect(Addressable::IDNA.to_unicode(45)).to eq(nil)
+    expect(Addressable::IDNA.to_unicode([])).to eq(nil)
+    expect(Addressable::IDNA.to_unicode({})).to eq(nil)
+  end
 end
 
 describe Addressable::IDNA, "when using the pure-Ruby implementation" do
-  before do
-    Addressable.send(:remove_const, :IDNA)
-    load "addressable/idna/pure.rb"
+  before :all do
+    require "addressable/idna/pure"
+    Addressable::IDNA.backend = Addressable::IDNA::Pure
   end
 
   it_should_behave_like "converting from unicode to ASCII"
   it_should_behave_like "converting from ASCII to unicode"
+
+  it "should implement IDNA2008 non transitional" do
+    expect(Addressable::IDNA.to_ascii("faß.de")).to eq("xn--fa-hia.de")
+  end
 
   begin
     require "fiber"
 
     it "should not blow up inside fibers" do
       f = Fiber.new do
-        Addressable.send(:remove_const, :IDNA)
+        Addressable::IDNA.send(:remove_const, :Pure)
         load "addressable/idna/pure.rb"
+        Addressable::IDNA.backend = Addressable::IDNA::Pure
       end
       f.resume
     end
@@ -283,20 +303,84 @@ describe Addressable::IDNA, "when using the pure-Ruby implementation" do
 end
 
 begin
-  require "idn"
+  require "addressable/idna/libidn1"
 
-  describe Addressable::IDNA, "when using the native-code implementation" do
-    before do
-      Addressable.send(:remove_const, :IDNA)
-      load "addressable/idna/native.rb"
+  describe Addressable::IDNA, "when using the libidn1 native implementation (idn gem)" do
+    before :all do
+      Addressable::IDNA.backend = Addressable::IDNA::Libidn1
     end
 
     it_should_behave_like "converting from unicode to ASCII"
     it_should_behave_like "converting from ASCII to unicode"
+
+    it "should implement IDNA2003" do
+      expect(Addressable::IDNA.to_ascii("faß.de")).to eq("fass.de")
+    end
+
+    context "with strict_mode = true" do
+      before { Addressable::IDNA.strict_mode = true }
+      after { Addressable::IDNA.strict_mode = false }
+
+      long = 'AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com'
+      it "should raise on label too long (>63)" do
+        expect {
+          Addressable::IDNA.to_ascii(long)
+        }.to raise_error(Addressable::IDNA::Error, /too large/)
+      end
+    end
   end
 rescue LoadError => error
   raise error if ENV["CI"] && TestHelper.native_supported?
 
-  # Cannot test the native implementation without libidn support.
-  warn('Could not load native IDN implementation.')
+  # Cannot test the native implementation without libidn installed.
+  warn('Could not load native libidn1 implementation.')
+end
+
+begin
+  require "addressable/idna/libidn2"
+
+  describe Addressable::IDNA, "when using the libidn2 native implementation (ffi)" do
+    before :all do
+      Addressable::IDNA.backend = Addressable::IDNA::Libidn2
+    end
+
+    it_should_behave_like "converting from unicode to ASCII"
+    it_should_behave_like "converting from ASCII to unicode"
+
+    it "should implement IDNA2008 non transitional" do
+      expect(Addressable::IDNA.to_ascii("faß.de")).to eq("xn--fa-hia.de")
+    end
+
+    context "with strict_mode = true" do
+      before { Addressable::IDNA.strict_mode = true }
+      after { Addressable::IDNA.strict_mode = false }
+
+      long = 'AcinusFallumTrompetumNullunCreditumVisumEstAtCuadLongumEtCefallum.com'
+      it "should raise on label too long (>63)" do
+        expect {
+          Addressable::IDNA.to_unicode(long)
+        }.to raise_error(Addressable::IDNA::Error, /longer than 63 char/)
+        expect {
+          Addressable::IDNA.to_ascii(long)
+        }.to raise_error(Addressable::IDNA::Error, /longer than 63 char/)
+      end
+
+      it "should raise when punycode decode fails" do
+        expect {
+          Addressable::IDNA.to_unicode("xn--zckp1cyg1.sblo.jp")
+        }.to raise_error(Addressable::IDNA::Error, /invalid punycode/)
+      end
+
+      it "should raise when the ACE prefix has no suffix" do
+        expect {
+          Addressable::IDNA.to_unicode("xn--...-")
+        }.to raise_error(Addressable::IDNA::Error, /invalid punycode/)
+      end
+    end
+  end
+rescue LoadError => error
+  raise error if ENV["CI"] && TestHelper.native_supported?
+
+  # Cannot test the native implementation without libidn2 installed.
+  warn('Could not load native libidn2 implementation.')
 end

@@ -17,8 +17,8 @@
 #++
 
 
-module Addressable
-  module IDNA
+module Addressable::IDNA
+  module Pure
     # This module is loosely based on idn_actionmailer by Mick Staugaard,
     # the unicode library by Yoshida Masato, and the punycode implementation
     # by Kazuhiro Nishiyama.  Most of the code was copied verbatim, but
@@ -202,13 +202,6 @@ module Addressable
       "PQRSTUVWXYZ[\\]^_" +
       "`abcdefghijklmno" +
       "pqrstuvwxyz{|}~\n"
-
-    # Input is invalid.
-    class PunycodeBadInput < StandardError; end
-    # Output would exceed the space provided.
-    class PunycodeBigOutput < StandardError; end
-    # Input needs wider integers to process.
-    class PunycodeOverflow < StandardError; end
 
     def self.punycode_encode(unicode)
       unicode = unicode.to_s unless unicode.is_a?(String)

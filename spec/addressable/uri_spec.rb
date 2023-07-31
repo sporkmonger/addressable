@@ -5235,6 +5235,118 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+describe Addressable::URI, "when parsed from invalid IDNA hostname " +
+    "'http://xn---3a.com/'" do
+  before do
+    @uri = Addressable::URI.parse("http://xn---3a.com/")
+  end
+
+  begin
+    require "addressable/idna/libidn2"
+    context "with libidn2" do
+      before { Addressable::IDNA.backend = Addressable::IDNA::Libidn2 }
+
+      context "when strict_mode is true" do
+        before { Addressable::IDNA.strict_mode = true }
+        after { Addressable::IDNA.strict_mode = false }
+
+        it "display_uri should raise a wrapped InvalidURL error" do
+          expect { @uri.display_uri.to_s
+          }.to raise_error(Addressable::URI::InvalidURIError, /invalid punycode/) { |e|
+            expect(e.cause).to be_a(Addressable::IDNA::Error)
+          }
+        end
+
+        it "normalized_host should raise a wrapped InvalidURL error" do
+          expect { @uri.normalized_host
+          }.to raise_error(Addressable::URI::InvalidURIError, /invalid punycode/) { |e|
+            expect(e.cause).to be_a(Addressable::IDNA::Error)
+          }
+        end
+      end
+
+      it "display_uri should be kept as http://xn---3a.com/" do
+        expect(@uri.display_uri.to_s).to eq("http://xn---3a.com/")
+      end
+
+      it "normalized_host should be kept as http://xn---3a.com/" do
+        expect(@uri.normalized_host).to eq("xn---3a.com")
+      end
+    end
+  rescue LoadError => error
+    raise error if ENV["CI"] && TestHelper.native_supported?
+    warn('Could not load native libidn2 implementation.')
+  end
+
+  begin
+    require "addressable/idna/libidn1"
+    context "with libidn1" do
+      before { Addressable::IDNA.backend = Addressable::IDNA::Libidn1 }
+
+      context "when strict_mode is true" do
+        before { Addressable::IDNA.strict_mode = true }
+        after { Addressable::IDNA.strict_mode = false }
+
+        # libidn1 silently falls back in this case
+        it "display_uri should be kept as http://xn---3a.com/" do
+          expect(@uri.display_uri.to_s).to eq("http://xn---3a.com/")
+        end
+
+        it "normalized_host should be kept as http://xn---3a.com/" do
+          expect(@uri.normalized_host).to eq("xn---3a.com")
+        end
+      end
+
+      it "display_uri should be kept as http://xn---3a.com/" do
+        expect(@uri.display_uri.to_s).to eq("http://xn---3a.com/")
+      end
+
+      it "normalized_host should be kept as http://xn---3a.com/" do
+        expect(@uri.normalized_host).to eq("xn---3a.com")
+      end
+    end
+  rescue LoadError => error
+    raise error if ENV["CI"] && TestHelper.native_supported?
+    warn('Could not load native libidn2 implementation.')
+  end
+
+  require "addressable/idna/pure"
+  context "with pure-ruby IDNA implementation" do
+    before { Addressable::IDNA.backend = Addressable::IDNA::Pure }
+
+    context "when strict_mode is true" do
+      before { Addressable::IDNA.strict_mode = true }
+      after { Addressable::IDNA.strict_mode = false }
+
+      # libidn1 silently falls back in this case
+      it "display_uri should be kept as http://xn---3a.com/" do
+        pending "incorrect result"
+        expect { @uri.display_uri.to_s
+        }.to raise_error(Addressable::URI::InvalidURIError, /invalid punycode/) { |e|
+          expect(e.cause).to be_a(Addressable::IDNA::Error)
+        }
+      end
+
+      it "normalized_host should be kept as http://xn---3a.com/" do
+        pending "incorrect result"
+        expect { @uri.normalized_host
+        }.to raise_error(Addressable::URI::InvalidURIError, /invalid punycode/) { |e|
+          expect(e.cause).to be_a(Addressable::IDNA::Error)
+        }
+      end
+    end
+
+    it "display_uri should be kept as http://xn---3a.com/" do
+      pending "incorrect result"
+      expect(@uri.display_uri.to_s).to eq("http://xn---3a.com/")
+    end
+
+    it "normalized_host should be kept as http://xn---3a.com/" do
+      expect(@uri.normalized_host).to eq("xn---3a.com")
+    end
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://www.詹姆斯.com/atomtests/iri/詹.html'" do
   before do
