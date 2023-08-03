@@ -20,12 +20,17 @@ additionally provides extensive support for IRIs and URI templates.
 TEXT
 
 PKG_FILES = FileList[
-    "lib/**/*", "spec/**/*", "vendor/**/*", "data/**/*",
-    "tasks/**/*",
-    "[A-Z]*", "Rakefile"
-].exclude(/pkg/).exclude(/database\.yml/).
-  exclude(/Gemfile\.lock/).exclude(/[_\.]git$/).
-  exclude(/coverage/)
+    "data/**/*",
+    "lib/**/*.rb",
+    "spec/**/*.rb",
+    "tasks/**/*.rake",
+    "addressable.gemspec",
+    "CHANGELOG.md",
+    "Gemfile",
+    "LICENSE.txt",
+    "README.md",
+    "Rakefile",
+]
 
 task :default => "spec"
 
