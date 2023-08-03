@@ -1,3 +1,12 @@
+# Addressable 2.8.5
+- Fix thread safety issue with encoding tables ([#515])
+- Define URI::NONE as a module to avoid serialization issues ([#509])
+- Fix YAML serialization ([#508])
+
+[#508]: https://github.com/sporkmonger/addressable/pull/508
+[#509]: https://github.com/sporkmonger/addressable/pull/509
+[#515]: https://github.com/sporkmonger/addressable/pull/515
+
 # Addressable 2.8.4
 - Restore `Addressable::IDNA.unicode_normalize_kc` as a deprecated method ([#504])
 
