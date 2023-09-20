@@ -31,12 +31,7 @@ namespace :gem do
     s.homepage = "https://github.com/sporkmonger/addressable"
     s.license = "Apache-2.0"
     s.metadata = {
-      # We want url like below. If we have version 3.11.0 and 3.1.10. When only
-      # one exist it would have id addressable-3110, when the secund tag also
-      # exist it would create addressable-3110 and addressable-3110_1. In this
-      # case we would might get incorrect anchors
-      # https://github.com/sporkmonger/addressable/blob/main/CHANGELOG.md#addressable-285
-      "changelog_uri" => "https://github.com/sporkmonger/addressable/blob/main/CHANGELOG.md#addressable-#{PKG_VERSION::delete(".")}"
+      "changelog_uri" => "https://github.com/sporkmonger/addressable/blob/main/CHANGELOG.md#v#{PKG_VERSION}"
     }
   end
 
