@@ -31,7 +31,7 @@ namespace :gem do
     s.homepage = "https://github.com/sporkmonger/addressable"
     s.license = "Apache-2.0"
     s.metadata = {
-      "changelog_uri" => "https://github.com/sporkmonger/addressable/blob/main/CHANGELOG.md"
+      "changelog_uri" => "https://github.com/sporkmonger/addressable/blob/main/CHANGELOG.md#v#{PKG_VERSION}"
     }
   end
 
