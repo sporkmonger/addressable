@@ -50,6 +50,7 @@ module Addressable
       SUB_DELIMS = "\\!\\$\\&\\'\\(\\)\\*\\+\\,\\;\\="
       RESERVED = (GEN_DELIMS + SUB_DELIMS).freeze
       UNRESERVED = (ALPHA + DIGIT + "\\-\\.\\_\\~").freeze
+      RESERVED_AND_UNRESERVED = RESERVED + UNRESERVED
       PCHAR = (UNRESERVED + SUB_DELIMS + "\\:\\@").freeze
       SCHEME = (ALPHA + DIGIT + "\\-\\+\\.").freeze
       HOST = (UNRESERVED + SUB_DELIMS + "\\[\\:\\]").freeze
@@ -66,6 +67,18 @@ module Addressable
       SCHEME = /[^#{CharacterClasses::SCHEME}]/
       FRAGMENT = /[^#{CharacterClasses::FRAGMENT}]/
       QUERY = %r{[^a-zA-Z0-9\-\.\_\~\!\$\'\(\)\*\+\,\=\:\@\/\?%]|%(?!2B|2b)}
+    end
+
+    module CharacterClassesRegexps
+      AUTHORITY = /[^#{CharacterClasses::AUTHORITY}]/
+      FRAGMENT = /[^#{CharacterClasses::FRAGMENT}]/
+      HOST = /[^#{CharacterClasses::HOST}]/
+      PATH = /[^#{CharacterClasses::PATH}]/
+      QUERY = /[^#{CharacterClasses::QUERY}]/
+      RESERVED = /[^#{CharacterClasses::RESERVED}]/
+      RESERVED_AND_UNRESERVED = /[^#{CharacterClasses::RESERVED_AND_UNRESERVED}]/
+      SCHEME = /[^#{CharacterClasses::SCHEME}]/
+      UNRESERVED = /[^#{CharacterClasses::UNRESERVED}]/
     end
 
     SLASH = '/'
@@ -387,9 +400,7 @@ module Addressable
     #     "simple/example", Addressable::URI::CharacterClasses::UNRESERVED
     #   )
     #   => "simple%2Fexample"
-    def self.encode_component(component, character_class=
-        CharacterClasses::RESERVED + CharacterClasses::UNRESERVED,
-        upcase_encoded='')
+    def self.encode_component(component, character_class=CharacterClassesRegexps::RESERVED_AND_UNRESERVED, upcase_encoded='')
       return nil if component.nil?
 
       begin
@@ -539,7 +550,7 @@ module Addressable
     #   )
     #   => "one two%2Fthree&four"
     def self.normalize_component(component, character_class=
-        CharacterClasses::RESERVED + CharacterClasses::UNRESERVED,
+        CharacterClassesRegexps::RESERVED_AND_UNRESERVED,
         leave_encoded='')
       return nil if component.nil?
 
@@ -619,15 +630,15 @@ module Addressable
       uri_object = uri.kind_of?(self) ? uri : self.parse(uri)
       encoded_uri = Addressable::URI.new(
         :scheme => self.encode_component(uri_object.scheme,
-          Addressable::URI::CharacterClasses::SCHEME),
+          Addressable::URI::CharacterClassesRegexps::SCHEME),
         :authority => self.encode_component(uri_object.authority,
-          Addressable::URI::CharacterClasses::AUTHORITY),
+          Addressable::URI::CharacterClassesRegexps::AUTHORITY),
         :path => self.encode_component(uri_object.path,
-          Addressable::URI::CharacterClasses::PATH),
+          Addressable::URI::CharacterClassesRegexps::PATH),
         :query => self.encode_component(uri_object.query,
-          Addressable::URI::CharacterClasses::QUERY),
+          Addressable::URI::CharacterClassesRegexps::QUERY),
         :fragment => self.encode_component(uri_object.fragment,
-          Addressable::URI::CharacterClasses::FRAGMENT)
+          Addressable::URI::CharacterClassesRegexps::FRAGMENT)
       )
       if return_type == String
         return encoded_uri.to_s
@@ -692,19 +703,19 @@ module Addressable
       end
       encoded_uri = Addressable::URI.new(
         :scheme => self.encode_component(components[:scheme],
-          Addressable::URI::CharacterClasses::SCHEME),
+          Addressable::URI::CharacterClassesRegexps::SCHEME),
         :user => self.encode_component(components[:user],
-          Addressable::URI::CharacterClasses::UNRESERVED),
+          Addressable::URI::CharacterClassesRegexps::UNRESERVED),
         :password => self.encode_component(components[:password],
-          Addressable::URI::CharacterClasses::UNRESERVED),
+          Addressable::URI::CharacterClassesRegexps::UNRESERVED),
         :host => components[:host],
         :port => components[:port],
         :path => self.encode_component(components[:path],
-          Addressable::URI::CharacterClasses::PATH),
+          Addressable::URI::CharacterClassesRegexps::PATH),
         :query => self.encode_component(components[:query],
-          Addressable::URI::CharacterClasses::QUERY),
+          Addressable::URI::CharacterClassesRegexps::QUERY),
         :fragment => self.encode_component(components[:fragment],
-          Addressable::URI::CharacterClasses::FRAGMENT)
+          Addressable::URI::CharacterClassesRegexps::FRAGMENT)
       )
       if return_type == String
         return encoded_uri.to_s
@@ -755,11 +766,11 @@ module Addressable
         [
           self.encode_component(
             key.gsub(/(\r\n|\n|\r)/, "\r\n"),
-            CharacterClasses::UNRESERVED
+            CharacterClassesRegexps::UNRESERVED
           ).gsub("%20", "+"),
           self.encode_component(
             value.gsub(/(\r\n|\n|\r)/, "\r\n"),
-            CharacterClasses::UNRESERVED
+            CharacterClassesRegexps::UNRESERVED
           ).gsub("%20", "+")
         ]
       end
@@ -1734,20 +1745,20 @@ module Addressable
       buffer = "".dup
       new_query_values.each do |key, value|
         encoded_key = URI.encode_component(
-          key, CharacterClasses::UNRESERVED
+          key, CharacterClassesRegexps::UNRESERVED
         )
         if value == nil
           buffer << "#{encoded_key}&"
         elsif value.kind_of?(Array)
           value.each do |sub_value|
             encoded_value = URI.encode_component(
-              sub_value, CharacterClasses::UNRESERVED
+              sub_value, CharacterClassesRegexps::UNRESERVED
             )
             buffer << "#{encoded_key}=#{encoded_value}&"
           end
         else
           encoded_value = URI.encode_component(
-            value, CharacterClasses::UNRESERVED
+            value, CharacterClassesRegexps::UNRESERVED
           )
           buffer << "#{encoded_key}=#{encoded_value}&"
         end
