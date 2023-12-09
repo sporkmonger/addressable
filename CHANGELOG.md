@@ -1,3 +1,8 @@
+# Addressable 2.8.6 <a name="v2.8.6">
+- Memoize regexps for common character classes ([#524])
+
+[#524]: https://github.com/sporkmonger/addressable/pull/524
+
 # Addressable 2.8.5 <a name="v2.8.5">
 - Fix thread safety issue with encoding tables ([#515])
 - Define URI::NONE as a module to avoid serialization issues ([#509])
