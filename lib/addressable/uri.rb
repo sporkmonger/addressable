@@ -1539,7 +1539,7 @@ module Addressable
           # Relative paths with colons in the first segment are ambiguous.
           path = path.sub(":", "%2F")
         end
-        # String#split(delimeter, -1) uses the more strict splitting behavior
+        # String#split(delimiter, -1) uses the more strict splitting behavior
         # found by default in Python.
         result = path.strip.split(SLASH, -1).map do |segment|
           Addressable::URI.normalize_component(
