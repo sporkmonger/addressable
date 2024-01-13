@@ -157,7 +157,7 @@ module Addressable
       #   the ::MatchData#[] behavior.
       #
       # @param [#to_int, nil] len
-      #   If provided, an array of values will be returend with the given
+      #   If provided, an array of values will be returned with the given
       #   parameter used as length.
       #
       # @return [Array, String, nil]
