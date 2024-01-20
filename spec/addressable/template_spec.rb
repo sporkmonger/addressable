@@ -102,6 +102,12 @@ describe "Type conversion" do
   }
 end
 
+describe "Substituting from an optional block" do
+  sub = lambda { |x| "foo-#{x}" }
+
+  Addressable::Template.new("{bar}/{baz}").expand(sub).to_str.should == "foo-bar/foo-baz"
+end
+
 describe "Level 1:" do
   subject {
     {:var => "value", :hello => "Hello World!"}
