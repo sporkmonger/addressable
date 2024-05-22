@@ -5,6 +5,7 @@ source 'https://rubygems.org'
 gemspec
 
 group :test do
+  gem 'bigdecimal' if RUBY_VERSION > '2.4'
   gem 'rspec', '~> 3.8'
   gem 'rspec-its', '~> 1.3'
 end
