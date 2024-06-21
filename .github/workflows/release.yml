@@ -25,8 +25,8 @@ jobs:
 
       - uses: rubygems/configure-rubygems-credentials@v1.0.0
 
-      # build gem
-      - run: bundle exec rake gem:release
+      # ensure gem can be built and installed
+      - run: bundle exec rake gem:install
 
       # push gem to rubygems.org
       - run: gem push --verbose pkg/addressable-${VERSION}.gem
