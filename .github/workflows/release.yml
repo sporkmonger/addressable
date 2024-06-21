@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - addressable-*
+
+jobs:
+  release:
+    if: github.repository == 'sporkmonger/addressable'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # for trusted publishing
+    steps:
+      # tags are named addressable-VERSION, e.g. addressable-2.8.6
+      - name: Set VERSION from git tag
+        run: echo "VERSION=$(echo ${{ github.ref }} | cut -d - -f 2)" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+          ruby-version: ruby
+
+      - uses: rubygems/configure-rubygems-credentials@v1.0.0
+
+      # build gem
+      - run: bundle exec rake gem:release
+
+      # push gem to rubygems.org
+      - run: gem push --verbose pkg/addressable-${VERSION}.gem
