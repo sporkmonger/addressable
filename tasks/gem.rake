@@ -56,7 +56,7 @@ namespace :gem do
 
   desc "Install the gem"
   task :install => ["clobber", "gem:package"] do
-    sh "#{SUDO} gem install --local pkg/#{GEM_SPEC.full_name}"
+    sh "gem install --local ./pkg/#{GEM_SPEC.full_name}.gem"
   end
 
   desc "Uninstall the gem"
@@ -65,7 +65,7 @@ namespace :gem do
     if installed_list &&
         (installed_list.collect { |s| s.version.to_s}.include?(PKG_VERSION))
       sh(
-        "#{SUDO} gem uninstall --version '#{PKG_VERSION}' " +
+        "gem uninstall --version '#{PKG_VERSION}' " +
         "--ignore-dependencies --executables #{PKG_NAME}"
       )
     end
