@@ -8,13 +8,17 @@ on:
 jobs:
   release:
     if: github.repository == 'sporkmonger/addressable'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       id-token: write # for trusted publishing
     steps:
       # tags are named addressable-VERSION, e.g. addressable-2.8.6
       - name: Set VERSION from git tag
         run: echo "VERSION=$(echo ${{ github.ref }} | cut -d - -f 2)" >> "$GITHUB_ENV"
+
+      - name: Install libidn
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo apt-get install libidn11-dev
 
       - uses: actions/checkout@v4
 
