@@ -1,3 +1,8 @@
+# Addressable 2.8.7 <a name="v2.8.7">
+- Allow `public_suffix` 6 ([#535])
+
+[#535]: https://github.com/sporkmonger/addressable/pull/535
+
 # Addressable 2.8.6 <a name="v2.8.6">
 - Memoize regexps for common character classes ([#524])
 
