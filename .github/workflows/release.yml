@@ -8,7 +8,7 @@ on:
 jobs:
   release:
     if: github.repository == 'sporkmonger/addressable'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     permissions:
       id-token: write # for trusted publishing
     steps:
