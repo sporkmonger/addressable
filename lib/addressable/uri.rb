@@ -2382,7 +2382,7 @@ module Addressable
     #
     # @return [String] The URI object's state, as a <code>String</code>.
     def inspect
-      sprintf("#<%s:%#0x URI:%s>", URI.to_s, self.object_id, self.to_s)
+      sprintf("#<%s:%#0x URI:%s>", self.class.to_s, self.object_id, self.to_s)
     end
 
     ##

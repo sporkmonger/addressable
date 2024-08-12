@@ -1757,6 +1757,19 @@ describe Addressable::URI, "when parsed from " +
     expect(@uri.inspect).to include("%#0x" % @uri.object_id)
   end
 
+  context "when Addressable::URI has been sub-classed" do
+    class CustomURIClass < Addressable::URI
+    end
+
+    before do
+      @uri = CustomURIClass.parse("http://example.com")
+    end
+
+    it "when inspected, should have the sub-classes name" do
+      expect(@uri.inspect).to include("CustomURIClass")
+    end
+  end
+
   it "should use the 'http' scheme" do
     expect(@uri.scheme).to eq("http")
   end
