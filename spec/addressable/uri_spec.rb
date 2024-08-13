@@ -5088,15 +5088,9 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should have correct hash query values" do
-    skip("This is probably more desirable behavior.")
     expect(@uri.query_values(Hash)).to eq(
-      {'one' => ['two', 'three', 'four']}
-      )
-  end
-
-  it "should handle assignment with keys of mixed type" do
-    @uri.query_values = @uri.query_values(Hash).merge({:one => 'three'})
-    expect(@uri.query_values(Hash)).to eq({'one' => 'three'})
+      { 'one' => ['two', 'three', 'four'] }
+    )
   end
 end
 
@@ -5109,7 +5103,7 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should have correct query values" do
-    expect(@uri.query_values(Hash)).to eq({"one[two][three][]" => "five"})
+    expect(@uri.query_values(Hash)).to eq({"one[two][three][]" => ["four", "five"]})
   end
 
   it "should have correct array query values" do

@@ -1693,7 +1693,7 @@ module Addressable
           pair[1] = URI.unencode_component(value)
         end
         if return_type == Hash
-          accu[pair[0]] = pair[1]
+          accu[pair[0]] = accu.key?(pair[0]) ? [accu[pair[0]], pair[1]].flatten : pair[1]
         else
           accu << pair
         end
