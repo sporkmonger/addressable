@@ -107,7 +107,6 @@ jobs:
           # Ubuntu
           - { os: ubuntu-22.04, ruby: 3.1 }
           # macOS
-          - { os: macos-11,     ruby: 3.1 }
           - { os: macos-12,     ruby: 3.1 }
           # Windows
           - { os: windows-2019, ruby: 3.1 }
