@@ -17,7 +17,7 @@
 [coveralls]: https://coveralls.io/r/sporkmonger/addressable
 [inch]: https://inch-ci.org/github/sporkmonger/addressable
 
-# Description
+## Description
 
 Addressable is an alternative implementation to the URI implementation
 that is part of Ruby's standard library. It is flexible, offers heuristic
@@ -25,12 +25,12 @@ parsing, and additionally provides extensive support for IRIs and URI templates.
 
 Addressable closely conforms to RFC 3986, RFC 3987, and RFC 6570 (level 4).
 
-# Reference
+## Reference
 
 - {Addressable::URI}
 - {Addressable::Template}
 
-# Example usage
+## Example usage
 
 ```ruby
 require "addressable/uri"
@@ -49,7 +49,7 @@ uri.normalize
 ```
 
 
-# URI Templates
+## URI Templates
 
 For more details, see [RFC 6570](https://www.rfc-editor.org/rfc/rfc6570.txt).
 
@@ -88,7 +88,7 @@ template.extract(uri)
 # }
 ```
 
-# Install
+## Install
 
 ```console
 $ gem install addressable
@@ -103,7 +103,7 @@ $ brew install libidn # OS X
 $ gem install idn-ruby
 ```
 
-# Semantic Versioning
+## Semantic Versioning
 
 This project uses [Semantic Versioning](https://semver.org/). You can (and should) specify your
 dependency using a pessimistic version constraint covering the major and minor
