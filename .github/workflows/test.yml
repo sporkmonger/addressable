@@ -18,7 +18,7 @@ jobs:
     env:
       IDNA_MODE: ${{ matrix.idna_mode }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
@@ -54,7 +54,7 @@ jobs:
       COVERALLS_DEBUG: true
       CI_BUILD_NUMBER: ${{ github.run_id }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
@@ -122,7 +122,7 @@ jobs:
       # https://github.com/jruby/jruby/issues/7182#issuecomment-1112953015
       JAVA_OPTS: -Djdk.io.File.enableADS=true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install libidn (Ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
