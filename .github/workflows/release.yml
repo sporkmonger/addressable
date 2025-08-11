@@ -19,7 +19,7 @@ jobs:
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: ruby/setup-ruby@v1
         with:
