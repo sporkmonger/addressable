@@ -106,7 +106,9 @@ jobs:
           # Ubuntu
           - { os: ubuntu-22.04, ruby: 3.1 }
           # macOS
-          - { os: macos-13,     ruby: 3.1 }
+          - { os: macos-14, ruby: 3.1 } # arm64
+          - { os: macos-15, ruby: 3.1 } # arm64
+          - { os: macos-15-intel, ruby: 3.1 } # EoL August 2027 (https://github.com/actions/runner-images/issues/13046)
           # Windows
           - { os: windows-2022, ruby: 3.1 }
           - { os: windows-2022, ruby: jruby-9.3 }
