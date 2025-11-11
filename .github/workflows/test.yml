@@ -14,7 +14,7 @@ jobs:
       matrix:
         ruby: [2.7]
         idna_mode: [native, pure]
-        os: [ubuntu-22.04]
+        os: [ubuntu-latest]
     env:
       IDNA_MODE: ${{ matrix.idna_mode }}
     steps:
@@ -46,7 +46,7 @@ jobs:
       fail-fast: false
       matrix:
         ruby: [2.7]
-        os: [ubuntu-22.04]
+        os: [ubuntu-latest]
     env:
       BUNDLE_WITHOUT: development
       COVERALLS_SERVICE_NAME: github
@@ -96,13 +96,13 @@ jobs:
           - truffleruby-22.2
           - truffleruby-22.3
         os:
-          - ubuntu-22.04
+          - ubuntu-24.04
         gemfile:
           - Gemfile
         include:
-          - { os: ubuntu-22.04, ruby: 2.7, gemfile: gemfiles/public_suffix_2.rb }
-          - { os: ubuntu-22.04, ruby: 2.7, gemfile: gemfiles/public_suffix_3.rb }
-          - { os: ubuntu-22.04, ruby: 2.7, gemfile: gemfiles/public_suffix_4.rb }
+          - { os: ubuntu-24.04, ruby: 2.7, gemfile: gemfiles/public_suffix_2.rb }
+          - { os: ubuntu-24.04, ruby: 2.7, gemfile: gemfiles/public_suffix_3.rb }
+          - { os: ubuntu-24.04, ruby: 2.7, gemfile: gemfiles/public_suffix_4.rb }
           # Ubuntu
           - { os: ubuntu-22.04, ruby: 3.1 }
           # macOS
@@ -113,9 +113,9 @@ jobs:
           - { os: windows-2022, ruby: 3.1 }
           - { os: windows-2022, ruby: jruby-9.3 }
           # allowed to fail
-          - { os: ubuntu-22.04, ruby: head, gemfile: Gemfile, allow-failure: true }
-          - { os: ubuntu-22.04, ruby: jruby-head, gemfile: Gemfile, allow-failure: true }
-          - { os: ubuntu-22.04, ruby: truffleruby-head, gemfile: Gemfile, allow-failure: true }
+          - { os: ubuntu-24.04, ruby: head, gemfile: Gemfile, allow-failure: true }
+          - { os: ubuntu-24.04, ruby: jruby-head, gemfile: Gemfile, allow-failure: true }
+          - { os: ubuntu-24.04, ruby: truffleruby-head, gemfile: Gemfile, allow-failure: true }
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
       BUNDLE_WITHOUT: development:coverage
