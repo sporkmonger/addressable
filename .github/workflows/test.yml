@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: [2.7]
+        ruby: [ruby]
         idna_mode: [native, pure]
         os: [ubuntu-latest]
     env:
@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: [2.7]
+        ruby: [ruby]
         os: [ubuntu-latest]
     env:
       BUNDLE_WITHOUT: development
@@ -98,18 +98,18 @@ jobs:
         gemfile:
           - Gemfile
         include:
-          - { os: ubuntu-24.04, ruby: 2.7, gemfile: gemfiles/public_suffix_2.rb }
-          - { os: ubuntu-24.04, ruby: 2.7, gemfile: gemfiles/public_suffix_3.rb }
-          - { os: ubuntu-24.04, ruby: 2.7, gemfile: gemfiles/public_suffix_4.rb }
+          - { os: ubuntu-24.04, ruby: ruby, gemfile: gemfiles/public_suffix_2.rb }
+          - { os: ubuntu-24.04, ruby: ruby, gemfile: gemfiles/public_suffix_3.rb }
+          - { os: ubuntu-24.04, ruby: ruby, gemfile: gemfiles/public_suffix_4.rb }
           # Ubuntu
-          - { os: ubuntu-22.04, ruby: 3.1 }
+          - { os: ubuntu-22.04, ruby: ruby }
           # macOS
-          - { os: macos-14, ruby: 3.1 } # arm64
-          - { os: macos-15, ruby: 3.1 } # arm64
-          - { os: macos-15-intel, ruby: 3.1 } # EoL August 2027 (https://github.com/actions/runner-images/issues/13046)
+          - { os: macos-14, ruby: ruby } # arm64
+          - { os: macos-15, ruby: ruby } # arm64
+          - { os: macos-15-intel, ruby: ruby } # EoL August 2027 (https://github.com/actions/runner-images/issues/13046)
           # Windows
-          - { os: windows-2022, ruby: 3.1 }
-          - { os: windows-2022, ruby: jruby-10.0 }
+          - { os: windows-2022, ruby: ruby }
+          - { os: windows-2022, ruby: jruby }
           # allowed to fail
           - { os: ubuntu-24.04, ruby: head, gemfile: Gemfile, allow-failure: true }
           - { os: ubuntu-24.04, ruby: jruby-head, gemfile: Gemfile, allow-failure: true }
