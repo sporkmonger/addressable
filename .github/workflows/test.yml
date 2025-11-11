@@ -89,12 +89,10 @@ jobs:
           - 3.2
           - 3.3
           - 3.4
-          - jruby-9.1
-          - jruby-9.2
-          - jruby-9.3
           - jruby-9.4
-          - truffleruby-22.2
-          - truffleruby-22.3
+          - jruby-10.0
+          - truffleruby-24
+          - truffleruby-25
         os:
           - ubuntu-24.04
         gemfile:
@@ -111,7 +109,7 @@ jobs:
           - { os: macos-15-intel, ruby: 3.1 } # EoL August 2027 (https://github.com/actions/runner-images/issues/13046)
           # Windows
           - { os: windows-2022, ruby: 3.1 }
-          - { os: windows-2022, ruby: jruby-9.3 }
+          - { os: windows-2022, ruby: jruby-10.0 }
           # allowed to fail
           - { os: ubuntu-24.04, ruby: head, gemfile: Gemfile, allow-failure: true }
           - { os: ubuntu-24.04, ruby: jruby-head, gemfile: Gemfile, allow-failure: true }
