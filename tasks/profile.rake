@@ -20,7 +20,7 @@ namespace :profile do
     puts "\n\n"
 
     if ENV["CI"]
-      report.pretty_print(print_options)
+      report.pretty_print(**print_options)
     else
       t_allocated = report.scale_bytes(report.total_allocated_memsize)
       t_retained  = report.scale_bytes(report.total_retained_memsize)
