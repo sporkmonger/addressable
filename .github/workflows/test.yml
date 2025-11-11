@@ -98,9 +98,10 @@ jobs:
         gemfile:
           - Gemfile
         include:
-          - { os: ubuntu-24.04, ruby: ruby, gemfile: gemfiles/public_suffix_2.rb }
-          - { os: ubuntu-24.04, ruby: ruby, gemfile: gemfiles/public_suffix_3.rb }
-          - { os: ubuntu-24.04, ruby: ruby, gemfile: gemfiles/public_suffix_4.rb }
+          - { os: ubuntu-24.04, ruby: 2.7, gemfile: gemfiles/public_suffix_2.rb }
+          - { os: ubuntu-24.04, ruby: 2.7, gemfile: gemfiles/public_suffix_3.rb }
+          - { os: ubuntu-24.04, ruby: 2.7, gemfile: gemfiles/public_suffix_4.rb }
+          - { os: ubuntu-24.04, ruby: 3.1, gemfile: gemfiles/public_suffix_5.rb }
           # Ubuntu
           - { os: ubuntu-22.04, ruby: ruby }
           # macOS
