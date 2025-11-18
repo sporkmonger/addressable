@@ -23,6 +23,6 @@ Gem::Specification.new do |s|
 
   s.specification_version = 4
 
-  s.add_runtime_dependency(%q<public_suffix>.freeze, [">= 2.0.2".freeze, "< 7.0".freeze])
+  s.add_runtime_dependency(%q<public_suffix>.freeze, [">= 2.0.2".freeze, "< 8.0".freeze])
   s.add_development_dependency(%q<bundler>.freeze, [">= 1.0".freeze, "< 3.0".freeze])
 end
