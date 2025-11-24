@@ -1,5 +1,12 @@
 # Changelog
 
+## Addressable 2.8.8 <a name="v2.8.8">
+- Replace the `unicode.data` blob by a ruby constant ([#561])
+- Allow `public_suffix` 7 ([#558])
+
+[#561]: https://github.com/sporkmonger/addressable/pull/561
+[#535]: https://github.com/sporkmonger/addressable/pull/558
+
 ## Addressable 2.8.7 <a name="v2.8.7">
 - Allow `public_suffix` 6 ([#535])
 

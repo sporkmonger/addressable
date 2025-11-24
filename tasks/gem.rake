@@ -43,6 +43,11 @@ namespace :gem do
 
   desc "Generates .gemspec file"
   task :gemspec do
+    # ensure correct date in gemspec
+    # https://github.com/ruby/rubygems/pull/8568
+    # https://github.com/ruby/rubygems/issues/8679
+    ENV["SOURCE_DATE_EPOCH"] ||= Time.now.to_i.to_s
+
     spec_string = GEM_SPEC.to_ruby
     File.open("#{GEM_SPEC.name}.gemspec", "w") do |file|
       file.write spec_string
