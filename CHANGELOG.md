@@ -5,7 +5,7 @@
 - Allow `public_suffix` 7 ([#558])
 
 [#561]: https://github.com/sporkmonger/addressable/pull/561
-[#535]: https://github.com/sporkmonger/addressable/pull/558
+[#558]: https://github.com/sporkmonger/addressable/pull/558
 
 ## Addressable 2.8.7 <a name="v2.8.7">
 - Allow `public_suffix` 6 ([#535])
