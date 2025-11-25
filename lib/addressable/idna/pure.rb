@@ -4384,16 +4384,6 @@ module Addressable
       65518 => [0, 0, nil, "○", nil, nil, nil],
     }
 
-    COMPOSITION_TABLE = {}
-    UNICODE_DATA.each do |codepoint, data|
-      canonical = data[UNICODE_DATA_CANONICAL]
-      exclusion = data[UNICODE_DATA_EXCLUSION]
-
-      if canonical && exclusion == 0
-        COMPOSITION_TABLE[canonical.unpack("C*")] = codepoint
-      end
-    end
-
     UNICODE_MAX_LENGTH = 256
     ACE_MAX_LENGTH = 256
 
