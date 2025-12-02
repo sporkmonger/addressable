@@ -7,6 +7,26 @@ env:
 
 # jobs defined in the order we want them listed in the Actions UI
 jobs:
+  gemspec:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install libidn
+        run: sudo apt-get install libidn11-dev
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+          ruby-version: ruby
+
+       - name: Generate .gemspec
+         run: bundle exec rake gem:gemspec
+
+       - name: Ensure no changes
+         run: git diff --quiet
   profile:
     runs-on: ${{ matrix.os }}
     strategy:
