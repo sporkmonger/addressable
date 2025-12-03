@@ -24,7 +24,8 @@ jobs:
         run: bundle exec rake gem:gemspec
 
       - name: Ensure no changes
-        run: git diff --quiet
+        run: |
+          git diff --quiet --ignore-matching-lines='s.rubygems_version =' --ignore-matching-lines='s.date ='
 
   profile:
     runs-on: ${{ matrix.os }}
