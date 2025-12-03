@@ -20,11 +20,11 @@ jobs:
           bundler-cache: true
           ruby-version: ruby
 
-       - name: Generate .gemspec
-         run: bundle exec rake gem:gemspec
+      - name: Generate .gemspec
+        run: bundle exec rake gem:gemspec
 
-       - name: Ensure no changes
-         run: git diff --quiet
+      - name: Ensure no changes
+        run: git diff --quiet
 
   profile:
     runs-on: ${{ matrix.os }}
