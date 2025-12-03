@@ -9,8 +9,6 @@ env:
 jobs:
   gemspec:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
     steps:
       - uses: actions/checkout@v6
 
@@ -27,6 +25,7 @@ jobs:
 
        - name: Ensure no changes
          run: git diff --quiet
+
   profile:
     runs-on: ${{ matrix.os }}
     strategy:
