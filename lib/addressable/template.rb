@@ -922,6 +922,7 @@ module Addressable
     # @return [Hash]
     #   A hash with stringified keys
     def normalize_keys(mapping)
+      return mapping unless mapping.respond_to?(:inject)
       return mapping.inject({}) do |accu, pair|
         name, value = pair
         if Symbol === name
