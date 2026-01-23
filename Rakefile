@@ -24,7 +24,7 @@ PKG_FILES = FileList[
     "lib/**/*.rb",
     "CHANGELOG.md",
     "LICENSE.txt",
-    "README.md"
+    "README.md",
 ]
 
 task :default => "spec"
