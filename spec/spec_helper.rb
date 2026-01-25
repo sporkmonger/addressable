@@ -19,11 +19,20 @@ rescue LoadError
 end if Gem.loaded_specs.key?("simplecov")
 
 class TestHelper
-  def self.native_supported?
-    mri = RUBY_ENGINE == "ruby"
-    windows = RUBY_PLATFORM.include?("mingw")
+  def self.is_jruby?
+    Object.const_defined? :JRUBY_VERSION
+  end
 
-    mri && !windows
+  def self.is_mri?
+    RUBY_ENGINE == "ruby"
+  end
+
+  def self.is_windows?
+    RUBY_DESCRIPTION =~ /mswin|ming|cygwin/
+  end
+
+  def self.native_supported?
+    is_mri? && !is_windows?
   end
 end
 
