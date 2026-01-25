@@ -127,6 +127,7 @@ jobs:
           - { os: ubuntu-24.04, ruby: 2.7, gemfile: gemfiles/public_suffix_4.rb }
           - { os: ubuntu-24.04, ruby: 3.1, gemfile: gemfiles/public_suffix_5.rb }
           - { os: ubuntu-24.04, ruby: 3.1, gemfile: gemfiles/public_suffix_6.rb }
+          - { os: ubuntu-24.04, ruby: 3.4, gemfile: gemfiles/public_suffix_7.rb }
           # Ubuntu
           - { os: ubuntu-22.04, ruby: ruby }
           # macOS
