@@ -135,7 +135,7 @@ jobs:
           - { os: macos-15-intel, ruby: ruby } # EoL August 2027 (https://github.com/actions/runner-images/issues/13046)
           - { os: macos-26, ruby: ruby } # arm64
           # Windows
-          - { os: windows-latest, ruby: ruby, allow-failure: true }
+          - { os: windows-2022, ruby: ruby }
           - { os: windows-latest, ruby: jruby, allow-failure: true }
           # allowed to fail
           - { os: ubuntu-24.04, ruby: head, gemfile: Gemfile, allow-failure: true }
