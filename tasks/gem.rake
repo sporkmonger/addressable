@@ -14,15 +14,9 @@ namespace :gem do
     s.extra_rdoc_files = %w( README.md )
     s.rdoc_options.concat ["--main",  "README.md"]
 
-    if !s.respond_to?(:add_development_dependency)
-      puts "Cannot build Gem with this version of RubyGems."
-      exit(1)
-    end
-
     s.required_ruby_version = ">= 2.2"
 
     s.add_runtime_dependency "public_suffix", ">= 2.0.2", "< 8.0"
-    s.add_development_dependency "bundler", ">= 1.0", "< 3.0"
 
     s.require_path = "lib"
 

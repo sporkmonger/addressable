@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.metadata = { "changelog_uri" => "https://github.com/sporkmonger/addressable/blob/main/CHANGELOG.md#v2.8.8" } if s.respond_to? :metadata=
   s.require_paths = ["lib".freeze]
   s.authors = ["Bob Aman".freeze]
-  s.date = "2025-11-24"
+  s.date = "2026-01-25"
   s.description = "Addressable is an alternative implementation to the URI implementation that is\npart of Ruby's standard library. It is flexible, offers heuristic parsing, and\nadditionally provides extensive support for IRIs and URI templates.\n".freeze
   s.email = "bob@sporkmonger.com".freeze
   s.extra_rdoc_files = ["README.md".freeze]
@@ -18,11 +18,10 @@ Gem::Specification.new do |s|
   s.licenses = ["Apache-2.0".freeze]
   s.rdoc_options = ["--main".freeze, "README.md".freeze]
   s.required_ruby_version = Gem::Requirement.new(">= 2.2".freeze)
-  s.rubygems_version = "3.7.2".freeze
+  s.rubygems_version = "4.0.4".freeze
   s.summary = "URI Implementation".freeze
 
   s.specification_version = 4
 
   s.add_runtime_dependency(%q<public_suffix>.freeze, [">= 2.0.2".freeze, "< 8.0".freeze])
-  s.add_development_dependency(%q<bundler>.freeze, [">= 1.0".freeze, "< 3.0".freeze])
 end
