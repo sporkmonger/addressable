@@ -130,9 +130,9 @@ jobs:
           # Ubuntu
           - { os: ubuntu-22.04, ruby: ruby }
           # macOS
-          - { os: macos-14, ruby: ruby } # arm64
           - { os: macos-15, ruby: ruby } # arm64
           - { os: macos-15-intel, ruby: ruby } # EoL August 2027 (https://github.com/actions/runner-images/issues/13046)
+          - { os: macos-26, ruby: ruby } # arm64
           # Windows
           - { os: windows-latest, ruby: ruby, allow-failure: true }
           - { os: windows-latest, ruby: jruby, allow-failure: true }
