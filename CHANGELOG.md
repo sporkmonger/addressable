@@ -5,9 +5,8 @@
 - No need for bundler as development dependency ([#571], [5fc1d93](https://github.com/sporkmonger/addressable/commit/5fc1d93))
 - idna/pure: stop building the useless `COMPOSITION_TABLE` (removes the `Addressable::IDNA::COMPOSITION_TABLE` constant) ([#564])
 
-[#]: https://github.com/sporkmonger/addressable/pull/
-[#569]: https://github.com/sporkmonger/addressable/pull/
-[#571]: https://github.com/sporkmonger/addressable/pull/
+[#569]: https://github.com/sporkmonger/addressable/pull/569
+[#571]: https://github.com/sporkmonger/addressable/pull/571
 [#564]: https://github.com/sporkmonger/addressable/pull/564
 
 ## Addressable 2.8.8 <a name="v2.8.8">
