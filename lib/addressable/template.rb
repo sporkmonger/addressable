@@ -1014,7 +1014,7 @@ module Addressable
             end
             if modifier == '*'
               seg = case operator
-                    when '+', '#' then "#{RESERVED_NO_COMMA}*?"
+                    when '+', '#' then "#{RESERVED_NO_COMMA}*+"
                     else group
                     end
               "(?<#{name}>#{seg}(?:#{joiner}?#{seg})*)?"
