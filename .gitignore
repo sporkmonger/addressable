@@ -10,3 +10,4 @@ pkg
 specdoc
 tmp/
 vendor/
+.claude/settings.local.json
