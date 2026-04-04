@@ -1,5 +1,8 @@
 # Changelog
 
+## Addressable 2.8.10 <a name="v2.8.10">
+- fixes ReDoS vulnerability in Addressable::Template#match
+
 ## Addressable 2.8.9 <a name="v2.8.9">
 - Reduce gem size by excluding test files ([#569])
 - No need for bundler as development dependency ([#571], [5fc1d93](https://github.com/sporkmonger/addressable/commit/5fc1d93))

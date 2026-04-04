@@ -1003,6 +1003,16 @@ describe Addressable::Template do
           expect(subject.variables).to eq(["foo", "bar"])
         end
       end
+      context "+ operator with explode modifier" do
+        subject { Addressable::Template.new("{+foo*}") }
+        it "should match in linear time against a non-matching payload" do
+          expect do
+            Timeout.timeout(10) do
+              expect(subject.match(("a," * 1000) + " ")).to be_nil
+            end
+          end.not_to raise_error
+        end
+      end
       context ". operator" do
         subject { Addressable::Template.new("foo{.foo,bar}baz") }
         it "can match" do

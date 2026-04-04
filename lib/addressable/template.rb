@@ -39,6 +39,8 @@ module Addressable
       "(?>(?:[#{variable_char_class}]|%[a-fA-F0-9][a-fA-F0-9])+)"
     RESERVED =
       "(?:[#{anything}]|%[a-fA-F0-9][a-fA-F0-9])"
+    RESERVED_NO_COMMA =
+      "(?:[#{anything.delete(',')}]|%[a-fA-F0-9][a-fA-F0-9])"
     UNRESERVED =
       "(?:[#{
         Addressable::URI::CharacterClasses::UNRESERVED
@@ -1011,7 +1013,11 @@ module Addressable
               "#{ UNRESERVED }*?"
             end
             if modifier == '*'
-              "(?<#{name}>#{group}(?:#{joiner}?#{group})*)?"
+              seg = case operator
+                    when '+', '#' then "#{RESERVED_NO_COMMA}*?"
+                    else group
+                    end
+              "(?<#{name}>#{seg}(?:#{joiner}?#{seg})*)?"
             else
               "(?<#{name}>#{group})?"
             end
