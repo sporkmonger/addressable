@@ -2,6 +2,8 @@ name: CI
 
 on: [push, pull_request, workflow_dispatch]
 
+permissions: {}
+
 env:
   BUNDLE_JOBS: 4
 
@@ -10,6 +12,8 @@ jobs:
   gemspec:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -31,6 +35,8 @@ jobs:
   profile:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -65,6 +71,8 @@ jobs:
   coverage:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -97,6 +105,8 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
