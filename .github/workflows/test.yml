@@ -11,12 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
 
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@3ff19f5e2baf30647122352b96108b1fbe250c64 # v1.299.0
         with:
           bundler-cache: true
           ruby-version: ruby
@@ -40,13 +40,13 @@ jobs:
     env:
       IDNA_MODE: ${{ matrix.idna_mode }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
 
       - name: Setup ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@3ff19f5e2baf30647122352b96108b1fbe250c64 # v1.299.0
         with:
           bundler-cache: false
           ruby-version: ${{ matrix.ruby }}
@@ -77,13 +77,13 @@ jobs:
       COVERALLS_DEBUG: true
       CI_BUILD_NUMBER: ${{ github.run_id }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
 
       - name: Setup ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@3ff19f5e2baf30647122352b96108b1fbe250c64 # v1.299.0
         with:
           bundler-cache: false
           ruby-version: ${{ matrix.ruby }}
@@ -149,7 +149,7 @@ jobs:
       # https://github.com/jruby/jruby/issues/7182#issuecomment-1112953015
       JAVA_OPTS: -Djdk.io.File.enableADS=true
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install libidn (Ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
@@ -162,7 +162,7 @@ jobs:
       - name: Setup ruby
         continue-on-error: ${{ matrix.allow-failure || false }}
         id: setupruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@3ff19f5e2baf30647122352b96108b1fbe250c64 # v1.299.0
         with:
           bundler-cache: false
           ruby-version: ${{ matrix.ruby }}
