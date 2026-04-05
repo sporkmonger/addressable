@@ -18,14 +18,6 @@ jobs:
           GIT_REF: ${{ github.ref }}
         run: echo "VERSION=${GIT_REF##*addressable-}" >> "$GITHUB_ENV"
 
-      - name: Verify tag matches gemspec version
-        run: |
-          GEMSPEC_VERSION=$(ruby -e "puts Gem::Specification.load('addressable.gemspec').version")
-          if [ "$VERSION" != "$GEMSPEC_VERSION" ]; then
-            echo "ERROR: tag version ($VERSION) does not match gemspec version ($GEMSPEC_VERSION)"
-            exit 1
-          fi
-
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
 
@@ -35,6 +27,14 @@ jobs:
         with:
           bundler-cache: true
           ruby-version: ruby
+
+      - name: Verify tag matches gemspec version
+        run: |
+          GEMSPEC_VERSION=$(ruby -e "puts Gem::Specification.load('addressable.gemspec').version")
+          if [ "$VERSION" != "$GEMSPEC_VERSION" ]; then
+            echo "ERROR: tag version ($VERSION) does not match gemspec version ($GEMSPEC_VERSION)"
+            exit 1
+          fi
 
       - uses: rubygems/configure-rubygems-credentials@bc6dd217f8a4f919d6835fcfefd470ef821f5c44 # v1.0.0
 
