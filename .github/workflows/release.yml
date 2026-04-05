@@ -14,7 +14,9 @@ jobs:
     steps:
       # tags are named addressable-VERSION, e.g. addressable-2.8.6
       - name: Set VERSION from git tag
-        run: echo "VERSION=$(echo ${{ github.ref }} | cut -d - -f 2)" >> "$GITHUB_ENV"
+        env:
+          GIT_REF: ${{ github.ref }}
+        run: echo "VERSION=${GIT_REF##*addressable-}" >> "$GITHUB_ENV"
 
       - name: Verify tag matches gemspec version
         run: |
