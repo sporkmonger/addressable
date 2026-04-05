@@ -982,12 +982,22 @@ module Addressable
       # Create a regular expression that captures the values of the
       # variables in the URI.
       regexp_string = escaped_pattern.gsub( EXPRESSION ) do |expansion|
+        post_expansion = $'
 
         expansions << expansion
         _, operator, varlist = *expansion.match(EXPRESSION)
         leader = Regexp.escape(LEADERS.fetch(operator, ''))
         joiner = Regexp.escape(JOINERS.fetch(operator, ','))
         varspecs = varlist.split(',')
+        # For multi-variable +/# expressions with no explode modifier, use atomic
+        # joiners and remove outer optionality on non-last variables to prevent
+        # O(2^k) backtracking from the combination of optional variables and
+        # optional separators.
+        has_explode = varspecs.any? { |vs| vs.match(VARSPEC)&.captures&.last == '*' }
+        atomic_multi = varspecs.size > 1 &&
+                       (operator == '+' || operator == '#') &&
+                       !has_explode
+        joiner_sep = atomic_multi ? "(?>#{joiner}?)" : "#{joiner}?"
         combined = varspecs.map do |varspec|
           _, name, modifier = *varspec.match(VARSPEC)
 
@@ -1015,19 +1025,21 @@ module Addressable
             end
             if modifier == '*'
               seg = case operator
-                    when '+', '#' then "#{RESERVED_NO_COMMA}*+"
+                    when '+', '#' then "(?>#{RESERVED_NO_COMMA}*)"
                     else group
                     end
               joiner_pattern = operator.nil? ? joiner : "#{joiner}?"
               "(?<#{name}>#{seg}(?:#{joiner_pattern}#{seg})*)?"
-            elsif varspecs.size > 1 && (operator == '+' || operator == '#') &&
-                  varspec != varspecs.last
-              "(?<#{name}>#{RESERVED_NO_COMMA}*+)?"
+            elsif atomic_multi && varspec != varspecs.last
+              "(?<#{name}>(?>#{RESERVED_NO_COMMA}*))"
+            elsif operator == '+' && varspecs.size == 1 &&
+                  post_expansion.start_with?('{+')
+              "(?<#{name}>(?>#{RESERVED}*))?"
             else
               "(?<#{name}>#{group})?"
             end
           end
-        end.join("#{joiner}?")
+        end.join(joiner_sep)
         "(?:|#{leader}#{combined})"
       end
 
