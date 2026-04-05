@@ -1013,6 +1013,126 @@ describe Addressable::Template do
           end.not_to raise_error
         end
       end
+      context "# operator with explode modifier" do
+        subject { Addressable::Template.new("{#foo*}") }
+        it "should match in linear time against a non-matching payload" do
+          expect do
+            Timeout.timeout(10) do
+              expect(subject.match(("#" + "a," * 1000) + " ")).to be_nil
+            end
+          end.not_to raise_error
+        end
+      end
+      context "+ operator with explode modifier and surrounding literals" do
+        subject { Addressable::Template.new("x{+foo*}y") }
+        it "should match in linear time against a non-matching payload" do
+          expect do
+            Timeout.timeout(10) do
+              expect(subject.match("x" + ("a," * 1000) + " ")).to be_nil
+            end
+          end.not_to raise_error
+        end
+      end
+      context "+ operator with multiple explode-modified variables" do
+        subject { Addressable::Template.new("{+foo*,bar*}") }
+        it "should match in linear time against a non-matching payload" do
+          expect do
+            Timeout.timeout(10) do
+              expect(subject.match(("a," * 1000) + " ")).to be_nil
+            end
+          end.not_to raise_error
+        end
+      end
+      context "default operator with explode modifier" do
+        subject { Addressable::Template.new("{foo*}") }
+        it "should match in linear time against a non-matching payload" do
+          expect do
+            Timeout.timeout(10) do
+              expect(subject.match(("a," * 1000) + "!")).to be_nil
+            end
+          end.not_to raise_error
+        end
+      end
+      context "/ operator with explode modifier" do
+        subject { Addressable::Template.new("{/foo*}") }
+        it "should match in linear time against a non-matching payload" do
+          expect do
+            Timeout.timeout(10) do
+              expect(subject.match(("a/" * 1000) + "!")).to be_nil
+            end
+          end.not_to raise_error
+        end
+      end
+      context ". operator with explode modifier" do
+        subject { Addressable::Template.new("{.foo*}") }
+        it "should match in linear time against a non-matching payload" do
+          expect do
+            Timeout.timeout(10) do
+              expect(subject.match(("a." * 1000) + "!")).to be_nil
+            end
+          end.not_to raise_error
+        end
+      end
+      context "; operator with explode modifier" do
+        subject { Addressable::Template.new("{;foo*}") }
+        it "should match in linear time against a non-matching payload" do
+          expect do
+            Timeout.timeout(10) do
+              expect(subject.match(("a=1;" * 1000) + "!")).to be_nil
+            end
+          end.not_to raise_error
+        end
+      end
+      context "? operator with explode modifier" do
+        subject { Addressable::Template.new("{?foo*}") }
+        it "should match in linear time against a non-matching payload" do
+          expect do
+            Timeout.timeout(10) do
+              expect(subject.match("?" + ("a=1&" * 1000) + "!")).to be_nil
+            end
+          end.not_to raise_error
+        end
+      end
+      context "& operator with explode modifier" do
+        subject { Addressable::Template.new("{&foo*}") }
+        it "should match in linear time against a non-matching payload" do
+          expect do
+            Timeout.timeout(10) do
+              expect(subject.match(("&a=1" * 1000) + "!")).to be_nil
+            end
+          end.not_to raise_error
+        end
+      end
+      context "many variables in a single + expression" do
+        subject { Addressable::Template.new("{+v1,v2,v3,v4,v5,v6,v7,v8,v9,v10}") }
+        it "should match in linear time against a non-matching payload" do
+          expect do
+            Timeout.timeout(10) do
+              expect(subject.match(("a," * 1000) + " ")).to be_nil
+            end
+          end.not_to raise_error
+        end
+      end
+      context "consecutive + expressions without separators" do
+        subject { Addressable::Template.new("{+a}{+b}{+c}") }
+        it "should match in linear time against a non-matching payload" do
+          expect do
+            Timeout.timeout(10) do
+              expect(subject.match(("a" * 1000) + " ")).to be_nil
+            end
+          end.not_to raise_error
+        end
+      end
+      context "percent-encoded payload with + explode modifier" do
+        subject { Addressable::Template.new("{+foo*}") }
+        it "should match in linear time against a non-matching percent-encoded payload" do
+          expect do
+            Timeout.timeout(10) do
+              expect(subject.match(("%2F" * 1000) + " ")).to be_nil
+            end
+          end.not_to raise_error
+        end
+      end
       context ". operator" do
         subject { Addressable::Template.new("foo{.foo,bar}baz") }
         it "can match" do
