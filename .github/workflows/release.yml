@@ -16,6 +16,14 @@ jobs:
       - name: Set VERSION from git tag
         run: echo "VERSION=$(echo ${{ github.ref }} | cut -d - -f 2)" >> "$GITHUB_ENV"
 
+      - name: Verify tag matches gemspec version
+        run: |
+          GEMSPEC_VERSION=$(ruby -e "puts Gem::Specification.load('addressable.gemspec').version")
+          if [ "$VERSION" != "$GEMSPEC_VERSION" ]; then
+            echo "ERROR: tag version ($VERSION) does not match gemspec version ($GEMSPEC_VERSION)"
+            exit 1
+          fi
+
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
 
