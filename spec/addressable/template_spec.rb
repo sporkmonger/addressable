@@ -993,11 +993,11 @@ describe Addressable::Template do
         end
       end
       context "+ operator" do
-        subject { Addressable::Template.new("foo{+foo,bar}baz") }
+        subject { Addressable::Template.new("{+foo,bar}") }
         it "can match" do
-          data = subject.match("foofoo/bar,barbaz")
-          expect(data.mapping["bar"]).to eq("foo/bar,bar")
-          expect(data.mapping["foo"]).to eq("")
+          data = subject.match("foo/bar,baz")
+          expect(data.mapping["foo"]).to eq("foo/bar")
+          expect(data.mapping["bar"]).to eq("baz")
         end
         it "lists vars" do
           expect(subject.variables).to eq(["foo", "bar"])

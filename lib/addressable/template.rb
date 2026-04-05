@@ -987,7 +987,8 @@ module Addressable
         _, operator, varlist = *expansion.match(EXPRESSION)
         leader = Regexp.escape(LEADERS.fetch(operator, ''))
         joiner = Regexp.escape(JOINERS.fetch(operator, ','))
-        combined = varlist.split(',').map do |varspec|
+        varspecs = varlist.split(',')
+        combined = varspecs.map do |varspec|
           _, name, modifier = *varspec.match(VARSPEC)
 
           result = processor && processor.respond_to?(:match) ? processor.match(name) : nil
@@ -1017,7 +1018,11 @@ module Addressable
                     when '+', '#' then "#{RESERVED_NO_COMMA}*+"
                     else group
                     end
-              "(?<#{name}>#{seg}(?:#{joiner}?#{seg})*)?"
+              joiner_pattern = operator.nil? ? joiner : "#{joiner}?"
+              "(?<#{name}>#{seg}(?:#{joiner_pattern}#{seg})*)?"
+            elsif varspecs.size > 1 && (operator == '+' || operator == '#') &&
+                  varspec != varspecs.last
+              "(?<#{name}>#{RESERVED_NO_COMMA}*+)?"
             else
               "(?<#{name}>#{group})?"
             end
