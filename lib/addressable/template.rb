@@ -16,9 +16,12 @@
 #    limitations under the License.
 #++
 
-
-require "addressable/version"
-require "addressable/uri"
+# Maintain backwards compatibility for code that uses
+# `require "addressable/template"` as a direct entrypoint. When loaded via
+# `require "addressable"`, autoloads handle these dependencies instead.
+# This can be removed in a future major/minor version bump.
+require "addressable/version" unless defined?(Addressable::VERSION)
+require "addressable/uri" unless defined?(Addressable::URI)
 
 module Addressable
   ##
