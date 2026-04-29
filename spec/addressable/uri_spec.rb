@@ -2704,6 +2704,34 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+# RFC 3986, section 6.2.2.2: only unreserved characters may be decoded during normalization
+describe Addressable::URI, "when normalizing URIs with percent-encoded reserved characters" do
+  def self.it_normalizes(input, expected)
+    it "normalizes #{input.inspect} to #{expected.inspect}" do
+      expect(Addressable::URI.normalized_encode(input)).to eq(expected)
+      expect(Addressable::URI.parse(input).normalize.to_s).to eq(expected)
+    end
+  end
+
+  it_normalizes(
+    "http://example.com/%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D/:@!$&'()*+,;=",
+    "http://example.com/%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D/:@!$&'()*+,;="
+  )
+
+  it_normalizes(
+    "http://example.com/?%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D&raw=:/?@!$'()*+,=",
+    "http://example.com/?%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D&raw=:/?@!$'()*+,="
+  )
+
+  it_normalizes(
+    "http://example.com/#%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D/raw=:/?@!$&'()*+,;=",
+    "http://example.com/#%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D/raw=:/?@!$&'()*+,;="
+  )
+
+  # Positive control: unreserved characters should still be decoded.
+  it_normalizes("http://example.com/%41%42%43", "http://example.com/ABC")
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://example.com/?q=string'" do
   before do
@@ -4472,8 +4500,10 @@ describe Addressable::URI, "when parsed from " +
     @uri = Addressable::URI.parse("http://example.com/sound%2bvision")
   end
 
-  it "should have a normalized path of '/sound+vision'" do
-    expect(@uri.normalized_path).to eq('/sound+vision')
+  it "should have a normalized path of '/sound%2Bvision'" do
+    # `+` is a sub-delim (reserved per RFC 3986 §2.2), so `%2B` and `+` are
+    # not equivalent and the percent-encoded form must be preserved.
+    expect(@uri.normalized_path).to eq('/sound%2Bvision')
   end
 end
 
