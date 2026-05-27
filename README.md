@@ -33,7 +33,7 @@ Addressable closely conforms to RFC 3986, RFC 3987, and RFC 6570 (level 4).
 ## Example usage
 
 ```ruby
-require "addressable/uri"
+require "addressable"
 
 uri = Addressable::URI.parse("http://example.com/path/to/resource/")
 uri.scheme
@@ -55,8 +55,7 @@ For more details, see [RFC 6570](https://www.rfc-editor.org/rfc/rfc6570.txt).
 
 
 ```ruby
-
-require "addressable/template"
+require "addressable"
 
 template = Addressable::Template.new("http://example.com/{?query*}")
 template.expand({
