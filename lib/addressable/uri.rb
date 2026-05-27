@@ -63,10 +63,7 @@ module Addressable
     module NormalizeCharacterClasses
       HOST = /[^#{CharacterClasses::HOST}]/
       UNRESERVED = /[^#{CharacterClasses::UNRESERVED}]/
-      PCHAR = /[^#{CharacterClasses::PCHAR}]/
       SCHEME = /[^#{CharacterClasses::SCHEME}]/
-      FRAGMENT = /[^#{CharacterClasses::FRAGMENT}]/
-      QUERY = %r{[^a-zA-Z0-9\-\.\_\~\!\$\'\(\)\*\+\,\=\:\@\/\?%]|%(?!2B|2b)}
     end
 
     module CharacterClassesRegexps
@@ -591,7 +588,7 @@ module Addressable
           leave_encoded
         )
       rescue ArgumentError
-        encoded = self.encode_component(unencoded)
+        encoded = self.encode_component(unencoded, character_class, leave_encoded)
       end
       encoded.force_encoding(Encoding::UTF_8)
       return encoded
@@ -687,9 +684,6 @@ module Addressable
         :password => self.unencode_component(uri_object.password),
         :host => self.unencode_component(uri_object.host),
         :port => (uri_object.port.nil? ? nil : uri_object.port.to_s),
-        :path => self.unencode_component(uri_object.path),
-        :query => self.unencode_component(uri_object.query),
-        :fragment => self.unencode_component(uri_object.fragment)
       }
       components.each do |key, value|
         if value != nil
@@ -701,6 +695,7 @@ module Addressable
           end
         end
       end
+      reserved_chars = Addressable::URI::CharacterClasses::RESERVED.delete("\\")
       encoded_uri = Addressable::URI.new(
         :scheme => self.encode_component(components[:scheme],
           Addressable::URI::CharacterClassesRegexps::SCHEME),
@@ -710,12 +705,12 @@ module Addressable
           Addressable::URI::CharacterClassesRegexps::UNRESERVED),
         :host => components[:host],
         :port => components[:port],
-        :path => self.encode_component(components[:path],
-          Addressable::URI::CharacterClassesRegexps::PATH),
-        :query => self.encode_component(components[:query],
-          Addressable::URI::CharacterClassesRegexps::QUERY),
-        :fragment => self.encode_component(components[:fragment],
-          Addressable::URI::CharacterClassesRegexps::FRAGMENT)
+        :path => self.normalize_component(uri_object.path,
+          Addressable::URI::CharacterClasses::PATH, reserved_chars),
+        :query => self.normalize_component(uri_object.query,
+          Addressable::URI::CharacterClasses::QUERY, reserved_chars),
+        :fragment => self.normalize_component(uri_object.fragment,
+          Addressable::URI::CharacterClasses::FRAGMENT, reserved_chars)
       )
       if return_type == String
         return encoded_uri.to_s
@@ -1541,10 +1536,12 @@ module Addressable
         end
         # String#split(delimiter, -1) uses the more strict splitting behavior
         # found by default in Python.
+        reserved_chars = Addressable::URI::CharacterClasses::RESERVED.delete("\\")
         result = path.strip.split(SLASH, -1).map do |segment|
           Addressable::URI.normalize_component(
             segment,
-            Addressable::URI::NormalizeCharacterClasses::PCHAR
+            Addressable::URI::CharacterClasses::PCHAR,
+            reserved_chars
           )
         end.join(SLASH)
 
@@ -1617,14 +1614,16 @@ module Addressable
         modified_query_class = Addressable::URI::CharacterClasses::QUERY.dup
         # Make sure possible key-value pair delimiters are escaped.
         modified_query_class.sub!("\\&", "").sub!("\\;", "")
-        pairs = (query || "").split("&", -1)
+        leave_encoded =
+          Addressable::URI::CharacterClasses::RESERVED.delete("\\") + "+"
+        pairs = query.split("&", -1)
         pairs.delete_if(&:empty?).uniq! if flags.include?(:compacted)
         pairs.sort! if flags.include?(:sorted)
         component = pairs.map do |pair|
           Addressable::URI.normalize_component(
             pair,
-            Addressable::URI::NormalizeCharacterClasses::QUERY,
-            "+"
+            modified_query_class,
+            leave_encoded
           )
         end.join("&")
         component == "" ? nil : component
@@ -1819,7 +1818,8 @@ module Addressable
       @normalized_fragment = begin
         component = Addressable::URI.normalize_component(
           self.fragment,
-          Addressable::URI::NormalizeCharacterClasses::FRAGMENT
+          Addressable::URI::CharacterClasses::FRAGMENT,
+          Addressable::URI::CharacterClasses::RESERVED.delete("\\")
         )
         component == "" ? nil : component
       end
