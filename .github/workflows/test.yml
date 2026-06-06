@@ -15,7 +15,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
@@ -46,7 +46,7 @@ jobs:
     env:
       IDNA_MODE: ${{ matrix.idna_mode }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
@@ -85,7 +85,7 @@ jobs:
       COVERALLS_DEBUG: true
       CI_BUILD_NUMBER: ${{ github.run_id }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
@@ -159,7 +159,7 @@ jobs:
       # https://github.com/jruby/jruby/issues/7182#issuecomment-1112953015
       JAVA_OPTS: -Djdk.io.File.enableADS=true
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Install libidn (Ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
