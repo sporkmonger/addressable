@@ -1094,7 +1094,7 @@ module Addressable
       end
       new_user, new_password = if new_userinfo
         [
-          new_userinfo.to_str.strip[/^(.*):/, 1],
+          new_userinfo.to_str.strip[/^([^:]*):?/, 1],
           new_userinfo.to_str.strip[/:(.*)$/, 1]
         ]
       else
