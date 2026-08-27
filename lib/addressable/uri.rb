@@ -1612,11 +1612,8 @@ module Addressable
     # @return [String] The query component, normalized.
     def normalized_query(*flags)
       return nil unless self.query
-      return @normalized_query unless @normalized_query == NONE
-      @normalized_query = begin
-        modified_query_class = Addressable::URI::CharacterClasses::QUERY.dup
-        # Make sure possible key-value pair delimiters are escaped.
-        modified_query_class.sub!("\\&", "").sub!("\\;", "")
+      return @normalized_query if flags.empty? && @normalized_query != NONE
+      normalized_query = begin
         pairs = (query || "").split("&", -1)
         pairs.delete_if(&:empty?).uniq! if flags.include?(:compacted)
         pairs.sort! if flags.include?(:sorted)
@@ -1630,8 +1627,9 @@ module Addressable
         component == "" ? nil : component
       end
       # All normalized values should be UTF-8
-      force_utf8_encoding_if_needed(@normalized_query)
-      @normalized_query
+      force_utf8_encoding_if_needed(normalized_query)
+      @normalized_query = normalized_query if flags.empty?
+      normalized_query
     end
 
     ##
