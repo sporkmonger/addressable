@@ -420,8 +420,9 @@ module Addressable
       expansions, expansion_regexp =
         parse_template_pattern(pattern, processor)
 
-      return nil unless uri.to_str.match(expansion_regexp)
-      unparsed_values = uri.to_str.scan(expansion_regexp).flatten
+      matched = uri.to_str.match(expansion_regexp)
+      return nil unless matched
+      unparsed_values = matched.captures
 
       if uri.to_str == pattern
         return Addressable::Template::MatchData.new(uri, self, mapping)
