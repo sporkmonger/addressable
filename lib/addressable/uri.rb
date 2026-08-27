@@ -2200,7 +2200,7 @@ module Addressable
     # @return [Addressable::URI] A URI suitable for display purposes.
     def display_uri
       display_uri = self.normalize
-      display_uri.host = ::Addressable::IDNA.to_unicode(display_uri.host)
+      display_uri.host = ::Addressable::IDNA.to_unicode(display_uri.host) if display_uri.host
       return display_uri
     end
 
