@@ -704,7 +704,8 @@ module Addressable
         # slight reordering of the variables to produce a valid url.
         first_to_expand = vars.find { |varspec|
           _, name, _ =  *varspec.match(VARSPEC)
-          mapping.key?(name) && !mapping[name].nil?
+          value = mapping[name]
+          value != nil && value != {} && value != []
         }
 
         vars = [first_to_expand] + vars.reject {|varspec| varspec == first_to_expand}  if first_to_expand
@@ -758,7 +759,7 @@ module Addressable
       return_value = varlist.split(',').inject([]) do |acc, varspec|
         _, name, modifier = *varspec.match(VARSPEC)
         value = mapping[name]
-        unless value == nil || value == {}
+        unless value == nil || value == {} || value == []
           allow_reserved = %w(+ #).include?(operator)
           # Common primitives where the .to_s output is well-defined
           if Numeric === value || Symbol === value ||
