@@ -704,8 +704,9 @@ module Addressable
         # slight reordering of the variables to produce a valid url.
         first_to_expand = vars.find { |varspec|
           _, name, _ =  *varspec.match(VARSPEC)
-          value = mapping[name]
-          mapping.key?(name) && value != nil && value != {} && value != []
+          mapping.key?(name) &&
+            (value = mapping[name]) != nil &&
+            value != {} && value != []
         }
 
         vars = [first_to_expand] + vars.reject {|varspec| varspec == first_to_expand}  if first_to_expand
