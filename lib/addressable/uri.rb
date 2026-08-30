@@ -2394,13 +2394,14 @@ module Addressable
     # @param [Proc] block
     #   A set of operations to perform on a given URI.
     def defer_validation
+      validation_was_deferred = !!@validation_deferred
       raise LocalJumpError, "No block given." unless block_given?
       @validation_deferred = true
       yield
-      @validation_deferred = false
-      validate
+      @validation_deferred = validation_was_deferred
+      validate unless validation_was_deferred
     ensure
-      @validation_deferred = false
+      @validation_deferred = validation_was_deferred
     end
 
     def encode_with(coder)
