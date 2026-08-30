@@ -92,7 +92,10 @@ module Addressable
         if part =~ /^#{ACE_PREFIX}(.+)/
           begin
             punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
-          rescue Addressable::IDNA::PunycodeBadInput
+          rescue Addressable::IDNA::PunycodeBadInput,
+                 Addressable::IDNA::PunycodeBigOutput,
+                 Addressable::IDNA::PunycodeOverflow,
+                 RangeError
             # toUnicode is explicitly defined as never-fails by the spec
             part
           end
