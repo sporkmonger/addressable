@@ -760,6 +760,13 @@ module Addressable
       return_value = varlist.split(',').inject([]) do |acc, varspec|
         _, name, modifier = *varspec.match(VARSPEC)
         value = mapping[name]
+        value = if value.kind_of?(Hash)
+          value.reject { |_, member| member.nil? }
+        elsif value.respond_to?(:to_ary)
+          value.to_ary.reject { |member| member.nil? }
+        else
+          value
+        end
         unless value == nil || value == {} || value == []
           allow_reserved = %w(+ #).include?(operator)
           # Common primitives where the .to_s output is well-defined
