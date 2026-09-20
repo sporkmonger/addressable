@@ -413,7 +413,16 @@ module Addressable
     #   match.captures
     #   #=> ["a", ["b", "c"]]
     def match(uri, processor=nil)
-      uri = Addressable::URI.parse(uri) unless uri.is_a?(Addressable::URI)
+      unless uri.is_a?(Addressable::URI)
+        begin
+          uri = Addressable::URI.parse(uri)
+        rescue Addressable::URI::InvalidURIError
+          # Per the documented contract, match returns nil for any input
+          # that doesn't match the template - including a string that
+          # isn't even a valid URI.
+          return nil
+        end
+      end
       mapping = {}
 
       # First, we need to process the pattern, and extract the values.
