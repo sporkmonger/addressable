@@ -6706,6 +6706,28 @@ describe Addressable::URI, "when assigning query values" do
   end
 end
 
+describe Addressable::URI, "when normalizing a relative path with a colon" do
+  ["./folder:2/readme.md", "../folder:2/readme.md"].each do |path|
+    context "with #{path.inspect}" do
+      before do
+        @uri = Addressable::URI.parse(path)
+      end
+
+      it "should disambiguate the normalized path" do
+        expect(@uri.normalized_path).to eq("folder%2F2/readme.md")
+      end
+
+      it "should normalize without raising an error" do
+        expect(@uri.normalize.to_s).to eq("folder%2F2/readme.md")
+      end
+
+      it "should normalize in place without raising an error" do
+        expect(@uri.normalize!.to_s).to eq("folder%2F2/readme.md")
+      end
+    end
+  end
+end
+
 describe Addressable::URI, "when assigning path values" do
   before do
     @uri = Addressable::URI.new

@@ -1535,10 +1535,6 @@ module Addressable
     def normalized_path
       @normalized_path ||= begin
         path = self.path.to_s
-        if self.scheme == nil && path =~ NORMPATH
-          # Relative paths with colons in the first segment are ambiguous.
-          path = path.sub(":", "%2F")
-        end
         # String#split(delimiter, -1) uses the more strict splitting behavior
         # found by default in Python.
         result = path.strip.split(SLASH, -1).map do |segment|
@@ -1549,6 +1545,10 @@ module Addressable
         end.join(SLASH)
 
         result = URI.normalize_path(result)
+        if self.scheme == nil && result =~ NORMPATH
+          # Removing dot segments can expose a colon in the first segment.
+          result = result.sub(":", "%2F")
+        end
         if result.empty? &&
             ["http", "https", "ftp", "tftp"].include?(self.normalized_scheme)
           result = SLASH.dup
