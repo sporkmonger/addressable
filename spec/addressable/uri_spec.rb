@@ -3405,6 +3405,13 @@ describe Addressable::URI, "when parsed from " +
     )
   end
 
+  it "should have a route of './' from " +
+      "'http://example.com/path/to/resource/?query=x'" do
+    expect(
+      @uri.route_from("http://example.com/path/to/resource/?query=x").to_s
+    ).to eq("./")
+  end
+
   it "should correctly convert to a hash" do
     expect(@uri.to_hash).to eq({
       :scheme => "http",
@@ -3608,6 +3615,25 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have no fragment" do
     expect(@uri.fragment).to eq(nil)
+  end
+
+  it "should have a route of 'file.txt' from " +
+      "'http://example.com/file.txt?x=1'" do
+    expect(@uri.route_from("http://example.com/file.txt?x=1")).to eq(
+      Addressable::URI.parse("file.txt")
+    )
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'http://example.com/a:b'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/a:b")
+  end
+
+  it "should have a route of './a:b' from " +
+      "'http://example.com/a:b?x=1'" do
+    expect(@uri.route_from("http://example.com/a:b?x=1").to_s).to eq("./a:b")
   end
 end
 
