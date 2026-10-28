@@ -255,6 +255,28 @@ shared_examples_for "converting from ASCII to unicode" do
       "example..host"
     )).to eq("example..host")
   end
+
+  # toUnicode never fails (Section 4.2 of RFC 3490), so a label that can't be
+  # decoded is returned unchanged.
+  {
+    "a label too long to decode" => "xn--" + ("a" * 600),
+    "a label that overflows the decoder" => "xn--" + ("9" * 20),
+    "a label that decodes past U+10FFFF" => "xn--99999999999a"
+  }.each do |description, label|
+    it "should return the identity conversion for #{description}" do
+      expect(Addressable::IDNA.to_unicode(label)).to eq(label)
+      expect(Addressable::IDNA.to_unicode("www.#{label}.com")).to eq(
+        "www.#{label}.com"
+      )
+    end
+  end
+
+  it "should convert the other labels when one label can't be decoded" do
+    label = "xn--" + ("9" * 20)
+    expect(Addressable::IDNA.to_unicode("xn--bcher-kva.#{label}.com")).to eq(
+      "b\303\274cher.#{label}.com"
+    )
+  end
 end
 
 describe Addressable::IDNA, "when using the pure-Ruby implementation" do
