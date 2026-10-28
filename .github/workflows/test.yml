@@ -41,7 +41,7 @@ jobs:
       fail-fast: false
       matrix:
         ruby: [ruby]
-        idna_mode: [native, pure]
+        idna_mode: [libidn2, libidn1, pure]
         os: [ubuntu-latest]
     env:
       IDNA_MODE: ${{ matrix.idna_mode }}
@@ -67,6 +67,10 @@ jobs:
       - name: >-
           Profile Memory Allocation with ${{ matrix.idna_mode }} IDNA during Addressable::Template#match
         run: bundle exec rake profile:template_match_memory
+
+      - name: >-
+          Test for ${{ matrix.idna_mode }} IDNA backend memory leaks
+        run: bundle exec rake profile:idna_memory_leak
 
   coverage:
     runs-on: ${{ matrix.os }}
