@@ -1345,6 +1345,10 @@ module Addressable
           raise InvalidURIError, 'An origin cannot omit the host.'
         end
         new_port = new_origin[/:([^:@\[\]\/]*?)$/, 1]
+        # An empty port is the same as no port (Section 3.2.3 of RFC 3986).
+        if new_port == EMPTY_STR && new_origin =~ /\A[^:\/?#]+:\/\/[^\/?#:@\[\]]+:\z/
+          new_port = nil
+        end
       end
 
       self.scheme = new_scheme
