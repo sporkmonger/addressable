@@ -143,10 +143,10 @@ module Addressable
       #   Note that this list will include nils for any variables which
       #   were in the Template, but did not appear in the URI.
       def values
-        @values ||= self.variables.inject([]) do |accu, key|
+        (@values ||= self.variables.inject([]) do |accu, key|
           accu << self.mapping[key]
           accu
-        end
+        end).dup
       end
       alias_method :captures, :values
 
@@ -607,7 +607,7 @@ module Addressable
     #
     # @return [Array] The variables present in the template's pattern.
     def variables
-      @variables ||= ordered_variable_defaults.map { |var, val| var }.uniq
+      (@variables ||= ordered_variable_defaults.map { |var, val| var }.uniq).dup
     end
     alias_method :keys, :variables
     alias_method :names, :variables
@@ -618,8 +618,8 @@ module Addressable
     #
     # @return [Hash] Mapping of template variables to their defaults
     def variable_defaults
-      @variable_defaults ||=
-        Hash[*ordered_variable_defaults.reject { |k, v| v.nil? }.flatten]
+      (@variable_defaults ||=
+        Hash[*ordered_variable_defaults.reject { |k, v| v.nil? }.flatten]).dup
     end
 
     ##
