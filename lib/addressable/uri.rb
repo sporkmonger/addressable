@@ -17,8 +17,13 @@
 #++
 
 
-require "addressable/version"
-require "addressable/idna"
+# Maintain backwards compatibility for code that uses
+# `require "addressable/uri"` as a direct entrypoint. When loaded via
+# `require "addressable"`, autoloads handle these dependencies instead.
+# This can be removed in a future major/minor version bump.
+require "addressable/version" unless defined?(Addressable::VERSION)
+require "addressable/idna" unless defined?(Addressable::IDNA)
+
 require "public_suffix"
 
 ##
