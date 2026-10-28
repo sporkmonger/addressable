@@ -17,12 +17,13 @@
   they now return `nil`, as for any other URI that doesn't match ([#621])
 - fixes `Addressable::URI#origin=` raising `InvalidURIError` for an origin
   with an empty port (e.g. `http://example.com:`), which is the same as no
-  port
+  port ([#627])
 
 [#610]: https://github.com/sporkmonger/addressable/pull/610
 [#620]: https://github.com/sporkmonger/addressable/pull/620
 [#621]: https://github.com/sporkmonger/addressable/pull/621
 [#625]: https://github.com/sporkmonger/addressable/pull/625
+[#627]: https://github.com/sporkmonger/addressable/pull/627
 
 ## Addressable 2.9.0 <a name="v2.9.0">
 - fixes ReDoS vulnerability in Addressable::Template#match (fixes incomplete
