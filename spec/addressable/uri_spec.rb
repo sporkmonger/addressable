@@ -5274,6 +5274,20 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+describe Addressable::URI, "when parsed with a host label that can't be " +
+    "decoded from Punycode" do
+  [
+    "xn--" + ("a" * 600),
+    "xn--" + ("9" * 20),
+    "xn--99999999999a"
+  ].each do |label|
+    it "should display the label unchanged for '#{label[0, 24]}'" do
+      uri = Addressable::URI.parse("http://www.#{label}.com/path")
+      expect(uri.display_uri.to_s).to eq("http://www.#{label}.com/path")
+    end
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://www.詹姆斯.com/atomtests/iri/詹.html'" do
   before do
