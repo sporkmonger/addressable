@@ -285,6 +285,12 @@ module Addressable
     alias_method :eql?, :==
 
     ##
+    # @return [Integer] A hash consistent with template equality.
+    def hash
+      self.pattern.hash
+    end
+
+    ##
     # Extracts a mapping from the URI using a URI Template pattern.
     #
     # @param [Addressable::URI, #to_str] uri
