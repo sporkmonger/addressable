@@ -900,7 +900,7 @@ module Addressable
     def normalize_value(value)
       # Handle unicode normalization
       if value.respond_to?(:to_ary)
-        value.to_ary.map! { |val| normalize_value(val) }
+        value = value.to_ary.map { |val| normalize_value(val) }
       elsif value.kind_of?(Hash)
         value = value.inject({}) { |acc, (k, v)|
           acc[normalize_value(k)] = normalize_value(v)
