@@ -15,6 +15,9 @@
 - fixes `Addressable::Template#match` and `#extract` raising
   `Addressable::URI::InvalidURIError` for a string that isn't a valid URI;
   they now return `nil`, as for any other URI that doesn't match ([#621])
+- fixes `Addressable::URI#origin=` raising `InvalidURIError` for an origin
+  with an empty port (e.g. `http://example.com:`), which is the same as no
+  port
 
 [#610]: https://github.com/sporkmonger/addressable/pull/610
 [#620]: https://github.com/sporkmonger/addressable/pull/620
