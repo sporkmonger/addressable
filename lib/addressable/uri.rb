@@ -928,6 +928,11 @@ module Addressable
 
       # Reset dependent values
       @normalized_scheme = NONE
+      @normalized_user = NONE
+      @normalized_password = NONE
+      @normalized_userinfo = NONE
+      @normalized_port = NONE
+      @normalized_path = nil
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -983,6 +988,7 @@ module Addressable
       @normalized_userinfo = NONE
       @authority = nil
       @normalized_user = NONE
+      @normalized_password = NONE
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -1038,6 +1044,7 @@ module Addressable
       @normalized_userinfo = NONE
       @authority = nil
       @normalized_password = NONE
+      @normalized_user = NONE
       remove_composite_values
 
       # Ensure we haven't created an invalid URI
@@ -2552,6 +2559,9 @@ module Addressable
     def remove_composite_values
       @uri_string = nil
       @hash = nil
+      @site = nil
+      @normalized_site = nil
+      @normalized_authority = nil
     end
 
     ##
@@ -2571,6 +2581,8 @@ module Addressable
     #
     # @api private
     def reset_ivs
+      @site = nil
+      @normalized_site = nil
       @scheme = nil
       @user = nil
       @normalized_scheme = NONE
