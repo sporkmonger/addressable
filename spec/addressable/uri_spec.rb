@@ -2054,6 +2054,51 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+# An empty port is the same as no port (Section 3.2.3 of RFC 3986).
+describe Addressable::URI, "when assigned an origin with an empty port" do
+  before do
+    @uri = Addressable::URI.parse("http://placeholder.example/p?q=1#f")
+  end
+
+  {
+    "http://example.com:" => "http://example.com",
+    "HTTPS://EXAMPLE.org:" => "https://example.org",
+    "ws://192.0.2.1:" => "ws://192.0.2.1",
+    "foo://a-b.example:" => "foo://a-b.example",
+    "http://%65xample.com:" => "http://example.com"
+  }.each do |origin, expected|
+    it "should treat '#{origin}' as having no port" do
+      @uri.origin = origin
+      expect(@uri.origin).to eq(expected)
+      expect(@uri.port).to eq(nil)
+      expect(@uri.to_s).to eq("#{origin.sub(/:\z/, "")}/p?q=1#f")
+      expect(@uri.origin).to eq(Addressable::URI.parse(origin).origin)
+    end
+  end
+
+  # These still raise rather than take a host or port that differs from
+  # Addressable::URI.parse.
+  [
+    "http://[::1]:",
+    "http://u:p@example.com:",
+    "http://user:secret@example.com:",
+    "http://example.com:8080/a:",
+    "http://example.com/a:",
+    "http://example.com:?a:"
+  ].each do |origin|
+    it "should not take a different host or port from '#{origin}'" do
+      parsed = Addressable::URI.parse(origin)
+      begin
+        @uri.origin = origin
+      rescue Addressable::URI::InvalidURIError
+        next
+      end
+      expect(@uri.normalized_host).to eq(parsed.normalized_host)
+      expect(@uri.normalized_port).to eq(parsed.normalized_port)
+    end
+  end
+end
+
 # Section 5.1.2 of RFC 2616
 describe Addressable::URI, "when parsed from " +
     "'HTTP://www.w3.org/pub/WWW/TheProject.html'" do
