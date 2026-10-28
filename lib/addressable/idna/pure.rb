@@ -4677,11 +4677,11 @@ module Addressable
     # (for use in representing integers) in the range 0 to
     # base - 1, or PUNYCODE_BASE if codepoint does not represent a value.
     def self.punycode_decode_digit(codepoint)
-      if codepoint - 48 < 10
+      if codepoint >= 48 && codepoint <= 57
         codepoint - 22
-      elsif codepoint - 65 < 26
+      elsif codepoint >= 65 && codepoint <= 90
         codepoint - 65
-      elsif codepoint - 97 < 26
+      elsif codepoint >= 97 && codepoint <= 122
         codepoint - 97
       else
         PUNYCODE_BASE
