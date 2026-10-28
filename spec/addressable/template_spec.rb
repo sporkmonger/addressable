@@ -622,6 +622,33 @@ describe Addressable::Template do
       its(:variables){ should == ["path", "hash", "first"] }
       its(:captures){ should == ["foo", nil, nil] }
     end
+    context "multi-variable + expression followed by a literal" do
+      subject {
+        Addressable::Template.new(
+          "http://example.com/{+base,file}/edit"
+        ).match("http://example.com/docs/readme/edit")
+      }
+      its(:variables){ should == ["base", "file"] }
+      its(:captures){ should == [nil, "docs/readme"] }
+    end
+    context "multi-variable # expression followed by a literal" do
+      subject {
+        Addressable::Template.new(
+          "http://example.com/{#a,b}/{+c}"
+        ).match("http://example.com/#x/")
+      }
+      its(:variables){ should == ["a", "b", "c"] }
+      its(:captures){ should == [nil, "x", nil] }
+    end
+    context "+ expression with a variable before an explode modifier" do
+      subject {
+        Addressable::Template.new(
+          "http://example.com/{+path,segments*}"
+        ).match("http://example.com/a/b")
+      }
+      its(:variables){ should == ["path", "segments"] }
+      its(:captures){ should == ["a/b", []] }
+    end
   end
 
   describe 'match' do

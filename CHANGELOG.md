@@ -1,5 +1,10 @@
 # Changelog
 
+## Addressable 2.9.1 (unreleased) <a name="v2.9.1">
+- fixes `Addressable::URI#route_from` and `#route_to` raising
+  `InvalidURIError` when the route's first segment contains a colon
+  (e.g. `/a:b` from `/a`); the route is now `./a:b`
+
 ## Addressable 2.9.0 <a name="v2.9.0">
 - fixes ReDoS vulnerability in Addressable::Template#match (fixes incomplete
   remediation in 2.8.10)
