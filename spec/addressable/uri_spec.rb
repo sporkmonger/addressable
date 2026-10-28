@@ -5248,6 +5248,52 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+describe Addressable::URI, "when displaying a URI without a host" do
+  # Each of these raised InvalidURIError, because display_uri gave the URI
+  # an empty host.
+  [
+    "abc",
+    "a/b?q#f",
+    "mailto:user@example.com",
+    "urn:isbn:0451450523",
+    "news:comp.lang.ruby"
+  ].each do |input|
+    it "should display '#{input}' as its normalized form" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.display_uri.to_s).to eq(uri.normalize.to_s)
+      expect(uri.display_uri.host).to eq(nil)
+    end
+  end
+
+  # Each of these was displayed with an empty authority ("//") that the URI
+  # does not have.
+  [
+    "/path/to",
+    "?q",
+    "#f",
+    ""
+  ].each do |input|
+    it "should display '#{input}' without adding an authority" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.display_uri.to_s).to eq(uri.normalize.to_s)
+      expect(uri.display_uri.host).to eq(nil)
+    end
+  end
+
+  it "should keep an empty host" do
+    uri = Addressable::URI.parse("file:///etc/hosts")
+    expect(uri.display_uri.to_s).to eq("file:///etc/hosts")
+    expect(uri.display_uri.host).to eq("")
+  end
+
+  it "should not change the URI being displayed" do
+    uri = Addressable::URI.parse("mailto:user@example.com")
+    uri.display_uri
+    expect(uri.to_s).to eq("mailto:user@example.com")
+    expect(uri.host).to eq(nil)
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://www.詹姆斯.com/atomtests/iri/詹.html'" do
   before do
