@@ -1675,6 +1675,9 @@ module Addressable
         raise ArgumentError, "Invalid return type. Must be Hash or Array."
       end
       return nil if self.query == nil
+      query_scheme = normalized_scheme
+      form_encoded = query_scheme.nil? ||
+        query_scheme == "http" || query_scheme == "https"
       split_query = self.query.split("&").map do |pair|
         pair.split("=", 2) if pair && !pair.empty?
       end.compact
@@ -1682,14 +1685,16 @@ module Addressable
         # I'd rather use key/value identifiers instead of array lookups,
         # but in this case I really want to maintain the exact pair structure,
         # so it's best to make all changes in-place.
-        pair[0] = URI.unencode_component(pair[0])
+        key = pair[0]
+        key = key.tr("+", " ") if form_encoded
+        pair[0] = URI.unencode_component(key)
         if pair[1].respond_to?(:to_str)
           value = pair[1].to_str
           # I loathe the fact that I have to do this. Stupid HTML 4.01.
           # Treating '+' as a space was just an unbelievably bad idea.
           # There was nothing wrong with '%20'!
           # If it ain't broke, don't fix it!
-          value = value.tr("+", " ") if ["http", "https", nil].include?(scheme)
+          value = value.tr("+", " ") if form_encoded
           pair[1] = URI.unencode_component(value)
         end
         if return_type == Hash
