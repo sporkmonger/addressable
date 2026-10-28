@@ -3,7 +3,7 @@
 ## Addressable 2.9.1 (unreleased) <a name="v2.9.1">
 - fixes `Addressable::URI#route_from` and `#route_to` raising
   `InvalidURIError` when the route's first segment contains a colon
-  (e.g. `/a:b` from `/a`); the route is now `./a:b`
+  (e.g. `/a:b` from `/a`); the route is now `./a:b` ([#625])
 - fixes `Addressable::IDNA.to_unicode` raising in the pure-Ruby backend for
   Punycode labels that are too long, overflow the decoder, or decode past
   U+10FFFF; the label is now returned unchanged, as with libidn, so
@@ -19,6 +19,7 @@
 [#610]: https://github.com/sporkmonger/addressable/pull/610
 [#620]: https://github.com/sporkmonger/addressable/pull/620
 [#621]: https://github.com/sporkmonger/addressable/pull/621
+[#625]: https://github.com/sporkmonger/addressable/pull/625
 
 ## Addressable 2.9.0 <a name="v2.9.0">
 - fixes ReDoS vulnerability in Addressable::Template#match (fixes incomplete
