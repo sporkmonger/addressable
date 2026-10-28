@@ -2566,6 +2566,14 @@ module Addressable
 
     private
 
+    def initialize_copy(other)
+      super
+      instance_variables.each do |ivar|
+        value = instance_variable_get(ivar)
+        instance_variable_set(ivar, value.dup) if value.kind_of?(String)
+      end
+    end
+
     ##
     # Resets instance variables
     #
