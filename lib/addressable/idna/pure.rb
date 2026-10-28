@@ -66,7 +66,7 @@ module Addressable
         input.force_encoding(Encoding::ASCII_8BIT)
       end
       if input =~ UTF8_REGEX && input =~ UTF8_REGEX_MULTIBYTE
-        parts = unicode_downcase(input).split('.')
+        parts = unicode_downcase(input).split('.', -1)
         parts.map! do |part|
           if part.respond_to?(:force_encoding)
             part.force_encoding(Encoding::ASCII_8BIT)
@@ -87,7 +87,7 @@ module Addressable
     # domain name as described in RFC 3490.
     def self.to_unicode(input)
       input = input.to_s unless input.is_a?(String)
-      parts = input.split('.')
+      parts = input.split('.', -1)
       parts.map! do |part|
         if part =~ /^#{ACE_PREFIX}(.+)/
           begin
