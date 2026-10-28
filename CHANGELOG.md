@@ -12,9 +12,13 @@
   without a host, such as `abc` or `mailto:user@example.com`; relative URIs
   are also no longer displayed with an empty authority (e.g. `/path/to` was
   displayed as `///path/to`) ([#610])
+- fixes `Addressable::Template#match` and `#extract` raising
+  `Addressable::URI::InvalidURIError` for a string that isn't a valid URI;
+  they now return `nil`, as for any other URI that doesn't match ([#621])
 
 [#610]: https://github.com/sporkmonger/addressable/pull/610
 [#620]: https://github.com/sporkmonger/addressable/pull/620
+[#621]: https://github.com/sporkmonger/addressable/pull/621
 
 ## Addressable 2.9.0 <a name="v2.9.0">
 - fixes ReDoS vulnerability in Addressable::Template#match (fixes incomplete

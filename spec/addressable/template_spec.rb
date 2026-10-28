@@ -82,6 +82,36 @@ describe "#to_regexp" do
   end
 end
 
+describe "#match" do
+  it "returns nil, rather than raising, for a string that isn't a valid URI" do
+    template = Addressable::Template.new("https://{domain}")
+    expect { template.match("x;x:x") }.not_to raise_error
+    expect(template.match("x;x:x")).to be_nil
+  end
+
+  it "still matches a valid URI normally" do
+    template = Addressable::Template.new("https://{domain}/{path}")
+    match = template.match("https://example.com/foo")
+    expect(match.variables).to eq(["domain", "path"])
+    expect(match.captures).to eq(["example.com", "foo"])
+  end
+end
+
+describe "#extract" do
+  it "returns nil, rather than raising, for a string that isn't a valid URI" do
+    template = Addressable::Template.new("https://{domain}")
+    expect { template.extract("x;x:x") }.not_to raise_error
+    expect(template.extract("x;x:x")).to be_nil
+  end
+
+  it "still extracts from a valid URI normally" do
+    template = Addressable::Template.new("https://{domain}/{path}")
+    expect(template.extract("https://example.com/foo")).to eq(
+      "domain" => "example.com", "path" => "foo"
+    )
+  end
+end
+
 describe "Type conversion" do
   subject {
     {
