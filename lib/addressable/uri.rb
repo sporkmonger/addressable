@@ -2126,6 +2126,11 @@ module Addressable
       if components[:host] != nil
         components[:scheme] = normalized_self.scheme
       end
+      # A first segment containing a colon would be read as a scheme.
+      if components[:scheme].nil? && components[:path] &&
+          components[:path][/\A[^\/]*/].include?(":")
+        components[:path] = "./" + components[:path]
+      end
       return Addressable::URI.new(
         :scheme => components[:scheme],
         :user => components[:user],

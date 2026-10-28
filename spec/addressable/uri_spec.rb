@@ -4234,6 +4234,32 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+# A relative-path reference can't start with a segment containing a colon,
+# because it would be read as a scheme. Such a segment must be preceded by a
+# dot-segment (Section 4.2 of RFC 3986).
+describe Addressable::URI, "when routing to a segment containing a colon" do
+  {
+    ["http://example.com/a:b", "http://example.com/a"] => "./a:b",
+    ["http://example.com/a:b?q#f", "http://example.com/x"] => "./a:b?q#f",
+    ["http://example.com/x/a:b/c", "http://example.com/x/y"] => "./a:b/c",
+    ["http://example.com/a:b", "http://example.com/a:c"] => "./a:b",
+    ["http://example.com/b:", "http://example.com/a"] => "./b:",
+    ["foo:a:b", "foo:c"] => "./a:b",
+    ["http://example.com/x/a:b", "http://example.com/x/y/z"] => "../a:b",
+    ["http://example.com/a/a:b", "http://example.com/b/c"] => "../a/a:b",
+    ["http://example.com/a:b", "http://example.com/"] => "/a:b",
+    ["https://example.com/a:b", "http://example.com/a"] =>
+      "https://example.com/a:b"
+  }.each do |(target, base), route|
+    it "should have a route of '#{route}' to '#{target}' from '#{base}'" do
+      uri = Addressable::URI.parse(target)
+      expect(uri.route_from(base).to_s).to eq(route)
+      expect(Addressable::URI.parse(base).route_to(target).to_s).to eq(route)
+      expect(Addressable::URI.join(base, uri.route_from(base))).to eq(uri)
+    end
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
   "'http://example.com/search?q=Q%26A'" do
 
@@ -5291,6 +5317,20 @@ describe Addressable::URI, "when displaying a URI without a host" do
     uri.display_uri
     expect(uri.to_s).to eq("mailto:user@example.com")
     expect(uri.host).to eq(nil)
+  end
+end
+
+describe Addressable::URI, "when parsed with a host label that can't be " +
+    "decoded from Punycode" do
+  [
+    "xn--" + ("a" * 600),
+    "xn--" + ("9" * 20),
+    "xn--99999999999a"
+  ].each do |label|
+    it "should display the label unchanged for '#{label[0, 24]}'" do
+      uri = Addressable::URI.parse("http://www.#{label}.com/path")
+      expect(uri.display_uri.to_s).to eq("http://www.#{label}.com/path")
+    end
   end
 end
 
