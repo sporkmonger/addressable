@@ -48,7 +48,7 @@ module Addressable
     variable =
       "(?:#{var_char}(?:\\.?#{var_char})*)"
     varspec =
-      "(?:(#{variable})(\\*|:\\d+)?)"
+      "(?:(#{variable})(\\*|:[1-9]\\d{0,3})?)"
     VARNAME =
       /^#{variable}$/
     VARSPEC =
