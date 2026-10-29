@@ -2107,9 +2107,20 @@ module Addressable
           components[:host] = nil
           components[:port] = nil
           if normalized_self.path == uri.path
-            components[:path] = nil
             if normalized_self.query == uri.query
+              components[:path] = nil
               components[:query] = nil
+            elsif normalized_self.query == nil
+              # An empty path would inherit the base's query (RFC 3986 5.2.2);
+              # "./" stands in for an empty segment and keeps one with ":"
+              # from reading as a scheme (RFC 3986 4.2)
+              segment = normalized_self.path.rpartition(SLASH).last
+              if segment.empty? || segment.include?(":")
+                segment = "./" + segment
+              end
+              components[:path] = segment
+            else
+              components[:path] = nil
             end
           else
             if uri.path != SLASH and components[:path]
