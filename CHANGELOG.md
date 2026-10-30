@@ -1,6 +1,6 @@
 # Changelog
 
-## Addressable 2.9.1 (unreleased) <a name="v2.9.1">
+## Addressable 2.9.1 <a name="v2.9.1">
 - fixes denial of service in `Addressable::URI.normalize_path`, which took
   quadratic time on paths with many dot segments; `URI#normalize`, `#join`,
   `#==` and `#===` were affected (GHSA-qq38-m9mg-xjj5)
