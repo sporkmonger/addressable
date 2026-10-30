@@ -147,6 +147,13 @@ module TemplateMatchSpec
     order
   end
 
+  # The named captures of a match, or nil. MatchData#named_captures needs
+  # Ruby 2.4. With duplicate names, match[name] gives the last group with
+  # that name that matched, as named_captures does.
+  def self.named_captures(match)
+    match && Hash[match.names.map { |name| [name, match[name]] }]
+  end
+
   # Every string of up to max_length tokens drawn from alphabet.
   def self.strings(alphabet, max_length)
     (0..max_length).flat_map do |length|
@@ -277,8 +284,8 @@ describe Addressable::Template, "#match" do
           TemplateMatchSpec.strings(alphabet, 5).each do |string|
             expected = legacy.match(string)
             actual = current.match(string)
-            expect(actual && actual.named_captures).to eq(
-              expected && expected.named_captures
+            expect(TemplateMatchSpec.named_captures(actual)).to eq(
+              TemplateMatchSpec.named_captures(expected)
             ), "for #{string.inspect}"
           end
         end
