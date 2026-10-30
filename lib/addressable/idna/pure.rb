@@ -57,8 +57,10 @@ module Addressable
 
     # Characters that nameprep doesn't allow in a label (Section 5 of
     # RFC 3491), or that it maps to nothing, so they can't be in a label that
-    # toASCII produces.
-    NAMEPREP_PROHIBITED = Regexp.new("[" + [
+    # toASCII produces. Each table is a character class of its own, since some
+    # code points are in more than one table and Ruby warns about a duplicated
+    # range in a single class.
+    NAMEPREP_PROHIBITED = Regexp.new([
       # Table C.1.2, non-ASCII space characters
       "\u00A0\u1680\u2000-\u200B\u202F\u205F\u3000",
       # Table C.2.2, non-ASCII control characters
@@ -80,13 +82,15 @@ module Addressable
       "\u{E0001}\u{E0020}-\u{E007F}",
       # Table B.1, commonly mapped to nothing
       "\u00AD\u034F\u1806\u180B-\u180D\u200B-\u200D\u2060\uFE00-\uFE0F\uFEFF"
-    ].join + "]")
+    ].map { |table| "[#{table}]" }.join("|"))
 
     # Characters that change how a label displays without being visible
     # themselves: controls, format characters such as bidi overrides and
     # isolates, and default ignorable code points, including those added to
-    # Unicode after the version nameprep is based on.
-    DISPLAY_CHANGING = /[\p{Cc}\p{Cf}\p{Default_Ignorable_Code_Point}]/
+    # Unicode after the version nameprep is based on. Default ignorable code
+    # points stay out of the character class, where Ruby warns that they
+    # overlap with format characters.
+    DISPLAY_CHANGING = /[\p{Cc}\p{Cf}]|\p{Default_Ignorable_Code_Point}/
 
     # :startdoc:
 

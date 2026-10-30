@@ -419,6 +419,11 @@ describe Addressable::IDNA, "when using the pure-Ruby implementation" do
   it_should_behave_like "converting from unicode to ASCII"
   it_should_behave_like "converting from ASCII to unicode"
 
+  it "should load without warnings" do
+    Addressable.send(:remove_const, :IDNA)
+    expect { load "addressable/idna/pure.rb" }.not_to output.to_stderr
+  end
+
   begin
     require "fiber"
 
@@ -446,6 +451,11 @@ begin
 
     it_should_behave_like "converting from unicode to ASCII"
     it_should_behave_like "converting from ASCII to unicode"
+
+    it "should load without warnings" do
+      Addressable.send(:remove_const, :IDNA)
+      expect { load "addressable/idna/native.rb" }.not_to output.to_stderr
+    end
   end
 rescue LoadError => error
   raise error if ENV["CI"] && TestHelper.native_supported?
