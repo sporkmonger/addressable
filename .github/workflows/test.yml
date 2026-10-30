@@ -1,6 +1,11 @@
 name: CI
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  # called by the release workflow, so a gem is only published when CI passes
+  workflow_call:
 
 permissions: {}
 

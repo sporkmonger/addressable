@@ -6,7 +6,15 @@ on:
       - addressable-*
 
 jobs:
+  # the full CI workflow must pass before anything is published
+  test:
+    if: github.repository == 'sporkmonger/addressable'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/test.yml
+
   release:
+    needs: test
     if: github.repository == 'sporkmonger/addressable'
     runs-on: ubuntu-latest
     permissions:
