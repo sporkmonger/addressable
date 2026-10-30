@@ -203,6 +203,33 @@ describe Addressable::Template, "#match" do
       ["{;a,b}", ";a=1"] => {"a" => "", "b" => nil, "1" => ""},
       ["{;a,b}", ";a=1;b=2"] => {"a" => "1", "b" => "2"},
       ["{;a,b*}x", ";ax"] => {"a" => "", "b" => {}},
+      # With several exploded variables, the first one takes the values for
+      # +, # and ;...
+      ["{+a*,b*}", "x,y"] => {"a" => ["x,y"], "b" => []},
+      ["{+a*,b*,c}", "x,y,z"] => {"a" => ["x,y,z"], "b" => [], "c" => ""},
+      ["{+a*,b,c*}", "x,y"] => {"a" => ["x,y"], "b" => "", "c" => []},
+      ["{+a*,b}z", "x,yz"] => {"a" => ["x"], "b" => "y"},
+      ["{#a*,c*,b,b}/-", "#k=a;b,n=a,a=b,a=b/-"] => {
+        "a" => ["k=a;b,n=a,a=b"], "c" => nil, "b" => ""
+      },
+      ["{;a*,b*}", ";a=1;b=2"] => {"a" => {"a" => "1", "b" => "2"}, "b" => {}},
+      # ...and for ? and &, unless an empty member comes first...
+      ["{?a*,b*}", "?a=1&b=2"] => {"a" => {"a" => "1", "b" => "2"}, "b" => nil},
+      ["{?a*,b*,c}", "?a=1&b=2&c=3"] => {
+        "a" => {"a" => "1", "b" => "2", "c" => "3"}, "b" => nil, "c" => nil
+      },
+      ["{?a*,b*}", "?&b=2"] => {"a" => nil, "b" => {"b" => "2"}},
+      ["{&a*,b*}", "&&b=2"] => {"a" => nil, "b" => {"b" => "2"}},
+      ["{?a*,b,c*}", "?&=="] => {
+        "a" => nil, "b" => nil, nil => "", "c" => {nil => ""}
+      },
+      # ...and the last one for /, . and the default operator.
+      ["{/a*,b*}", "/x/y"] => {"a" => [], "b" => ["x", "y"]},
+      ["{/a*,b*}", "//x/y"] => {"a" => [], "b" => ["x", "y"]},
+      ["{/a*,b,c*}", "/x/y/z"] => {
+        "a" => [], "b" => "", "c" => ["x", "y", "z"]
+      },
+      ["{a*,b*}", ",x,y"] => {"a" => [","], "b" => ["x,y"]},
       # An expression directly followed by one that can match anything it
       # could is empty.
       ["{+a}{+b}{+c}", "xyz"] => {"a" => nil, "b" => nil, "c" => "xyz"},
@@ -270,6 +297,10 @@ describe Addressable::Template, "#match" do
       [
         "{#{operator}a,b,c}", "{#{operator}a,b*}", "{#{operator}a*,b}",
         "{#{operator}a,b}x", "{#{operator}a,b}{#{operator}c}",
+        "{#{operator}a*,b*}", "{#{operator}a*,b*,c*}", "{#{operator}a*,b,c*}",
+        "{#{operator}a,b*,c*}", "{#{operator}a*,b*,c}",
+        "{#{operator}a*,c*,b,b}", "{#{operator}a*,b}x", "{#{operator}a*,b*}x",
+        "{#{operator}a*,b,c}x",
         "{#{operator}a}{+b}", "{#{operator}a,b*}{+c}", "{#{operator}a}{b}",
         "{#{operator}a*}{b}{+c}", "{#{operator}a}{+b}x",
         "{#{operator}a,b,c}x", "{#{operator}a,b},x", "{#{operator}a,b,a}",
@@ -363,6 +394,22 @@ describe Addressable::Template, "#match" do
       "{;foo,bar*,baz}" => ";" + ("a" * 4000) + "!",
       "{?foo,bar,baz}" => "?" + ("a=" * 1000) + "!",
       "{&foo,bar,baz}" => "&" + ("a=" * 1000) + "!",
+      "{+foo*,bar*}" => ("a," * 5000) + " ",
+      "{+foo*,bar*,baz*}" => ("a," * 2000) + " ",
+      "{#foo*,bar*,baz*}" => "#" + ("a," * 2000) + " ",
+      "{+foo*,bar*,baz}" => ("a," * 2000) + " ",
+      "{+foo*,bar,baz*}" => ("a," * 2000) + " ",
+      "{;foo*,bar*,baz*}" => ";" + ("a=1;" * 2000) + "!",
+      "{/foo*,bar*,baz*}" => "/" + ("a/" * 2000) + "!",
+      "{/foo*,bar,baz*}" => "/" + ("a/" * 2000) + "!",
+      "{.foo*,bar*}" => "." + ("a." * 2000) + "!",
+      "{foo*,bar*,baz*}" => ("a," * 2000) + "!",
+      "{?foo*,bar*}" => "?" + ("a=1&" * 2000) + " ",
+      "{?foo*,bar*,baz*}" => "?" + ("a=1&" * 2000) + " ",
+      "{&foo*,bar*,baz*}" => "&" + ("a=1&" * 2000) + " ",
+      "{?foo*,bar*,baz}" => "?" + ("a=1&" * 2000) + " ",
+      "{?foo,bar*,baz*}" => "?" + ("a=1&" * 2000) + " ",
+      "{?foo*,bar*} (empty members)" => "?" + ("a=&&" * 2000) + " ",
       "{+a}{+b}{+c}" => ("a" * 4000) + " ",
       "{a}{b}{c}" => ("a" * 4000) + "!",
       "{.a,b}{c}" => "." + ("a" * 4000) + "!",

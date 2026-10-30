@@ -25,6 +25,10 @@
   `{+a,b,c}` with many variables), for `;` expressions, and for adjacent
   expressions (e.g. `{+a}{+b}{+c}` or `{+a}{b}`); match results are unchanged
   (GHSA-9f42-57jx-vpp3)
+- fixes denial of service in `Addressable::Template#match` and `#extract`,
+  which backtracked polynomially for expressions with several exploded
+  variables (e.g. `{+a*,b*}`), including on MRI 3.2; match results are
+  unchanged (GHSA-4w5q-wg7v-w6gp)
 - fixes `Addressable::URI#route_from` and `#route_to` raising
   `InvalidURIError` when the route's first segment contains a colon
   (e.g. `/a:b` from `/a`); the route is now `./a:b` ([#625])

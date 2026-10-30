@@ -1081,6 +1081,8 @@ module Addressable
         # the characters that an earlier variable leaves, which lets the
         # variables after the first one have fewer choices below.
         plain = results.compact.empty?
+        explodes = varspecs.map { |varspec| varspec[VARSPEC, 2] == '*' }
+        first_explode = explodes.index(true)
         not_after_value =
           "(?<![#{Addressable::URI::CharacterClasses::UNRESERVED}])"
         combined = varspecs.each_with_index.map do |varspec, index|
@@ -1128,7 +1130,39 @@ module Addressable
               # TruffleRuby).
               value = "#{seg}(?:#{joiner}#{seg})*"
             end
-            if operator == ';' && plain && index > 0
+            if plain && first_explode && index > first_explode &&
+                (operator == '+' || operator == '#' || operator == ';')
+              # Exploded values were tried longest first, so whatever this
+              # variable could match after the first exploded one, that one
+              # already tried matching itself. Only the last unexploded + or
+              # # variable can stop inside a member, where an exploded
+              # variable can't. As in 2.9.0, a variable is the last one if
+              # its varspec is the same as the last varspec.
+              if operator == ';'
+                "(?<#{name}>)"
+              elsif modifier != '*' && varspec == varspecs.last
+                "(?<#{name}>#{RESERVED_NO_COMMA}*?)?"
+              else
+                # 2.9.0 skipped the variable when it couldn't be empty.
+                "(?:(?<#{name}>)(?!#{RESERVED_NO_COMMA}))?"
+              end
+            elsif plain && modifier == '*' && explodes[(index + 1)..-1].any? &&
+                (operator.nil? || operator == '/' || operator == '.')
+              # Exploded values were tried shortest first, and a later
+              # exploded variable can match whatever this one leaves, so once
+              # a split fails, every split where this variable is longer
+              # fails too. Of the values tried, only the leading joiners are
+              # shorter than every value tried before them.
+              "(?<#{name}>(?:#{joiner})*)"
+            elsif plain && index > 0 && explodes[index - 1] &&
+                (operator == '?' || operator == '&')
+              # Whatever this variable could match after an exploded one,
+              # that one already tried matching itself, unless it couldn't:
+              # an exploded member can't be empty, so this variable may only
+              # start right after an empty one.
+              "(?<#{name}>(?<=#{leader}#{joiner}|#{joiner}#{joiner})" \
+                "#{value || group})?"
+            elsif operator == ';' && plain && index > 0
               # Values were tried longest first, and splitting an earlier
               # variable's run of characters with this one never gave a
               # different result, so this one may only start after that run.
