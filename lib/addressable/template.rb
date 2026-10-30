@@ -1024,12 +1024,22 @@ module Addressable
               "#{ UNRESERVED }*?"
             end
             if modifier == '*'
+              # The ; ? and & members match the same strings, in the same
+              # order of preference, as 2.9.0's members joined by an optional
+              # joiner, but each character can only belong to one member.
               seg = case operator
                     when '+', '#' then "#{RESERVED_NO_COMMA}*+"
+                    when ';' then "(?:#{UNRESERVED}|=)*"
+                    when '?', '&'
+                      "#{UNRESERVED}*=(?:#{UNRESERVED}*=)*#{UNRESERVED}*?"
                     else group
                     end
-              joiner_pattern = operator.nil? ? joiner : "#{joiner}?"
-              "(?<#{name}>#{seg}(?:#{joiner_pattern}#{seg})*)?"
+              # The joiner between exploded members must be mandatory. With
+              # an optional joiner, a run of members can be partitioned in
+              # exponentially many ways, which backtracks catastrophically on
+              # engines without match memoization (MRI < 3.2, JRuby,
+              # TruffleRuby).
+              "(?<#{name}>#{seg}(?:#{joiner}#{seg})*)?"
             elsif varspecs.size > 1 && (operator == '+' || operator == '#') &&
                   varspec != varspecs.last
               "(?<#{name}>#{RESERVED_NO_COMMA}*+)?"

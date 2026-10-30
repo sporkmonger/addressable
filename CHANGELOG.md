@@ -14,6 +14,11 @@
 - deprecates `Addressable::URI::RULE_2A`, `RULE_2B_2C`, `RULE_2D` and
   `RULE_PREFIXED_PARENT`, which are no longer used; they will be removed in
   2.10.0
+- fixes denial of service in `Addressable::Template#match` and `#extract`,
+  which still backtracked exponentially in 2.9.0 for exploded `/`, `.`, `;`,
+  `?` and `&` expressions (e.g. `{/path*}`) on regex engines without match
+  memoization, such as JRuby, TruffleRuby and MRI before 3.2; match results
+  are unchanged (GHSA-j82w-28jv-3pmj)
 - fixes `Addressable::URI#route_from` and `#route_to` raising
   `InvalidURIError` when the route's first segment contains a colon
   (e.g. `/a:b` from `/a`); the route is now `./a:b` ([#625])

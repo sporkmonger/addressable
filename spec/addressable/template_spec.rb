@@ -1140,6 +1140,24 @@ describe Addressable::Template do
           end.not_to raise_error
         end
       end
+      {
+        "{/foo*}" => "/" + ("a/" * 1000) + "!",
+        "/prefix{/foo*}" => "/prefix/" + ("a/" * 1000) + "!",
+        "{.foo*}" => "." + ("a." * 1000) + "!",
+        "{;foo*}" => ";" + ("a=1;" * 1000) + "!",
+        "{;foo*} (members without values)" => ";" + ("ab;" * 1000) + "!"
+      }.each do |pattern, payload|
+        context "#{pattern} against a payload starting with its operator" do
+          subject { Addressable::Template.new(pattern.split(" ").first) }
+          it "should match in linear time against a non-matching payload" do
+            expect do
+              Timeout.timeout(10) do
+                expect(subject.match(payload)).to be_nil
+              end
+            end.not_to raise_error
+          end
+        end
+      end
       context "? operator with explode modifier" do
         subject { Addressable::Template.new("{?foo*}") }
         it "should match in linear time against a non-matching payload" do
