@@ -969,6 +969,77 @@ module Addressable
     end
 
     ##
+    # Describes what follows each expression in a template pattern.
+    #
+    # @param [String] escaped_pattern The escaped URI template pattern.
+    #
+    # @return [Array<Array>] For each expression, the <tt>MatchData</tt> of
+    #   the expression directly after it (or <tt>nil</tt>), and whether the
+    #   text after it could start with a comma.
+    def expression_followers(escaped_pattern)
+      expressions = escaped_pattern.to_enum(:scan, EXPRESSION).map do
+        Regexp.last_match
+      end
+      expressions.each_with_index.map do |current, index|
+        following = expressions[index + 1]
+        following = nil unless following && following.begin(0) == current.end(0)
+        # Expressions can match nothing, so look past any that can't start
+        # with a comma.
+        position = current.end(0)
+        comma = expressions[(index + 1)..-1].any? do |later|
+          break false unless later.begin(0) == position
+          position = later.end(0)
+          may_start_with_comma?(later[1], later[2])
+        end
+        [following, comma || escaped_pattern[position] == ',']
+      end
+    end
+
+    ##
+    # Whether an expression could match a string that starts with a comma.
+    #
+    # @param [String, nil] operator The expression's operator.
+    # @param [String] varlist The expression's variable list.
+    #
+    # @return [TrueClass, FalseClass]
+    def may_start_with_comma?(operator, varlist)
+      return false unless LEADERS.fetch(operator, '').empty?
+      operator == '+' || !(varlist =~ VARSPEC && $2 != '*')
+    end
+
+    ##
+    # Whether an expression, followed directly by another one, could only
+    # match characters that the other one could also match, in any amount.
+    #
+    # @param [MatchData] following The expression that follows.
+    # @param [String, nil] operator The operator of the first expression.
+    # @param [Array<String>] varspecs The varspecs of the first expression.
+    #
+    # @return [TrueClass, FalseClass]
+    def absorbed_by?(following, operator, varspecs)
+      last = following[2].split(',').last
+      case following[1]
+      when '+'
+        # An unexploded last variable matches any characters that an
+        # expression can, and can end anywhere.
+        last[VARSPEC, 2] != '*'
+      when nil
+        if last[VARSPEC, 2] == '*'
+          # Matches any unreserved characters and commas.
+          operator.nil? || operator == '.'
+        elsif following[2] == last
+          # Matches any unreserved characters.
+          operator == '.' || (operator.nil? && varspecs.size == 1 &&
+            varspecs.first[VARSPEC, 2] != '*')
+        else
+          false
+        end
+      else
+        false
+      end
+    end
+
+    ##
     # Generates the <tt>Regexp</tt> that parses a template pattern.
     #
     # @param [String] pattern The URI template pattern.
@@ -988,20 +1059,34 @@ module Addressable
       end
 
       expansions = []
+      # Processor patterns can match anything, so they get 2.9.0's choices.
+      plain_processor = !(processor && processor.respond_to?(:match))
+      followers = expression_followers(escaped_pattern)
 
       # Create a regular expression that captures the values of the
       # variables in the URI.
       regexp_string = escaped_pattern.gsub( EXPRESSION ) do |expansion|
 
+        index = expansions.size
         expansions << expansion
         _, operator, varlist = *expansion.match(EXPRESSION)
         leader = Regexp.escape(LEADERS.fetch(operator, ''))
         joiner = Regexp.escape(JOINERS.fetch(operator, ','))
         varspecs = varlist.split(',')
-        combined = varspecs.map do |varspec|
+        results = varspecs.map do |varspec|
+          name = varspec[VARSPEC, 1]
+          processor && processor.respond_to?(:match) ? processor.match(name) : nil
+        end
+        # Without processor patterns, any variable in the expression can take
+        # the characters that an earlier variable leaves, which lets the
+        # variables after the first one have fewer choices below.
+        plain = results.compact.empty?
+        not_after_value =
+          "(?<![#{Addressable::URI::CharacterClasses::UNRESERVED}])"
+        combined = varspecs.each_with_index.map do |varspec, index|
           _, name, modifier = *varspec.match(VARSPEC)
 
-          result = processor && processor.respond_to?(:match) ? processor.match(name) : nil
+          result = results[index]
           if result
             "(?<#{name}>#{ result })"
           else
@@ -1015,7 +1100,9 @@ module Addressable
             when '.'
               "#{ UNRESERVED.gsub('\.', '') }*?"
             when ';'
-              "#{ UNRESERVED }*=?#{ UNRESERVED }*?"
+              # The same strings, tried in the same order, as 2.9.0's
+              # "U*=?U*?", but a name without "=" can only match one way.
+              "(?:#{UNRESERVED}*=#{UNRESERVED}*?|#{UNRESERVED}*)"
             when '?'
               "#{ UNRESERVED }*=#{ UNRESERVED }*?"
             when '&'
@@ -1039,15 +1126,70 @@ module Addressable
               # exponentially many ways, which backtracks catastrophically on
               # engines without match memoization (MRI < 3.2, JRuby,
               # TruffleRuby).
-              "(?<#{name}>#{seg}(?:#{joiner}#{seg})*)?"
+              value = "#{seg}(?:#{joiner}#{seg})*"
+            end
+            if operator == ';' && plain && index > 0
+              # Values were tried longest first, and splitting an earlier
+              # variable's run of characters with this one never gave a
+              # different result, so this one may only start after that run.
+              "(?<#{name}>(?:#{not_after_value}#{value || group})?)"
+            elsif modifier == '*'
+              "(?<#{name}>#{value})?"
             elsif varspecs.size > 1 && (operator == '+' || operator == '#') &&
                   varspec != varspecs.last
               "(?<#{name}>#{RESERVED_NO_COMMA}*+)?"
+            elsif plain && index < varspecs.size - 1 &&
+                  (operator.nil? || operator == '/' || operator == '.')
+              # Values were tried shortest first, so a run of characters
+              # without a joiner went to a later variable. The only other
+              # value that could change the result is the whole run up to the
+              # next joiner.
+              "(?<#{name}>(?:#{group}(?=#{joiner}))??)"
             else
               "(?<#{name}>#{group})?"
             end
           end
-        end.join("#{joiner}?")
+        end
+        following, comma_follows = followers[index]
+        single = varspecs.size == 1 && varspecs.first[VARSPEC, 2] != '*'
+        if plain_processor && following &&
+            absorbed_by?(following, operator, varspecs)
+          # Each expression tried its empty alternative first. When the next
+          # one follows it directly and can match anything it could, followed
+          # by anything the next one could match on its own, every other
+          # choice ends where the empty one can also end, so the empty
+          # alternative always gave the first match.
+          leader = "(?!)#{leader}"
+          combined = combined.join("#{joiner}?")
+        elsif plain_processor && single && following &&
+            following[1].nil? && following[2] =~ VARSPEC && $2 != '*' &&
+            (operator == '+' || operator == '#')
+          # Values were tried shortest first, and the next expression can
+          # match any unreserved characters, so the value only needs to end
+          # after a character that the next expression couldn't match.
+          combined = "(?<#{varspecs.first[VARSPEC, 1]}>" \
+            "#{RESERVED}*?#{not_after_value})?"
+        elsif plain && varspecs.size > 1 &&
+            (operator == '+' || operator == '#') &&
+            !comma_follows &&
+            varspecs.none? { |varspec| varspec[VARSPEC, 2] == '*' } &&
+            !varspecs[0...-1].include?(varspecs.last)
+          # 2.9.0 tried each value with the joiner after it first, then the
+          # value on its own, then skipping the variable, and every other
+          # choice gave a value to a later variable that an earlier one had
+          # already been tried with. A variable after a skipped one is
+          # skipped too. Stopping before a joiner is left out, so this is
+          # only used when no joiner can follow the expression. As in 2.9.0,
+          # a variable is the last one if its varspec is the same as the
+          # last varspec.
+          nested = varspecs[0...-1].reverse.inject("") do |inner, varspec|
+            "(?:(?<#{varspec[VARSPEC, 1]}>#{RESERVED_NO_COMMA}*+)" \
+              "#{joiner}?+#{inner}|(?=#{RESERVED_NO_COMMA}))"
+          end
+          combined = nested + combined.last
+        else
+          combined = combined.join("#{joiner}?")
+        end
         "(?:|#{leader}#{combined})"
       end
 

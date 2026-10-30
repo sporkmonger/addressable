@@ -21,21 +21,104 @@ require "timeout"
 require "addressable/template"
 
 module TemplateMatchSpec
-  UNRESERVED = Addressable::Template::UNRESERVED
-  RESERVED_NO_COMMA = Addressable::Template::RESERVED_NO_COMMA
+  OPERATORS = [nil, "+", "#", "/", ".", ";", "?", "&"]
 
-  # The exploded member patterns from Addressable 2.9.0. Members were joined
-  # by an optional joiner, except for the default operator.
-  LEGACY_MEMBERS = {
-    nil => "#{UNRESERVED}*?",
-    "+" => "#{RESERVED_NO_COMMA}*+",
-    "#" => "#{RESERVED_NO_COMMA}*+",
-    "/" => "#{UNRESERVED}*?",
-    "." => "#{UNRESERVED.gsub('\.', '')}*?",
-    ";" => "#{UNRESERVED}*=?#{UNRESERVED}*?",
-    "?" => "#{UNRESERVED}*=#{UNRESERVED}*?",
-    "&" => "#{UNRESERVED}*=#{UNRESERVED}*?"
-  }
+  # Addressable 2.9.0's Template#parse_new_template_pattern, kept verbatim as
+  # a compatibility oracle. The constants it uses have not changed.
+  LEGACY_PARSE_NEW_TEMPLATE_PATTERN = <<-'RUBY'
+    def parse_new_template_pattern(pattern, processor = nil)
+      # Escape the pattern. The two gsubs restore the escaped curly braces
+      # back to their original form. Basically, escape everything that isn't
+      # within an expansion.
+      escaped_pattern = Regexp.escape(
+        pattern
+      ).gsub(/\\\{(.*?)\\\}/) do |escaped|
+        escaped.gsub(/\\(.)/, "\\1")
+      end
+
+      expansions = []
+
+      # Create a regular expression that captures the values of the
+      # variables in the URI.
+      regexp_string = escaped_pattern.gsub( EXPRESSION ) do |expansion|
+
+        expansions << expansion
+        _, operator, varlist = *expansion.match(EXPRESSION)
+        leader = Regexp.escape(LEADERS.fetch(operator, ''))
+        joiner = Regexp.escape(JOINERS.fetch(operator, ','))
+        varspecs = varlist.split(',')
+        combined = varspecs.map do |varspec|
+          _, name, modifier = *varspec.match(VARSPEC)
+
+          result = processor && processor.respond_to?(:match) ? processor.match(name) : nil
+          if result
+            "(?<#{name}>#{ result })"
+          else
+            group = case operator
+            when '+'
+              "#{ RESERVED }*?"
+            when '#'
+              "#{ RESERVED }*?"
+            when '/'
+              "#{ UNRESERVED }*?"
+            when '.'
+              "#{ UNRESERVED.gsub('\.', '') }*?"
+            when ';'
+              "#{ UNRESERVED }*=?#{ UNRESERVED }*?"
+            when '?'
+              "#{ UNRESERVED }*=#{ UNRESERVED }*?"
+            when '&'
+              "#{ UNRESERVED }*=#{ UNRESERVED }*?"
+            else
+              "#{ UNRESERVED }*?"
+            end
+            if modifier == '*'
+              seg = case operator
+                    when '+', '#' then "#{RESERVED_NO_COMMA}*+"
+                    else group
+                    end
+              joiner_pattern = operator.nil? ? joiner : "#{joiner}?"
+              "(?<#{name}>#{seg}(?:#{joiner_pattern}#{seg})*)?"
+            elsif varspecs.size > 1 && (operator == '+' || operator == '#') &&
+                  varspec != varspecs.last
+              "(?<#{name}>#{RESERVED_NO_COMMA}*+)?"
+            else
+              "(?<#{name}>#{group})?"
+            end
+          end
+        end.join("#{joiner}?")
+        "(?:|#{leader}#{combined})"
+      end
+
+      # Ensure that the regular expression matches the whole URI.
+      regexp_string = "\\A#{regexp_string}\\z"
+      return expansions, Regexp.new(regexp_string)
+    end
+  RUBY
+
+  module Legacy
+    %w[
+      EXPRESSION VARSPEC LEADERS JOINERS RESERVED RESERVED_NO_COMMA UNRESERVED
+    ].each do |name|
+      const_set(name, Addressable::Template.const_get(name))
+    end
+
+    module_eval(LEGACY_PARSE_NEW_TEMPLATE_PATTERN)
+    extend self
+  end
+
+  def self.legacy_regexp(pattern)
+    Legacy.parse_new_template_pattern(pattern)[1]
+  end
+
+  def self.regexp(pattern)
+    Addressable::Template.new(pattern).send(:parse_template_pattern, pattern)[1]
+  end
+
+  # The expression without the \A and \z anchors around the whole template.
+  def self.unanchored(regexp)
+    regexp.source[/\A\\A(.*)\\z\z/m, 1]
+  end
 
   def self.leader(operator)
     Addressable::Template::LEADERS.fetch(operator, "")
@@ -43,24 +126,6 @@ module TemplateMatchSpec
 
   def self.joiner(operator)
     Addressable::Template::JOINERS.fetch(operator, ",")
-  end
-
-  # The regular expression 2.9.0 generated for "{<operator>a*}".
-  def self.legacy_expression(operator)
-    member = LEGACY_MEMBERS.fetch(operator)
-    joiner = Regexp.escape(joiner(operator))
-    joiner = "#{joiner}?" unless operator.nil?
-    "(?:|#{Regexp.escape(leader(operator))}" \
-      "(?<a>#{member}(?:#{joiner}#{member})*)?)"
-  end
-
-  # The regular expression generated now for "{<operator>a*}".
-  def self.expression(operator)
-    pattern = "{#{operator}a*}"
-    _, regexp = Addressable::Template.new(pattern).send(
-      :parse_template_pattern, pattern
-    )
-    regexp.source[/\A\\A(.*)\\z\z/m, 1]
   end
 
   # Every position at which the expression can stop matching a prefix of the
@@ -88,9 +153,14 @@ module TemplateMatchSpec
       alphabet.repeated_permutation(length).map(&:join)
     end.uniq
   end
+
+  def self.alphabet(operator, *extra)
+    ([leader(operator), joiner(operator), "a", "=", "%41"] + extra).
+      reject(&:empty?).uniq
+  end
 end
 
-describe Addressable::Template, "#match with exploded variables" do
+describe Addressable::Template, "#match" do
   context "compared with 2.9.0" do
     {
       ["{;b*}", ";b==a"] => {"b" => {"b" => ""}},
@@ -114,7 +184,55 @@ describe Addressable::Template, "#match with exploded variables" do
       },
       ["{/a*}{/b}", "/x/y/z"] => {"a" => ["x", "y", "z"], "b" => nil},
       ["{.a*}{.b}", ".x.y.z"] => {"a" => ["x", "y", "z"], "b" => nil},
-      ["{a*}{b}", "x,y,z"] => {"a" => ["x,y,"], "b" => "z"}
+      ["{a*}{b}", "x,y,z"] => {"a" => ["x,y,"], "b" => "z"},
+      # With several variables, a value without a joiner goes to the last
+      # variable for /, . and the default operator...
+      ["{/a,b,c}", "/x"] => {"a" => "", "b" => "", "c" => "x"},
+      ["{/a,b,c}", "/x/y"] => {"a" => "", "b" => "x", "c" => "y"},
+      ["{.a,b}.json", ".x.json"] => {"a" => "", "b" => "x"},
+      ["{a,b,c}", "x,y"] => {"a" => "", "b" => "x", "c" => "y"},
+      ["{/a,b*}", "/x/y"] => {"a" => "", "b" => ["x", "y"]},
+      # ...and to the first variable for ;.
+      ["{;a,b}", ";a=1"] => {"a" => "", "b" => nil, "1" => ""},
+      ["{;a,b}", ";a=1;b=2"] => {"a" => "1", "b" => "2"},
+      ["{;a,b*}x", ";ax"] => {"a" => "", "b" => {}},
+      # An expression directly followed by one that can match anything it
+      # could is empty.
+      ["{+a}{+b}{+c}", "xyz"] => {"a" => nil, "b" => nil, "c" => "xyz"},
+      ["{+a}{+b}{+c}", "x,y/z"] => {"a" => nil, "b" => nil, "c" => "x,y/z"},
+      ["{+a}{+b}x", "pqx"] => {"a" => nil, "b" => "pq"},
+      ["{a}{b}{c}", "xyz"] => {"a" => nil, "b" => nil, "c" => "xyz"},
+      ["{.a,b}{c}", ".x.yz"] => {"a" => nil, "b" => nil, "c" => ".x.yz"},
+      ["{/a}{+b}", "/x/y"] => {"a" => nil, "b" => "/x/y"},
+      ["{a}{+b}{c}{+d}", "w/x"] => {
+        "a" => nil, "b" => nil, "c" => nil, "d" => "w/x"
+      },
+      ["{+a,b}{+c,d}", "x,y,z"] => {
+        "a" => nil, "b" => nil, "c" => "x", "d" => "y,z"
+      },
+      ["{#a,b}{+c,d}", "#x,y"] => {
+        "a" => nil, "b" => nil, "c" => "#x", "d" => "y"
+      },
+      ["{a,b}{c*}", "x,y,z"] => {"a" => nil, "b" => nil, "c" => ["x,y,z"]},
+      ["{.a}{c*}", ".x,y"] => {"a" => nil, "c" => [".x,y"]},
+      ["{a*}{c,d*}", "x,y"] => {"a" => nil, "c" => "", "d" => ["x,y"]},
+      # An exploded {+b*} only ends where a run of characters ends.
+      ["{+a}{+b*}x", "p,qx"] => {"a" => "p,q", "b" => nil},
+      # {b} can't match "/", so {+a} isn't always empty.
+      ["{+a}{b}", "p/q"] => {"a" => "p/", "b" => "q"},
+      ["{+a}{b}", "p/qr"] => {"a" => "p/", "b" => "qr"},
+      ["{#a}{b}", "#p/q"] => {"a" => "p/", "b" => "q"},
+      # In + and # expressions, the earlier variables take one value each.
+      ["{+v1,v2,v3}", "a"] => {"v1" => "a", "v2" => "", "v3" => ""},
+      ["{+v1,v2,v3}", "a,b"] => {"v1" => "a", "v2" => "b", "v3" => ""},
+      ["{+v1,v2,v3}", "a,b,c,d"] => {
+        "v1" => "a", "v2" => "b", "v3" => "c,d"
+      },
+      ["{+v1,v2,v3}x", "a,bx"] => {"v1" => "a", "v2" => nil, "v3" => "b"},
+      ["{+v1,v2,v3}x", "a,b,x"] => {"v1" => "a", "v2" => "b", "v3" => ""},
+      ["{#v1,v2}", "#,b"] => {"v1" => "", "v2" => "b"},
+      ["{+v1,v2},x", "a,b,x"] => {"v1" => "a", "v2" => "b"},
+      ["{+v1,v2,v1}", "a,b,c"] => {"v1" => "", "v2" => "a"}
     }.each do |(pattern, uri), mapping|
       it "matches #{uri.inspect} against #{pattern} as 2.9.0 did" do
         expect(Addressable::Template.new(pattern).match(uri).mapping).to eq(
@@ -123,22 +241,84 @@ describe Addressable::Template, "#match with exploded variables" do
       end
     end
 
-    TemplateMatchSpec::LEGACY_MEMBERS.each_key do |operator|
-      it "tries the same end positions in the same order for " \
-          "{#{operator}a*}" do
-        legacy = TemplateMatchSpec.legacy_expression(operator)
-        current = TemplateMatchSpec.expression(operator)
-        alphabet = [
-          TemplateMatchSpec.leader(operator),
-          TemplateMatchSpec.joiner(operator),
-          "a", "=", "%41"
-        ].reject(&:empty?).uniq
+    TemplateMatchSpec::OPERATORS.product(["", "*"]).each do |operator, modifier|
+      pattern = "{#{operator}a#{modifier}}"
+      it "tries the same end positions in the same order for #{pattern}" do
+        legacy = TemplateMatchSpec.unanchored(
+          TemplateMatchSpec.legacy_regexp(pattern)
+        )
+        current = TemplateMatchSpec.unanchored(
+          TemplateMatchSpec.regexp(pattern)
+        )
+        alphabet = TemplateMatchSpec.alphabet(operator)
         TemplateMatchSpec.strings(alphabet, 5).each do |string|
           expect(TemplateMatchSpec.end_positions(current, string)).to eq(
             TemplateMatchSpec.end_positions(legacy, string)
           ), "for #{string.inspect}"
         end
       end
+    end
+
+    TemplateMatchSpec::OPERATORS.each do |operator|
+      [
+        "{#{operator}a,b,c}", "{#{operator}a,b*}", "{#{operator}a*,b}",
+        "{#{operator}a,b}x", "{#{operator}a,b}{#{operator}c}",
+        "{#{operator}a}{+b}", "{#{operator}a,b*}{+c}", "{#{operator}a}{b}",
+        "{#{operator}a*}{b}{+c}", "{#{operator}a}{+b}x",
+        "{#{operator}a,b,c}x", "{#{operator}a,b},x", "{#{operator}a,b,a}",
+        "{#{operator}a,b:2,c}/", "{#{operator}a,b}{+c,d}",
+        "{#{operator}a}{c*}", "{#{operator}a,b}{c,d*}", "{#{operator}a}{+c*}x",
+        "{#{operator}a,b}{c,d}"
+      ].each do |pattern|
+        it "captures the same values as 2.9.0 for #{pattern}" do
+          legacy = TemplateMatchSpec.legacy_regexp(pattern)
+          current = TemplateMatchSpec.regexp(pattern)
+          alphabet = TemplateMatchSpec.alphabet(operator, "x")
+          TemplateMatchSpec.strings(alphabet, 5).each do |string|
+            expected = legacy.match(string)
+            actual = current.match(string)
+            expect(actual && actual.named_captures).to eq(
+              expected && expected.named_captures
+            ), "for #{string.inspect}"
+          end
+        end
+      end
+    end
+
+    it "calls a processor's match method once per variable, in order" do
+      processor = Object.new
+      names = []
+      processor.define_singleton_method(:match) do |name|
+        names << name
+        nil
+      end
+      Addressable::Template.new("{/a,b}{;c}").match("/x/y;c=1", processor)
+      expect(names).to eq(["a", "b", "c"])
+    end
+
+    it "keeps 2.9.0's matching of adjacent expressions with a processor" do
+      processor = Object.new
+      def processor.match(name)
+        nil
+      end
+      template = Addressable::Template.new("{+a}{+b}")
+      expect(template.match("xy", processor).mapping).to eq(
+        "a" => nil, "b" => "xy"
+      )
+    end
+
+    it "keeps 2.9.0's matching when a processor supplies a pattern" do
+      processor = Object.new
+      def processor.match(name)
+        name == "b" ? "[0-9]+" : nil
+      end
+      template = Addressable::Template.new("{/a,b,c}")
+      expect(template.match("/x/1/y", processor).mapping).to eq(
+        "a" => "x", "b" => "1", "c" => "y"
+      )
+      expect(template.match("/x1", processor).mapping).to eq(
+        "a" => "x", "b" => "1", "c" => ""
+      )
     end
   end
 
@@ -161,7 +341,34 @@ describe Addressable::Template, "#match with exploded variables" do
       "{?foo*} (percent-encoded)" => "?" + ("%41=" * 1000) + "!",
       "{?foo*} (equals signs)" => "?" + ("=" * 2000) + "!",
       "{?foo*,bar}" => "?" + ("a=" * 1000) + "!",
-      "{&foo*}" => "&" + ("a=" * 1000) + "!"
+      "{&foo*}" => "&" + ("a=" * 1000) + "!",
+      "{/foo,bar,baz}" => "/" + ("a" * 2000) + "!",
+      "{/a,b,c,d,e}" => "/" + ("a" * 1000) + "!",
+      "{/foo,bar}{/baz,qux}" => "/" + ("a" * 2000) + "!",
+      "http://example.com/repos{/owner,repo,ref}" =>
+        "http://example.com/repos/" + ("a" * 2048) + "!",
+      "{.foo,bar,baz}" => "." + ("a" * 2000) + "!",
+      "{foo,bar,baz}" => ("a" * 2000) + "!",
+      "{foo,bar,baz} (percent-encoded)" => ("%41" * 1000) + "!",
+      "{;foo}" => ";" + ("a" * 8000) + "!",
+      "{;foo,bar,baz}" => ";" + ("a" * 8000) + "!",
+      "{;foo,bar,baz} (values)" => ";" + ("a=" * 1000) + "!",
+      "{;foo,bar*,baz}" => ";" + ("a" * 4000) + "!",
+      "{?foo,bar,baz}" => "?" + ("a=" * 1000) + "!",
+      "{&foo,bar,baz}" => "&" + ("a=" * 1000) + "!",
+      "{+a}{+b}{+c}" => ("a" * 4000) + " ",
+      "{a}{b}{c}" => ("a" * 4000) + "!",
+      "{.a,b}{c}" => "." + ("a" * 4000) + "!",
+      "{/a}{+b}" => "/" + ("a" * 4000) + " ",
+      "{a}{+b}{c}{+d}" => ("a" * 4000) + " ",
+      "{+a}{b}" => ("a/" * 4000) + " ",
+      "{#a}{b}" => "#" + ("a/" * 4000) + " ",
+      "{+v1,v2,v3,v4,v5,v6,v7,v8,v9,v10}" => ("a," * 4000) + " ",
+      "{+v1,v2,v3,v4,v5,v6,v7,v8,v9,v10}x" => ("a," * 4000) + " ",
+      "{#v1,v2,v3,v4,v5,v6,v7,v8}" => "#" + ("," * 8000) + " ",
+      "{+v1,v2,v3,v4,v5,v6,v7,v8}{+c,d}" => ("a," * 2000) + " ",
+      "{a,b}{c*}" => ("a," * 2000) + "!",
+      "{.a,b}{c,d*}" => "." + ("a" * 4000) + "!"
     }.each do |name, payload|
       it "rejects a long payload for #{name} in linear time" do
         template = Addressable::Template.new(name.split(" ").first)

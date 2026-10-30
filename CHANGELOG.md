@@ -19,6 +19,12 @@
   `?` and `&` expressions (e.g. `{/path*}`) on regex engines without match
   memoization, such as JRuby, TruffleRuby and MRI before 3.2; match results
   are unchanged (GHSA-j82w-28jv-3pmj)
+- fixes denial of service in `Addressable::Template#match` and `#extract`,
+  which backtracked polynomially or exponentially on the same regex engines
+  for expressions with several variables (e.g. `{/owner,repo,ref}`, or
+  `{+a,b,c}` with many variables), for `;` expressions, and for adjacent
+  expressions (e.g. `{+a}{+b}{+c}` or `{+a}{b}`); match results are unchanged
+  (GHSA-9f42-57jx-vpp3)
 - fixes `Addressable::URI#route_from` and `#route_to` raising
   `InvalidURIError` when the route's first segment contains a colon
   (e.g. `/a:b` from `/a`); the route is now `./a:b` ([#625])
