@@ -91,11 +91,15 @@ module Addressable
       parts.map! do |part|
         if part =~ /^#{ACE_PREFIX}(.+)/
           begin
-            punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
+            decoded = punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
+            # A label that doesn't convert back to itself isn't a valid
+            # A-label (Section 4.2 of RFC 3490, steps 6 and 7). That includes
+            # a label that decodes to only ASCII characters.
+            to_ascii(decoded).downcase == part.downcase ? decoded : part
           rescue Addressable::IDNA::PunycodeBadInput,
                  Addressable::IDNA::PunycodeBigOutput,
                  Addressable::IDNA::PunycodeOverflow,
-                 RangeError
+                 RangeError, ArgumentError
             # toUnicode is explicitly defined as never-fails by the spec
             part
           end

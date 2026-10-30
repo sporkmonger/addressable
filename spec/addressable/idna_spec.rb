@@ -277,6 +277,51 @@ shared_examples_for "converting from ASCII to unicode" do
       "b\303\274cher.#{label}.com"
     )
   end
+
+  # An A-label that decodes to only ASCII characters isn't valid, so it's
+  # returned unchanged.
+  it "leaves malformed A-label in place on to_unicode (toUnicode never-fails)" do
+    expect(
+      Addressable::IDNA.to_unicode("xn--google-.example.org")
+    ).to eq("xn--google-.example.org")
+  end
+
+  it "leaves bare malformed A-label in place on to_unicode" do
+    expect(
+      Addressable::IDNA.to_unicode("xn--example-")
+    ).to eq("xn--example-")
+  end
+
+  # A label that doesn't convert back to itself with toASCII isn't a valid
+  # A-label either (Section 4.2 of RFC 3490, steps 6 and 7), so it's returned
+  # unchanged.
+  {
+    "a label that decodes to ASCII after its basic code points" =>
+      "xn--mnchen-3ya-",
+    "a label with a decomposed character" => "xn--munchen-gie",
+    "a label with a compatibility character" => "xn--le-1b1n",
+    "a label with a fullwidth character" => "xn--oo-yka3051x",
+    "a label with a fullwidth full stop" => "xn--paypalcom-b854c",
+    "a label with a halfwidth ideographic full stop" => "xn--paypalcom-0w64c",
+    "a label with an uppercase non-ASCII character" => "xn--Mnchen-psa",
+    "a label that decodes to surrogate code points" => "xn--8b9bscx9u"
+  }.each do |description, label|
+    it "should return the identity conversion for #{description}" do
+      expect(Addressable::IDNA.to_unicode(label)).to eq(label)
+      expect(Addressable::IDNA.to_unicode("www.#{label}.com")).to eq(
+        "www.#{label}.com"
+      )
+    end
+  end
+
+  it "should convert a label with uppercase ASCII letters" do
+    expect(Addressable::IDNA.to_unicode("xn--Mnchen-3ya.de")).to eq(
+      "M\303\274nchen.de"
+    )
+    expect(Addressable::IDNA.to_unicode("xn--MNCHEN-3YA.de")).to eq(
+      "M\303\274NCHEN.de"
+    )
+  end
 end
 
 describe Addressable::IDNA, "when using the pure-Ruby implementation" do

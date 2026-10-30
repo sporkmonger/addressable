@@ -5319,6 +5319,19 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+describe Addressable::URI, "when displaying a host with an invalid A-label" do
+  [
+    "https://xn--google-.example.org/cb",
+    "https://www.xn--munchen-gie.de/"
+  ].each do |input|
+    it "should display '#{input}' with its normalized host" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.display_uri.host).to eq(uri.normalized_host)
+      expect(uri.display_uri.to_s).to eq(input)
+    end
+  end
+end
+
 describe Addressable::URI, "when displaying a URI without a host" do
   # Each of these raised InvalidURIError, because display_uri gave the URI
   # an empty host.

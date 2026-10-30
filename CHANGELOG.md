@@ -29,6 +29,12 @@
   which backtracked polynomially for expressions with several exploded
   variables (e.g. `{+a*,b*}`), including on MRI 3.2; match results are
   unchanged (GHSA-4w5q-wg7v-w6gp)
+- fixes `Addressable::IDNA.to_unicode` in the pure-Ruby backend decoding
+  Punycode labels that aren't valid A-labels: labels that decode to only
+  ASCII characters (e.g. `xn--google-` decoded to `google`) and labels that
+  don't convert back to themselves; such a label is now returned unchanged,
+  as with libidn, so `Addressable::URI#display_uri` no longer shows a host
+  that differs from `#normalized_host` (GHSA-9crm-g4mf-wc5j)
 - fixes `Addressable::URI#route_from` and `#route_to` raising
   `InvalidURIError` when the route's first segment contains a colon
   (e.g. `/a:b` from `/a`); the route is now `./a:b` ([#625])
