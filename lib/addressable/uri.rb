@@ -2436,10 +2436,14 @@ module Addressable
     SELF_REF = '.'
     PARENT = '..'
 
+    # Deprecated. No longer used by normalize_path; will be removed in 2.10.0.
     RULE_2A = /\/\.\/|\/\.$/
     RULE_2B_2C = /\/([^\/]*)\/\.\.\/|\/([^\/]*)\/\.\.$/
     RULE_2D = /^\.\.?\/?/
     RULE_PREFIXED_PARENT = /^\/\.\.?\/|^(\/\.\.?)+\/?$/
+    if respond_to?(:deprecate_constant, true)
+      deprecate_constant :RULE_2A, :RULE_2B_2C, :RULE_2D, :RULE_PREFIXED_PARENT
+    end
 
     ##
     # Resolves paths to their simplest form.
@@ -2448,37 +2452,52 @@ module Addressable
     #
     # @return [String] The normalized path.
     def self.normalize_path(path)
-      # Section 5.2.4 of RFC 3986
+      # Section 5.2.4 of RFC 3986, as a single pass over the segments so that
+      # the running time is linear in the length of the path.
 
       return if path.nil?
-      normalized_path = path.dup
-      loop do
-        mod ||= normalized_path.gsub!(RULE_2A, SLASH)
+      segments = path.split(SLASH, -1)
+      return path.dup if segments.empty?
 
-        pair = normalized_path.match(RULE_2B_2C)
-        if pair
-          parent  = pair[1]
-          current = pair[2]
+      # The first segment is never removed by a parent reference. For an
+      # absolute path it is the empty segment before the leading slash.
+      output = [segments.first]
+      last = segments.size - 1
+      (1..last).each do |index|
+        segment = segments[index]
+        if segment == SELF_REF
+          output << EMPTY_STR if index == last
+        elsif segment == PARENT
+          if output.size > 1
+            output.pop
+            output << EMPTY_STR if index == last
+          else
+            output << PARENT
+          end
         else
-          parent  = nil
-          current = nil
+          output << segment
         end
-
-        regexp = "/#{Regexp.escape(parent.to_s)}/\\.\\./|"
-        regexp += "(/#{Regexp.escape(current.to_s)}/\\.\\.$)"
-
-        if pair && ((parent != SELF_REF && parent != PARENT) ||
-            (current != SELF_REF && current != PARENT))
-          mod ||= normalized_path.gsub!(Regexp.new(regexp), SLASH)
-        end
-
-        mod ||= normalized_path.gsub!(RULE_2D, EMPTY_STR)
-        # Non-standard, removes prefixed dotted segments from path.
-        mod ||= normalized_path.gsub!(RULE_PREFIXED_PARENT, SLASH)
-        break if mod.nil?
       end
+      normalized_path = output.join(SLASH)
 
-      normalized_path
+      # Non-standard, removes prefixed dotted segments from path. At this
+      # point an absolute path can only start with a single "/..", and a
+      # relative path keeps its leading dots.
+      start = 0
+      if normalized_path.start_with?(SLASH)
+        if normalized_path == "/#{PARENT}"
+          return normalized_path[0, 1]
+        elsif normalized_path.start_with?("/#{PARENT}/")
+          start = PARENT.size + 1
+        end
+      else
+        while normalized_path[start] == SELF_REF
+          start += 1
+          start += 1 if normalized_path[start] == SELF_REF
+          start += 1 if normalized_path[start] == SLASH
+        end
+      end
+      start.zero? ? normalized_path : normalized_path[start..-1]
     end
 
     ##

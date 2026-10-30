@@ -1,6 +1,19 @@
 # Changelog
 
 ## Addressable 2.9.1 (unreleased) <a name="v2.9.1">
+- fixes denial of service in `Addressable::URI.normalize_path`, which took
+  quadratic time on paths with many dot segments; `URI#normalize`, `#join`,
+  `#==` and `#===` were affected (GHSA-qq38-m9mg-xjj5)
+- fixes `Addressable::URI.normalize_path` keeping segments that a `..` should
+  have removed after a `..` above the root, e.g.
+  `/../../public/x/../../secret` normalized to `/public/x/secret` instead of
+  `/secret` (GHSA-8gmh-2hhj-2hv9)
+- fixes `Addressable::URI.normalize_path` treating a raw line feed as a
+  segment boundary, e.g. joining `..\n/secret` onto `/public/` gave
+  `/\n/secret`
+- deprecates `Addressable::URI::RULE_2A`, `RULE_2B_2C`, `RULE_2D` and
+  `RULE_PREFIXED_PARENT`, which are no longer used; they will be removed in
+  2.10.0
 - fixes `Addressable::URI#route_from` and `#route_to` raising
   `InvalidURIError` when the route's first segment contains a colon
   (e.g. `/a:b` from `/a`); the route is now `./a:b` ([#625])
