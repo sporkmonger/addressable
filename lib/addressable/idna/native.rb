@@ -55,8 +55,10 @@ module Addressable
     # themselves: controls, format characters such as bidi overrides and
     # isolates, and default ignorable code points. libidn rejects most of
     # them, but not those added to Unicode after the version it checks
-    # against, such as U+2066 to U+2069.
-    DISPLAY_CHANGING = /[\p{Cc}\p{Cf}\p{Default_Ignorable_Code_Point}]/
+    # against, such as U+2066 to U+2069. Default ignorable code points stay
+    # out of the character class, where Ruby warns that they overlap with
+    # format characters.
+    DISPLAY_CHANGING = /[\p{Cc}\p{Cf}]|\p{Default_Ignorable_Code_Point}/
 
     def self.to_unicode(value)
       value.to_s.split('.', -1).map do |segment|
