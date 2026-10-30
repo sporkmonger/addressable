@@ -51,10 +51,18 @@ module Addressable
       end.join('.')
     end
 
+    # Characters that change how a label displays without being visible
+    # themselves: controls, format characters such as bidi overrides and
+    # isolates, and default ignorable code points. libidn rejects most of
+    # them, but not those added to Unicode after the version it checks
+    # against, such as U+2066 to U+2069.
+    DISPLAY_CHANGING = /[\p{Cc}\p{Cf}\p{Default_Ignorable_Code_Point}]/
+
     def self.to_unicode(value)
       value.to_s.split('.', -1).map do |segment|
         if segment.size > 0 && segment.size < 64
-          IDN::Idna.toUnicode(segment, IDN::Idna::ALLOW_UNASSIGNED)
+          decoded = IDN::Idna.toUnicode(segment, IDN::Idna::ALLOW_UNASSIGNED)
+          decoded =~ DISPLAY_CHANGING ? segment : decoded
         elsif segment.size >= 64
           segment
         else

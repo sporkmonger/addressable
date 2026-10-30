@@ -55,6 +55,39 @@ module Addressable
       | \xF4[\x80-\x8F][\x80-\xBF]{2}       # plane 16
       )/mnx
 
+    # Characters that nameprep doesn't allow in a label (Section 5 of
+    # RFC 3491), or that it maps to nothing, so they can't be in a label that
+    # toASCII produces.
+    NAMEPREP_PROHIBITED = Regexp.new("[" + [
+      # Table C.1.2, non-ASCII space characters
+      "\u00A0\u1680\u2000-\u200B\u202F\u205F\u3000",
+      # Table C.2.2, non-ASCII control characters
+      "\u0080-\u009F\u06DD\u070F\u180E\u200C\u200D\u2028\u2029" +
+        "\u2060-\u2063\u206A-\u206F\uFEFF\uFFF9-\uFFFC\u{1D173}-\u{1D17A}",
+      # Table C.3, private use
+      "\uE000-\uF8FF\u{F0000}-\u{FFFFD}\u{100000}-\u{10FFFD}",
+      # Table C.4, non-character code points
+      "\uFDD0-\uFDEF" + (0..16).map do |plane|
+        [plane * 0x10000 + 0xFFFE, 0x2D, plane * 0x10000 + 0xFFFF].pack("U*")
+      end.join,
+      # Table C.6, inappropriate for plain text
+      "\uFFF9-\uFFFD",
+      # Table C.7, inappropriate for canonical representation
+      "\u2FF0-\u2FFB",
+      # Table C.8, change display properties or are deprecated
+      "\u0340\u0341\u200E\u200F\u202A-\u202E\u206A-\u206F",
+      # Table C.9, tagging characters
+      "\u{E0001}\u{E0020}-\u{E007F}",
+      # Table B.1, commonly mapped to nothing
+      "\u00AD\u034F\u1806\u180B-\u180D\u200B-\u200D\u2060\uFE00-\uFE0F\uFEFF"
+    ].join + "]")
+
+    # Characters that change how a label displays without being visible
+    # themselves: controls, format characters such as bidi overrides and
+    # isolates, and default ignorable code points, including those added to
+    # Unicode after the version nameprep is based on.
+    DISPLAY_CHANGING = /[\p{Cc}\p{Cf}\p{Default_Ignorable_Code_Point}]/
+
     # :startdoc:
 
     # Converts from a Unicode internationalized domain name to an ASCII
@@ -94,8 +127,15 @@ module Addressable
             decoded = punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
             # A label that doesn't convert back to itself isn't a valid
             # A-label (Section 4.2 of RFC 3490, steps 6 and 7). That includes
-            # a label that decodes to only ASCII characters.
-            to_ascii(decoded).downcase == part.downcase ? decoded : part
+            # a label that decodes to only ASCII characters. A label with a
+            # character that would change how it displays is returned
+            # unchanged too.
+            if to_ascii(decoded).downcase != part.downcase ||
+                decoded =~ NAMEPREP_PROHIBITED || decoded =~ DISPLAY_CHANGING
+              part
+            else
+              decoded
+            end
           rescue Addressable::IDNA::PunycodeBadInput,
                  Addressable::IDNA::PunycodeBigOutput,
                  Addressable::IDNA::PunycodeOverflow,

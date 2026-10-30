@@ -35,6 +35,13 @@
   don't convert back to themselves; such a label is now returned unchanged,
   as with libidn, so `Addressable::URI#display_uri` no longer shows a host
   that differs from `#normalized_host` (GHSA-9crm-g4mf-wc5j)
+- fixes `Addressable::IDNA.to_unicode` decoding Punycode labels with
+  characters that change how a host displays without being visible
+  themselves, such as bidi overrides and isolates (e.g. U+202E and U+2066),
+  zero width characters and control characters; such a label is now
+  returned unchanged, so `Addressable::URI#display_uri` no longer shows
+  them. The pure-Ruby backend also no longer decodes labels with other
+  characters that nameprep prohibits, as with libidn (GHSA-539f-xcgw-2gjg)
 - fixes `Addressable::URI#route_from` and `#route_to` raising
   `InvalidURIError` when the route's first segment contains a colon
   (e.g. `/a:b` from `/a`); the route is now `./a:b` ([#625])
