@@ -10,6 +10,10 @@
   call with different flags: e.g. after `normalized_query(:sorted)`,
   `normalized_query` and `#normalize` gave a sorted query, and after
   `normalized_query`, `normalized_query(:sorted)` gave an unsorted one (#608)
+- fixes `Addressable::Template#expand` and `#partial_expand` changing the
+  arrays given as values: e.g. `[1, :a]` became `["1", "a"]`; a frozen array
+  raised `FrozenError`, and an object that responds to `to_ary`
+  raised `TypeError` (#605)
 - fixes the "character class has duplicated range" warnings that 2.9.1 gave
   when `Addressable::IDNA` was loaded with warnings enabled
 - fixes the "instance variable @validation_deferred not initialized" warning
