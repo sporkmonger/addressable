@@ -57,10 +57,10 @@ module Addressable
 
     # Characters that nameprep doesn't allow in a label (Section 5 of
     # RFC 3491), or that it maps to nothing, so they can't be in a label that
-    # toASCII produces. Each table is a character class of its own, since some
-    # code points are in more than one table and Ruby warns about a duplicated
-    # range in a single class.
-    NAMEPREP_PROHIBITED = Regexp.new([
+    # toASCII produces. Some code points are in more than one table; they're
+    # listed only under the first, since Ruby warns about a duplicated range
+    # in a character class.
+    NAMEPREP_PROHIBITED = Regexp.new("[" + [
       # Table C.1.2, non-ASCII space characters
       "\u00A0\u1680\u2000-\u200B\u202F\u205F\u3000",
       # Table C.2.2, non-ASCII control characters
@@ -72,25 +72,27 @@ module Addressable
       "\uFDD0-\uFDEF" + (0..16).map do |plane|
         [plane * 0x10000 + 0xFFFE, 0x2D, plane * 0x10000 + 0xFFFF].pack("U*")
       end.join,
-      # Table C.6, inappropriate for plain text
-      "\uFFF9-\uFFFD",
+      # Table C.6, inappropriate for plain text (U+FFF9 to U+FFFC are in C.2.2)
+      "\uFFFD",
       # Table C.7, inappropriate for canonical representation
       "\u2FF0-\u2FFB",
-      # Table C.8, change display properties or are deprecated
-      "\u0340\u0341\u200E\u200F\u202A-\u202E\u206A-\u206F",
+      # Table C.8, change display properties or are deprecated (U+206A to
+      # U+206F are in C.2.2)
+      "\u0340\u0341\u200E\u200F\u202A-\u202E",
       # Table C.9, tagging characters
       "\u{E0001}\u{E0020}-\u{E007F}",
-      # Table B.1, commonly mapped to nothing
-      "\u00AD\u034F\u1806\u180B-\u180D\u200B-\u200D\u2060\uFE00-\uFE0F\uFEFF"
-    ].map { |table| "[#{table}]" }.join("|"))
+      # Table B.1, commonly mapped to nothing (U+200B is in C.1.2, and U+200C,
+      # U+200D, U+2060 and U+FEFF are in C.2.2)
+      "\u00AD\u034F\u1806\u180B-\u180D\uFE00-\uFE0F"
+    ].join + "]")
 
     # Characters that change how a label displays without being visible
     # themselves: controls, format characters such as bidi overrides and
     # isolates, and default ignorable code points, including those added to
-    # Unicode after the version nameprep is based on. Default ignorable code
-    # points stay out of the character class, where Ruby warns that they
-    # overlap with format characters.
-    DISPLAY_CHANGING = /[\p{Cc}\p{Cf}]|\p{Default_Ignorable_Code_Point}/
+    # Unicode after the version nameprep is based on. Format characters that
+    # are also default ignorable are left out of the second set, since Ruby
+    # warns about a duplicated range in a character class.
+    DISPLAY_CHANGING = /[\p{Cc}\p{Cf}[\p{Default_Ignorable_Code_Point}&&\P{Cf}]]/
 
     # :startdoc:
 

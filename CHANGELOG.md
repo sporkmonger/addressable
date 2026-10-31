@@ -1,5 +1,9 @@
 # Changelog
 
+## Addressable 2.9.2 (unreleased) <a name="v2.9.2">
+- fixes the "character class has duplicated range" warnings that 2.9.1 gave
+  when `Addressable::IDNA` was loaded with warnings enabled
+
 ## Addressable 2.9.1 <a name="v2.9.1">
 - fixes denial of service in `Addressable::URI.normalize_path`, which took
   quadratic time on paths with many dot segments; `URI#normalize`, `#join`,
