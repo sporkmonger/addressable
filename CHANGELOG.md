@@ -3,6 +3,10 @@
 ## Addressable 2.9.2 (unreleased) <a name="v2.9.2">
 - fixes the "character class has duplicated range" warnings that 2.9.1 gave
   when `Addressable::IDNA` was loaded with warnings enabled
+- fixes the "instance variable @validation_deferred not initialized" warning
+  that 2.9.1 gave for every new `Addressable::URI` on Ruby before 3.0 with
+  warnings enabled, and a "shadowing outer local variable" warning from
+  `Addressable::Template` on Ruby 2.4 and 2.5
 
 ## Addressable 2.9.1 <a name="v2.9.1">
 - fixes denial of service in `Addressable::URI.normalize_path`, which took
