@@ -6,6 +6,10 @@
   `#normalized_authority` and `#normalize` could still use the old host, and
   after `scheme=`, `#normalized_port` could keep a port that's the new
   scheme's default (#613)
+- fixes `Addressable::URI#normalized_query` reusing the result of an earlier
+  call with different flags: e.g. after `normalized_query(:sorted)`,
+  `normalized_query` and `#normalize` gave a sorted query, and after
+  `normalized_query`, `normalized_query(:sorted)` gave an unsorted one (#608)
 - fixes the "character class has duplicated range" warnings that 2.9.1 gave
   when `Addressable::IDNA` was loaded with warnings enabled
 - fixes the "instance variable @validation_deferred not initialized" warning
