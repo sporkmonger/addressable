@@ -17,6 +17,10 @@
 - fixes `Addressable::URI#clone` sharing component strings with the original:
   e.g. appending to the clone's `#host` also changed the original's host, but
   not its cached normalized values; `#dup` already made a separate copy (#617)
+- fixes the pure-Ruby `Addressable::IDNA.to_unicode` raising `ZeroDivisionError`
+  on some malformed labels, e.g. `xn--rp3=`, which also made
+  `Addressable::URI#display_uri` raise, because the Punycode decoder
+  treated punctuation as digits; such labels are now returned unchanged (#614)
 - fixes the "character class has duplicated range" warnings that 2.9.1 gave
   when `Addressable::IDNA` was loaded with warnings enabled
 - fixes the "instance variable @validation_deferred not initialized" warning
