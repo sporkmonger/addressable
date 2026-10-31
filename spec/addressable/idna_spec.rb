@@ -502,6 +502,84 @@ describe Addressable::IDNA, "when using the pure-Ruby implementation" do
     expect(digits).to eq(expected)
   end
 
+  it "should encode the RFC 3492 sample strings" do
+    samples = {
+      [0x4ED6, 0x4EEC, 0x4E3A, 0x4EC0, 0x4E48, 0x4E0D, 0x8BF4, 0x4E2D,
+       0x6587] => "ihqwcrb4cv8a8dqg056pqjye",
+      [0x4ED6, 0x5011, 0x7232, 0x4EC0, 0x9EBD, 0x4E0D, 0x8AAA, 0x4E2D,
+       0x6587] => "ihqwctvzc91f659drss3x8bo0yb",
+      [0x0033, 0x5E74, 0x0042, 0x7D44, 0x91D1, 0x516B, 0x5148,
+       0x751F] => "3B-ww4c5e180e575a65lsy2b",
+      [0x305D, 0x306E, 0x30B9, 0x30D4, 0x30FC, 0x30C9,
+       0x3067] => "d9juau41awczczp",
+      "-> $1.00 <-".unpack("U*") => "-> $1.00 <--"
+    }
+    samples.each do |code_points, punycode|
+      unicode = code_points.pack("U*")
+      expect(Addressable::IDNA.send(:punycode_encode, unicode)).to eq(punycode)
+      expect(Addressable::IDNA.send(:punycode_decode, punycode)).to eq(unicode)
+    end
+  end
+
+  it "should encode an empty string as an empty string" do
+    expect(Addressable::IDNA.send(:punycode_encode, "")).to eq("")
+  end
+
+  it "should encode up to 256 characters of Punycode" do
+    expect(Addressable::IDNA.send(:punycode_encode, "a" * 255)).to eq(
+      "a" * 255 + "-"
+    )
+    expect(
+      Addressable::IDNA.send(:punycode_encode, "a" * 252 + "é").size
+    ).to eq(256)
+    ["a" * 256, "a" * 253 + "é", "é" * 300].each do |unicode|
+      expect {
+        Addressable::IDNA.send(:punycode_encode, unicode)
+      }.to raise_error(Addressable::IDNA::PunycodeBigOutput)
+    end
+  end
+
+  it "should encode the longest labels in any order" do
+    # 139 consecutive code points is the most that fit in 256 characters.
+    code_points = (0x4E00...0x4E00 + 139).to_a
+    random = Random.new(139)
+    orders = [code_points, code_points.reverse,
+      code_points.shuffle(random: random),
+      ("a".ord..."a".ord + 26).to_a * 4 + code_points.first(40)]
+    orders.each do |order|
+      unicode = order.pack("U*")
+      punycode = Addressable::IDNA.send(:punycode_encode, unicode)
+      expect(punycode.size).to be <= 256
+      expect(Addressable::IDNA.send(:punycode_decode, punycode)).to eq(unicode)
+    end
+    expect {
+      Addressable::IDNA.send(
+        :punycode_encode, (0x4E00...0x4E00 + 140).to_a.pack("U*")
+      )
+    }.to raise_error(Addressable::IDNA::PunycodeBigOutput)
+  end
+
+  it "should decode whatever it encodes" do
+    random = Random.new(4471)
+    ranges = [0x20..0x7E, 0x80..0x2FF, 0x370..0x3FF, 0x4E00..0x9FFF,
+      0xAC00..0xD7A3, 0x10000..0x1FFFF]
+    failures = []
+    2000.times do
+      unicode = Array.new(random.rand(70)) do
+        range = ranges.sample(random: random)
+        random.rand(range)
+      end.pack("U*")
+      begin
+        punycode = Addressable::IDNA.send(:punycode_encode, unicode)
+      rescue Addressable::IDNA::PunycodeBigOutput
+        next
+      end
+      decoded = Addressable::IDNA.send(:punycode_decode, punycode)
+      failures << [unicode, punycode] if decoded != unicode
+    end
+    expect(failures.first(5)).to eq([])
+  end
+
   it "should reject a delimiter as the first Punycode digit" do
     expect {
       Addressable::IDNA.send(:punycode_decode, "-kva")
