@@ -196,3 +196,74 @@ describe Addressable::URI, "after a component changes" do
     expect(stale.first(5)).to eq([])
   end
 end
+
+describe Addressable::URI, "when normalizing the query with flags" do
+  let(:uri) { Addressable::URI.parse("http://example.com/?b=2&a=1&a=1") }
+
+  it "sorts after a call without flags" do
+    expect(uri.normalized_query).to eq("b=2&a=1&a=1")
+    expect(uri.normalized_query(:sorted)).to eq("a=1&a=1&b=2")
+  end
+
+  it "doesn't sort a later call without flags" do
+    expect(uri.normalized_query(:sorted)).to eq("a=1&a=1&b=2")
+    expect(uri.normalized_query).to eq("b=2&a=1&a=1")
+    expect(uri.normalize.to_s).to eq("http://example.com/?b=2&a=1&a=1")
+  end
+
+  it "applies only the flags given in each call" do
+    expect(uri.normalized_query(:compacted)).to eq("b=2&a=1")
+    expect(uri.normalized_query(:sorted)).to eq("a=1&a=1&b=2")
+    expect(uri.normalized_query(:sorted, :compacted)).to eq("a=1&b=2")
+  end
+
+  it "applies flags to a frozen URI" do
+    uri.freeze
+    expect(uri.normalized_query(:sorted, :compacted)).to eq("a=1&b=2")
+    expect(uri.normalized_query).to eq("b=2&a=1&a=1")
+  end
+
+  it "uses a new query" do
+    uri.normalized_query(:sorted)
+    uri.query = "d=4&c=3"
+    expect(uri.normalized_query).to eq("d=4&c=3")
+    expect(uri.normalized_query(:sorted)).to eq("c=3&d=4")
+  end
+
+  it "keeps caching the query normalized without flags" do
+    expect(uri.normalized_query).to equal(uri.normalized_query)
+  end
+
+  it "gives every result a fresh URI gives, after any calls" do
+    flag_sets = [[], [:sorted], [:compacted], [:sorted, :compacted]]
+    queries = [nil, "", "b=2&a=1", "a&&c&a", "a=1&a=1&b", "x=%41&y=%7e"]
+    random = Random.new(608)
+    wrong = []
+    300.times do
+      uri = Addressable::URI.new(
+        host: "example.com", query: queries[random.rand(queries.size)]
+      )
+      calls = []
+      8.times do
+        case random.rand(8)
+        when 0
+          next if uri.frozen?
+          query = queries[random.rand(queries.size)]
+          uri.query = query
+          calls << [:query=, query]
+        when 1
+          uri.freeze
+          calls << :freeze
+        else
+          flags = flag_sets[random.rand(flag_sets.size)]
+          calls << flags
+          fresh = Addressable::URI.new(host: "example.com", query: uri.query)
+          result = uri.normalized_query(*flags)
+          expected = fresh.normalized_query(*flags)
+          wrong << [calls.dup, result, expected] if result != expected
+        end
+      end
+    end
+    expect(wrong.first(5)).to eq([])
+  end
+end
