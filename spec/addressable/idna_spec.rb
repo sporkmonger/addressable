@@ -21,6 +21,7 @@ require "spec_helper"
 require "rubygems"
 
 require "addressable/idna"
+require "addressable/uri"
 
 shared_examples_for "converting from unicode to ASCII" do
   it "should convert 'www.google.com' correctly" do
@@ -166,6 +167,24 @@ shared_examples_for "converting from ASCII to unicode" do
 
   it "should return the identity conversion when the ACE prefix has no suffix" do
     expect(Addressable::IDNA.to_unicode("xn--...-")).to eq("xn--...-")
+  end
+
+  it "should return the identity conversion when a Punycode digit isn't alphanumeric" do
+    labels = %w(
+      xn--: xn--bcher-k:a xn--bcher-k_a xn--rp3= xn--440gp_b xn--swi0s8>1l
+      xn--9xiZ<b9 xn--bi1rwuP_
+    )
+    labels.each do |label|
+      expect(Addressable::IDNA.to_unicode(label)).to eq(label)
+      expect(Addressable::IDNA.to_unicode("#{label}.example")).to eq(
+        "#{label}.example"
+      )
+    end
+  end
+
+  it "should display a URI whose host has a Punycode digit that isn't alphanumeric" do
+    uri = Addressable::URI.parse("http://xn--rp3=.example/")
+    expect(uri.display_uri.to_s).to eq("http://xn--rp3=.example/")
   end
 
   it "should convert 'www.google.com' correctly" do
@@ -466,6 +485,45 @@ describe Addressable::IDNA, "when using the pure-Ruby implementation" do
       Addressable::IDNA::NAMEPREP_PROHIBITED
     ).map(&:ord)
     expect(prohibited).to eq(expected)
+  end
+
+  it "should decode only letters and digits as Punycode digits" do
+    digits = (0..127).map do |codepoint|
+      Addressable::IDNA.send(:punycode_decode_digit, codepoint)
+    end
+    expected = (0..127).map do |codepoint|
+      case codepoint.chr
+      when "a".."z" then codepoint - 97
+      when "A".."Z" then codepoint - 65
+      when "0".."9" then codepoint - 22
+      else Addressable::IDNA::PUNYCODE_BASE
+      end
+    end
+    expect(digits).to eq(expected)
+  end
+
+  it "should reject a delimiter as the first Punycode digit" do
+    expect {
+      Addressable::IDNA.send(:punycode_decode, "-kva")
+    }.to raise_error(Addressable::IDNA::PunycodeBadInput)
+  end
+
+  it "should return any label with a Punycode digit that isn't alphanumeric" do
+    random = Random.new(614)
+    ascii = (0..127).map(&:chr) - [".", "-"]
+    alphanumeric = [*"a".."z", *"0".."9"]
+    failures = []
+    5000.times do
+      digits = Array.new(1 + random.rand(12)) do
+        random.rand < 0.8 ? alphanumeric.sample(random: random) :
+          ascii.sample(random: random)
+      end.join
+      next if digits =~ /\A[a-zA-Z0-9]*\z/
+      label = "xn--#{digits}"
+      result = (Addressable::IDNA.to_unicode(label) rescue $!.class)
+      failures << [label, result] if result != label
+    end
+    expect(failures.first(5)).to eq([])
   end
 
   begin
