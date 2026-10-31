@@ -6941,6 +6941,79 @@ describe Addressable::URI, "when initializing a subclass of Addressable::URI" do
   end
 end
 
+describe Addressable::URI, "when cloned" do
+  let(:input) { "http://u:p@a.example:8080/p?q#f" }
+  let(:uri) { Addressable::URI.parse(input) }
+  let(:components) { %i[scheme user password host path query fragment] }
+
+  def strings(uri)
+    uri.instance_variables.map { |ivar| uri.instance_variable_get(ivar) }.
+      select { |value| value.kind_of?(String) }
+  end
+
+  it "is equal to the original" do
+    copy = uri.clone
+    expect(copy).to eq(uri)
+    expect(copy.to_s).to eq(input)
+    expect(copy.class).to eq(uri.class)
+  end
+
+  it "keeps the original unchanged when the clone's strings change" do
+    copy = uri.clone
+    components.each { |component| copy.public_send(component) << "x" }
+    expect(uri.to_s).to eq(input)
+    components.each do |component|
+      expect(uri.public_send(component)).to eq(
+        Addressable::URI.parse(input).public_send(component)
+      )
+    end
+  end
+
+  it "keeps the clone unchanged when the original's strings change" do
+    copy = uri.clone
+    components.each { |component| uri.public_send(component) << "x" }
+    components.each do |component|
+      expect(copy.public_send(component)).to eq(
+        Addressable::URI.parse(input).public_send(component)
+      )
+    end
+  end
+
+  it "keeps the original's cached values unchanged" do
+    uri.normalize
+    uri.to_s
+    copy = uri.clone
+    copy.normalized_host << "x"
+    copy.to_s << "x"
+    expect(uri.normalized_host).to eq("a.example")
+    expect(uri.to_s).to eq(input)
+  end
+
+  it "shares no strings with the original" do
+    uri.freeze
+    copy = uri.clone
+    expect(strings(copy).size).to eq(strings(uri).size)
+    strings(copy).each do |string|
+      expect(strings(uri).none? { |original| original.equal?(string) }).to eq(true)
+    end
+  end
+
+  it "keeps a frozen original unchanged" do
+    uri.freeze
+    copy = uri.clone
+    expect(copy).to be_frozen
+    copy.host << "x"
+    copy.normalized_host << "x"
+    expect(uri.host).to eq("a.example")
+    expect(uri.normalized_host).to eq("a.example")
+  end
+
+  it "keeps the methods defined on the original" do
+    uri.define_singleton_method(:extra) { "extra" }
+    expect(uri.clone.extra).to eq("extra")
+  end
+end
+
 describe Addressable::URI, "support serialization roundtrip" do
   before do
     @uri = Addressable::URI.new(

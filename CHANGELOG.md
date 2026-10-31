@@ -14,6 +14,9 @@
   arrays given as values: e.g. `[1, :a]` became `["1", "a"]`; a frozen array
   raised `FrozenError`, and an object that responds to `to_ary`
   raised `TypeError` (#605)
+- fixes `Addressable::URI#clone` sharing component strings with the original:
+  e.g. appending to the clone's `#host` also changed the original's host, but
+  not its cached normalized values; `#dup` already made a separate copy (#617)
 - fixes the "character class has duplicated range" warnings that 2.9.1 gave
   when `Addressable::IDNA` was loaded with warnings enabled
 - fixes the "instance variable @validation_deferred not initialized" warning
