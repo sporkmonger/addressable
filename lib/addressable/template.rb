@@ -1085,10 +1085,10 @@ module Addressable
         first_explode = explodes.index(true)
         not_after_value =
           "(?<![#{Addressable::URI::CharacterClasses::UNRESERVED}])"
-        combined = varspecs.each_with_index.map do |varspec, index|
+        combined = varspecs.each_with_index.map do |varspec, position|
           _, name, modifier = *varspec.match(VARSPEC)
 
-          result = results[index]
+          result = results[position]
           if result
             "(?<#{name}>#{ result })"
           else
@@ -1130,7 +1130,7 @@ module Addressable
               # TruffleRuby).
               value = "#{seg}(?:#{joiner}#{seg})*"
             end
-            if plain && first_explode && index > first_explode &&
+            if plain && first_explode && position > first_explode &&
                 (operator == '+' || operator == '#' || operator == ';')
               # Exploded values were tried longest first, so whatever this
               # variable could match after the first exploded one, that one
@@ -1146,7 +1146,7 @@ module Addressable
                 # 2.9.0 skipped the variable when it couldn't be empty.
                 "(?:(?<#{name}>)(?!#{RESERVED_NO_COMMA}))?"
               end
-            elsif plain && modifier == '*' && explodes[(index + 1)..-1].any? &&
+            elsif plain && modifier == '*' && explodes[(position + 1)..-1].any? &&
                 (operator.nil? || operator == '/' || operator == '.')
               # Exploded values were tried shortest first, and a later
               # exploded variable can match whatever this one leaves, so once
@@ -1154,7 +1154,7 @@ module Addressable
               # fails too. Of the values tried, only the leading joiners are
               # shorter than every value tried before them.
               "(?<#{name}>(?:#{joiner})*)"
-            elsif plain && index > 0 && explodes[index - 1] &&
+            elsif plain && position > 0 && explodes[position - 1] &&
                 (operator == '?' || operator == '&')
               # Whatever this variable could match after an exploded one,
               # that one already tried matching itself, unless it couldn't:
@@ -1162,7 +1162,7 @@ module Addressable
               # start right after an empty one.
               "(?<#{name}>(?<=#{leader}#{joiner}|#{joiner}#{joiner})" \
                 "#{value || group})?"
-            elsif operator == ';' && plain && index > 0
+            elsif operator == ';' && plain && position > 0
               # Values were tried longest first, and splitting an earlier
               # variable's run of characters with this one never gave a
               # different result, so this one may only start after that run.
@@ -1172,7 +1172,7 @@ module Addressable
             elsif varspecs.size > 1 && (operator == '+' || operator == '#') &&
                   varspec != varspecs.last
               "(?<#{name}>#{RESERVED_NO_COMMA}*+)?"
-            elsif plain && index < varspecs.size - 1 &&
+            elsif plain && position < varspecs.size - 1 &&
                   (operator.nil? || operator == '/' || operator == '.')
               # Values were tried shortest first, so a run of characters
               # without a joiner went to a later variable. The only other

@@ -45,17 +45,21 @@ module StrictWarnings
     @warnings ||= []
   end
 
-  def warn(message, *args)
+  def warn(message, *args, **options)
     StrictWarnings.warnings << message if message =~ PROJECT_PATHS
-    super
+    # Rubies before 3.0 don't pass a category, and their Warning.warn
+    # takes no keywords.
+    options.empty? ? super(message, *args) : super
   end
-  ruby2_keywords(:warn) if respond_to?(:ruby2_keywords, true)
 end
 
 if defined?(Warning) && Warning.respond_to?(:warn)
   if Warning.respond_to?(:[]=)
     categories = Warning.respond_to?(:categories) ?
       Warning.categories : [:deprecated, :experimental, :performance]
+    # TruffleRuby's performance warnings flag every regexp built at runtime,
+    # which templates can't avoid.
+    categories -= [:performance] if RUBY_ENGINE == "truffleruby"
     categories.each do |category|
       begin
         Warning[category] = true
