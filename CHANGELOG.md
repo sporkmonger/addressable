@@ -1,6 +1,11 @@
 # Changelog
 
 ## Addressable 2.9.2 (unreleased) <a name="v2.9.2">
+- fixes `Addressable::URI` returning stale values after a component was
+  changed: e.g. after `host=`, `#site`, `#normalized_site`,
+  `#normalized_authority` and `#normalize` could still use the old host, and
+  after `scheme=`, `#normalized_port` could keep a port that's the new
+  scheme's default (#613)
 - fixes the "character class has duplicated range" warnings that 2.9.1 gave
   when `Addressable::IDNA` was loaded with warnings enabled
 - fixes the "instance variable @validation_deferred not initialized" warning
