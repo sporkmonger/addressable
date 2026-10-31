@@ -187,9 +187,9 @@ describe Addressable::URI, "after a component changes" do
           uri.public_send(component) == fresh.public_send(component)
         end
         expected = URICacheSpec.getters(fresh)
-        URICacheSpec.getters(uri).each do |getter, value|
-          next if value == expected[getter]
-          stale << [changes.dup, getter, value, expected[getter]]
+        URICacheSpec.getters(uri).each do |getter, actual|
+          next if actual == expected[getter]
+          stale << [changes.dup, getter, actual, expected[getter]]
         end
       end
     end
