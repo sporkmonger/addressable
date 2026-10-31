@@ -6977,13 +6977,13 @@ describe Addressable::URI, "when initialized in a non-main `Ractor`" do
     pending("Ruby 3.0+ for `Ractor` support") unless defined?(Ractor)
     value_method = RUBY_VERSION >= "3.5.0" ? :value : :take # see https://github.com/ruby/ruby/pull/13445
     main = Addressable::URI.parse("http://example.com")
-    # Ruby warns that Ractor is experimental, and before 3.4 that warning
-    # ignores Warning[:experimental].
-    verbose, $VERBOSE = $VERBOSE, nil
+    # Ruby warns that Ractor is experimental.
+    experimental = Warning[:experimental]
+    Warning[:experimental] = false
     begin
       ractor = Ractor.new { Addressable::URI.parse("http://example.com") }
     ensure
-      $VERBOSE = verbose
+      Warning[:experimental] = experimental
     end
     expect(ractor.public_send(value_method)).to eq(main)
   end unless (TestHelper.is_mri? && TestHelper.is_windows?) # Since Ruby 4 this test made the Windows job time out

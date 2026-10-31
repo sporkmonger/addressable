@@ -46,7 +46,12 @@ module StrictWarnings
   end
 
   def warn(message, *args, **options)
-    StrictWarnings.warnings << message if message =~ PROJECT_PATHS
+    # Before 3.4, Kernel#warn calls this even for a category that's turned
+    # off, and leaves it to the original Warning.warn to drop the warning.
+    category = options[:category]
+    if message =~ PROJECT_PATHS && (category.nil? || Warning[category])
+      StrictWarnings.warnings << message
+    end
     # Rubies before 3.0 don't pass a category, and their Warning.warn
     # takes no keywords.
     options.empty? ? super(message, *args) : super
