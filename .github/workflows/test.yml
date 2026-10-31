@@ -25,7 +25,7 @@ jobs:
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
 
-      - uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # v1.314.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           bundler-cache: true
           ruby-version: ruby
@@ -57,7 +57,7 @@ jobs:
         run: sudo apt-get install libidn11-dev
 
       - name: Setup ruby
-        uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # v1.314.0
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           bundler-cache: false
           ruby-version: ${{ matrix.ruby }}
@@ -96,7 +96,7 @@ jobs:
         run: sudo apt-get install libidn11-dev
 
       - name: Setup ruby
-        uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # v1.314.0
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           bundler-cache: false
           ruby-version: ${{ matrix.ruby }}
@@ -177,7 +177,7 @@ jobs:
       - name: Setup ruby
         continue-on-error: ${{ matrix.allow-failure || false }}
         id: setupruby
-        uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # v1.314.0
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           bundler-cache: false
           ruby-version: ${{ matrix.ruby }}
