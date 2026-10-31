@@ -45,7 +45,6 @@ shared_examples_for "converting from unicode to ASCII" do
   end
 
   it "should convert 'www.Iñtërnâtiônàlizætiøn.com' correctly" do
-    "www.Iñtërnâtiônàlizætiøn.com"
     expect(Addressable::IDNA.to_ascii(
       "www.I\xC3\xB1t\xC3\xABrn\xC3\xA2ti\xC3\xB4" +
       "n\xC3\xA0liz\xC3\xA6ti\xC3\xB8n.com"
