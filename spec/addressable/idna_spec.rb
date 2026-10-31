@@ -410,6 +410,22 @@ shared_examples_for "converting from ASCII to unicode" do
   end
 end
 
+# Every Unicode scalar value, U+0000 to U+10FFFF without the surrogates.
+ALL_CODE_POINTS = ((0..0xD7FF).to_a + (0xE000..0x10FFFF).to_a).
+  pack("U*").freeze
+
+shared_examples_for "matching display-changing characters" do
+  it "should match exactly the controls, format characters and default " +
+      "ignorable code points" do
+    expected = ALL_CODE_POINTS.scan(
+      /\p{Cc}|\p{Cf}|\p{Default_Ignorable_Code_Point}/
+    )
+    expect(ALL_CODE_POINTS.scan(Addressable::IDNA::DISPLAY_CHANGING)).to eq(
+      expected
+    )
+  end
+end
+
 describe Addressable::IDNA, "when using the pure-Ruby implementation" do
   before do
     Addressable.send(:remove_const, :IDNA)
@@ -418,10 +434,44 @@ describe Addressable::IDNA, "when using the pure-Ruby implementation" do
 
   it_should_behave_like "converting from unicode to ASCII"
   it_should_behave_like "converting from ASCII to unicode"
+  it_should_behave_like "matching display-changing characters"
 
   it "should load without warnings" do
     Addressable.send(:remove_const, :IDNA)
     expect { load "addressable/idna/pure.rb" }.not_to output.to_stderr
+  end
+
+  it "should prohibit exactly the code points in the nameprep tables" do
+    tables = [
+      # RFC 3454 Table C.1.2, non-ASCII space characters
+      [0x00A0, 0x1680, 0x2000..0x200B, 0x202F, 0x205F, 0x3000],
+      # Table C.2.2, non-ASCII control characters
+      [0x0080..0x009F, 0x06DD, 0x070F, 0x180E, 0x200C, 0x200D, 0x2028,
+       0x2029, 0x2060..0x2063, 0x206A..0x206F, 0xFEFF, 0xFFF9..0xFFFC,
+       0x1D173..0x1D17A],
+      # Table C.3, private use
+      [0xE000..0xF8FF, 0xF0000..0xFFFFD, 0x100000..0x10FFFD],
+      # Table C.4, non-character code points
+      [0xFDD0..0xFDEF] + (0..16).map do |plane|
+        (plane * 0x10000 + 0xFFFE)..(plane * 0x10000 + 0xFFFF)
+      end,
+      # Table C.6, inappropriate for plain text
+      [0xFFF9..0xFFFD],
+      # Table C.7, inappropriate for canonical representation
+      [0x2FF0..0x2FFB],
+      # Table C.8, change display properties or are deprecated
+      [0x0340, 0x0341, 0x200E, 0x200F, 0x202A..0x202E, 0x206A..0x206F],
+      # Table C.9, tagging characters
+      [0xE0001, 0xE0020..0xE007F],
+      # Table B.1, commonly mapped to nothing
+      [0x00AD, 0x034F, 0x1806, 0x180B..0x180D, 0x200B..0x200D, 0x2060,
+       0xFE00..0xFE0F, 0xFEFF]
+    ]
+    expected = tables.flatten.flat_map { |entry| Array(entry) }.uniq.sort
+    prohibited = ALL_CODE_POINTS.scan(
+      Addressable::IDNA::NAMEPREP_PROHIBITED
+    ).map(&:ord)
+    expect(prohibited).to eq(expected)
   end
 
   begin
@@ -451,6 +501,7 @@ begin
 
     it_should_behave_like "converting from unicode to ASCII"
     it_should_behave_like "converting from ASCII to unicode"
+    it_should_behave_like "matching display-changing characters"
 
     it "should load without warnings" do
       Addressable.send(:remove_const, :IDNA)
