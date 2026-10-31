@@ -939,6 +939,65 @@ describe Addressable::Template do
         expect(uri).to eq("http://example.com/search/Cafe%CC%81/")
       end
     end
+    context "expand with array values" do
+      subject { Addressable::Template.new("http://example.com/{?list*}") }
+      let(:list) { ["Cafe\u0301", 1, :two] }
+
+      it "leaves the array unchanged" do
+        uri = subject.expand("list" => list).to_str
+        expect(uri).to eq("http://example.com/?list=Caf%C3%A9&list=1&list=two")
+        expect(list).to eq(["Cafe\u0301", 1, :two])
+      end
+
+      it "leaves the array unchanged in a partial expansion" do
+        template = Addressable::Template.new("http://example.com/{?list*,x}")
+        expect(template.partial_expand("list" => list).pattern).to eq(
+          "http://example.com/?list=Caf%C3%A9&list=1&list=two{&x}"
+        )
+        expect(list).to eq(["Cafe\u0301", 1, :two])
+      end
+
+      it "expands a frozen array" do
+        uri = subject.expand("list" => ["Cafe\u0301", "b"].freeze).to_str
+        expect(uri).to eq("http://example.com/?list=Caf%C3%A9&list=b")
+      end
+
+      it "expands a frozen array in a partial expansion" do
+        template = Addressable::Template.new("http://example.com/{?list*,x}")
+        expect(template.partial_expand("list" => %w(a b).freeze).pattern).to eq(
+          "http://example.com/?list=a&list=b{&x}"
+        )
+      end
+
+      it "expands an object that converts to an array" do
+        list = Struct.new(:to_ary).new(["Cafe\u0301", 2].freeze)
+        uri = subject.expand("list" => list).to_str
+        expect(uri).to eq("http://example.com/?list=Caf%C3%A9&list=2")
+        expect(list.to_ary).to eq(["Cafe\u0301", 2])
+      end
+
+      it "leaves an array returned by a processor unchanged" do
+        result = ["Cafe\u0301", "b"]
+        processor = Object.new
+        processor.define_singleton_method(:transform) { |_name, _value| result }
+        template = Addressable::Template.new("http://example.com{/list*}")
+        expect(template.expand({ "list" => "x" }, processor).to_str).to eq(
+          "http://example.com/Caf\u00e9/b"
+        )
+        expect(result).to eq(["Cafe\u0301", "b"])
+      end
+
+      it "expands a frozen array returned by a processor" do
+        processor = Object.new
+        processor.define_singleton_method(:transform) do |_name, _value|
+          %w(a b).freeze
+        end
+        template = Addressable::Template.new("http://example.com{/list*}")
+        expect(template.expand({ "list" => "x" }, processor).to_str).to eq(
+          "http://example.com/a/b"
+        )
+      end
+    end
     context "expand with a processor" do
       subject {
         Addressable::Template.new("http://example.com/search/{query}/")
