@@ -28,6 +28,11 @@
   `{"a b" => "c"}`, not `{"a+b" => "c"}`; `%2B` is still a plus; it also
   reads `+` as a space for `HTTP` and `HTTPS` in uppercase, not only
   lowercase; other schemes, such as `mailto`, still keep `+` as is (#607)
+- `Addressable::Template#expand` and `#partial_expand` now treat an empty
+  list or associative array, and one with only `nil` members, as
+  undefined, and leave out `nil` members, as RFC 6570 says: e.g. `{?list}`
+  with `[]` expands to nothing, not `?list=`, and `{/list*}` with
+  `["a", nil, "b"]` expands to `/a/b`, not `/a//b` (#611)
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 - fixes `Addressable::URI` returning stale values after a component was

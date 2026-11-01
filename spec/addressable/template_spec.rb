@@ -553,6 +553,102 @@ describe "Expansion" do
       expect { subject.expand(Object.new => "1") }.to raise_error TypeError
     end
   end
+
+  # RFC 6570 section 2.3: a list or associative array with no defined
+  # members is undefined, and undefined (nil) members are left out.
+  context "undefined list and associative array members" do
+    subject {
+      {
+        "x" => "1",
+        "empty_list" => [],
+        "empty_keys" => {},
+        "nil_list" => [nil],
+        "nils" => [nil, nil],
+        "mixed" => ["a", nil, "b"],
+        "nil_keys" => {"k" => nil},
+        "mixed_keys" => {"a" => "1", "b" => nil}
+      }
+    }
+    it_behaves_like 'expands', {
+      'X{empty_list}Y' => 'XY',
+      'X{#empty_list}Y' => 'XY',
+      'X{.empty_list}Y' => 'XY',
+      'X{/empty_list*}Y' => 'XY',
+      'X{;empty_list}Y' => 'XY',
+      'X{;empty_list*}Y' => 'XY',
+      'X{?empty_list}Y' => 'XY',
+      'X{&empty_list*}Y' => 'XY',
+      'X{#empty_keys}Y' => 'XY',
+      'X{?empty_keys*}Y' => 'XY',
+      'X{nil_list}Y' => 'XY',
+      'X{#nils}Y' => 'XY',
+      'X{/nils*}Y' => 'XY',
+      'X{;nils*}Y' => 'XY',
+      'X{?nil_list}Y' => 'XY',
+      'X{nil_keys}Y' => 'XY',
+      'X{+nil_keys*}Y' => 'XY',
+      'X{?nil_keys}Y' => 'XY',
+      'X{mixed}Y' => 'Xa,bY',
+      'X{.mixed*}Y' => 'X.a.bY',
+      'X{/mixed*}Y' => 'X/a/bY',
+      'X{;mixed*}Y' => 'X;mixed=a;mixed=bY',
+      'X{?mixed*}Y' => 'X?mixed=a&mixed=bY',
+      'X{mixed_keys}Y' => 'Xa,1Y',
+      'X{;mixed_keys*}Y' => 'X;a=1Y',
+      'X{?mixed_keys*}Y' => 'X?a=1Y',
+      '{?empty_list,x}' => '?x=1',
+      '{?x,nil_list}' => '?x=1',
+      '{?mixed_keys*,x}' => '?a=1&x=1',
+      '{;nils,x}' => ';x=1',
+      '{/nil_keys,x}' => '/1'
+    }
+
+    it "doesn't change the values" do
+      mapping = subject
+      Addressable::Template.new("{mixed}{?mixed_keys*}").expand(mapping)
+      expect(mapping["mixed"]).to eq(["a", nil, "b"])
+      expect(mapping["mixed_keys"]).to eq({"a" => "1", "b" => nil})
+    end
+
+    it "expands a value with nil members as the value without them" do
+      rng = Random.new(611)
+      names = %w(a b c d)
+      values = [
+        nil, "", "v", [], [nil], [nil, nil], ["1", nil, "2"], ["1"],
+        {}, {"k" => nil}, {"k" => "1", "j" => nil}, {"k" => "1"}
+      ]
+      operators = ["", "+", "#", ".", "/", ";", "?", "&"]
+      wrong = []
+      2000.times do
+        varlist = names.sample(rng.rand(1..3), random: rng).map do |name|
+          rng.rand(4).zero? ? "#{name}*" : name
+        end
+        template = Addressable::Template.new(
+          "x{#{operators.sample(random: rng)}#{varlist.join(",")}}y"
+        )
+        mapping = {}
+        names.each do |name|
+          mapping[name] = values.sample(random: rng) if rng.rand(3) > 0
+        end
+        defined = {}
+        mapping.each do |name, value|
+          value = if value.kind_of?(Hash)
+            value.reject { |_, member| member.nil? }
+          elsif value.kind_of?(Array)
+            value.compact
+          else
+            value
+          end
+          defined[name] = value unless value == [] || value == {}
+        end
+        expanded = template.expand(mapping).to_s
+        if expanded != template.expand(defined).to_s
+          wrong << [template.pattern, mapping, expanded]
+        end
+      end
+      expect(wrong.first(5)).to eq([])
+    end
+  end
 end
 
 class ExampleTwoProcessor
@@ -906,6 +1002,73 @@ describe Addressable::Template do
       end
     end
   end
+  describe "Partial expand with undefined members" do
+    subject {
+      Addressable::Template.new("http://example.com/{?empty,y,x}")
+    }
+    it "skips an empty list when choosing the first query variable" do
+      expect(subject.partial_expand("empty" => [], "x" => "1").pattern).to eq(
+        "http://example.com/?x=1{&y}"
+      )
+    end
+    it "skips an empty associative array" do
+      expect(subject.partial_expand("empty" => {}, "x" => "1").pattern).to eq(
+        "http://example.com/?x=1{&y}"
+      )
+    end
+    it "skips a list with only nil members" do
+      expect(
+        subject.partial_expand("empty" => [nil, nil], "x" => "1").pattern
+      ).to eq("http://example.com/?x=1{&y}")
+    end
+    it "skips an associative array with only nil members" do
+      expect(
+        subject.partial_expand("empty" => {"k" => nil}, "x" => "1").pattern
+      ).to eq("http://example.com/?x=1{&y}")
+    end
+    it "keeps the query valid when the rest is undefined" do
+      partial = subject.partial_expand("empty" => [nil], "x" => "1")
+      expect(partial.expand({}).to_s).to eq("http://example.com/?x=1")
+      expect(partial.expand("y" => "2").to_s).to eq(
+        "http://example.com/?x=1&y=2"
+      )
+    end
+    it "treats a list with only nil members as nil" do
+      expect(subject.partial_expand("empty" => [nil]).pattern).to eq(
+        subject.partial_expand("empty" => nil).pattern
+      )
+    end
+
+    it "expands to the same URI as a full expansion" do
+      rng = Random.new(6110)
+      names = %w(a b c d)
+      values = [
+        nil, "", "v", [], [nil], [nil, nil], ["1", nil, "2"], ["1"],
+        {}, {"k" => nil}, {"k" => "1", "j" => nil}, {"k" => "1"}
+      ]
+      wrong = []
+      2000.times do
+        operator = [".", "/", ";", "?", "&"].sample(random: rng)
+        varlist = names.sample(rng.rand(1..3), random: rng).map do |name|
+          rng.rand(4).zero? ? "#{name}*" : name
+        end
+        template = Addressable::Template.new(
+          "x{#{operator}#{varlist.join(",")}}y"
+        )
+        mapping = {}
+        names.each do |name|
+          mapping[name] = values.sample(random: rng) if rng.rand(3) > 0
+        end
+        partial = template.partial_expand(mapping).expand({}).to_s
+        full = template.expand(mapping).to_s
+        if partial != full
+          wrong << [template.pattern, mapping, partial, full]
+        end
+      end
+      expect(wrong.first(5)).to eq([])
+    end
+  end
+
   describe "Partial expand with strings" do
     context "partial_expand with two simple values" do
       subject {

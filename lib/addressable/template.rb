@@ -720,9 +720,7 @@ module Addressable
         # slight reordering of the variables to produce a valid url.
         first_to_expand = vars.find { |varspec|
           _, name, _ =  *varspec.match(VARSPEC)
-          mapping.key?(name) &&
-            (value = mapping[name]) != nil &&
-            value != {} && value != []
+          mapping.key?(name) && !defined_value(mapping[name]).nil?
         }
 
         vars = [first_to_expand] + vars.reject {|varspec| varspec == first_to_expand}  if first_to_expand
@@ -742,6 +740,26 @@ module Addressable
           operator = "&" if (operator == "?") && (next_val != "")
           acc << next_val
       end
+    end
+
+    ##
+    # Drops the undefined (nil) members of a list or associative array value.
+    # RFC 6570 treats a list or associative array with no defined members as
+    # undefined, as it does nil.
+    #
+    # @param [Object] value The mapped value
+    #
+    # @return [Object, nil] The value without its undefined members, or nil
+    #   if the value is undefined
+    def defined_value(value)
+      value = if value.kind_of?(Hash)
+        value.reject { |_, member| member.nil? }
+      elsif value.respond_to?(:to_ary)
+        value.to_ary.reject { |member| member.nil? }
+      else
+        value
+      end
+      value unless value == {} || value == []
     end
 
     ##
@@ -775,15 +793,8 @@ module Addressable
       _, operator, varlist = *capture.match(EXPRESSION)
       return_value = varlist.split(',').inject([]) do |acc, varspec|
         _, name, modifier = *varspec.match(VARSPEC)
-        value = mapping[name]
-        value = if value.kind_of?(Hash)
-          value.reject { |_, member| member.nil? }
-        elsif value.respond_to?(:to_ary)
-          value.to_ary.reject { |member| member.nil? }
-        else
-          value
-        end
-        unless value == nil || value == {} || value == []
+        value = defined_value(mapping[name])
+        unless value.nil?
           allow_reserved = %w(+ #).include?(operator)
           # Common primitives where the .to_s output is well-defined
           if Numeric === value || Symbol === value ||
