@@ -52,6 +52,41 @@ describe "eql?" do
   end
 end
 
+describe "hash" do
+  let(:template) { Addressable::Template.new('https://www.example.com/{foo}') }
+  let(:other_template) do
+    Addressable::Template.new('https://www.example.com/{foo}')
+  end
+
+  it 'is the same for equal templates' do
+    expect(template.hash).to eq(other_template.hash)
+  end
+
+  it 'differs when the pattern differs' do
+    different = Addressable::Template.new('https://www.example.com/{bar}')
+    expect(template.hash).to_not eq(different.hash)
+  end
+
+  it 'is the same for an equal template of a subclass' do
+    subclassed = Class.new(Addressable::Template).new(template.pattern)
+    expect(template).to be_eql(subclassed)
+    expect(template.hash).to eq(subclassed.hash)
+  end
+
+  it 'is the same after freezing' do
+    hash = template.hash
+    expect(template.freeze.hash).to eq(hash)
+  end
+
+  it 'finds an equal template used as a Hash key' do
+    expect({ template => :found }[other_template]).to eq(:found)
+  end
+
+  it 'removes equal templates with uniq' do
+    expect([template, other_template].uniq).to eq([template])
+  end
+end
+
 describe "==" do
   let(:template) { Addressable::Template.new('https://www.example.com/{foo}') }
   it 'is equal when the pattern matches' do
