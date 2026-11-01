@@ -28,6 +28,18 @@
   `{"a b" => "c"}`, not `{"a+b" => "c"}`; `%2B` is still a plus; it also
   reads `+` as a space for `HTTP` and `HTTPS` in uppercase, not only
   lowercase; other schemes, such as `mailto`, still keep `+` as is (#607)
+- `Addressable::URI#normalize`, `#normalized_path`, `#normalized_query`,
+  `#normalized_fragment` and `.normalized_encode` no longer decode
+  pct-encoded reserved characters, as RFC 3986 says: e.g.
+  `normalized_encode("http://example.com/a%3Ab%2Fc")` gives
+  `http://example.com/a%3Ab%2Fc`, not `http://example.com/a:b/c`, `?a=1%262`
+  keeps `%26`, and `/sound%2bvision` normalizes to `/sound%2Bvision`, not
+  `/sound+vision`; so `http://example.com/a%3Ab` is no longer `==` to
+  `http://example.com/a:b`; unreserved characters are still decoded, and
+  a triplet is only decoded once, so `%252B` in a query stays `%252B`
+  rather than becoming `%2B`; a component with invalid UTF-8, such as `%FF`,
+  is now encoded with the given character class, so `%2B` no longer becomes
+  `%252B` and `%26` in a query pair is no longer decoded to `&` (#589)
 - `Addressable::Template#expand` and `#partial_expand` now treat an empty
   list or associative array, and one with only `nil` members, as
   undefined, and leave out `nil` members, as RFC 6570 says: e.g. `{?list}`

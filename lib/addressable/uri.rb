@@ -69,6 +69,25 @@ module Addressable
       QUERY = %r{[^a-zA-Z0-9\-\.\_\~\!\$\'\(\)\*\+\,\=\:\@\/\?%]|%(?!2B|2b)}
     end
 
+    # Normalization leaves pct-encoded reserved characters, and "%25",
+    # encoded (RFC 3986 section 6.2.2.2). Every "%" left after decoding then
+    # starts one of those triplets, so these classes never encode "%".
+    module NormalizeKeepingReserved
+      LEAVE_ENCODED = (CharacterClasses::RESERVED.delete("\\") + "%").freeze
+      PCHAR = /[^#{CharacterClasses::PCHAR}%]/
+      PATH = /[^#{CharacterClasses::PATH}%]/
+      QUERY = /[^#{CharacterClasses::QUERY}%]/
+      # "&" and ";" can separate query pairs, so they're encoded in a pair.
+      QUERY_PAIR = /[^#{
+        CharacterClasses::QUERY.sub("\\&", "").sub("\\;", "")
+      }%]/
+      FRAGMENT = /[^#{CharacterClasses::FRAGMENT}%]/
+      BARE_PERCENT = /%(?![0-9A-Fa-f]{2})/
+      TRIPLET = /%[0-9A-Fa-f]{2}/
+      SPLIT_TRIPLETS = /(%[0-9A-Fa-f]{2})/
+    end
+    private_constant :NormalizeKeepingReserved
+
     module CharacterClassesRegexps
       AUTHORITY = /[^#{CharacterClasses::AUTHORITY}]/
       FRAGMENT = /[^#{CharacterClasses::FRAGMENT}]/
@@ -565,33 +584,47 @@ module Addressable
           "Expected String or Regexp, got #{character_class.inspect}"
       end
       if character_class.kind_of?(String)
-        leave_re = if leave_encoded.length > 0
-          character_class = "#{character_class}%" unless character_class.include?('%')
-
-          bytes = leave_encoded.bytes
-          leave_encoded_pattern = bytes.map { |b| SEQUENCE_ENCODING_TABLE[b] }.join('|')
-          "|%(?!#{leave_encoded_pattern}|#{leave_encoded_pattern.upcase})"
+        if leave_encoded.length > 0
+          # A decoded "%25" would start a new triplet, so it stays encoded.
+          leave_encoded += "%" unless leave_encoded.include?("%")
+          character_class += "%" unless character_class.include?("%")
         end
-
-        character_class = if leave_re
-                            /[^#{character_class}]#{leave_re}/
-                          else
-                            /[^#{character_class}]/
-                          end
+        character_class = /[^#{character_class}]/
       end
       # We can't perform regexps on invalid UTF sequences, but
       # here we need to, so switch to ASCII.
       component = component.dup
       component.force_encoding(Encoding::ASCII_8BIT)
+      keep_percent = leave_encoded.include?("%")
+      # Then every "%" must start a triplet, or decoding could form one:
+      # "%%32%46" would become "%2F".
+      if keep_percent
+        component = component.gsub(NormalizeKeepingReserved::BARE_PERCENT, "%25")
+      end
+      upcase_encoded = keep_percent ? "" : leave_encoded
       unencoded = self.unencode_component(component, String, leave_encoded)
       begin
+        normalized = if keep_percent
+          # Composing a triplet's last hex digit with a combining mark that
+          # follows it would break the triplet, so only the text between
+          # triplets is normalized.
+          unencoded.split(NormalizeKeepingReserved::SPLIT_TRIPLETS).map.
+            with_index do |part, index|
+            index.odd? ? part : part.unicode_normalize(:nfc)
+          end.join
+        else
+          unencoded.unicode_normalize(:nfc)
+        end
         encoded = self.encode_component(
-          unencoded.unicode_normalize(:nfc),
+          normalized,
           character_class,
-          leave_encoded
+          upcase_encoded
         )
       rescue ArgumentError
-        encoded = self.encode_component(unencoded)
+        encoded = self.encode_component(unencoded, character_class, upcase_encoded)
+      end
+      if keep_percent
+        encoded = encoded.gsub(NormalizeKeepingReserved::TRIPLET, &:upcase)
       end
       encoded.force_encoding(Encoding::UTF_8)
       return encoded
@@ -687,9 +720,6 @@ module Addressable
         :password => self.unencode_component(uri_object.password),
         :host => self.unencode_component(uri_object.host),
         :port => (uri_object.port.nil? ? nil : uri_object.port.to_s),
-        :path => self.unencode_component(uri_object.path),
-        :query => self.unencode_component(uri_object.query),
-        :fragment => self.unencode_component(uri_object.fragment)
       }
       components.each do |key, value|
         if value != nil
@@ -710,12 +740,15 @@ module Addressable
           Addressable::URI::CharacterClassesRegexps::UNRESERVED),
         :host => components[:host],
         :port => components[:port],
-        :path => self.encode_component(components[:path],
-          Addressable::URI::CharacterClassesRegexps::PATH),
-        :query => self.encode_component(components[:query],
-          Addressable::URI::CharacterClassesRegexps::QUERY),
-        :fragment => self.encode_component(components[:fragment],
-          Addressable::URI::CharacterClassesRegexps::FRAGMENT)
+        :path => self.normalize_component(uri_object.path,
+          NormalizeKeepingReserved::PATH,
+          NormalizeKeepingReserved::LEAVE_ENCODED),
+        :query => self.normalize_component(uri_object.query,
+          NormalizeKeepingReserved::QUERY,
+          NormalizeKeepingReserved::LEAVE_ENCODED),
+        :fragment => self.normalize_component(uri_object.fragment,
+          NormalizeKeepingReserved::FRAGMENT,
+          NormalizeKeepingReserved::LEAVE_ENCODED)
       )
       if return_type == String
         return encoded_uri.to_s
@@ -1555,7 +1588,8 @@ module Addressable
         result = path.strip.split(SLASH, -1).map do |segment|
           Addressable::URI.normalize_component(
             segment,
-            Addressable::URI::NormalizeCharacterClasses::PCHAR
+            NormalizeKeepingReserved::PCHAR,
+            NormalizeKeepingReserved::LEAVE_ENCODED
           )
         end.join(SLASH)
 
@@ -1625,14 +1659,14 @@ module Addressable
       return nil unless self.query
       return @normalized_query if flags.empty? && @normalized_query != NONE
       normalized_query = begin
-        pairs = (query || "").split("&", -1)
+        pairs = query.split("&", -1)
         pairs.delete_if(&:empty?).uniq! if flags.include?(:compacted)
         pairs.sort! if flags.include?(:sorted)
         component = pairs.map do |pair|
           Addressable::URI.normalize_component(
             pair,
-            Addressable::URI::NormalizeCharacterClasses::QUERY,
-            "+"
+            NormalizeKeepingReserved::QUERY_PAIR,
+            NormalizeKeepingReserved::LEAVE_ENCODED
           )
         end.join("&")
         component == "" ? nil : component
@@ -1833,7 +1867,8 @@ module Addressable
       @normalized_fragment = begin
         component = Addressable::URI.normalize_component(
           self.fragment,
-          Addressable::URI::NormalizeCharacterClasses::FRAGMENT
+          NormalizeKeepingReserved::FRAGMENT,
+          NormalizeKeepingReserved::LEAVE_ENCODED
         )
         component == "" ? nil : component
       end
