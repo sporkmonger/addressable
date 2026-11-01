@@ -2084,7 +2084,9 @@ describe Addressable::URI, "when assigned an origin with an empty port" do
     "HTTPS://EXAMPLE.org:" => "https://example.org",
     "ws://192.0.2.1:" => "ws://192.0.2.1",
     "foo://a-b.example:" => "foo://a-b.example",
-    "http://%65xample.com:" => "http://example.com"
+    "http://%65xample.com:" => "http://example.com",
+    "http://[::1]:" => "http://[::1]",
+    "http://[v1.fe80::a]:" => "http://[v1.fe80::a]"
   }.each do |origin, expected|
     it "should treat '#{origin}' as having no port" do
       @uri.origin = origin
@@ -2095,26 +2097,98 @@ describe Addressable::URI, "when assigned an origin with an empty port" do
     end
   end
 
-  # These still raise rather than take a host or port that differs from
-  # Addressable::URI.parse.
   [
-    "http://[::1]:",
     "http://u:p@example.com:",
     "http://user:secret@example.com:",
     "http://example.com:8080/a:",
     "http://example.com/a:",
     "http://example.com:?a:"
   ].each do |origin|
-    it "should not take a different host or port from '#{origin}'" do
-      parsed = Addressable::URI.parse(origin)
-      begin
+    it "should raise for '#{origin}', which isn't an origin" do
+      expect do
         @uri.origin = origin
-      rescue Addressable::URI::InvalidURIError
-        next
-      end
-      expect(@uri.normalized_host).to eq(parsed.normalized_host)
-      expect(@uri.normalized_port).to eq(parsed.normalized_port)
+      end.to raise_error(Addressable::URI::InvalidURIError)
     end
+  end
+end
+
+# A serialized origin is a scheme, host and port (Section 6.2 of RFC 6454).
+describe Addressable::URI, "when assigned an origin" do
+  before do
+    @uri = Addressable::URI.parse("http://placeholder.example/p?q=1#f")
+  end
+
+  {
+    "http://[::1]" => ["[::1]", nil],
+    "http://[::1]:8080" => ["[::1]", 8080],
+    "https://[2001:db8::7]:443" => ["[2001:db8::7]", 443],
+    "http://[2001:DB8:0:0:8:800:200C:417A]:81" =>
+      ["[2001:DB8:0:0:8:800:200C:417A]", 81],
+    "http://[v1.fe80::a]:8080" => ["[v1.fe80::a]", 8080],
+    "http://192.0.2.1:8080" => ["192.0.2.1", 8080],
+    "http://example.com:80" => ["example.com", 80]
+  }.each do |origin, (host, port)|
+    it "should take the host and port from '#{origin}'" do
+      @uri.origin = origin
+      expect(@uri.host).to eq(host)
+      expect(@uri.port).to eq(port)
+      expect(@uri.path).to eq("/p")
+      expect(@uri.query).to eq("q=1")
+      expect(@uri.fragment).to eq("f")
+      expect(@uri.origin).to eq(Addressable::URI.parse(origin).origin)
+    end
+  end
+
+  {
+    "http://user@example.com" => "userinfo",
+    "http://example.com/" => "a path",
+    "http://example.com:8080/a" => "a path",
+    "http://[::1]/" => "a path",
+    "http://example.com?q" => "a query",
+    "http://example.com#f" => "a fragment"
+  }.each do |origin, part|
+    it "should raise for '#{origin}', which has #{part}" do
+      expect do
+        @uri.origin = origin
+      end.to raise_error(
+        Addressable::URI::InvalidURIError,
+        "An origin cannot include userinfo, a path, query, or fragment."
+      )
+      expect(@uri.to_s).to eq("http://placeholder.example/p?q=1#f")
+    end
+  end
+
+  [
+    "http://user:secret@example.com",
+    "http://[::1]@example.com"
+  ].each do |origin|
+    it "should raise for '#{origin}', which has userinfo" do
+      expect do
+        @uri.origin = origin
+      end.to raise_error(Addressable::URI::InvalidURIError)
+    end
+  end
+
+  it "should raise for an origin with an unclosed IPv6 host" do
+    expect do
+      @uri.origin = "http://[::1"
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should name the missing scheme" do
+    expect do
+      @uri.origin = "//example.com"
+    end.to raise_error(
+      Addressable::URI::InvalidURIError, "An origin cannot omit the scheme."
+    )
+  end
+
+  it "should name the missing host" do
+    expect do
+      @uri.origin = "http://"
+    end.to raise_error(
+      Addressable::URI::InvalidURIError, "An origin cannot omit the host."
+    )
   end
 end
 
