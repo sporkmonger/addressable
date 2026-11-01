@@ -19,11 +19,45 @@ require "spec_helper"
 
 require "addressable/uri"
 require "net/http"
+require "socket"
 
 describe Net::HTTP do
+  # A local server that answers one request, so the spec doesn't need the
+  # network.
+  around do |example|
+    @server = TCPServer.new("127.0.0.1", 0)
+    @request = nil
+    thread = Thread.new do
+      client = @server.accept
+      lines = []
+      while (line = client.gets) && line != "\r\n"
+        lines << line.chomp
+      end
+      @request = lines
+      client.write(
+        "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n" \
+        "Content-Length: 5\r\nConnection: close\r\n\r\nhello"
+      )
+      client.close
+    end
+    begin
+      example.run
+    ensure
+      @server.close
+      thread.join(5)
+      thread.kill
+    end
+  end
+
   it "should be compatible with Addressable" do
-    response_body =
-      Net::HTTP.get(Addressable::URI.parse('http://www.google.com/'))
-    expect(response_body).not_to be_nil
+    port = @server.addr[1]
+    uri = Addressable::URI.parse("http://127.0.0.1:#{port}/path?q=1")
+    expect(Net::HTTP.get(uri)).to eq("hello")
+    # Net::HTTP only takes the path from a stdlib URI, so it sends an
+    # Addressable::URI whole, as an absolute-form request target.
+    expect(@request.first).to eq("GET #{uri} HTTP/1.1").or(
+      eq("GET /path?q=1 HTTP/1.1")
+    )
+    expect(@request).to include("Host: 127.0.0.1:#{port}")
   end
 end
