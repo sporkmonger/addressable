@@ -465,6 +465,100 @@ describe "Expansion" do
       '{#keys*}' => '#semi=;,dot=.,comma=,',
     }
   end
+  # RFC 6570 section 3.1: literal characters outside the reserved and
+  # unreserved sets are pct-encoded as UTF-8, and pct-encoded triplets are
+  # copied as they are.
+  context "literals" do
+    subject { {"var" => "value"} }
+    it_behaves_like 'expands', {
+      "caf\u00E9/{var}" => 'caf%C3%A9/value',
+      "{var}/\u20AC" => 'value/%E2%82%AC',
+      "\u{1D11E}{var}" => '%F0%9D%84%9Evalue',
+      'x%20y/{var}' => 'x%20y/value',
+      'x%20y{var}z%20w' => 'x%20yvaluez%20w',
+      'a%2fb/{var}' => 'a%2fb/value',
+      'x y/{var}' => 'x%20y/value',
+      '50%off/{var}' => '50%25off/value',
+      '50%2/{var}' => '50%252/value',
+      '{/{var}' => '%7B/value',
+      '{var}}' => 'value%7D',
+      'a<b>/{var}' => 'a%3Cb%3E/value',
+      "http://example.com/{var}?a=b&c=d#e:f@g!$'()*+,;=" =>
+        "http://example.com/value?a=b&c=d#e:f@g!$'()*+,;="
+    }
+
+    it "keeps literals as they are in a partial expansion" do
+      template = Addressable::Template.new("caf\u00E9 {var}/{other}")
+      expect(template.partial_expand("var" => "1").pattern).to eq(
+        "caf\u00E9 1/{other}"
+      )
+    end
+
+    it "matches a literal in either form" do
+      template =
+        Addressable::Template.new("http://example.com/caf\u00E9/{var}")
+      [
+        "http://example.com/caf%C3%A9/value",
+        "http://example.com/caf%c3%a9/value",
+        "http://example.com/caf\u00E9/value"
+      ].each do |uri|
+        expect(template.extract(uri)).to eq("var" => "value")
+      end
+      expect(template.extract("http://example.com/caf%C3%A8/value")).to eq(nil)
+    end
+
+    it "matches a percent sign in either form" do
+      template = Addressable::Template.new("/50%off/{var}")
+      expect(template.extract("/50%25off/value")).to eq("var" => "value")
+      expect(template.extract("/50%off/value")).to eq("var" => "value")
+    end
+
+    it "matches braces that don't start an expression as they are" do
+      template = Addressable::Template.new("x{a.*}/{var}")
+      expect(template.extract("x{a.*}/value")).to eq("var" => "value")
+      expect(template.extract("x%7Ba.*%7D/value")).to eq("var" => "value")
+      expect(template.extract("x{aZZZ}/value")).to eq(nil)
+      template = Addressable::Template.new("x{a(}/{var}")
+      expect(template.extract("x{a(}/value")).to eq("var" => "value")
+    end
+
+    it "extracts the values from an expansion" do
+      rng = Random.new(1741)
+      literals = ["a", "/", "?", "&", "=", "%", "%2F", " ", "\u00E9",
+        "\u20AC", "<", "{", "}", "|"]
+      operators = ["", "+", "#", ".", "/", ";", "?", "&"]
+      valid = /\A(?:[#{
+        Addressable::URI::CharacterClasses::RESERVED_AND_UNRESERVED
+      }]|%[0-9A-Fa-f]{2})*\z/
+      wrong = []
+      2000.times do |index|
+        names = []
+        pattern = "".dup
+        rng.rand(1..3).times do
+          pattern << Array.new(rng.rand(0..3)) do
+            literals.sample(random: rng)
+          end.join
+          name = "v#{names.size}"
+          names << name
+          pattern << "{#{operators.sample(random: rng)}#{name}}"
+          pattern << "Z"
+        end
+        pattern << Array.new(rng.rand(0..3)) { literals.sample(random: rng) }.join
+        mapping = {}
+        names.each { |name| mapping[name] = "x#{rng.rand(100)}" }
+        # Random literals can form expressions of their own, such as {a}.
+        next if pattern.scan(Addressable::Template::EXPRESSION).size != names.size
+        template = Addressable::Template.new(pattern)
+        expanded = template.expand(mapping).to_s
+        extracted = template.extract(expanded)
+        if expanded !~ valid || extracted != mapping
+          wrong << [pattern, expanded, extracted]
+        end
+      end
+      expect(wrong.first(5)).to eq([])
+    end
+  end
+
   # RFC 6570 section 3.2.3: reserved and fragment expansion pass
   # pct-encoded triplets through, and encode any other "%".
   context "pct-encoded triplets" do
