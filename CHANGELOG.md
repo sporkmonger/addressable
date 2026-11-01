@@ -1,6 +1,6 @@
 # Changelog
 
-## Addressable 2.9.2 (unreleased) <a name="v2.9.2">
+## Addressable 2.9.2 <a name="v2.9.2">
 - fixes `Addressable::URI` returning stale values after a component was
   changed: e.g. after `host=`, `#site`, `#normalized_site`,
   `#normalized_authority` and `#normalize` could still use the old host, and
@@ -23,7 +23,7 @@
   treated punctuation as digits; such labels are now returned unchanged (#614)
 - speeds up the pure-Ruby `Addressable::IDNA.to_unicode`, which became up to
   25 times slower in 2.9.1 on long labels with many non-ASCII characters;
-  Punycode encoding no longer takes quadratic time
+  Punycode encoding no longer takes quadratic time (#645)
 - fixes the "character class has duplicated range" warnings that 2.9.1 gave
   when `Addressable::IDNA` was loaded with warnings enabled
 - fixes the "instance variable @validation_deferred not initialized" warning
