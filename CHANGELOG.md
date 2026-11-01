@@ -5,6 +5,15 @@
   refuses any other branch, uncommitted changes, a `main` that doesn't match
   `origin/main` and an existing tag, and the Release workflow refuses a tag on
   a commit that isn't on `main`
+- fixes `Addressable::URI#route_from` and `#route_to` giving routes that don't
+  resolve to the target: e.g. from `http://example.com/a/b?x=1` to
+  `http://example.com/a/` the route was empty, which resolves to the base, and
+  is now `./`; this also happened when only the base had a query (#623) or a
+  fragment, when the target's path had empty segments, as in `/a//b`, and when
+  the target had an empty path or no authority
+- `Addressable::URI#route_from` and `#route_to` no longer add a `../` that
+  climbs above the root: e.g. from `http://example.com/a` to
+  `http://example.com/` the route is now `./`, not `../`
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 - fixes `Addressable::URI` returning stale values after a component was
