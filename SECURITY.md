@@ -9,6 +9,15 @@ https://github.com/sporkmonger/addressable/security/advisories/new
 
 Don't open a public issue or pull request for a security problem.
 
+## One issue per report
+
+Report each distinct security issue separately, even if you found the
+issues together or they affect the same part of the code. Don't bundle
+several issues into one report. Each issue needs its own triage, severity,
+advisory, CVE and fix, and a bundled report makes it hard to accept one
+issue while declining another or to fix them on different schedules. If
+two issues are related, mention the other report in each one.
+
 ## Include a proposed fix
 
 Because of the recent high volume of security reports, please include a
