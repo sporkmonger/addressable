@@ -465,6 +465,78 @@ describe "Expansion" do
       '{#keys*}' => '#semi=;,dot=.,comma=,',
     }
   end
+  # RFC 6570 section 3.2.3: reserved and fragment expansion pass
+  # pct-encoded triplets through, and encode any other "%".
+  context "pct-encoded triplets" do
+    subject {
+      {
+        "id" => "admin%2F",
+        "not_pct" => "%foo",
+        "short" => "50%2",
+        "lower" => "a%2fb",
+        "list" => ["red%25", "%2Fgreen", "blue "],
+        "keys" => {"key1" => "val1%2F", "key%3A" => "%zz"}
+      }
+    }
+    it_behaves_like 'expands', {
+      '{+id}' => 'admin%2F',
+      '{#id}' => '#admin%2F',
+      '{id}' => 'admin%252F',
+      '{/id}' => '/admin%252F',
+      '{?id}' => '?id=admin%252F',
+      '{+not_pct}' => '%25foo',
+      '{#not_pct}' => '#%25foo',
+      '{not_pct}' => '%25foo',
+      '{+short}' => '50%252',
+      '{+lower}' => 'a%2fb',
+      '{+list}' => 'red%25,%2Fgreen,blue%20',
+      '{#list}' => '#red%25,%2Fgreen,blue%20',
+      '{+list*}' => 'red%25,%2Fgreen,blue%20',
+      '{list}' => 'red%2525,%252Fgreen,blue%20',
+      '{+keys}' => 'key1,val1%2F,key%3A,%25zz',
+      '{#keys*}' => '#key1=val1%2F,key%3A=%25zz',
+      '{keys}' => 'key1,val1%252F,key%253A,%25zz',
+      '{+id:6}' => 'admin%2F',
+      '{+list:4}' => 'red%25,%2Fgre,blue',
+      '{list:4}' => 'red%25,%252Fg,blue',
+      '{+id:5}' => 'admin',
+      '{#not_pct:2}' => '#%25f',
+      '{id:6}' => 'admin%25'
+    }
+
+    it "leaves an expanded value as it is when expanding it again" do
+      rng = Random.new(1203)
+      alphabet = ["%", "%", "2", "F", "f", "a", "Z", "/", "?", "#", "[",
+        " ", ",", "~", "\u00E9", "\u20AC", "<", "^"]
+      reserved = Addressable::Template.new("{+value}")
+      fragment = Addressable::Template.new("{#value}")
+      wrong = []
+      3000.times do
+        value = Array.new(rng.rand(0..8)) { alphabet.sample(random: rng) }.join
+        expanded = reserved.expand("value" => value).to_s
+        unless expanded =~ /\A(?:[#{
+            Addressable::URI::CharacterClasses::RESERVED_AND_UNRESERVED
+          }]|%[0-9A-Fa-f]{2})*\z/
+          wrong << [value, expanded]
+        end
+        if reserved.expand("value" => expanded).to_s != expanded
+          wrong << [value, expanded]
+        end
+        if fragment.expand("value" => value).to_s != "#" + expanded
+          wrong << [value, expanded]
+        end
+        # Decoding gives the value back, reading a "%" that doesn't start a
+        # pct-encoded triplet as itself.
+        decoded = Addressable::URI.unencode(
+          value.gsub(/%(?![0-9A-Fa-f]{2})/, "%25")
+        )
+        if Addressable::URI.unencode(expanded) != decoded
+          wrong << [value, expanded]
+        end
+      end
+      expect(wrong.first(5)).to eq([])
+    end
+  end
   context "label expansion (.)" do
     it_behaves_like 'expands', {
       '{.who}' => '.fred',

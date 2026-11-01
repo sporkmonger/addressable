@@ -45,6 +45,11 @@ module Addressable
       "(?:[#{
         Addressable::URI::CharacterClasses::UNRESERVED
       }]|%[a-fA-F0-9][a-fA-F0-9])"
+    # Reserved and fragment expansion encode every character outside the
+    # reserved and unreserved sets, except a "%" that starts a pct-encoded
+    # triplet (RFC 6570 section 3.2.3).
+    RESERVED_ENCODE = /%(?![0-9A-Fa-f]{2})|[^%#{anything}]/
+    PCT_ENCODED_OR_CHARACTER = /%[0-9A-Fa-f]{2}|./m
     variable =
       "(?:#{var_char}(?:\\.?#{var_char})*)"
     varspec =
@@ -743,6 +748,22 @@ module Addressable
     end
 
     ##
+    # Takes the first characters of a value for a prefix modifier. Reserved
+    # and fragment expansion count a pct-encoded triplet as one character,
+    # so that it isn't split (RFC 6570 section 2.4.1).
+    #
+    # @param [String] value The value
+    # @param [Integer] length The maximum number of characters
+    # @param [Boolean] allow_reserved Whether pct-encoded triplets are kept
+    #
+    # @return [String] The prefix
+    def prefix(value, length, allow_reserved)
+      value = value.to_str
+      return value[0...length] unless allow_reserved
+      value.scan(PCT_ENCODED_OR_CHARACTER).first(length).join
+    end
+
+    ##
     # Drops the undefined (nil) members of a list or associative array value.
     # RFC 6570 treats a list or associative array with no defined members as
     # undefined, as it does nil.
@@ -814,16 +835,15 @@ module Addressable
           if processor == nil || !processor.respond_to?(:transform)
             # Handle percent escaping
             if allow_reserved
-              encode_map =
-                Addressable::URI::CharacterClasses::RESERVED +
-                Addressable::URI::CharacterClasses::UNRESERVED
+              encode_map = RESERVED_ENCODE
             else
               encode_map = Addressable::URI::CharacterClasses::UNRESERVED
             end
             if value.kind_of?(Array)
               transformed_value = value.map do |val|
                 if length
-                  Addressable::URI.encode_component(val[0...length], encode_map)
+                  Addressable::URI.encode_component(
+                    prefix(val, length, allow_reserved), encode_map)
                 else
                   Addressable::URI.encode_component(val, encode_map)
                 end
@@ -853,7 +873,7 @@ module Addressable
             else
               if length
                 transformed_value = Addressable::URI.encode_component(
-                  value[0...length], encode_map)
+                  prefix(value, length, allow_reserved), encode_map)
               else
                 transformed_value = Addressable::URI.encode_component(
                   value, encode_map)
