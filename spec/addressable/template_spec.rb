@@ -366,6 +366,44 @@ describe "Modifiers" do
       '{semi:2}' => '%3B'
     }
   end
+  # RFC 6570 section 2.4.1: max-length is 1 to 9999, with no leading zero.
+  context "length outside the bounds" do
+    it_behaves_like 'expands', {
+      '{var:1}' => 'v',
+      '{var:9999}' => 'value',
+      '{var:3,semi}' => 'val,%3B',
+      '/x{var:0}' => '/x%7Bvar:0%7D',
+      '/x{var:00}' => '/x%7Bvar:00%7D',
+      '/x{var:03}' => '/x%7Bvar:03%7D',
+      '/x{var:10000}' => '/x%7Bvar:10000%7D',
+      '/x{var:99999999999999999999}' => '/x%7Bvar:99999999999999999999%7D',
+      '/x{var:}' => '/x%7Bvar:%7D',
+      "/x{var:١}" => '/x%7Bvar:%D9%A1%7D',
+      '/x{var:0,semi}' => '/x%7Bvar:0,semi%7D',
+      '/x{+var:0}' => '/x%7B+var:0%7D'
+    }
+
+    it "doesn't treat the expression as a variable" do
+      ["/x{var:0}", "/x{var:05}", "/x{var:10000}", "/x{var:0,semi}"].each do |pattern|
+        expect(Addressable::Template.new(pattern).variables).to eq([])
+      end
+      expect(Addressable::Template.new("/x{var:9999}").variables).to eq(["var"])
+    end
+
+    it "leaves the expression as written in a partial expansion" do
+      template = Addressable::Template.new("/x{var:10000}/{semi}")
+      expect(template.partial_expand("var" => "value").pattern).to eq(
+        "/x{var:10000}/{semi}"
+      )
+    end
+
+    it "matches the expression as literal text" do
+      template = Addressable::Template.new("/x{var:0}/{semi}")
+      expect(template.extract("/x{var:0}/a")).to eq("semi" => "a")
+      expect(template.extract("/x%7Bvar:0%7D/a")).to eq("semi" => "a")
+      expect(template.extract("/x/a")).to eq(nil)
+    end
+  end
   context "explode" do
     it_behaves_like 'expands', {
       'find{?year*}' => 'find?year=1965&year=2000&year=2012',
