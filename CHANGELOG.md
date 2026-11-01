@@ -23,6 +23,11 @@
   password `one:two`, repeating `one` in `#to_s`, and `alice` gave no user at
   all; an empty string now gives an empty user rather than none, as parsing
   `http://@example.com` does (#606)
+- `Addressable::URI#query_values` now reads `+` as a space in names as well as
+  values, as form encoding does: e.g. `http://example.com/?a+b=c` gives
+  `{"a b" => "c"}`, not `{"a+b" => "c"}`; `%2B` is still a plus; it also
+  reads `+` as a space for `HTTP` and `HTTPS` in uppercase, not only
+  lowercase; other schemes, such as `mailto`, still keep `+` as is (#607)
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 - fixes `Addressable::URI` returning stale values after a component was

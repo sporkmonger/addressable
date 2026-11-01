@@ -4627,6 +4627,47 @@ describe Addressable::URI, "when parsed from 'mailto:?q=a+b'" do
   end
 end
 
+# In a form-encoded query, "+" is a space in names as well as values, and
+# "%2B" is a plus (Section 5.1 of the WHATWG URL Standard).
+describe Addressable::URI, "when reading form-encoded query names" do
+  {
+    "http://example.com/?a+b=c+d" => [["a b", "c d"]],
+    "https://example.com/?a+b=c+d" => [["a b", "c d"]],
+    "/path?a+b=c+d" => [["a b", "c d"]],
+    "HTTP://example.com/?a+b=c+d" => [["a b", "c d"]],
+    "HttpS://example.com/?a+b=c+d" => [["a b", "c d"]],
+    "http://example.com/?a%2Bb=c%2Bd" => [["a+b", "c+d"]],
+    "http://example.com/?a+%2B+b=1&+" => [["a + b", "1"], [" "]],
+    "mailto:?a+b=c+d" => [["a+b", "c+d"]],
+    "ftp://example.com/?a+b=c+d" => [["a+b", "c+d"]]
+  }.each do |uri, values|
+    it "should have query_values of #{values.inspect} for '#{uri}'" do
+      expect(Addressable::URI.parse(uri).query_values(Array)).to eq(values)
+    end
+  end
+
+  it "should give back any query_values it was assigned" do
+    random = Random.new(607)
+    characters = ["a", "+", " ", "%", "=", "&", "%2B", "\u00E9", "~"]
+    starts = ["http://example.com/", "HTTP://example.com/", "/path",
+      "mailto:a@example.com", "ftp://example.com/"]
+    text = lambda do |range|
+      Array.new(random.rand(range)) do
+        characters[random.rand(characters.size)]
+      end.join
+    end
+    wrong = []
+    1000.times do
+      values = {}
+      random.rand(1..3).times { values[text.call(1..4)] = text.call(0..4) }
+      uri = Addressable::URI.parse(starts[random.rand(starts.size)])
+      uri.query_values = values
+      wrong << [uri.to_s, values] unless uri.query_values == values
+    end
+    expect(wrong.first(5)).to eq([])
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://example.com/?q=a%2bb'" do
   before do
