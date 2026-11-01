@@ -708,6 +708,15 @@ describe "Expansion" do
       ).to_str).to eq("123/2/3?b=4&c=512")
     end
 
+    it "expands long templates with non-ASCII literals in linear time" do
+      template = Addressable::Template.new("é{a}" * 100_000)
+      expect do
+        Timeout.timeout(10) do
+          expect(template.expand("a" => "x").to_str).to eq("%C3%A9x" * 100_000)
+        end
+      end.not_to raise_error
+    end
+
     it "checks long templates in linear time" do
       [
         "{" * 100_000,

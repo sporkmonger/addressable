@@ -17,6 +17,7 @@
 #++
 
 
+require "strscan"
 require "addressable/version"
 require "addressable/uri"
 
@@ -803,13 +804,15 @@ module Addressable
     # @return [String] The pattern with each literal replaced.
     def map_literals(pattern)
       result = "".dup
-      position = 0
-      pattern.scan(EXPRESSION) do
-        match = Regexp.last_match
-        result << yield(pattern[position...match.begin(0)]) << match[0]
-        position = match.end(0)
+      # StringScanner works in byte offsets; character offsets would make
+      # this quadratic for a pattern with non-ASCII characters.
+      scanner = StringScanner.new(pattern)
+      while (text = scanner.scan_until(EXPRESSION))
+        expression = scanner.matched
+        literal = text.byteslice(0, text.bytesize - expression.bytesize)
+        result << yield(literal) << expression
       end
-      result << yield(pattern[position..-1])
+      result << yield(scanner.rest)
     end
 
     ##
