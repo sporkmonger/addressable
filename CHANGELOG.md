@@ -48,6 +48,12 @@
   `http://xn--bcher-kva.example../`, not `http://xn--bcher-kva.example/`,
   and `#display_uri` keeps the dots too; `#normalize` still drops a single
   trailing dot (#609)
+- `Addressable::URI#origin=` now keeps an IPv6 or IPvFuture host in brackets
+  whole: e.g. `http://[::1]:8080` gives the host `[::1]` and the port 8080;
+  it now raises `InvalidURIError` for a string that isn't a serialized
+  origin (a scheme, a host and an optional port), such as
+  `http://user@example.com` or `http://example.com/a`, which have userinfo
+  and a path (#616)
 - `Addressable::Template#expand` and `#partial_expand` now treat an empty
   list or associative array, and one with only `nil` members, as
   undefined, and leave out `nil` members, as RFC 6570 says: e.g. `{?list}`
