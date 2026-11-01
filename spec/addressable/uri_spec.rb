@@ -4331,6 +4331,101 @@ describe Addressable::URI, "when routing to a segment containing a colon" do
   end
 end
 
+# A route resolves to its target against the normalized base (Section 5.2 of
+# RFC 3986). An empty path keeps the base's query, a path starting with "//"
+# would be read as an authority, and without an authority a path can't be
+# reached from a base path with a different kind of start.
+describe Addressable::URI, "when routing between URIs" do
+  {
+    ["http://example.com/a/", "http://example.com/a/b"] => "./",
+    ["http://example.com/a/", "http://example.com/a/b?x=1"] => "./",
+    ["http://example.com/a/?q", "http://example.com/a/b?x=1"] => "./?q",
+    ["http://example.com/a/#f", "http://example.com/a/b?q"] => "./#f",
+    ["http://example.com/x//", "http://example.com/x//y"] => "./",
+    ["http://example.com/", "http://example.com/a"] => "./",
+    ["http://example.com/?q", "http://example.com/a/b"] => "../?q",
+    ["http://example.com/a/b/", "http://example.com/a/b/c/d"] => "../",
+    ["http://example.com/a/b", "http://example.com/a/b#f"] => "b",
+    ["http://example.com/a/b?q", "http://example.com/a/b?q#f"] => "?q",
+    ["http://example.com/a/b#f", "http://example.com/a/b#g"] => "#f",
+    ["http://example.com/a//b", "http://example.com/a/b"] => ".//b",
+    ["http://example.com//b", "http://example.com/a"] => ".//b",
+    ["http://example.com//b", "http://example.com/"] => ".//b",
+    ["http://example.com/a//b/c", "http://example.com/x/y/z"] =>
+      "../../a//b/c",
+    ["foo://example.com", "foo://example.com/a"] => "foo://example.com",
+    ["foo://example.com?q", "foo://example.com/?q"] => "foo://example.com?q",
+    ["foo://example.com/", "foo://example.com?q"] => "./",
+    ["foo://example.com/a", "foo://example.com"] => "/a",
+    ["foo:x", "foo://example.com/a"] => "foo:x",
+    ["foo:/x", "foo://example.com/a"] => "foo:/x",
+    ["foo:/a", "foo:b"] => "/a",
+    ["foo:", "foo:a"] => "./",
+    ["foo:", "foo:a/b"] => "foo:",
+    ["foo:a", "foo:b/c"] => "foo:a",
+    ["foo:b/a", "foo:b/c"] => "a",
+    ["foo:a?q", "foo:/b"] => "foo:a?q",
+    ["foo:a:b/..", "foo:b"] => "foo:a:b/.."
+  }.each do |(target, base), route|
+    it "should have a route of '#{route}' to '#{target}' from '#{base}'" do
+      uri = Addressable::URI.parse(target)
+      expect(uri.route_from(base).to_s).to eq(route)
+      expect(Addressable::URI.parse(base).route_to(target).to_s).to eq(route)
+      expect(Addressable::URI.parse(base).normalize.join(route)).to eq(uri)
+    end
+  end
+
+  it "should have routes that resolve to their targets" do
+    random = Random.new(623)
+    segments = ["a", "b", "", ".", "..", "a:b", "%7E", "x y", "%2E", "%2e%2E"]
+    pick = lambda { |values| values[random.rand(values.size)] }
+    build = lambda do |scheme, authority|
+      path = case random.rand(10)
+      when 0 then ""
+      when 1 then "/"
+      else
+        Array.new(random.rand(1..4)) { pick.call(segments) }.join("/")
+      end
+      path = "/" + path if authority || random.rand(2) == 0
+      uri = authority ? "#{scheme}://#{authority}#{path}" : "#{scheme}:#{path}"
+      query = pick.call([nil, "", "q", "x=1", "a:b"])
+      fragment = pick.call([nil, "", "f"])
+      uri += "?#{query}" if query
+      uri += "##{fragment}" if fragment
+      uri
+    end
+    authorities = [nil, "example.com", "other.example", "u@example.com:81"]
+    wrong = []
+    3000.times do
+      scheme = pick.call(["http", "foo"])
+      authority = pick.call(authorities)
+      base = build.call(scheme, authority)
+      target = case random.rand(10)
+      when 0 then base
+      when 1 then build.call(pick.call(["http", "foo"]), pick.call(authorities))
+      else build.call(scheme, authority)
+      end
+      begin
+        base = Addressable::URI.parse(base).normalize
+        target = Addressable::URI.parse(target).normalize
+      rescue Addressable::URI::InvalidURIError
+        next
+      end
+      begin
+        route = target.route_from(base)
+        resolved = base.join(route)
+        unless resolved == target &&
+            base.route_to(target).to_s == route.to_s
+          wrong << [base.to_s, target.to_s, route.to_s]
+        end
+      rescue Addressable::URI::InvalidURIError => error
+        wrong << [base.to_s, target.to_s, error.message]
+      end
+    end
+    expect(wrong.first(5)).to eq([])
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
   "'http://example.com/search?q=Q%26A'" do
 

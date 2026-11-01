@@ -2111,39 +2111,27 @@ module Addressable
           components[:password] = nil
           components[:host] = nil
           components[:port] = nil
-          if normalized_self.path == uri.path
-            if normalized_self.query == uri.query
-              components[:path] = nil
-              components[:query] = nil
-            elsif normalized_self.query == nil
-              # An empty path would inherit the base's query (RFC 3986 5.2.2);
-              # "./" stands in for an empty segment and keeps one with ":"
-              # from reading as a scheme (RFC 3986 4.2)
-              segment = normalized_self.path.rpartition(SLASH).last
-              if segment.empty? || segment.include?(":")
-                segment = "./" + segment
-              end
-              components[:path] = segment
-            else
-              components[:path] = nil
-            end
+          if normalized_self.path == uri.path &&
+              normalized_self.query == uri.query &&
+              (normalized_self.fragment || uri.fragment.nil?)
+            components[:path] = nil
+            components[:query] = nil
+          elsif normalized_self.path == uri.path && normalized_self.query
+            components[:path] = nil
           else
-            if uri.path != SLASH and components[:path]
-              self_splitted_path = split_path(components[:path])
-              uri_splitted_path = split_path(uri.path)
-              self_dir = self_splitted_path.shift
-              uri_dir = uri_splitted_path.shift
-              while !self_splitted_path.empty? && !uri_splitted_path.empty? and self_dir == uri_dir
-                self_dir = self_splitted_path.shift
-                uri_dir = uri_splitted_path.shift
-              end
-              components[:path] = (uri_splitted_path.fill('..') + [self_dir] + self_splitted_path).join(SLASH)
+            # An empty path would keep the base's query (RFC 3986 5.2.2),
+            # and join keeps the base's fragment for an empty reference.
+            components[:path] = relative_path_from(uri, normalized_self.path)
+            if components[:path].nil?
+              components = normalized_self.to_hash
             end
           end
         end
       end
-      # Avoid network-path references.
-      if components[:host] != nil
+      # Avoid network-path references, and keep the scheme for a URI
+      # without an authority, which would otherwise take the base's.
+      if components[:host] != nil ||
+          normalized_self.authority != uri.authority
         components[:scheme] = normalized_self.scheme
       end
       # A first segment containing a colon would be read as a scheme.
@@ -2578,17 +2566,49 @@ module Addressable
     end
 
     ##
-    # Splits path string with "/" (slash).
-    # It is considered that there is empty string after last slash when
-    # path ends with slash.
+    # Returns a relative path that resolves to path against the base URI,
+    # or nil if no relative path does.
     #
-    # @param [String] path The path to split.
+    # @param [Addressable::URI] base The normalized base URI.
+    # @param [String] path The normalized path to route to.
     #
-    # @return [Array<String>] An array of parts of path.
-    def split_path(path)
-      splitted = path.split(SLASH)
-      splitted << EMPTY_STR if path.end_with? SLASH
-      splitted
+    # @return [String, nil] The relative path.
+    #
+    # @api private
+    def relative_path_from(base, path)
+      base_path = base.path
+      base_path = SLASH if base_path.empty? && base.authority
+      slash = base_path.rindex(SLASH)
+      base_dir = slash ? base_path[0..slash] : EMPTY_STR
+      rooted = path.start_with?(SLASH)
+      if rooted != base_dir.start_with?(SLASH)
+        # Merging keeps the slash a base directory starts with, and a path
+        # without an authority can't start with "//".
+        return rooted ? path : nil
+      end
+      if base_path == SLASH && path != SLASH && !path.start_with?("//")
+        return path
+      end
+      base_segments = base_dir.split(SLASH, -1)
+      base_segments.pop
+      segments = path.split(SLASH, -1)
+      # Normalization keeps a ".." it can't remove, and resolving a relative
+      # path would remove it.
+      return nil if segments.include?(PARENT)
+      shared = 0
+      while shared < segments.size - 1 &&
+          base_segments[shared] == segments[shared]
+        shared += 1
+      end
+      # Without a leading slash, ".." can't climb out of a base directory.
+      return nil if !rooted && shared < base_segments.size
+      relative = "../" * (base_segments.size - shared) +
+        segments[shared..-1].join(SLASH)
+      # An empty path is the base itself, and a leading "/" an absolute path.
+      if relative.empty? || relative.start_with?(SLASH)
+        relative = "./" + relative
+      end
+      relative
     end
 
     ##
