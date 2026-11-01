@@ -14,6 +14,9 @@
 - `Addressable::URI#route_from` and `#route_to` no longer add a `../` that
   climbs above the root: e.g. from `http://example.com/a` to
   `http://example.com/` the route is now `./`, not `../`
+- `Addressable::Template#hash` is now the same for equal templates, so
+  templates with the same pattern find each other as `Hash` keys and are
+  merged by `uniq` and `Set`; before, every template had its own hash (#604)
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 - fixes `Addressable::URI` returning stale values after a component was
