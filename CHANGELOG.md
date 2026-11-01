@@ -1,5 +1,11 @@
 # Changelog
 
+## Addressable 2.10.0 (unreleased) <a name="v2.10.0">
+- release tags are only created and published from `main`: `rake git:tag:create`
+  refuses any other branch, uncommitted changes, a `main` that doesn't match
+  `origin/main` and an existing tag, and the Release workflow refuses a tag on
+  a commit that isn't on `main`
+
 ## Addressable 2.9.2 <a name="v2.9.2">
 - fixes `Addressable::URI` returning stale values after a component was
   changed: e.g. after `host=`, `#site`, `#normalized_site`,
