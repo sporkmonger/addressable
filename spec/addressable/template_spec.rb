@@ -480,8 +480,6 @@ describe "Expansion" do
       'x y/{var}' => 'x%20y/value',
       '50%off/{var}' => '50%25off/value',
       '50%2/{var}' => '50%252/value',
-      '{/{var}' => '%7B/value',
-      '{var}}' => 'value%7D',
       'a<b>/{var}' => 'a%3Cb%3E/value',
       "http://example.com/{var}?a=b&c=d#e:f@g!$'()*+,;=" =>
         "http://example.com/value?a=b&c=d#e:f@g!$'()*+,;="
@@ -525,7 +523,7 @@ describe "Expansion" do
     it "extracts the values from an expansion" do
       rng = Random.new(1741)
       literals = ["a", "/", "?", "&", "=", "%", "%2F", " ", "\u00E9",
-        "\u20AC", "<", "{", "}", "|"]
+        "\u20AC", "<", "|"]
       operators = ["", "+", "#", ".", "/", ";", "?", "&"]
       valid = /\A(?:[#{
         Addressable::URI::CharacterClasses::RESERVED_AND_UNRESERVED
@@ -546,8 +544,6 @@ describe "Expansion" do
         pattern << Array.new(rng.rand(0..3)) { literals.sample(random: rng) }.join
         mapping = {}
         names.each { |name| mapping[name] = "x#{rng.rand(100)}" }
-        # Random literals can form expressions of their own, such as {a}.
-        next if pattern.scan(Addressable::Template::EXPRESSION).size != names.size
         template = Addressable::Template.new(pattern)
         expanded = template.expand(mapping).to_s
         extracted = template.extract(expanded)
@@ -556,6 +552,178 @@ describe "Expansion" do
         end
       end
       expect(wrong.first(5)).to eq([])
+    end
+  end
+
+  # RFC 6570 section 3: an error in a template is indicated to the caller.
+  # These are the negative tests from uri-templates/uritemplate-test.
+  context "malformed templates" do
+    subject {
+      {
+        "id" => "thing",
+        "var" => "value",
+        "hello" => "Hello World!",
+        "with space" => "fail",
+        " leading_space" => "Hi!",
+        "trailing_space " => "Bye!",
+        "empty" => "",
+        "path" => "/foo/bar",
+        "list" => ["red", "green", "blue"],
+        "keys" => {"semi" => ";", "dot" => ".", "comma" => ","},
+        "example" => "red",
+        "searchTerms" => "uri templates",
+        "~thing" => "some-user",
+        "default-graph-uri" => [
+          "http://www.example/book/", "http://www.example/papers/"
+        ],
+        "query" => "PREFIX dc: <http://purl.org/dc/elements/1.1/> " \
+          "SELECT ?book ?who WHERE { ?book dc:creator ?who }"
+      }
+    }
+    error = Addressable::Template::InvalidTemplateError
+
+    {
+      "{/id*" => [error, 'Unclosed template expression "{/id*" at position 0'],
+      "/id*}" => [error, 'Unmatched "}" at position 4'],
+      "{/?id}" => [error, 'Invalid template expression "{/?id}" at position 0'],
+      "{var:prefix}" => [error],
+      "{hello:2*}" => [error],
+      "{??hello}" => [error],
+      "{with space}" => [error],
+      "{ leading_space}" => [error],
+      "{trailing_space }" => [error],
+      "{$var}" => [error],
+      "{*keys?}" => [error],
+      "{?empty=default,var}" => [error],
+      "{var}{-prefix|/-/|var}" =>
+        [error, 'Invalid template expression "{-prefix|/-/|var}" at position 5'],
+      "?q={searchTerms}&amp;c={example:color?}" => [error],
+      "x{?empty|foo=none}" => [error],
+      "/h{#hello+}" => [error],
+      "/h\#{hello+}" => [error],
+      "{;keys:1*}" => [error],
+      "?{-join|&|var,list}" => [error],
+      "/people/{~thing}" => [error],
+      "/{default-graph-uri}" => [error],
+      "/sparql{?query,default-graph-uri}" => [error],
+      "/sparql{?query){&default-graph-uri*}" => [error,
+        'Invalid template expression "{?query){&default-graph-uri*}" ' \
+        'at position 7'],
+      "/resolution{?x, y}" => [error],
+      "{var:0}" => [error],
+      "{var:01}" => [error],
+      "{var:10000}" => [error],
+      "{var:}" => [error],
+      "{x.}" => [error],
+      "{x..y}" => [error],
+      "{%2x}" => [error],
+      "{}" => [error],
+      "{{var}}" => [error],
+      "{var}{" => [error, 'Unclosed template expression "{" at position 5'],
+      "}{var}" => [error, 'Unmatched "}" at position 0'],
+      "{!hello}" => [Addressable::Template::InvalidTemplateOperatorError,
+        'Invalid template operator "!" in "{!hello}" at position 0'],
+      "{=path}" => [Addressable::Template::InvalidTemplateOperatorError],
+      "{|var*}" => [Addressable::Template::InvalidTemplateOperatorError],
+      "{,var}" => [Addressable::Template::InvalidTemplateOperatorError],
+      "/{@var}" => [Addressable::Template::InvalidTemplateOperatorError,
+        'Invalid template operator "@" in "{@var}" at position 1']
+    }.each do |pattern, (error_class, message)|
+      it "raises #{error_class} when expanding #{pattern.inspect}" do
+        template = Addressable::Template.new(pattern)
+        expectation = [error_class, message].compact
+        expect { template.expand(subject) }.to raise_error(*expectation)
+        expect { template.partial_expand(subject) }.to raise_error(*expectation)
+        expect { template.partial_expand({}) }.to raise_error(*expectation)
+      end
+    end
+
+    it "raises errors that are InvalidTemplateErrors" do
+      expect(Addressable::Template::InvalidTemplateOperatorError.ancestors).to(
+        include(Addressable::Template::InvalidTemplateError)
+      )
+      expect(Addressable::Template::InvalidTemplateError.ancestors).to(
+        include(StandardError)
+      )
+    end
+
+    it "still creates and matches the template" do
+      template = Addressable::Template.new("x{a.*}/{var}")
+      expect(template.variables).to eq(["var"])
+      expect(template.extract("x{a.*}/value")).to eq("var" => "value")
+    end
+
+    it "expands variable names the grammar allows" do
+      template = Addressable::Template.new("{x.y}/{%41}/{a_1}{?b,c}{x.y:2}")
+      expect(template.expand(
+        "x.y" => "123", "%41" => "2", "a_1" => "3", "b" => "4", "c" => "5"
+      ).to_str).to eq("123/2/3?b=4&c=512")
+    end
+
+    it "checks long templates in linear time" do
+      [
+        "{" * 100_000,
+        "}" * 100_000,
+        "{a" * 50_000,
+        "{" + ("a." * 50_000) + "}",
+        "{" + ("a," * 50_000) + "!}",
+        "{" + ("%2" * 50_000) + "}",
+        ("{a}" * 30_000) + "{",
+        ("é{a}" * 30_000) + "}",
+        ("é" * 100_000) + "{é}"
+      ].each do |pattern|
+        template = Addressable::Template.new(pattern)
+        expect do
+          Timeout.timeout(10) do
+            expect { template.expand({}) }.to raise_error(
+              Addressable::Template::InvalidTemplateError
+            )
+          end
+        end.not_to raise_error
+      end
+    end
+  end
+
+  # RFC 6570 section 2.4.1: prefix modifiers don't apply to composite values.
+  context "prefix modifiers on composite values" do
+    subject {
+      {
+        "var" => "value",
+        "list" => ["red", "green"],
+        "keys" => {"semi" => ";", "dot" => "."},
+        "empty_list" => [],
+        "nil_list" => [nil],
+        "empty_keys" => {}
+      }
+    }
+
+    ["{list:1}", "{+list:4}", "{#list:2}", "{?list:3}", "{/var,list:1}",
+      "{keys:1}", "{+keys:1}", "{;keys:2}", "{&keys:9999}"].each do |pattern|
+      it "raises InvalidTemplateValueError when expanding #{pattern}" do
+        template = Addressable::Template.new(pattern)
+        expect { template.expand(subject) }.to raise_error(
+          Addressable::Template::InvalidTemplateValueError,
+          /prefix modifier :\d+ can't be applied to the list or associative array "(list|keys)"/
+        )
+        expect { template.partial_expand(subject) }.to raise_error(
+          Addressable::Template::InvalidTemplateValueError
+        )
+      end
+    end
+
+    it_behaves_like 'expands', {
+      '{var:3}' => 'val',
+      '{list}' => 'red,green',
+      '{keys*}' => 'semi=%3B,dot=.',
+      'x{empty_list:1}' => 'x',
+      'x{nil_list:1}' => 'x',
+      'x{?empty_keys:1}' => 'x',
+      'x{undefined:1}' => 'x'
+    }
+
+    it "leaves the expression in a partial expansion without the value" do
+      template = Addressable::Template.new("{list:1}/{var}")
+      expect(template.partial_expand("var" => "v").pattern).to eq("{list:1}/v")
     end
   end
 
@@ -591,8 +759,6 @@ describe "Expansion" do
       '{#keys*}' => '#key1=val1%2F,key%3A=%25zz',
       '{keys}' => 'key1,val1%252F,key%253A,%25zz',
       '{+id:6}' => 'admin%2F',
-      '{+list:4}' => 'red%25,%2Fgre,blue',
-      '{list:4}' => 'red%25,%252Fg,blue',
       '{+id:5}' => 'admin',
       '{#not_pct:2}' => '#%25f',
       '{id:6}' => 'admin%25'
