@@ -1376,19 +1376,22 @@ module Addressable
           raise TypeError, "Can't convert #{new_origin.class} into String."
         end
         new_origin = new_origin.to_str
-        new_scheme = new_origin[/^([^:\/?#]+):\/\//, 1]
-        unless new_scheme
+        origin_match = new_origin.match(
+          /\A([^:\/?#]+):\/\/(\[[^\]]+\]|[^\/?#:@]+)(?::([^\/?#]*))?\z/
+        )
+        unless new_origin =~ /\A[^:\/?#]+:\/\//
           raise InvalidURIError, 'An origin cannot omit the scheme.'
         end
-        new_host = new_origin[/:\/\/([^\/?#:]+)/, 1]
-        unless new_host
-          raise InvalidURIError, 'An origin cannot omit the host.'
+        unless origin_match
+          if new_origin =~ /\A[^:\/?#]+:\/\/\z/
+            raise InvalidURIError, 'An origin cannot omit the host.'
+          end
+          raise InvalidURIError,
+            'An origin cannot include userinfo, a path, query, or fragment.'
         end
-        new_port = new_origin[/:([^:@\[\]\/]*?)$/, 1]
+        new_scheme, new_host, new_port = origin_match.captures
         # An empty port is the same as no port (Section 3.2.3 of RFC 3986).
-        if new_port == EMPTY_STR && new_origin =~ /\A[^:\/?#]+:\/\/[^\/?#:@\[\]]+:\z/
-          new_port = nil
-        end
+        new_port = nil if new_port == EMPTY_STR
       end
 
       self.scheme = new_scheme
