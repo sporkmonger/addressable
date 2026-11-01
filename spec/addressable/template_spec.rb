@@ -858,6 +858,37 @@ describe Addressable::Template do
     it 'freezes the template' do
       expect(subject.freeze).to be_frozen
     end
+
+    it "isn't changed by changing the variables it returned" do
+      subject.freeze
+      subject.variables.clear
+      subject.keys << "third"
+      subject.names.push("fourth")
+      expect(subject.variables).to eq(["first", "second"])
+    end
+  end
+
+  describe "variables" do
+    subject { Addressable::Template.new("http://example.com/{first}/{+second}/") }
+
+    it "isn't changed by changing an earlier result" do
+      subject.variables.clear
+      subject.keys << "third"
+      subject.names.push("fourth")
+      expect(subject.variables).to eq(["first", "second"])
+      expect(subject.match("http://example.com/a/b/").mapping).to eq(
+        "first" => "a", "second" => "b"
+      )
+    end
+  end
+
+  describe "variable_defaults" do
+    subject { Addressable::Template.new("http://example.com/{first}/") }
+
+    it "isn't changed by changing an earlier result" do
+      subject.variable_defaults["first"] = "default"
+      expect(subject.variable_defaults).to eq({})
+    end
   end
 
   describe "Matching" do
@@ -1833,6 +1864,20 @@ describe Addressable::Template::MatchData do
   its(:string) { should == its.to_s }
   its(:pre_match) { should == "" }
   its(:post_match) { should == "" }
+
+  it "isn't changed by changing the values it returned" do
+    its.values.clear
+    its.captures << "ef"
+    expect(its.values).to eq(['ab', 'cd'])
+    expect(its.to_a).to eq(['ab/cd', 'ab', 'cd'])
+  end
+
+  it "doesn't change the template by changing the variables it returned" do
+    its.variables.clear
+    its.keys << "baz"
+    expect(its.names).to eq(['foo', 'bar'])
+    expect(template.variables).to eq(['foo', 'bar'])
+  end
 
   describe 'values_at' do
     it 'returns an array with the values' do
