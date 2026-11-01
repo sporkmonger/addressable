@@ -66,6 +66,12 @@
   hash: e.g. clearing the array from `#variables` emptied the variables of
   that template, even a frozen one, for every later call; each call now
   returns a copy (#619)
+- `Addressable::Template` now only reads a prefix modifier from 1 to 9999
+  with no leading zero, as RFC 6570 says; other lengths, such as `{var:0}`,
+  `{var:05}` and `{var:10000}`, are malformed expressions, so `#expand` and
+  `#partial_expand` raise `InvalidTemplateError` where `{var:10000}` used to
+  expand to the whole value, and `#match` reads them as literal text; a
+  length too large for a machine integer no longer raises `RangeError` (#618)
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 - fixes `Addressable::URI` returning stale values after a component was
