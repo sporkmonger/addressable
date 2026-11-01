@@ -63,7 +63,10 @@ module Addressable
     module NormalizeCharacterClasses
       HOST = /[^#{CharacterClasses::HOST}]/
       UNRESERVED = /[^#{CharacterClasses::UNRESERVED}]/
+      PCHAR = /[^#{CharacterClasses::PCHAR}]/
       SCHEME = /[^#{CharacterClasses::SCHEME}]/
+      FRAGMENT = /[^#{CharacterClasses::FRAGMENT}]/
+      QUERY = %r{[^a-zA-Z0-9\-\.\_\~\!\$\'\(\)\*\+\,\=\:\@\/\?%]|%(?!2B|2b)}
     end
 
     module CharacterClassesRegexps

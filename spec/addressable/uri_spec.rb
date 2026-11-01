@@ -2775,6 +2775,81 @@ describe Addressable::URI, "when normalizing URIs with percent-encoded reserved 
 
   # Positive control: unreserved characters should still be decoded.
   it_normalizes("http://example.com/%41%42%43", "http://example.com/ABC")
+
+  it_normalizes("http://example.com/a%3ab%2fc", "http://example.com/a%3Ab%2Fc")
+  it_normalizes("http://example.com/a%23b?c#d", "http://example.com/a%23b?c#d")
+  it_normalizes("http://example.com/?a=1%262&b=%3D", "http://example.com/?a=1%262&b=%3D")
+  it_normalizes("http://example.com/?a=%2B%FF", "http://example.com/?a=%2B%FF")
+  it_normalizes("http://example.com/%2B%FF#%2B%FF", "http://example.com/%2B%FF#%2B%FF")
+
+  it "keeps encoded reserved characters in a sorted query" do
+    uri = Addressable::URI.parse("http://example.com/?b=%26%3d&a=%2B%FF")
+    expect(uri.normalized_query(:sorted)).to eq("a=%2B%FF&b=%26%3D")
+  end
+
+  it "treats an encoded slash as part of a path segment" do
+    uri = Addressable::URI.parse("http://example.com/a%2Fb/../c")
+    expect(uri.normalize.to_s).to eq("http://example.com/c")
+  end
+
+  it "doesn't treat a reserved character and its encoding as equal" do
+    expect(Addressable::URI.parse("http://example.com/a%3Ab")).not_to eq(
+      Addressable::URI.parse("http://example.com/a:b")
+    )
+    expect(Addressable::URI.parse("http://example.com/?a=%3D")).not_to eq(
+      Addressable::URI.parse("http://example.com/?a==")
+    )
+    expect(Addressable::URI.parse("http://example.com/%41")).to eq(
+      Addressable::URI.parse("http://example.com/A")
+    )
+  end
+
+  it "keeps the character classes it no longer uses" do
+    expect(Addressable::URI::NormalizeCharacterClasses::PCHAR).to be_a(Regexp)
+    expect(Addressable::URI::NormalizeCharacterClasses::FRAGMENT).to be_a(Regexp)
+    expect(Addressable::URI::NormalizeCharacterClasses::QUERY).to be_a(Regexp)
+  end
+
+  it "decodes only unreserved characters, and gives a stable result" do
+    rng = Random.new(589)
+    reserved = ":/?#[]@!$&'()*+,;=".chars
+    unreserved = %w(a Z 0 - . _ ~)
+    pieces = reserved + unreserved +
+      reserved.map { |c| "%%%02X" % c.ord } +
+      reserved.map { |c| "%%%02x" % c.ord } +
+      unreserved.map { |c| "%%%02X" % c.ord } +
+      ["%", "%G1", " ", "é", "%C3%A9", "%FF", "%25", "\"", "<", "|"]
+    encoded_reserved = lambda do |string|
+      string.scan(/%[0-9A-Fa-f]{2}/).count do |triplet|
+        reserved.include?(triplet[1..2].hex.chr)
+      end
+    end
+    wrong = []
+    1000.times do
+      part = lambda do
+        Array.new(rng.rand(0..6)) { pieces.sample(random: rng) }.join
+      end
+      path = part.call.delete("?#")
+      query = part.call.delete("#")
+      fragment = part.call
+      input = "http://example.com/#{path}?#{query}##{fragment}"
+      uri = begin
+        Addressable::URI.parse(input)
+      rescue Addressable::URI::InvalidURIError
+        next
+      end
+      normalized = uri.normalize.to_s
+      encoded = Addressable::URI.normalized_encode(input)
+      tail = input.sub("http://example.com", "")
+      if encoded_reserved.call(normalized) < encoded_reserved.call(tail) ||
+          encoded_reserved.call(encoded) < encoded_reserved.call(tail) ||
+          normalized =~ /%(?:[46][1-9A-F]|[57][0-9A]|3[0-9]|2D|2E|5F|7E)/i ||
+          Addressable::URI.parse(normalized).normalize.to_s != normalized
+        wrong << [input, normalized, encoded]
+      end
+    end
+    expect(wrong.first(5)).to eq([])
+  end
 end
 
 describe Addressable::URI, "when parsed from " +
