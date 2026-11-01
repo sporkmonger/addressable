@@ -4471,50 +4471,50 @@ module Addressable
     def self.punycode_encode(unicode)
       unicode = unicode.to_s unless unicode.is_a?(String)
       input = unicode.unpack("U*")
-      output = [0] * (ACE_MAX_LENGTH + 1)
-      input_length = input.size
-      output_length = [ACE_MAX_LENGTH]
+      output = []
+      max_out = ACE_MAX_LENGTH
 
-      # Initialize the state
-      n = PUNYCODE_INITIAL_N
-      delta = out = 0
-      max_out = output_length[0]
-      bias = PUNYCODE_INITIAL_BIAS
+      # The positions of each non-basic code point, and a Fenwick tree of
+      # the positions of the code points handled so far, so that counting
+      # the handled code points before a position doesn't take a pass over
+      # the input.
+      positions = {}
+      handled = Array.new(input.size + 1, 0)
 
       # Handle the basic code points:
-      input_length.times do |j|
-        if punycode_basic?(input[j])
-          if max_out - out < 2
+      input.each_with_index do |codepoint, j|
+        if punycode_basic?(codepoint)
+          if max_out - output.size < 2
             raise PunycodeBigOutput,
               "Output would exceed the space provided."
           end
-          output[out] = input[j]
-          out += 1
+          output << codepoint
+          handled[j + 1] = 1
+        else
+          (positions[codepoint] ||= []) << j
         end
       end
+      (1..input.size).each do |i|
+        parent = i + (i & -i)
+        handled[parent] += handled[i] if parent <= input.size
+      end
 
-      h = b = out
+      h = b = output.size
 
       # h is the number of code points that have been handled, b is the
-      # number of basic code points, and out is the number of characters
-      # that have been output.
+      # number of basic code points, and output.size is the number of
+      # characters that have been output.
 
-      if b > 0
-        output[out] = PUNYCODE_DELIMITER
-        out += 1
-      end
+      output << PUNYCODE_DELIMITER if b > 0
 
-      # Main encoding loop:
+      # Main encoding loop: handle each non-basic code point in ascending
+      # order.
 
-      while h < input_length
-        # All non-basic code points < n have been
-        # handled already.  Find the next larger one:
+      n = PUNYCODE_INITIAL_N
+      delta = 0
+      bias = PUNYCODE_INITIAL_BIAS
 
-        m = PUNYCODE_MAXINT
-        input_length.times do |j|
-          m = input[j] if (n...m) === input[j]
-        end
-
+      positions.keys.sort.each do |m|
         # Increase delta enough to advance the decoder's
         # <n,i> state to <m,0>, but guard against overflow:
 
@@ -4524,47 +4524,56 @@ module Addressable
         delta += (m - n) * (h + 1)
         n = m
 
-        input_length.times do |j|
-          # Punycode does not need to check whether input[j] is basic:
-          if input[j] < n
-            delta += 1
-            if delta == 0
-              raise PunycodeOverflow,
-                "Input needs wider integers to process."
+        # Each occurrence of n adds the handled code points since the last
+        # one, which RFC 3492 counts as code points less than n.
+        handled_before_pass = h
+        counted = 0
+        positions[n].each do |position|
+          before = 0
+          i = position
+          while i > 0
+            before += handled[i]
+            i -= i & -i
+          end
+          delta += before - counted
+          counted = before
+
+          # Represent delta as a generalized variable-length integer:
+
+          q = delta; k = PUNYCODE_BASE
+          while true
+            if output.size >= max_out
+              raise PunycodeBigOutput,
+                "Output would exceed the space provided."
             end
+            t = (
+              if k <= bias
+                PUNYCODE_TMIN
+              elsif k >= bias + PUNYCODE_TMAX
+                PUNYCODE_TMAX
+              else
+                k - bias
+              end
+            )
+            break if q < t
+            output <<
+              punycode_encode_digit(t + (q - t) % (PUNYCODE_BASE - t))
+            q = (q - t) / (PUNYCODE_BASE - t)
+            k += PUNYCODE_BASE
           end
 
-          if input[j] == n
-            # Represent delta as a generalized variable-length integer:
+          output << punycode_encode_digit(q)
+          bias = punycode_adapt(delta, h + 1, h == b)
+          delta = 0
+          h += 1
+        end
+        delta += handled_before_pass - counted
 
-            q = delta; k = PUNYCODE_BASE
-            while true
-              if out >= max_out
-                raise PunycodeBigOutput,
-                  "Output would exceed the space provided."
-              end
-              t = (
-                if k <= bias
-                  PUNYCODE_TMIN
-                elsif k >= bias + PUNYCODE_TMAX
-                  PUNYCODE_TMAX
-                else
-                  k - bias
-                end
-              )
-              break if q < t
-              output[out] =
-                punycode_encode_digit(t + (q - t) % (PUNYCODE_BASE - t))
-              out += 1
-              q = (q - t) / (PUNYCODE_BASE - t)
-              k += PUNYCODE_BASE
-            end
-
-            output[out] = punycode_encode_digit(q)
-            out += 1
-            bias = punycode_adapt(delta, h + 1, h == b)
-            delta = 0
-            h += 1
+        positions[n].each do |position|
+          i = position + 1
+          while i <= input.size
+            handled[i] += 1
+            i += i & -i
           end
         end
 
@@ -4572,20 +4581,7 @@ module Addressable
         n += 1
       end
 
-      output_length[0] = out
-
-      outlen = out
-      outlen.times do |j|
-        c = output[j]
-        unless c >= 0 && c <= 127
-          raise StandardError, "Invalid output char."
-        end
-        unless PUNYCODE_PRINT_ASCII[c]
-          raise PunycodeBadInput, "Input is invalid."
-        end
-      end
-
-      output[0..outlen].map { |x| x.chr }.join("").sub(/\0+\z/, "")
+      output.pack("C*").force_encoding(Encoding::US_ASCII)
     end
     private_class_method :punycode_encode
 

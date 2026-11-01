@@ -21,6 +21,9 @@
   on some malformed labels, e.g. `xn--rp3=`, which also made
   `Addressable::URI#display_uri` raise, because the Punycode decoder
   treated punctuation as digits; such labels are now returned unchanged (#614)
+- speeds up the pure-Ruby `Addressable::IDNA.to_unicode`, which became up to
+  25 times slower in 2.9.1 on long labels with many non-ASCII characters;
+  Punycode encoding no longer takes quadratic time
 - fixes the "character class has duplicated range" warnings that 2.9.1 gave
   when `Addressable::IDNA` was loaded with warnings enabled
 - fixes the "instance variable @validation_deferred not initialized" warning
