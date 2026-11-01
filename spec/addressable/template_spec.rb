@@ -546,9 +546,9 @@ describe "Expansion" do
         pattern << Array.new(rng.rand(0..3)) { literals.sample(random: rng) }.join
         mapping = {}
         names.each { |name| mapping[name] = "x#{rng.rand(100)}" }
-        template = Addressable::Template.new(pattern)
         # Random literals can form expressions of their own, such as {a}.
-        next if template.variables != names
+        next if pattern.scan(Addressable::Template::EXPRESSION).size != names.size
+        template = Addressable::Template.new(pattern)
         expanded = template.expand(mapping).to_s
         extracted = template.extract(expanded)
         if expanded !~ valid || extracted != mapping
