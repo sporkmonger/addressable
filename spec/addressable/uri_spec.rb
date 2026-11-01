@@ -2810,20 +2810,50 @@ describe Addressable::URI, "when normalizing URIs with percent-encoded reserved 
     expect(Addressable::URI::NormalizeCharacterClasses::QUERY).to be_a(Regexp)
   end
 
-  it "decodes only unreserved characters, and gives a stable result" do
+  it_normalizes("http://example.com/a%252Fb", "http://example.com/a%252Fb")
+  it_normalizes("http://example.com/?q=%2526x", "http://example.com/?q=%2526x")
+  it_normalizes("http://example.com/?q=%252B", "http://example.com/?q=%252B")
+  it_normalizes("http://example.com/#%2523", "http://example.com/#%2523")
+  it_normalizes("http://example.com/%25%32%46", "http://example.com/%252F")
+  it_normalizes("http://example.com/100%/a%zz", "http://example.com/100%25/a%25zz")
+  it_normalizes("http://example.com/a%%32%46b", "http://example.com/a%252Fb")
+  it_normalizes("http://example.com/?q=%%32%42", "http://example.com/?q=%252B")
+  it_normalizes("http://example.com/#%%32%33", "http://example.com/#%2523")
+
+  it "doesn't decode a triplet twice when leaving characters encoded" do
+    expect(Addressable::URI.normalize_component(
+      "a%252Bb%2B", Addressable::URI::CharacterClasses::QUERY, "+"
+    )).to eq("a%252Bb%2B")
+  end
+
+  # Decodes a triplet only if it's an unreserved character, and encodes a
+  # character that isn't allowed in the component (RFC 3986 section 6.2.2).
+  def self.reference_normalize(component, allowed)
+    unreserved = "A-Za-z0-9\\-._~"
+    component.unicode_normalize(:nfc).scan(/%[0-9A-Fa-f]{2}|./m).map do |token|
+      if token =~ /\A%[0-9A-Fa-f]{2}\z/
+        character = token[1..2].hex.chr
+        character =~ /\A[#{unreserved}]\z/ ? character : token.upcase
+      elsif token =~ /\A[#{unreserved}#{allowed}]\z/
+        token
+      else
+        token.bytes.map { |byte| "%%%02X" % byte }.join
+      end
+    end.join
+  end
+
+  it "normalizes like a single pass that decodes only unreserved characters" do
     rng = Random.new(589)
     reserved = ":/?#[]@!$&'()*+,;=".chars
-    unreserved = %w(a Z 0 - . _ ~)
-    pieces = reserved + unreserved +
+    pieces = reserved + %w(a Z 0 - _ ~) +
       reserved.map { |c| "%%%02X" % c.ord } +
       reserved.map { |c| "%%%02x" % c.ord } +
-      unreserved.map { |c| "%%%02X" % c.ord } +
-      ["%", "%G1", " ", "é", "%C3%A9", "%FF", "%25", "\"", "<", "|"]
-    encoded_reserved = lambda do |string|
-      string.scan(/%[0-9A-Fa-f]{2}/).count do |triplet|
-        reserved.include?(triplet[1..2].hex.chr)
-      end
-    end
+      %w(%41 %7a %30 %2D %5F %7E %25 2F 3a 41 2e 26 % %G1 %FF %C3%A9) +
+      %w(%32 %46 %33 %42 %36 %61) + ["\u00E9", "\"", "<", "|"]
+    sub_delims = Regexp.escape("!$&'()*+,;=")
+    path_chars = sub_delims + ":@/"
+    query_chars = sub_delims + ":@/?"
+    pair_chars = Regexp.escape("!$'()*+,=") + ":@/?"
     wrong = []
     1000.times do
       part = lambda do
@@ -2833,19 +2863,25 @@ describe Addressable::URI, "when normalizing URIs with percent-encoded reserved 
       query = part.call.delete("#")
       fragment = part.call
       input = "http://example.com/#{path}?#{query}##{fragment}"
-      uri = begin
-        Addressable::URI.parse(input)
+      begin
+        uri = Addressable::URI.parse(input)
       rescue Addressable::URI::InvalidURIError
         next
       end
-      normalized = uri.normalize.to_s
-      encoded = Addressable::URI.normalized_encode(input)
-      tail = input.sub("http://example.com", "")
-      if encoded_reserved.call(normalized) < encoded_reserved.call(tail) ||
-          encoded_reserved.call(encoded) < encoded_reserved.call(tail) ||
-          normalized =~ /%(?:[46][1-9A-F]|[57][0-9A]|3[0-9]|2D|2E|5F|7E)/i ||
-          Addressable::URI.parse(normalized).normalize.to_s != normalized
-        wrong << [input, normalized, encoded]
+      path_part = self.class.reference_normalize(path, path_chars)
+      pairs = query.split("&", -1).map do |pair|
+        self.class.reference_normalize(pair, pair_chars)
+      end.join("&")
+      fragment_part = self.class.reference_normalize(fragment, query_chars)
+      normalized = "http://example.com/" + path_part +
+        (pairs.empty? ? "" : "?" + pairs) +
+        (fragment_part.empty? ? "" : "#" + fragment_part)
+      encoded = "http://example.com/" + path_part +
+        "?" + self.class.reference_normalize(query, query_chars) +
+        "#" + fragment_part
+      if uri.normalize.to_s != normalized ||
+          Addressable::URI.normalized_encode(input) != encoded
+        wrong << [input, uri.normalize.to_s, normalized]
       end
     end
     expect(wrong.first(5)).to eq([])
