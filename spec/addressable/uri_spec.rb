@@ -79,6 +79,38 @@ describe Addressable::URI, "when created with a invalid encoded port number" do
   end
 end
 
+describe Addressable::URI, "when created with a port number with a " +
+    "line break" do
+  ["8080\n", "\n8080", "80\nx"].each do |port|
+    it "should raise an error for #{port.inspect}" do
+      expect do
+        Addressable::URI.new(:host => "example.com", :port => port)
+      end.to raise_error(Addressable::URI::InvalidURIError)
+    end
+  end
+end
+
+describe Addressable::URI, "when assigned a port number with a line break" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com:8080/")
+  end
+
+  ["81\n", "\n81", "81\nx", "x\n81", ":\n81", "81\r\n", "%0A81"].each do |port|
+    it "should raise an error for #{port.inspect}" do
+      expect do
+        @uri.port = port
+      end.to raise_error(Addressable::URI::InvalidURIError)
+      expect(@uri.port).to eq(8080)
+      expect(@uri.to_s).to eq("http://example.com:8080/")
+    end
+  end
+
+  it "should still accept a port number without one" do
+    @uri.port = "81"
+    expect(@uri.port).to eq(81)
+  end
+end
+
 describe Addressable::URI, "when created with a non-string scheme" do
   it "should raise an error" do
     expect do
@@ -2108,6 +2140,7 @@ describe Addressable::URI, "when assigned an origin with an empty port" do
       expect do
         @uri.origin = origin
       end.to raise_error(Addressable::URI::InvalidURIError)
+      expect(@uri.to_s).to eq("http://placeholder.example/p?q=1#f")
     end
   end
 end
@@ -2160,12 +2193,36 @@ describe Addressable::URI, "when assigned an origin" do
 
   [
     "http://user:secret@example.com",
+    "http://user:8080@example.com",
     "http://[::1]@example.com"
   ].each do |origin|
     it "should raise for '#{origin}', which has userinfo" do
       expect do
         @uri.origin = origin
-      end.to raise_error(Addressable::URI::InvalidURIError)
+      end.to raise_error(
+        Addressable::URI::InvalidURIError,
+        "An origin cannot include userinfo, a path, query, or fragment."
+      )
+      expect(@uri.to_s).to eq("http://placeholder.example/p?q=1#f")
+    end
+  end
+
+  {
+    "http://example.com:http" => "http",
+    "http://example.com:8080:8081" => "8080:8081",
+    "http://[::1]:8080]" => "8080]",
+    "http://example.com:8080\n" => "8080\n",
+    "http://example.com:\n8080" => "\n8080",
+    "http://[::1]::\n8080" => ":\n8080"
+  }.each do |origin, port|
+    it "should raise for '#{origin.inspect}', which has an invalid port" do
+      expect do
+        @uri.origin = origin
+      end.to raise_error(
+        Addressable::URI::InvalidURIError,
+        "Invalid port number: #{port.inspect}"
+      )
+      expect(@uri.to_s).to eq("http://placeholder.example/p?q=1#f")
     end
   end
 

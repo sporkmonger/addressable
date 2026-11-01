@@ -54,6 +54,11 @@
   origin (a scheme, a host and an optional port), such as
   `http://user@example.com` or `http://example.com/a`, which have userinfo
   and a path (#616)
+- `Addressable::URI#port=` and `Addressable::URI.new` now raise
+  `InvalidURIError` for a port with a line break, which they took as the
+  digits on one of its lines: e.g. `"8080\nx"` was taken as 8080 and
+  `":\n8080"` as no port; `#origin=` now raises for a port that isn't only
+  digits, including a pct-encoded one, before changing the URI
 - `Addressable::Template#expand` and `#partial_expand` now treat an empty
   list or associative array, and one with only `nil` members, as
   undefined, and leave out `nil` members, as RFC 6570 says: e.g. `{?list}`

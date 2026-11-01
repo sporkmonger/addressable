@@ -1382,14 +1382,18 @@ module Addressable
         unless new_origin =~ /\A[^:\/?#]+:\/\//
           raise InvalidURIError, 'An origin cannot omit the scheme.'
         end
-        unless origin_match
+        new_scheme, new_host, new_port = origin_match.captures if origin_match
+        # Userinfo with a colon matches as a host and a port.
+        if origin_match.nil? || new_port.to_s.include?("@")
           if new_origin =~ /\A[^:\/?#]+:\/\/\z/
             raise InvalidURIError, 'An origin cannot omit the host.'
           end
           raise InvalidURIError,
             'An origin cannot include userinfo, a path, query, or fragment.'
         end
-        new_scheme, new_host, new_port = origin_match.captures
+        if new_port && new_port !~ /\A\d*\z/
+          raise InvalidURIError, "Invalid port number: #{new_port.inspect}"
+        end
         # An empty port is the same as no port (Section 3.2.3 of RFC 3986).
         new_port = nil if new_port == EMPTY_STR
       end
@@ -1461,7 +1465,7 @@ module Addressable
         raise InvalidURIError, "Invalid encoding in port"
       end
 
-      if new_port != nil && !(new_port.to_s =~ /^\d+$/)
+      if new_port != nil && !(new_port.to_s =~ /\A\d+\z/)
         raise InvalidURIError,
           "Invalid port number: #{new_port.inspect}"
       end
