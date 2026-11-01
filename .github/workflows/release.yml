@@ -6,8 +6,28 @@ on:
       - addressable-*
 
 jobs:
+  # only commits that are on main are published, however the tag was made
+  verify-tag:
+    if: github.repository == 'sporkmonger/addressable'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify the tagged commit is on main
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "ERROR: $GITHUB_REF_NAME ($GITHUB_SHA) is not on main"
+            exit 1
+          fi
+
   # the full CI workflow must pass before anything is published
   test:
+    needs: verify-tag
     if: github.repository == 'sporkmonger/addressable'
     permissions:
       contents: read

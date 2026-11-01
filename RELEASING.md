@@ -6,8 +6,10 @@
 1. Run `rake gem:install` to sanity check your work
 1. Create pull request with all that
 1. Merge the pull request when CI is green
-1. Ensure you have latest changes locally
-1. Run `VERSION=x.y.z rake git:tag:create` to create tag in git
+1. Check out `main` and pull, so it matches `origin/main`
+1. Run `VERSION=x.y.z rake git:tag:create` to create tag in git. It
+   refuses to tag anything but a clean `main` that matches `origin/main`,
+   and never moves an existing tag.
 1. Push only the new tag: `git push origin addressable-x.y.z`
 1. Watch GitHub Actions build and push the gem to RubyGems.org
 
@@ -16,6 +18,8 @@
 Pushing a tag named `addressable-x.y.z` starts the Release workflow
 (`.github/workflows/release.yml`) on `sporkmonger/addressable`:
 
+1. It checks that the tagged commit is on `main`. A tag on any other
+   commit, such as a pull request's branch, doesn't publish anything.
 1. It runs the full CI workflow (`.github/workflows/test.yml`) against the
    tagged commit. If any required job fails, nothing is published.
 1. It checks that the tag's version matches the version in
