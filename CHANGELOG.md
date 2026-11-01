@@ -39,6 +39,19 @@
   `admin%2F`, not `admin%252F`; a `%` that doesn't start a triplet is still
   encoded as `%25`, and a prefix modifier counts a triplet as one character;
   `#extract` decodes the triplet, so it gives `admin/` for that expansion
+- `Addressable::Template#expand` and `#partial_expand` now raise
+  `Addressable::Template::InvalidTemplateError`, naming the expression and
+  its position, for a template that doesn't match the RFC 6570 grammar, as
+  RFC 6570 says the error should be indicated: e.g. an unclosed `{/id*`, a
+  stray `}`, `{with space}`, `{x..y}` or `{var:0}`, which were kept in the
+  result as text; an operator RFC 6570 reserves (`=`, `,`, `!`, `@`, `|`)
+  raises `InvalidTemplateOperatorError`, now a subclass of
+  `InvalidTemplateError`, where before `{!var}` expanded like `{var}`;
+  `.new`, `#match` and `#extract` still accept such templates
+- `Addressable::Template#expand` and `#partial_expand` now raise
+  `InvalidTemplateValueError` for a prefix modifier on a list or associative
+  array, which RFC 6570 says doesn't apply to them: before, `{list:2}` with
+  `["red", "green"]` gave `re,gr`, and `{keys:1}` ignored the prefix
 - `Addressable::Template#expand` now pct-encodes literal characters that
   aren't allowed in a URI, as RFC 6570 says: e.g. `café/{var}` expands to
   `caf%C3%A9/value`, not `café/value`, and `50%off/{var}` to

@@ -64,6 +64,14 @@ module Addressable
       "+#./;?&=,!@|"
     EXPRESSION =
       /\{([#{operator}])?(#{varspec}(?:,#{varspec})*)\}/
+    # RFC 6570 reserves these operators for future extensions.
+    RESERVED_OPERATORS = "=,!@|"
+    VALID_EXPRESSION =
+      /\A\{[+#.\/;?&]?#{varspec}(?:,#{varspec})*\}\z/
+    # Literal text, an expression up to the next "}" (or the end, if there's
+    # no "}"), or a "}" that doesn't close an expression.
+    TEMPLATE_TOKEN = /[^{}]+|\{[^}]*\}?|\}/
+    private_constant :RESERVED_OPERATORS, :VALID_EXPRESSION, :TEMPLATE_TOKEN
 
 
     LEADERS = {
@@ -88,8 +96,14 @@ module Addressable
     end
 
     ##
+    # Raised if a template that doesn't match the RFC 6570 grammar is
+    # expanded.
+    class InvalidTemplateError < StandardError
+    end
+
+    ##
     # Raised if an invalid template operator is used in a pattern.
-    class InvalidTemplateOperatorError < StandardError
+    class InvalidTemplateOperatorError < InvalidTemplateError
     end
 
     ##
@@ -545,6 +559,7 @@ module Addressable
     #   ).partial_expand({"one" => "1", "three" => 3}).pattern
     #   #=> "http://example.com/?one=1{&two}&three=3"
     def partial_expand(mapping, processor=nil, normalize_values=true)
+      check_expressions
       result = self.pattern.dup
       mapping = normalize_keys(mapping)
       result.gsub!( EXPRESSION ) do |capture|
@@ -612,6 +627,7 @@ module Addressable
     #   ).to_str
     #   #=> Addressable::Template::InvalidTemplateValueError
     def expand(mapping, processor=nil, normalize_values=true)
+      check_expressions
       mapping = normalize_keys(mapping)
       result = map_literals(self.pattern) do |literal|
         Addressable::URI.encode_component(literal, RESERVED_ENCODE)
@@ -678,6 +694,34 @@ module Addressable
     end
 
   private
+    ##
+    # Raises InvalidTemplateError for the first part of the pattern that
+    # isn't a literal or an expression (RFC 6570 section 3).
+    def check_expressions
+      position = 0
+      pattern.scan(TEMPLATE_TOKEN) do |token|
+        if token.start_with?("}")
+          raise InvalidTemplateError, "Unmatched \"}\" at position #{position}"
+        elsif token.start_with?("{")
+          if !token.end_with?("}")
+            raise InvalidTemplateError,
+              "Unclosed template expression #{token.inspect} " \
+              "at position #{position}"
+          elsif token !~ VALID_EXPRESSION
+            if RESERVED_OPERATORS.include?(token[1])
+              raise InvalidTemplateOperatorError,
+                "Invalid template operator #{token[1].inspect} in " \
+                "#{token.inspect} at position #{position}"
+            end
+            raise InvalidTemplateError,
+              "Invalid template expression #{token.inspect} " \
+              "at position #{position}"
+          end
+        end
+        position += token.length
+      end
+    end
+
     def ordered_variable_defaults
       @ordered_variable_defaults ||= begin
         expansions, _ = parse_template_pattern(pattern)
@@ -873,6 +917,12 @@ module Addressable
             value.respond_to?(:to_ary) || value.respond_to?(:to_str)
             raise TypeError,
               "Can't convert #{value.class} into String or Array."
+          end
+          # RFC 6570 section 2.4.1
+          if length && (Hash === value || value.respond_to?(:to_ary))
+            raise InvalidTemplateValueError,
+              "The prefix modifier #{modifier} can't be applied to the " \
+              "list or associative array #{name.inspect}."
           end
 
           value = normalize_value(value) if normalize_values
