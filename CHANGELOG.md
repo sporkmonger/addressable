@@ -39,6 +39,15 @@
   `admin%2F`, not `admin%252F`; a `%` that doesn't start a triplet is still
   encoded as `%25`, and a prefix modifier counts a triplet as one character;
   `#extract` decodes the triplet, so it gives `admin/` for that expansion
+- `Addressable::Template#expand` now pct-encodes literal characters that
+  aren't allowed in a URI, as RFC 6570 says: e.g. `café/{var}` expands to
+  `caf%C3%A9/value`, not `café/value`, and `50%off/{var}` to
+  `50%25off/value`; pct-encoded triplets and reserved characters in
+  literals are kept; `#match` and `#extract` accept such a literal either
+  as written or encoded; `#partial_expand` leaves literals as written
+- `Addressable::Template#match` and `#extract` now match text in braces that
+  isn't an expression as written: e.g. `x{a.*}/{var}` no longer matches
+  `x{aZZZ}/value`, and `x{a(}/{var}` no longer raises `RegexpError`
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 - fixes `Addressable::URI` returning stale values after a component was

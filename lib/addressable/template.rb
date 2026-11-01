@@ -612,8 +612,10 @@ module Addressable
     #   ).to_str
     #   #=> Addressable::Template::InvalidTemplateValueError
     def expand(mapping, processor=nil, normalize_values=true)
-      result = self.pattern.dup
       mapping = normalize_keys(mapping)
+      result = map_literals(self.pattern) do |literal|
+        Addressable::URI.encode_component(literal, RESERVED_ENCODE)
+      end
       result.gsub!( EXPRESSION ) do |capture|
         transform_capture(mapping, capture, processor, normalize_values)
       end
@@ -745,6 +747,49 @@ module Addressable
           operator = "&" if (operator == "?") && (next_val != "")
           acc << next_val
       end
+    end
+
+    ##
+    # Replaces the literal text between the expressions of a pattern.
+    #
+    # @param [String] pattern The URI template pattern.
+    #
+    # @yield [literal] Each run of literal text.
+    #
+    # @return [String] The pattern with each literal replaced.
+    def map_literals(pattern)
+      result = "".dup
+      position = 0
+      pattern.scan(EXPRESSION) do
+        match = Regexp.last_match
+        result << yield(pattern[position...match.begin(0)]) << match[0]
+        position = match.end(0)
+      end
+      result << yield(pattern[position..-1])
+    end
+
+    ##
+    # Builds a regular expression for literal text. A literal character that
+    # expansion pct-encodes (RFC 6570 section 3.1) matches either as it is
+    # or encoded.
+    #
+    # @param [String] literal The literal text.
+    #
+    # @return [String] The regular expression source.
+    def literal_regexp(literal)
+      literal.scan(PCT_ENCODED_OR_CHARACTER).map do |character|
+        if character =~ RESERVED_ENCODE
+          encoded =
+            Addressable::URI.encode_component(character, RESERVED_ENCODE)
+          # Expansion would have encoded a "%" that starts a triplet. The
+          # source can't use braces, which would read as an expression.
+          raw = character == "%" ? "%(?![0-9A-Fa-f][0-9A-Fa-f])" :
+            Regexp.escape(character)
+          "(?:#{raw}|(?i:#{encoded}))"
+        else
+          Regexp.escape(character)
+        end
+      end.join
     end
 
     ##
@@ -1095,13 +1140,9 @@ module Addressable
     #   An array of expansion variables nad a regular expression which may be
     #   used to parse a template pattern
     def parse_new_template_pattern(pattern, processor = nil)
-      # Escape the pattern. The two gsubs restore the escaped curly braces
-      # back to their original form. Basically, escape everything that isn't
-      # within an expansion.
-      escaped_pattern = Regexp.escape(
-        pattern
-      ).gsub(/\\\{(.*?)\\\}/) do |escaped|
-        escaped.gsub(/\\(.)/, "\\1")
+      # Escape the literal text between the expressions.
+      escaped_pattern = map_literals(pattern) do |literal|
+        literal_regexp(literal)
       end
 
       expansions = []
