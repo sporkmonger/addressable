@@ -17,6 +17,12 @@
 - `Addressable::Template#hash` is now the same for equal templates, so
   templates with the same pattern find each other as `Hash` keys and are
   merged by `uniq` and `Set`; before, every template had its own hash (#604)
+- fixes `Addressable::URI#userinfo=` splitting the user from the password at
+  the last colon instead of the first, as `Addressable::URI.parse` and
+  `#authority=` do: e.g. `alice:one:two` gave the user `alice:one` and the
+  password `one:two`, repeating `one` in `#to_s`, and `alice` gave no user at
+  all; an empty string now gives an empty user rather than none, as parsing
+  `http://@example.com` does (#606)
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 - fixes `Addressable::URI` returning stale values after a component was

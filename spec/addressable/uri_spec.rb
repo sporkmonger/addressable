@@ -4426,6 +4426,56 @@ describe Addressable::URI, "when routing between URIs" do
   end
 end
 
+# The user name ends at the first colon, and the rest is the password
+# (Section 3.2.1 of RFC 3986). An empty user name differs from no user name
+# (Section 3.1 of RFC 1738).
+describe Addressable::URI, "when assigning userinfo" do
+  {
+    "alice:one:two" => ["alice", "one:two", "http://alice:one:two@example.com"],
+    "alice" => ["alice", nil, "http://alice@example.com"],
+    "alice:" => ["alice", "", "http://alice:@example.com"],
+    ":secret" => ["", "secret", "http://:secret@example.com"],
+    "" => ["", nil, "http://@example.com"],
+    "%3A:x:y" => ["%3A", "x:y", "http://%3A:x:y@example.com"]
+  }.each do |userinfo, (user, password, uri_string)|
+    it "should split '#{userinfo}' at its first colon" do
+      uri = Addressable::URI.parse("http://example.com")
+      uri.userinfo = userinfo
+      expect([uri.user, uri.password]).to eq([user, password])
+      expect(uri.userinfo).to eq(userinfo)
+      expect(uri.to_s).to eq(uri_string)
+    end
+
+    it "should split '#{userinfo}' as parsing and authority= do" do
+      uri = Addressable::URI.parse("http://example.com")
+      uri.userinfo = userinfo
+      parsed = Addressable::URI.parse("http://#{userinfo}@example.com")
+      expect([uri.user, uri.password]).to eq([parsed.user, parsed.password])
+      uri.authority = "#{userinfo}@example.com"
+      expect([uri.user, uri.password]).to eq([parsed.user, parsed.password])
+    end
+  end
+
+  it "should give back any userinfo it was assigned" do
+    random = Random.new(606)
+    characters = ["a", "b", ":", "%3A", "~", "!"]
+    wrong = []
+    1000.times do
+      userinfo = Array.new(random.rand(0..6)) do
+        characters[random.rand(characters.size)]
+      end.join
+      uri = Addressable::URI.parse("http://example.com")
+      uri.userinfo = userinfo
+      parsed = Addressable::URI.parse("http://#{userinfo}@example.com")
+      unless uri.userinfo == userinfo &&
+          [uri.user, uri.password] == [parsed.user, parsed.password]
+        wrong << [userinfo, uri.user, uri.password]
+      end
+    end
+    expect(wrong.first(5)).to eq([])
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
   "'http://example.com/search?q=Q%26A'" do
 
