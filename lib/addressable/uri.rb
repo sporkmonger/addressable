@@ -2269,8 +2269,11 @@ module Addressable
     end
 
     ##
-    # A hash value that will make a URI equivalent to its normalized
-    # form.
+    # A hash value consistent with <code>eql?</code>: URIs with the same
+    # string have the same hash. Like <code>eql?</code>, it doesn't
+    # normalize, so URIs that are only equal by <code>==</code>, such as
+    # <code>HTTP://EXAMPLE.COM</code> and <code>http://example.com/</code>,
+    # can have different hashes.
     #
     # @return [Integer] A hash of the URI.
     def hash
