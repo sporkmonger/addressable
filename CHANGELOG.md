@@ -40,6 +40,14 @@
   rather than becoming `%2B`; a component with invalid UTF-8, such as `%FF`,
   is now encoded with the given character class, so `%2B` no longer becomes
   `%252B` and `%26` in a query pair is no longer decoded to `&` (#589)
+- the pure-Ruby `Addressable::IDNA.to_ascii` and `.to_unicode` now keep
+  trailing empty labels, as the `idn-ruby` backend does: e.g.
+  `to_ascii("bücher.example.")` gives `xn--bcher-kva.example.`, not
+  `xn--bcher-kva.example`; so with the pure-Ruby backend,
+  `http://bücher.example../` now normalizes to
+  `http://xn--bcher-kva.example../`, not `http://xn--bcher-kva.example/`,
+  and `#display_uri` keeps the dots too; `#normalize` still drops a single
+  trailing dot (#609)
 - `Addressable::Template#expand` and `#partial_expand` now treat an empty
   list or associative array, and one with only `nil` members, as
   undefined, and leave out `nil` members, as RFC 6570 says: e.g. `{?list}`

@@ -1141,6 +1141,25 @@ describe Addressable::URI, "when created with a host with trailing dots" do
   end
 end
 
+describe Addressable::URI, "when parsed with an internationalized host " +
+    "with trailing dots" do
+  it "should keep the dots when normalized and displayed" do
+    uri = Addressable::URI.parse("http://bücher.example../")
+    expect(uri.normalize.to_s).to eq("http://xn--bcher-kva.example../")
+    expect(uri.display_uri.to_s).to eq("http://bücher.example../")
+  end
+
+  it "should keep the dots when an A-label host is displayed" do
+    uri = Addressable::URI.parse("http://xn--bcher-kva.example../")
+    expect(uri.display_uri.to_s).to eq("http://bücher.example../")
+  end
+
+  it "should drop a single trailing dot when normalized" do
+    uri = Addressable::URI.parse("http://bücher.example./")
+    expect(uri.normalize.to_s).to eq("http://xn--bcher-kva.example/")
+  end
+end
+
 describe Addressable::URI, "when created with a host with a backslash" do
   it "should raise an error" do
     expect do

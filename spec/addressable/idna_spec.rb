@@ -152,6 +152,21 @@ shared_examples_for "converting from unicode to ASCII" do
       "example..host"
     )).to eq("example..host")
   end
+
+  {
+    "bücher.example." => "xn--bcher-kva.example.",
+    "bücher.example.." => "xn--bcher-kva.example..",
+    "ü." => "xn--tda.",
+    ".bücher" => ".xn--bcher-kva",
+    "bücher..example" => "xn--bcher-kva..example",
+    "." => ".",
+    ".." => "..",
+    "" => ""
+  }.each do |unicode, ascii|
+    it "should keep the empty labels in #{unicode.inspect}" do
+      expect(Addressable::IDNA.to_ascii(unicode)).to eq(ascii)
+    end
+  end
 end
 
 shared_examples_for "converting from ASCII to unicode" do
@@ -424,6 +439,22 @@ shared_examples_for "converting from ASCII to unicode" do
       expect(Addressable::IDNA.to_unicode("#{label}.example")).to eq(
         "#{decoded}.example"
       )
+    end
+  end
+
+  {
+    "xn--bcher-kva.example." => "bücher.example.",
+    "xn--bcher-kva.example.." => "bücher.example..",
+    "xn--tda." => "ü.",
+    ".xn--tda" => ".ü",
+    "xn--tda..xn--tda" => "ü..ü",
+    "example.com." => "example.com.",
+    "." => ".",
+    ".." => "..",
+    "" => ""
+  }.each do |ascii, unicode|
+    it "should keep the empty labels in #{ascii.inspect}" do
+      expect(Addressable::IDNA.to_unicode(ascii)).to eq(unicode)
     end
   end
 end
