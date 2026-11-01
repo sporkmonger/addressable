@@ -33,6 +33,12 @@
   undefined, and leave out `nil` members, as RFC 6570 says: e.g. `{?list}`
   with `[]` expands to nothing, not `?list=`, and `{/list*}` with
   `["a", nil, "b"]` expands to `/a/b`, not `/a//b` (#611)
+- `Addressable::Template#expand` and `#partial_expand` now keep
+  pct-encoded triplets in reserved (`{+var}`) and fragment (`{#var}`)
+  expansion, as RFC 6570 says: e.g. `{+id}` with `admin%2F` expands to
+  `admin%2F`, not `admin%252F`; a `%` that doesn't start a triplet is still
+  encoded as `%25`, and a prefix modifier counts a triplet as one character;
+  `#extract` decodes the triplet, so it gives `admin/` for that expansion
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 - fixes `Addressable::URI` returning stale values after a component was
