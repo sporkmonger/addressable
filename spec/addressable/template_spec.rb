@@ -547,11 +547,10 @@ describe "Expansion" do
         mapping = {}
         names.each { |name| mapping[name] = "x#{rng.rand(100)}" }
         template = Addressable::Template.new(pattern)
-        expanded = template.expand(mapping).to_s
         # Random literals can form expressions of their own, such as {a}.
+        next if template.variables != names
+        expanded = template.expand(mapping).to_s
         extracted = template.extract(expanded)
-        extracted = extracted &&
-          extracted.select { |name, _| names.include?(name) }
         if expanded !~ valid || extracted != mapping
           wrong << [pattern, expanded, extracted]
         end
