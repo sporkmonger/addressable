@@ -48,6 +48,11 @@
 - `Addressable::Template#match` and `#extract` now match text in braces that
   isn't an expression as written: e.g. `x{a.*}/{var}` no longer matches
   `x{aZZZ}/value`, and `x{a(}/{var}` no longer raises `RegexpError`
+- fixes `Addressable::Template#variables`, `#variable_defaults` and
+  `Addressable::Template::MatchData#values` returning the cached array or
+  hash: e.g. clearing the array from `#variables` emptied the variables of
+  that template, even a frozen one, for every later call; each call now
+  returns a copy (#619)
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 - fixes `Addressable::URI` returning stale values after a component was
