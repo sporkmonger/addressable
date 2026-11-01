@@ -30,7 +30,9 @@ Ruby 2.2, so avoid syntax and methods that older Rubies lack, or guard them.
 
 ## Making changes
 
-- Write specs first, and cover every changed line and branch.
+- Write specs first for library code in `lib/`, and cover every changed
+  line and branch. Rake tasks, CI workflows and other tooling don't need
+  specs.
 - For parsing and normalization code, add adversarial specs: malformed
   input, unusual encodings, and inputs built to be slow. Regex changes
   should be checked for catastrophic backtracking on every supported
