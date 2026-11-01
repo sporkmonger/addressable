@@ -2826,36 +2826,64 @@ describe Addressable::URI, "when normalizing URIs with percent-encoded reserved 
     )).to eq("a%252Bb%2B")
   end
 
-  # Decodes a triplet only if it's an unreserved character, and encodes a
-  # character that isn't allowed in the component (RFC 3986 section 6.2.2).
+  it_normalizes("http://example.com/a%2Á", "http://example.com/a%2A%CC%81")
+  it_normalizes("http://example.com/a%2A%CC%81", "http://example.com/a%2A%CC%81")
+  it_normalizes("http://example.com/?q=%2Ḃ", "http://example.com/?q=%2B%CC%87")
+  it_normalizes("http://example.com/#%3D̸", "http://example.com/#%3D%CC%B8")
+  it_normalizes("http://example.com/e%CC%81%2Fé", "http://example.com/%C3%A9%2F%C3%A9")
+
+  # RFC 3986 section 6.2.2: decodes a triplet unless it's a reserved
+  # character, encodes a character that isn't allowed in the component, and
+  # applies NFC to the text between the triplets it keeps.
   def self.reference_normalize(component, allowed)
     unreserved = "A-Za-z0-9\\-._~"
-    component.unicode_normalize(:nfc).scan(/%[0-9A-Fa-f]{2}|./m).map do |token|
+    reserved = ":/?#[]@!$&'()*+,;=".bytes
+    items = component.scan(/%[0-9A-Fa-f]{2}|./m).map do |token|
       if token =~ /\A%[0-9A-Fa-f]{2}\z/
-        character = token[1..2].hex.chr
-        character =~ /\A[#{unreserved}]\z/ ? character : token.upcase
-      elsif token =~ /\A[#{unreserved}#{allowed}]\z/
-        token
+        byte = token[1..2].hex
+        reserved.include?(byte) ? [:kept, token.upcase] : [:text, byte.chr.b]
       else
-        token.bytes.map { |byte| "%%%02X" % byte }.join
+        [:text, token.b]
       end
+    end
+    runs = items.chunk_while { |a, b| a[0] == :text && b[0] == :text }.map do |group|
+      [group[0][0], group.map { |item| item[1] }.join]
+    end
+    valid = runs.all? do |kind, text|
+      kind == :kept || text.dup.force_encoding(Encoding::UTF_8).valid_encoding?
+    end
+    runs.map do |kind, text|
+      next text if kind == :kept
+      characters = if valid
+        text.force_encoding(Encoding::UTF_8).unicode_normalize(:nfc).chars
+      else
+        text.bytes.map { |byte| byte.chr.b }
+      end
+      characters.map do |character|
+        if character =~ /\A[#{unreserved}#{allowed}]\z/
+          character
+        else
+          character.bytes.map { |byte| "%%%02X" % byte }.join
+        end
+      end.join
     end.join
   end
 
   it "normalizes like a single pass that decodes only unreserved characters" do
     rng = Random.new(589)
     reserved = ":/?#[]@!$&'()*+,;=".chars
-    pieces = reserved + %w(a Z 0 - _ ~) +
+    pieces = reserved + %w(a Z 0 - _ ~ e) +
       reserved.map { |c| "%%%02X" % c.ord } +
       reserved.map { |c| "%%%02x" % c.ord } +
-      %w(%41 %7a %30 %2D %5F %7E %25 2F 3a 41 2e 26 % %G1 %FF %C3%A9) +
-      %w(%32 %46 %33 %42 %36 %61) + ["\u00E9", "\"", "<", "|"]
+      %w(%41 %7a %30 %2D %5F %7E %25 2F 3a 41 26 % %G1 %FF %C3%A9) +
+      %w(%32 %46 %33 %42 %36 %61 %65 %CC%81) +
+      ["é", "\"", "<", "|", "́", "̧", "̸", "̇"]
     sub_delims = Regexp.escape("!$&'()*+,;=")
     path_chars = sub_delims + ":@/"
     query_chars = sub_delims + ":@/?"
     pair_chars = Regexp.escape("!$'()*+,=") + ":@/?"
     wrong = []
-    1000.times do
+    2000.times do
       part = lambda do
         Array.new(rng.rand(0..6)) { pieces.sample(random: rng) }.join
       end

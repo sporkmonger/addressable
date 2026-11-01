@@ -84,6 +84,7 @@ module Addressable
       FRAGMENT = /[^#{CharacterClasses::FRAGMENT}%]/
       BARE_PERCENT = /%(?![0-9A-Fa-f]{2})/
       TRIPLET = /%[0-9A-Fa-f]{2}/
+      SPLIT_TRIPLETS = /(%[0-9A-Fa-f]{2})/
     end
     private_constant :NormalizeKeepingReserved
 
@@ -603,8 +604,19 @@ module Addressable
       upcase_encoded = keep_percent ? "" : leave_encoded
       unencoded = self.unencode_component(component, String, leave_encoded)
       begin
+        normalized = if keep_percent
+          # Composing a triplet's last hex digit with a combining mark that
+          # follows it would break the triplet, so only the text between
+          # triplets is normalized.
+          unencoded.split(NormalizeKeepingReserved::SPLIT_TRIPLETS).map.
+            with_index do |part, index|
+            index.odd? ? part : part.unicode_normalize(:nfc)
+          end.join
+        else
+          unencoded.unicode_normalize(:nfc)
+        end
         encoded = self.encode_component(
-          unencoded.unicode_normalize(:nfc),
+          normalized,
           character_class,
           upcase_encoded
         )
