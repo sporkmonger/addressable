@@ -75,7 +75,9 @@
 - `Addressable::URI#freeze` now freezes the strings the URI holds, so a
   frozen URI can't be changed through the strings its getters return:
   before, `uri.host << "x"` on a frozen URI changed its host while `#to_s`
-  and `#hash` kept the old values; a string passed to `.new` or a setter
+  and `#hash` kept the old values; `#to_s` and `#to_str` of a frozen URI
+  still return a mutable string, now a new copy each time, so changing it
+  doesn't change the URI; a string passed to `.new` or a setter
   is copied rather than frozen, so the caller's string stays mutable;
   `#clone` of a frozen URI is frozen the same way and `#dup` still gives
   mutable strings; on Ruby 3.0+, `#clone(freeze: true)` of an unfrozen URI

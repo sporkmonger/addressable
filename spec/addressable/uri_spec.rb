@@ -2165,6 +2165,29 @@ describe Addressable::URI, "when frozen with components it holds" do
     end
   end
 
+  [:to_s, :to_str].each do |name|
+    it "returns a mutable copy from ##{name} for each call" do
+      uri = Addressable::URI.parse("http://example.com/a?b#c").freeze
+      string = uri.public_send(name)
+      expect(string).to eq("http://example.com/a?b#c")
+      expect(string).not_to be_frozen
+      expect(string.encoding).to eq(Encoding::UTF_8)
+      expect(string).not_to equal(uri.public_send(name))
+      string.force_encoding(Encoding::BINARY) << "x"
+      expect(uri.public_send(name)).to eq("http://example.com/a?b#c")
+      expect(uri.public_send(name).encoding).to eq(Encoding::UTF_8)
+      expect(uri.hash).to eq(
+        Addressable::URI.parse("http://example.com/a?b#c").hash
+      )
+    end
+  end
+
+  it "keeps returning its cached string from #to_s when not frozen" do
+    uri = Addressable::URI.parse("http://example.com/")
+    expect(uri.to_s).to equal(uri.to_s)
+    expect(uri.to_s).not_to be_frozen
+  end
+
   it "checks enough readers to be meaningful" do
     expect(readers).to include(:host, :normalized_host, :to_s, :authority)
     expect(readers.size).to be > 30
