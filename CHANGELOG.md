@@ -59,6 +59,16 @@
   digits on one of its lines: e.g. `"8080\nx"` was taken as 8080 and
   `":\n8080"` as no port; `#origin=` now raises for a port that isn't only
   digits, including a pct-encoded one, before changing the URI
+- `Addressable::Template#partial_expand` now keeps the separators of an
+  expression with several variables: e.g. `{a,b}` with both given becomes
+  `1,2`, not `12`, and `{#a,b}` becomes `#1,2`, not `#1#2`; variables that
+  aren't given stay together in one expression, so `{?a,b,c}` with `b` set
+  to `nil` becomes `{?a,c}`, not `{?a}{&c}`, which expanded to `&c=3` with
+  no `?`; for a `{a,b}`, `{+a,b}` or `{#a,b}` expression with only some of
+  its variables given, the result matches `#expand` if the missing
+  variables end up undefined, but has one comma too few for each that's
+  defined, since RFC 6570 has no expression for a comma that depends on a
+  later variable
 - removes `Addressable::URI::RULE_2A`, `RULE_2B_2C`, `RULE_2D` and
   `RULE_PREFIXED_PARENT`, deprecated in 2.9.1; `.normalize_path` hasn't used
   them since then

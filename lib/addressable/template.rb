@@ -878,33 +878,94 @@ module Addressable
     def transform_partial_capture(mapping, capture, processor = nil,
                                   normalize_values = true)
       _, operator, varlist = *capture.match(EXPRESSION)
-
+      operator ||= ""
       vars = varlist.split(",")
+      given = lambda { |varspec| mapping.key?(varspec[VARSPEC, 1]) }
+      defined = lambda do |varspec|
+        given.call(varspec) &&
+          !defined_value(mapping[varspec[VARSPEC, 1]]).nil?
+      end
+
+      if vars.all?(&given)
+        return transform_capture(mapping, capture, processor, normalize_values)
+      elsif vars.none?(&given)
+        return capture
+      end
 
       if operator == "?"
         # partial expansion of form style query variables sometimes requires a
         # slight reordering of the variables to produce a valid url.
-        first_to_expand = vars.find { |varspec|
-          _, name, _ =  *varspec.match(VARSPEC)
-          mapping.key?(name) && !defined_value(mapping[name]).nil?
-        }
+        first_to_expand = vars.find(&defined)
 
         vars = [first_to_expand] + vars.reject {|varspec| varspec == first_to_expand}  if first_to_expand
       end
 
-      vars.
-        inject("".dup) do |acc, varspec|
-          _, name, _ =  *varspec.match(VARSPEC)
-          next_val = if mapping.key? name
-                       transform_capture(mapping, "{#{operator}#{varspec}}",
-                                         processor, normalize_values)
-                     else
-                       "{#{operator}#{varspec}}"
-                     end
-          # If we've already expanded at least one '?' operator with non-empty
-          # value, change to '&'
-          operator = "&" if (operator == "?") && (next_val != "")
-          acc << next_val
+      # An undefined variable adds nothing to a query, so it mustn't split the
+      # missing variables around it into expressions with "?" and "&".
+      if %w(? &).include?(operator)
+        vars = vars.select { |v| !given.call(v) || defined.call(v) }
+      end
+
+      # Consecutive variables that are all given, or all missing, stay in one
+      # expression, so that their separator is kept.
+      runs = vars.chunk { |varspec| given.call(varspec) }.to_a
+      if %w(+ #).include?(operator) || operator.empty?
+        transform_partial_comma_runs(
+          mapping, operator, runs, defined, processor, normalize_values
+        )
+      else
+        runs.inject("".dup) do |acc, (is_given, run)|
+          expression = "{#{operator}#{run.join(',')}}"
+          if is_given
+            value = transform_capture(
+              mapping, expression, processor, normalize_values
+            )
+            # After a value, the rest of a query continues with "&".
+            operator = "&" if operator == "?" && !value.empty?
+            acc << value
+          else
+            acc << expression
+          end
+        end
+      end
+    end
+
+    ##
+    # Partially expands the runs of a simple, reserved or fragment expression,
+    # whose values are separated by commas. RFC 6570 has no expression that
+    # adds a comma only if a later variable is defined, so the result is the
+    # same as expanding at once only if each missing variable ends up
+    # undefined. After the first value, a fragment expression's runs use
+    # reserved expansion, which adds no second "#".
+    #
+    # @param [Hash] mapping The mapping to replace captures
+    # @param [String] operator The expression's operator.
+    # @param [Array] runs The given and missing runs of varspecs.
+    # @param [Proc] defined Whether a varspec's variable is given and defined.
+    # @param [#validate, #transform] processor
+    #   An optional processor object may be supplied.
+    # @param [Boolean] normalize_values
+    #   Optional flag to enable/disable unicode normalization. Default: true
+    #
+    # @return [String] The partially expanded expression
+    def transform_partial_comma_runs(mapping, operator, runs, defined,
+                                     processor, normalize_values)
+      started = false
+      runs.inject("".dup) do |acc, (is_given, run)|
+        run_operator = started && operator == "#" ? "+" : operator
+        expression = "{#{run_operator}#{run.join(',')}}"
+        if is_given
+          # An empty string is defined, so it still takes a separator.
+          if run.any?(&defined)
+            acc << "," if started
+            started = true
+          end
+          acc << transform_capture(
+            mapping, expression, processor, normalize_values
+          )
+        else
+          acc << expression
+        end
       end
     end
 
