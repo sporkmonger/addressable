@@ -2106,6 +2106,105 @@ describe Addressable::URI, "when parsed from " +
 end
 
 # An empty port is the same as no port (Section 3.2.3 of RFC 3986).
+describe Addressable::URI, "when a setter raises an error" do
+  def snapshot(uri)
+    components = [
+      :scheme, :user, :password, :userinfo, :host, :port, :authority, :path,
+      :query, :fragment, :site, :origin, :to_s
+    ]
+    state = components.map { |component| uri.send(component) }
+    state << uri.normalize.to_s << uri.hash
+  end
+
+  [
+    ["mailto:x@y", :origin=, "https://o.example"],
+    ["http://example.com/", :origin=, "ftp://exa mple.com"],
+    ["http://example.com/", :host=, "evil.example/@"],
+    ["http://example.com", :host=, nil],
+    ["http://user@example.com/", :host=, nil],
+    ["http://example.com/", :hostname=, "a b"],
+    ["http://example.com/", :tld=, "a b"],
+    ["http://example.com/", :authority=, "exa mple.com"],
+    ["http://example.com/", :site=, "http://a b"],
+    ["http://example.com/a", :scheme=, "1http"],
+    ["/path", :user=, "alice"],
+    ["/path", :password=, "secret"],
+    ["/path", :userinfo=, "alice:secret"],
+    ["/path", :port=, 8080],
+    ["/a", :path=, "//b"],
+    ["http://example.com/?q=1#f", :port=, "bogus"]
+  ].each do |uri, setter, value|
+    it "should leave '#{uri}' unchanged when #{setter} #{value.inspect} raises" do
+      fresh = Addressable::URI.parse(uri)
+      expected = snapshot(fresh)
+      [false, true].each do |warm|
+        target = Addressable::URI.parse(uri)
+        snapshot(target) if warm
+        expect do
+          target.send(setter, value)
+        end.to raise_error(Addressable::URI::InvalidURIError)
+        expect(snapshot(target)).to eq(expected)
+        expect(target).to eq(fresh)
+      end
+    end
+  end
+
+  it "should leave the URI unchanged when validation raises at the end " +
+      "of defer_validation" do
+    uri = Addressable::URI.parse("http://example.com/")
+    expected = snapshot(uri)
+    expect do
+      uri.defer_validation do
+        uri.user = "alice"
+        uri.host = nil
+      end
+    end.to raise_error(Addressable::URI::InvalidURIError)
+    expect(snapshot(uri)).to eq(expected)
+  end
+
+  it "should leave the URI unchanged when the defer_validation block raises" do
+    uri = Addressable::URI.parse("http://example.com/")
+    expected = snapshot(uri)
+    expect do
+      uri.defer_validation do
+        uri.host = "other.example"
+        raise ArgumentError, "stop"
+      end
+    end.to raise_error(ArgumentError)
+    expect(snapshot(uri)).to eq(expected)
+  end
+
+  it "should restore the URI from the outermost defer_validation block" do
+    uri = Addressable::URI.parse("http://example.com/")
+    expected = snapshot(uri)
+    expect do
+      uri.defer_validation do
+        uri.host = "other.example"
+        uri.defer_validation do
+          uri.user = "alice"
+        end
+        uri.host = nil
+      end
+    end.to raise_error(Addressable::URI::InvalidURIError)
+    expect(snapshot(uri)).to eq(expected)
+  end
+
+  it "should keep the changes of setters that succeed" do
+    uri = Addressable::URI.parse("http://example.com/")
+    uri.host = "other.example"
+    expect { uri.port = "bogus" }.to raise_error(Addressable::URI::InvalidURIError)
+    expect(uri.to_s).to eq("http://other.example/")
+  end
+
+  it "should still raise FrozenError from a frozen URI's setters" do
+    uri = Addressable::URI.parse("http://example.com/").freeze
+    expect { uri.host = "other.example" }.to raise_error(
+      defined?(FrozenError) ? FrozenError : RuntimeError
+    )
+    expect(uri.to_s).to eq("http://example.com/")
+  end
+end
+
 describe Addressable::URI, "when assigned an origin with an empty port" do
   before do
     @uri = Addressable::URI.parse("http://placeholder.example/p?q=1#f")

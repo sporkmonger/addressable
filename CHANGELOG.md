@@ -59,6 +59,13 @@
   digits on one of its lines: e.g. `"8080\nx"` was taken as 8080 and
   `":\n8080"` as no port; `#origin=` now raises for a port that isn't only
   digits, including a pct-encoded one, before changing the URI
+- a setter on `Addressable::URI` that raises now leaves the URI as it was:
+  e.g. `uri.host = nil` on `http://example.com` raised `InvalidURIError` but
+  still cleared the host, leaving `uri.to_s` as `http:`; every setter now
+  puts back all components when it raises, and so does
+  `#defer_validation` when its block or the validation at its end raises,
+  so a group of assignments in one `#defer_validation` block takes effect
+  together or not at all
 - `Addressable::Template#expand` and `#partial_expand` now take values
   from more than a `Hash`: an object with `each_pair`, such as a `Struct`;
   any object that responds to `[]`, such as a lambda, which is called once
