@@ -78,19 +78,52 @@ module Addressable
     private_constant :NO_MAPPING
 
     # Looks up variables in a mapping that isn't enumerable, such as a lambda,
-    # once each. Without key?, a variable it gives nil for counts as missing.
+    # once each. As with Hash#fetch, a KeyError means the variable is missing,
+    # and nil means it's defined as nil.
     class MappingLookup
+      MISSING = Object.new.freeze
+
       def initialize(source)
         @source = source
         @values = {}
       end
 
       def [](name)
-        @values.fetch(name) { @values[name] = @source[name] }
+        value = lookup(name)
+        value.equal?(MISSING) ? nil : value
       end
 
       def key?(name)
-        @source.respond_to?(:key?) ? @source.key?(name) : !self[name].nil?
+        !lookup(name).equal?(MISSING)
+      end
+
+      private
+
+      def lookup(name)
+        @values.fetch(name) do
+          @values[name] =
+            if @source.respond_to?(:key?) && !@source.key?(name)
+              MISSING
+            else
+              begin
+                @source[name]
+              rescue KeyError => error
+                raise unless missing?(error, name)
+                MISSING
+              end
+            end
+        end
+      end
+
+      # KeyError#key is Ruby 2.6+, and raises when the error has no key.
+      def missing?(error, name)
+        return true unless error.respond_to?(:key)
+        begin
+          key = error.key
+        rescue ArgumentError
+          return true
+        end
+        (key.is_a?(String) || key.is_a?(Symbol)) && key.to_s == name
       end
     end
     private_constant :MappingLookup
@@ -549,11 +582,12 @@ module Addressable
     #   The mapping that corresponds to the pattern: a Hash, an object with
     #   <tt>each_pair</tt> such as a Struct, or an object that responds to
     #   <tt>[]</tt> with a variable name, such as a lambda. Pass a block
-    #   instead to look up each variable name with it. A lambda or block can't
-    #   tell a missing variable from one whose value is <tt>nil</tt>, so
-    #   <tt>partial_expand</tt> leaves a variable it gives <tt>nil</tt> for in
-    #   the template; an object that also responds to <tt>key?</tt> decides
-    #   that with <tt>key?</tt>, as a Hash does.
+    #   instead to look up each variable name with it. As with
+    #   <tt>Hash#fetch</tt>, the lambda or block raises <tt>KeyError</tt> for a
+    #   variable it doesn't have, which <tt>partial_expand</tt> leaves in the
+    #   template; <tt>nil</tt> is an undefined value, as in a Hash. An object
+    #   that also responds to <tt>key?</tt> decides which variables it has
+    #   with <tt>key?</tt>.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
     # @param [Boolean] normalize_values
@@ -606,11 +640,12 @@ module Addressable
     #   The mapping that corresponds to the pattern: a Hash, an object with
     #   <tt>each_pair</tt> such as a Struct, or an object that responds to
     #   <tt>[]</tt> with a variable name, such as a lambda. Pass a block
-    #   instead to look up each variable name with it. A lambda or block can't
-    #   tell a missing variable from one whose value is <tt>nil</tt>, so
-    #   <tt>partial_expand</tt> leaves a variable it gives <tt>nil</tt> for in
-    #   the template; an object that also responds to <tt>key?</tt> decides
-    #   that with <tt>key?</tt>, as a Hash does.
+    #   instead to look up each variable name with it. As with
+    #   <tt>Hash#fetch</tt>, the lambda or block raises <tt>KeyError</tt> for a
+    #   variable it doesn't have, which <tt>partial_expand</tt> leaves in the
+    #   template; <tt>nil</tt> is an undefined value, as in a Hash. An object
+    #   that also responds to <tt>key?</tt> decides which variables it has
+    #   with <tt>key?</tt>.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
     # @param [Boolean] normalize_values

@@ -63,11 +63,12 @@
   that isn't a `Hash`: an object with `each_pair`, such as a `Struct`, or
   one that responds to `[]` with a variable name, such as a lambda, which
   is called once for each variable; they also take a block in place of the
-  mapping: e.g. `template.expand { |name| values.fetch(name, nil) }`; a
-  variable the lambda or block gives `nil` for counts as missing, so
-  `#partial_expand` leaves it in the template, unless the object responds
-  to `key?`, which then decides, as for a `Hash`; any other mapping raises
-  `TypeError` (#512, #133)
+  mapping: e.g. `template.partial_expand { |name| values.fetch(name) }`;
+  as with `Hash#fetch`, the lambda or block raises `KeyError` for a
+  variable it doesn't have, which `#partial_expand` leaves in the template,
+  and `nil` is an undefined value, as in a `Hash`; an object that responds
+  to `key?` decides which variables it has with `key?`; any other mapping
+  raises `TypeError` (#512, #133)
 - `Addressable::Template#expand` and `#partial_expand` now treat an empty
   list or associative array, and one with only `nil` members, as
   undefined, and leave out `nil` members, as RFC 6570 says: e.g. `{?list}`

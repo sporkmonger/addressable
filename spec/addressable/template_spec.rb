@@ -228,17 +228,64 @@ describe Addressable::Template, "with a mapping that isn't a Hash" do
     expect(names).to eq(["a", "x.y"])
   end
 
-  it "keeps expressions whose variables a lambda doesn't define when " +
-      "partially expanding" do
-    sub = lambda { |name| name == "one" ? "1" : nil }
+  it "keeps expressions whose variables a lambda raises KeyError for " +
+      "when partially expanding" do
+    values = {"one" => "1"}
+    sub = lambda { |name| values.fetch(name) }
     expect(
       Addressable::Template.new("{one}/{two}").partial_expand(sub).pattern
     ).to eq("1/{two}")
     expect(
       Addressable::Template.new("{one}/{two}").partial_expand do |name|
-        name == "two" ? "2" : nil
+        {"two" => "2"}.fetch(name)
       end.pattern
     ).to eq("{one}/2")
+  end
+
+  it "removes expressions whose variables a block gives nil for when " +
+      "partially expanding, as for a Hash value of nil" do
+    template = Addressable::Template.new("{one}/{two}{?three}")
+    result = template.partial_expand do |name|
+      {"one" => "1", "two" => nil}.fetch(name)
+    end
+    expect(result.pattern).to eq("1/{?three}")
+    expect(result).to eq(template.partial_expand("one" => "1", "two" => nil))
+  end
+
+  it "treats a KeyError as an undefined variable when expanding" do
+    expect(
+      Addressable::Template.new("{one}/{two}").expand do |name|
+        {"one" => "1"}.fetch(name)
+      end.to_str
+    ).to eq("1/")
+  end
+
+  it "takes a KeyError for a symbol with the variable's name as missing" do
+    values = {:one => "1"}
+    expect(
+      Addressable::Template.new("{one}/{two}").partial_expand do |name|
+        values.fetch(name.to_sym)
+      end.pattern
+    ).to eq("1/{two}")
+  end
+
+  it "takes a KeyError with no key as missing" do
+    expect(
+      Addressable::Template.new("{one}").partial_expand do |name|
+        raise KeyError, "no #{name}"
+      end.pattern
+    ).to eq("{one}")
+  end
+
+  if KeyError.method_defined?(:key)
+    it "raises a KeyError for a different key" do
+      settings = {}
+      expect do
+        Addressable::Template.new("{one}").partial_expand do |name|
+          settings.fetch("other")
+        end
+      end.to raise_error(KeyError)
+    end
   end
 
   [
@@ -247,12 +294,14 @@ describe Addressable::Template, "with a mapping that isn't a Hash" do
     ["{?a,b,c}", {"a" => "1", "c" => 3}],
     ["{&a,b}{/list*}", {"list" => ["x", "y"]}],
     ["{#keys*}{.a}", {"keys" => {"k" => "v"}, "a" => "z"}],
-    ["{+a}{;b}", {"a" => "/x", "b" => ""}]
+    ["{+a}{;b}", {"a" => "/x", "b" => ""}],
+    ["{a}/{b}{?c,d}", {"a" => nil, "c" => nil, "d" => "4"}],
+    ["{?a,b,c}", {"a" => nil}]
   ].each do |pattern, hash|
     it "expands '#{pattern}' from a lambda as it would from " +
         "#{hash.inspect}" do
       template = Addressable::Template.new(pattern)
-      sub = lambda { |name| hash[name] }
+      sub = lambda { |name| hash.fetch(name) }
       expect(template.expand(sub)).to eq(template.expand(hash))
       expect(template.partial_expand(sub)).to eq(template.partial_expand(hash))
     end
