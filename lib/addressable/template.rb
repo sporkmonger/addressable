@@ -74,6 +74,27 @@ module Addressable
     TEMPLATE_TOKEN = /[^{}]+|\{[^}]*\}?|\}/
     private_constant :RESERVED_OPERATORS, :VALID_EXPRESSION, :TEMPLATE_TOKEN
 
+    NO_MAPPING = Object.new.freeze
+    private_constant :NO_MAPPING
+
+    # Looks up variables in a mapping that isn't enumerable, such as a lambda,
+    # once each. A variable it gives nil for isn't defined.
+    class MappingLookup
+      def initialize(source)
+        @source = source
+        @values = {}
+      end
+
+      def [](name)
+        @values.fetch(name) { @values[name] = @source[name] }
+      end
+
+      def key?(name)
+        !self[name].nil?
+      end
+    end
+    private_constant :MappingLookup
+
 
     LEADERS = {
       '?' => '?',
@@ -524,7 +545,11 @@ module Addressable
     ##
     # Expands a URI template into another URI template.
     #
-    # @param [Hash] mapping The mapping that corresponds to the pattern.
+    # @param [Hash, #each_pair, #[]] mapping
+    #   The mapping that corresponds to the pattern: a Hash, an object with
+    #   <tt>each_pair</tt> such as a Struct, or an object that responds to
+    #   <tt>[]</tt> with a variable name, such as a lambda. Pass a block
+    #   instead to look up each variable name with it.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
     # @param [Boolean] normalize_values
@@ -559,10 +584,11 @@ module Addressable
     #     "http://example.com/{?one,two,three}/"
     #   ).partial_expand({"one" => "1", "three" => 3}).pattern
     #   #=> "http://example.com/?one=1{&two}&three=3"
-    def partial_expand(mapping, processor=nil, normalize_values=true)
+    def partial_expand(mapping=NO_MAPPING, processor=nil, normalize_values=true,
+                       &block)
       check_expressions
       result = self.pattern.dup
-      mapping = normalize_keys(mapping)
+      mapping = resolve_mapping(mapping, block)
       result.gsub!( EXPRESSION ) do |capture|
         transform_partial_capture(mapping, capture, processor, normalize_values)
       end
@@ -572,7 +598,11 @@ module Addressable
     ##
     # Expands a URI template into a full URI.
     #
-    # @param [Hash] mapping The mapping that corresponds to the pattern.
+    # @param [Hash, #each_pair, #[]] mapping
+    #   The mapping that corresponds to the pattern: a Hash, an object with
+    #   <tt>each_pair</tt> such as a Struct, or an object that responds to
+    #   <tt>[]</tt> with a variable name, such as a lambda. Pass a block
+    #   instead to look up each variable name with it.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
     # @param [Boolean] normalize_values
@@ -627,9 +657,10 @@ module Addressable
     #     ExampleProcessor
     #   ).to_str
     #   #=> Addressable::Template::InvalidTemplateValueError
-    def expand(mapping, processor=nil, normalize_values=true)
+    def expand(mapping=NO_MAPPING, processor=nil, normalize_values=true,
+               &block)
       check_expressions
-      mapping = normalize_keys(mapping)
+      mapping = resolve_mapping(mapping, block)
       result = map_literals(self.pattern) do |literal|
         Addressable::URI.encode_component(literal, RESERVED_ENCODE)
       end
@@ -1071,15 +1102,45 @@ module Addressable
     end
 
     ##
-    # Generates a hash with string keys
+    # Picks the mapping to expand with: the one passed, or the block.
     #
-    # @param [Hash] mapping A mapping hash to normalize
+    # @param [Object] mapping The mapping argument
+    # @param [Proc, nil] block The block
     #
-    # @return [Hash]
-    #   A hash with stringified keys
+    # @return [Hash, MappingLookup] The normalized mapping
+    def resolve_mapping(mapping, block)
+      if block
+        unless mapping.equal?(NO_MAPPING) || mapping.nil?
+          raise ArgumentError, "Pass a mapping or a block, not both."
+        end
+        return normalize_keys(block)
+      end
+      if mapping.equal?(NO_MAPPING)
+        raise ArgumentError, "A mapping or a block is required."
+      end
+      normalize_keys(mapping)
+    end
+
+    ##
+    # Generates a hash with string keys, or a lookup for a mapping that isn't
+    # enumerable
+    #
+    # @param [Hash, #each_pair, #inject, #[]] mapping A mapping to normalize
+    #
+    # @return [Hash, MappingLookup]
+    #   A hash with stringified keys, or a lookup
     def normalize_keys(mapping)
-      return mapping unless mapping.respond_to?(:inject)
-      return mapping.inject({}) do |accu, pair|
+      pairs = if mapping.respond_to?(:each_pair)
+        mapping.to_enum(:each_pair)
+      elsif mapping.respond_to?(:inject)
+        mapping
+      elsif mapping.respond_to?(:[]) && !mapping.respond_to?(:to_str) &&
+          !(Symbol === mapping) && !(Numeric === mapping)
+        return MappingLookup.new(mapping)
+      else
+        raise TypeError, "Can't convert #{mapping.class} into a mapping."
+      end
+      return pairs.inject({}) do |accu, pair|
         name, value = pair
         if Symbol === name
           name = name.to_s

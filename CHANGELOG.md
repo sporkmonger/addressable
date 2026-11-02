@@ -59,6 +59,14 @@
   digits on one of its lines: e.g. `"8080\nx"` was taken as 8080 and
   `":\n8080"` as no port; `#origin=` now raises for a port that isn't only
   digits, including a pct-encoded one, before changing the URI
+- `Addressable::Template#expand` and `#partial_expand` now accept a mapping
+  that isn't a `Hash`: an object with `each_pair`, such as a `Struct`, or
+  one that responds to `[]` with a variable name, such as a lambda, which
+  is called once for each variable; they also take a block in place of the
+  mapping: e.g. `template.expand { |name| values.fetch(name, nil) }`; a
+  variable the lambda or block gives `nil` for is undefined, so
+  `#partial_expand` leaves it in the template; any other mapping raises
+  `TypeError` (#512, #133)
 - `Addressable::Template#expand` and `#partial_expand` now treat an empty
   list or associative array, and one with only `nil` members, as
   undefined, and leave out `nil` members, as RFC 6570 says: e.g. `{?list}`
