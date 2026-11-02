@@ -581,15 +581,20 @@ module Addressable
     # Expands a URI template into another URI template.
     #
     # @param [Hash, #each_pair, #[]] mapping
-    #   The mapping that corresponds to the pattern: a Hash, an object with
-    #   <tt>each_pair</tt> such as a Struct, or an object that responds to
-    #   <tt>[]</tt> with a variable name, such as a lambda. Pass a block
-    #   instead to look up each variable name with it. As with
-    #   <tt>Hash#fetch</tt>, the lambda or block raises <tt>KeyError</tt> for a
-    #   variable it doesn't have, which <tt>partial_expand</tt> leaves in the
-    #   template; <tt>nil</tt> is an undefined value, as in a Hash. An object
-    #   that also responds to <tt>key?</tt> decides which variables it has
-    #   with <tt>key?</tt>.
+    #   The values for the template's variables. This can be a Hash, an
+    #   array of name and value pairs, an object with <tt>each_pair</tt>
+    #   such as a Struct, or any object that responds to <tt>[]</tt>, such as
+    #   a lambda. A lambda or other <tt>[]</tt> object is called with each
+    #   variable's name as a String, at most once per name. Leave the mapping
+    #   out to look up variables with a block instead.
+    #
+    #   Lookups follow the <tt>Hash#fetch</tt> convention: raise
+    #   <tt>KeyError</tt> for a variable that's missing, and return <tt>nil</tt>
+    #   for a variable that's undefined. A missing variable's expression stays
+    #   in the returned template, and an undefined variable is expanded to
+    #   nothing, as with a Hash that lacks the key or maps it to <tt>nil</tt>.
+    #   An object that responds to <tt>key?</tt> reports missing variables with
+    #   <tt>key?</tt> instead.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
     # @param [Boolean] normalize_values
@@ -606,6 +611,15 @@ module Addressable
     # If a <tt>transform</tt> method is used, the value will not be percent
     # encoded automatically. Unicode normalization will be performed both
     # before and after sending the value to the transform method.
+    #
+    # @yield [name] Looks up a variable, when no mapping is given.
+    # @yieldparam [String] name The variable's name.
+    # @yieldreturn [Object] The variable's value, or <tt>nil</tt> if it's
+    #   undefined. Raise <tt>KeyError</tt> if the variable is missing.
+    #
+    # @raise [TypeError] If the mapping isn't one of the types above.
+    # @raise [ArgumentError] If both a mapping and a block are given, or
+    #   neither.
     #
     # @return [Addressable::Template] The partially expanded URI template.
     #
@@ -624,6 +638,12 @@ module Addressable
     #     "http://example.com/{?one,two,three}/"
     #   ).partial_expand({"one" => "1", "three" => 3}).pattern
     #   #=> "http://example.com/?one=1{&two}&three=3"
+    #
+    #   values = {"one" => "1"}
+    #   Addressable::Template.new(
+    #     "http://example.com/{one}/{two}/"
+    #   ).partial_expand { |name| values.fetch(name) }.pattern
+    #   #=> "http://example.com/1/{two}/"
     def partial_expand(mapping=NO_MAPPING, processor=nil, normalize_values=true,
                        &block)
       check_expressions
@@ -639,15 +659,18 @@ module Addressable
     # Expands a URI template into a full URI.
     #
     # @param [Hash, #each_pair, #[]] mapping
-    #   The mapping that corresponds to the pattern: a Hash, an object with
-    #   <tt>each_pair</tt> such as a Struct, or an object that responds to
-    #   <tt>[]</tt> with a variable name, such as a lambda. Pass a block
-    #   instead to look up each variable name with it. As with
-    #   <tt>Hash#fetch</tt>, the lambda or block raises <tt>KeyError</tt> for a
-    #   variable it doesn't have, which <tt>partial_expand</tt> leaves in the
-    #   template; <tt>nil</tt> is an undefined value, as in a Hash. An object
-    #   that also responds to <tt>key?</tt> decides which variables it has
-    #   with <tt>key?</tt>.
+    #   The values for the template's variables. This can be a Hash, an
+    #   array of name and value pairs, an object with <tt>each_pair</tt>
+    #   such as a Struct, or any object that responds to <tt>[]</tt>, such as
+    #   a lambda. A lambda or other <tt>[]</tt> object is called with each
+    #   variable's name as a String, at most once per name. Leave the mapping
+    #   out to look up variables with a block instead.
+    #
+    #   Lookups follow the <tt>Hash#fetch</tt> convention: raise
+    #   <tt>KeyError</tt> for a variable that's missing, and return <tt>nil</tt>
+    #   for a variable that's undefined. Both expand to nothing. An object that
+    #   responds to <tt>key?</tt> reports missing variables with <tt>key?</tt>
+    #   instead.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
     # @param [Boolean] normalize_values
@@ -664,6 +687,15 @@ module Addressable
     # If a <tt>transform</tt> method is used, the value will not be percent
     # encoded automatically. Unicode normalization will be performed both
     # before and after sending the value to the transform method.
+    #
+    # @yield [name] Looks up a variable, when no mapping is given.
+    # @yieldparam [String] name The variable's name.
+    # @yieldreturn [Object] The variable's value, or <tt>nil</tt> if it's
+    #   undefined. Raise <tt>KeyError</tt> if the variable is missing.
+    #
+    # @raise [TypeError] If the mapping isn't one of the types above.
+    # @raise [ArgumentError] If both a mapping and a block are given, or
+    #   neither.
     #
     # @return [Addressable::URI] The expanded URI template.
     #
@@ -702,6 +734,12 @@ module Addressable
     #     ExampleProcessor
     #   ).to_str
     #   #=> Addressable::Template::InvalidTemplateValueError
+    #
+    #   repository = {"owner" => "sporkmonger", "repo" => "addressable"}
+    #   Addressable::Template.new(
+    #     "https://github.com/{owner}/{repo}"
+    #   ).expand { |name| repository.fetch(name) }.to_str
+    #   #=> "https://github.com/sporkmonger/addressable"
     def expand(mapping=NO_MAPPING, processor=nil, normalize_values=true,
                &block)
       check_expressions
