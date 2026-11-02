@@ -2121,6 +2121,68 @@ describe Addressable::URI, "when parsed from " +
 end
 
 # An empty port is the same as no port (Section 3.2.3 of RFC 3986).
+describe Addressable::URI, "when frozen with components it holds" do
+  readers = Addressable::URI.public_instance_methods(false).select do |name|
+    !name.to_s.end_with?("!", "=") &&
+      ![:display, :freeze, :defer_validation, :dup, :clone].include?(name) &&
+      [0, -1].include?(Addressable::URI.instance_method(name).arity)
+  end
+
+  [
+    "", "/p", "p?q", "http://user:pw@example.com:8080/p?q=1#f",
+    "HTTP://EXAMPLE.com.:%38%30/%70a%74%68?a=%31#1%323",
+    "https://[::1]:443/", "http://www.詹姆斯.com/caf%C3%A9?é#é",
+    "mailto:x@y", "//example.com"
+  ].each do |input|
+    it "returns only frozen strings it holds for '#{input}'" do
+      uri = Addressable::URI.parse(input).freeze
+      unfrozen = readers.select do |name|
+        begin
+          first = uri.public_send(name)
+        rescue StandardError
+          next false
+        end
+        first.is_a?(String) && first.equal?(uri.public_send(name)) &&
+          !first.frozen?
+      end
+      expect(unfrozen).to be_empty
+    end
+
+    it "answers every reader without a FrozenError for '#{input}'" do
+      uri = Addressable::URI.parse(input).freeze
+      frozen_error = defined?(FrozenError) ? FrozenError : RuntimeError
+      raising = readers.select do |name|
+        begin
+          uri.public_send(name)
+          false
+        rescue frozen_error => error
+          error.message =~ /frozen/
+        rescue StandardError
+          false
+        end
+      end
+      expect(raising).to be_empty
+    end
+  end
+
+  it "checks enough readers to be meaningful" do
+    expect(readers).to include(:host, :normalized_host, :to_s, :authority)
+    expect(readers.size).to be > 30
+  end
+
+  it "doesn't freeze the strings it was given" do
+    components = {
+      :scheme => "http".dup, :user => "user".dup, :password => "pw".dup,
+      :host => "example.com".dup, :path => "/p".dup, :query => "q".dup,
+      :fragment => "f".dup
+    }
+    uri = Addressable::URI.new(components).freeze
+    components.each_value { |string| expect(string).not_to be_frozen }
+    expect(uri.host).to eq("example.com")
+    expect(uri.host).to be_frozen
+  end
+end
+
 describe Addressable::URI, "when given false for a component" do
   # Every public setter, including ones added later. URI.new and #merge take
   # the same names as keys, and ignore the ones they don't support.
@@ -7739,14 +7801,48 @@ describe Addressable::URI, "when cloned" do
     end
   end
 
-  it "keeps a frozen original unchanged" do
+  it "keeps a frozen original's strings frozen in the clone" do
     uri.freeze
     copy = uri.clone
     expect(copy).to be_frozen
-    copy.host << "x"
-    copy.normalized_host << "x"
+    expect { copy.host << "x" }.to raise_error(
+      defined?(FrozenError) ? FrozenError : RuntimeError
+    )
+    expect(strings(copy)).to all(be_frozen)
     expect(uri.host).to eq("a.example")
-    expect(uri.normalized_host).to eq("a.example")
+  end
+
+  if RUBY_VERSION >= "3.0"
+    it "prepares a clone frozen from an unfrozen original" do
+      copy = uri.clone(freeze: true)
+      expect(copy).to be_frozen
+      expect(copy.normalized_host).to eq("a.example")
+      expect(copy.authority).to eq("u:p@a.example:8080")
+      expect(strings(copy)).to all(be_frozen)
+      expect(uri).not_to be_frozen
+      expect(strings(uri)).to all(satisfy { |string| !string.frozen? })
+    end
+
+    it "gives mutable strings to a clone that isn't frozen" do
+      copy = uri.freeze.clone(freeze: false)
+      expect(copy).not_to be_frozen
+      expect(strings(copy)).to all(satisfy { |string| !string.frozen? })
+    end
+  end
+
+  it "caches a mutable userinfo for a URI that isn't frozen" do
+    expect(uri.userinfo).not_to be_frozen
+    expect(Addressable::URI.parse("http://u@a.example/").userinfo).not_to(
+      be_frozen
+    )
+  end
+
+  it "gives mutable strings to a dup of a frozen original" do
+    copy = uri.freeze.dup
+    expect(copy).not_to be_frozen
+    expect(strings(copy)).to all(satisfy { |string| !string.frozen? })
+    copy.host = "b.example"
+    expect(copy.to_s).to eq("http://u:p@b.example:8080/p?q#f")
   end
 
   it "keeps the methods defined on the original" do
