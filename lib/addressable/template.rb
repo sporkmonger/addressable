@@ -208,7 +208,7 @@ module Addressable
       #   Note that this list will include variables which do not appear
       #   in the mapping because they were not present in URI.
       def variables
-        self.template.variables
+        template.variables
       end
       alias_method :keys, :variables
       alias_method :names, :variables
@@ -219,8 +219,8 @@ module Addressable
       #   Note that this list will include nils for any variables which
       #   were in the Template, but did not appear in the URI.
       def values
-        (@values ||= self.variables.inject([]) do |accu, key|
-          accu << self.mapping[key]
+        (@values ||= variables.inject([]) do |accu, key|
+          accu << mapping[key]
           accu
         end).dup
       end
@@ -290,7 +290,7 @@ module Addressable
       # @return [String] The MatchData's state, as a <tt>String</tt>.
       def inspect
         sprintf("#<%s:%#0x RESULT:%s>",
-          self.class.to_s, self.object_id, self.mapping.inspect)
+          self.class.to_s, object_id, mapping.inspect)
       end
 
       ##
@@ -321,9 +321,9 @@ module Addressable
     #
     # @return [Addressable::URI] The frozen URI object.
     def freeze
-      self.variables
-      self.variable_defaults
-      self.named_captures
+      variables
+      variable_defaults
+      named_captures
       super
     end
 
@@ -337,7 +337,7 @@ module Addressable
     # @return [String] The Template object's state, as a <tt>String</tt>.
     def inspect
       sprintf("#<%s:%#0x PATTERN:%s>",
-        self.class.to_s, self.object_id, self.pattern)
+        self.class.to_s, object_id, pattern)
     end
 
     ##
@@ -351,7 +351,7 @@ module Addressable
     #   otherwise.
     def ==(template)
       return false unless template.kind_of?(Template)
-      return self.pattern == template.pattern
+      return pattern == template.pattern
     end
 
     ##
@@ -363,7 +363,7 @@ module Addressable
     ##
     # @return [Integer] A hash consistent with template equality.
     def hash
-      self.pattern.hash
+      pattern.hash
     end
 
     ##
@@ -424,7 +424,7 @@ module Addressable
     #   ).extract(uri)
     #   #=> {"first" => "a", "second" => ["b", "c"]}
     def extract(uri, processor=nil)
-      match_data = self.match(uri, processor)
+      match_data = match(uri, processor)
       return (match_data ? match_data.mapping : nil)
     end
 
@@ -647,7 +647,7 @@ module Addressable
     def partial_expand(mapping=NO_MAPPING, processor=nil, normalize_values=true,
                        &block)
       check_expressions
-      result = self.pattern.dup
+      result = pattern.dup
       mapping = resolve_mapping(mapping, block)
       result.gsub!( EXPRESSION ) do |capture|
         transform_partial_capture(mapping, capture, processor, normalize_values)
@@ -744,7 +744,7 @@ module Addressable
                &block)
       check_expressions
       mapping = resolve_mapping(mapping, block)
-      result = map_literals(self.pattern) do |literal|
+      result = map_literals(pattern) do |literal|
         Addressable::URI.encode_component(literal, RESERVED_ENCODE)
       end
       result.gsub!( EXPRESSION ) do |capture|
@@ -795,7 +795,7 @@ module Addressable
     #
     # @api private
     def source
-      self.to_regexp.source
+      to_regexp.source
     end
 
     ##
@@ -805,7 +805,7 @@ module Addressable
     #
     # @api private
     def named_captures
-      self.to_regexp.named_captures
+      to_regexp.named_captures
     end
 
   private
