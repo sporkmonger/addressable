@@ -19,10 +19,6 @@ rescue LoadError
 end if Gem.loaded_specs.key?("simplecov")
 
 class TestHelper
-  def self.is_jruby?
-    Object.const_defined? :JRUBY_VERSION
-  end
-
   def self.is_mri?
     RUBY_ENGINE == "ruby"
   end

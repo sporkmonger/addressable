@@ -149,6 +149,8 @@
   `#partial_expand` raise `InvalidTemplateError` where `{var:10000}` used to
   expand to the whole value, and `#match` reads them as literal text; a
   length too large for a machine integer no longer raises `RangeError` (#618)
+- removes `Addressable::IDNA::PUNYCODE_PRINT_ASCII` from the pure-Ruby IDNA
+  backend; nothing has used it since the Punycode encoder was rewritten (#645)
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 - fixes `Addressable::URI` returning stale values after a component was
