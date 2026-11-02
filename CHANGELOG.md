@@ -59,6 +59,9 @@
   digits on one of its lines: e.g. `"8080\nx"` was taken as 8080 and
   `":\n8080"` as no port; `#origin=` now raises for a port that isn't only
   digits, including a pct-encoded one, before changing the URI
+- removes `Addressable::URI::RULE_2A`, `RULE_2B_2C`, `RULE_2D` and
+  `RULE_PREFIXED_PARENT`, deprecated in 2.9.1; `.normalize_path` hasn't used
+  them since then
 - `Addressable::URI#freeze` now freezes the strings the URI holds, so a
   frozen URI can't be changed through the strings its getters return:
   before, `uri.host << "x"` on a frozen URI changed its host while `#to_s`
