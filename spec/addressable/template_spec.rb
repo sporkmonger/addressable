@@ -28,6 +28,15 @@ shared_examples_for 'expands' do |tests|
       tmpl = Addressable::Template.new(template).expand(subject)
       expect(tmpl.to_str).to eq(expansion)
     end
+
+    it "#{template} to #{exp} from a lambda" do
+      mapping = subject
+      lookup = lambda do |name|
+        mapping.key?(name) ? mapping[name] : mapping[name.to_sym]
+      end
+      tmpl = Addressable::Template.new(template).expand(lookup)
+      expect(tmpl.to_str).to eq(expansion)
+    end
   end
 end
 
@@ -247,6 +256,22 @@ describe Addressable::Template, "with a mapping that isn't a Hash" do
       expect(template.expand(sub)).to eq(template.expand(hash))
       expect(template.partial_expand(sub)).to eq(template.partial_expand(hash))
     end
+  end
+
+  it "uses key? to tell an undefined variable from a missing one when " +
+      "partially expanding" do
+    lookup = Object.new
+    def lookup.[](name)
+      {"one" => "1"}[name]
+    end
+    def lookup.key?(name)
+      ["one", "two"].include?(name)
+    end
+    expect(
+      Addressable::Template.new("{one}/{two}/{three}").partial_expand(
+        lookup
+      ).pattern
+    ).to eq("1//{three}")
   end
 
   it "expands from a Struct" do

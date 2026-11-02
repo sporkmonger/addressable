@@ -78,7 +78,7 @@ module Addressable
     private_constant :NO_MAPPING
 
     # Looks up variables in a mapping that isn't enumerable, such as a lambda,
-    # once each. A variable it gives nil for isn't defined.
+    # once each. Without key?, a variable it gives nil for counts as missing.
     class MappingLookup
       def initialize(source)
         @source = source
@@ -90,7 +90,7 @@ module Addressable
       end
 
       def key?(name)
-        !self[name].nil?
+        @source.respond_to?(:key?) ? @source.key?(name) : !self[name].nil?
       end
     end
     private_constant :MappingLookup
@@ -549,7 +549,11 @@ module Addressable
     #   The mapping that corresponds to the pattern: a Hash, an object with
     #   <tt>each_pair</tt> such as a Struct, or an object that responds to
     #   <tt>[]</tt> with a variable name, such as a lambda. Pass a block
-    #   instead to look up each variable name with it.
+    #   instead to look up each variable name with it. A lambda or block can't
+    #   tell a missing variable from one whose value is <tt>nil</tt>, so
+    #   <tt>partial_expand</tt> leaves a variable it gives <tt>nil</tt> for in
+    #   the template; an object that also responds to <tt>key?</tt> decides
+    #   that with <tt>key?</tt>, as a Hash does.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
     # @param [Boolean] normalize_values
@@ -602,7 +606,11 @@ module Addressable
     #   The mapping that corresponds to the pattern: a Hash, an object with
     #   <tt>each_pair</tt> such as a Struct, or an object that responds to
     #   <tt>[]</tt> with a variable name, such as a lambda. Pass a block
-    #   instead to look up each variable name with it.
+    #   instead to look up each variable name with it. A lambda or block can't
+    #   tell a missing variable from one whose value is <tt>nil</tt>, so
+    #   <tt>partial_expand</tt> leaves a variable it gives <tt>nil</tt> for in
+    #   the template; an object that also responds to <tt>key?</tt> decides
+    #   that with <tt>key?</tt>, as a Hash does.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
     # @param [Boolean] normalize_values

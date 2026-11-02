@@ -64,8 +64,9 @@
   one that responds to `[]` with a variable name, such as a lambda, which
   is called once for each variable; they also take a block in place of the
   mapping: e.g. `template.expand { |name| values.fetch(name, nil) }`; a
-  variable the lambda or block gives `nil` for is undefined, so
-  `#partial_expand` leaves it in the template; any other mapping raises
+  variable the lambda or block gives `nil` for counts as missing, so
+  `#partial_expand` leaves it in the template, unless the object responds
+  to `key?`, which then decides, as for a `Hash`; any other mapping raises
   `TypeError` (#512, #133)
 - `Addressable::Template#expand` and `#partial_expand` now treat an empty
   list or associative array, and one with only `nil` members, as
