@@ -59,6 +59,17 @@
   digits on one of its lines: e.g. `"8080\nx"` was taken as 8080 and
   `":\n8080"` as no port; `#origin=` now raises for a port that isn't only
   digits, including a pct-encoded one, before changing the URI
+- `Addressable::Template#expand` and `#partial_expand` now take values
+  from more than a `Hash`: an object with `each_pair`, such as a `Struct`;
+  any object that responds to `[]`, such as a lambda, which is called once
+  per variable with its name; or a block given in place of the mapping,
+  e.g. `template.partial_expand { |name| values.fetch(name) }`; lookups
+  follow the `Hash#fetch` convention, so raising `KeyError` means the
+  variable is missing, and `#partial_expand` keeps its expression, while
+  returning `nil` means it's undefined, and both methods expand it to
+  nothing, just as for a `Hash`; an object that responds to `key?` reports
+  missing variables with `key?` instead; any other mapping now raises
+  `TypeError` instead of `NoMethodError` (#512, #133)
 - `Addressable::Template#expand` and `#partial_expand` now treat an empty
   list or associative array, and one with only `nil` members, as
   undefined, and leave out `nil` members, as RFC 6570 says: e.g. `{?list}`

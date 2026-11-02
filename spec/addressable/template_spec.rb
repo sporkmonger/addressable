@@ -28,6 +28,15 @@ shared_examples_for 'expands' do |tests|
       tmpl = Addressable::Template.new(template).expand(subject)
       expect(tmpl.to_str).to eq(expansion)
     end
+
+    it "#{template} to #{exp} from a lambda" do
+      mapping = subject
+      lookup = lambda do |name|
+        mapping.key?(name) ? mapping[name] : mapping[name.to_sym]
+      end
+      tmpl = Addressable::Template.new(template).expand(lookup)
+      expect(tmpl.to_str).to eq(expansion)
+    end
   end
 end
 
@@ -165,6 +174,196 @@ describe "Type conversion" do
     '{sym}' => 'symbolic',
     '{decimal}' => RUBY_VERSION < '2.4.0' ? '0.1E1' : '0.1e1'
   }
+end
+
+describe Addressable::Template, "with a mapping that isn't a Hash" do
+  it "expands from a lambda" do
+    sub = lambda { |name| "foo-#{name}" }
+    expect(
+      Addressable::Template.new("{bar}/{baz}").expand(sub).to_str
+    ).to eq("foo-bar/foo-baz")
+  end
+
+  it "expands from a block" do
+    result = Addressable::Template.new("{bar}/{baz}").expand do |name|
+      "foo-#{name}"
+    end
+    expect(result.to_str).to eq("foo-bar/foo-baz")
+  end
+
+  it "expands from a block with a processor" do
+    processor = Object.new
+    def processor.transform(name, value)
+      value.upcase
+    end
+    result = Addressable::Template.new("{bar}").expand(nil, processor) do |n|
+      "foo-#{n}"
+    end
+    expect(result.to_str).to eq("FOO-BAR")
+  end
+
+  it "expands from any object that responds to []" do
+    lookup = Object.new
+    def lookup.[](name)
+      {"a" => "1", "list" => ["x", "y"], "keys" => {"k" => "v"}}[name]
+    end
+    expect(
+      Addressable::Template.new("{a}{/list*}{?keys*,missing}").expand(
+        lookup
+      ).to_str
+    ).to eq("1/x/y?k=v")
+  end
+
+  it "looks up each variable only once" do
+    calls = Hash.new(0)
+    sub = lambda { |name| calls[name] += 1; "v" }
+    Addressable::Template.new("{a}{a}{+a}{?a,b}").expand(sub)
+    Addressable::Template.new("{c}{?c,d}").partial_expand(sub)
+    expect(calls).to eq("a" => 1, "b" => 1, "c" => 1, "d" => 1)
+  end
+
+  it "looks up variables by their names as strings" do
+    names = []
+    Addressable::Template.new("{a}{x.y}").expand(lambda { |n| names << n; nil })
+    expect(names).to eq(["a", "x.y"])
+  end
+
+  it "keeps expressions whose variables a lambda raises KeyError for " +
+      "when partially expanding" do
+    values = {"one" => "1"}
+    sub = lambda { |name| values.fetch(name) }
+    expect(
+      Addressable::Template.new("{one}/{two}").partial_expand(sub).pattern
+    ).to eq("1/{two}")
+    expect(
+      Addressable::Template.new("{one}/{two}").partial_expand do |name|
+        {"two" => "2"}.fetch(name)
+      end.pattern
+    ).to eq("{one}/2")
+  end
+
+  it "removes expressions whose variables a block gives nil for when " +
+      "partially expanding, as for a Hash value of nil" do
+    template = Addressable::Template.new("{one}/{two}{?three}")
+    result = template.partial_expand do |name|
+      {"one" => "1", "two" => nil}.fetch(name)
+    end
+    expect(result.pattern).to eq("1/{?three}")
+    expect(result).to eq(template.partial_expand("one" => "1", "two" => nil))
+  end
+
+  it "treats a KeyError as an undefined variable when expanding" do
+    expect(
+      Addressable::Template.new("{one}/{two}").expand do |name|
+        {"one" => "1"}.fetch(name)
+      end.to_str
+    ).to eq("1/")
+  end
+
+  it "takes a KeyError for a symbol with the variable's name as missing" do
+    values = {:one => "1"}
+    expect(
+      Addressable::Template.new("{one}/{two}").partial_expand do |name|
+        values.fetch(name.to_sym)
+      end.pattern
+    ).to eq("1/{two}")
+  end
+
+  it "takes a KeyError with no key as missing" do
+    expect(
+      Addressable::Template.new("{one}").partial_expand do |name|
+        raise KeyError, "no #{name}"
+      end.pattern
+    ).to eq("{one}")
+  end
+
+  if KeyError.method_defined?(:key)
+    it "raises a KeyError for a different key" do
+      settings = {}
+      expect do
+        Addressable::Template.new("{one}").partial_expand do |name|
+          settings.fetch("other")
+        end
+      end.to raise_error(KeyError)
+    end
+  end
+
+  [
+    ["{a}/{b}", {"a" => "1"}],
+    ["{?a,b,c}", {"b" => "2"}],
+    ["{?a,b,c}", {"a" => "1", "c" => 3}],
+    ["{&a,b}{/list*}", {"list" => ["x", "y"]}],
+    ["{#keys*}{.a}", {"keys" => {"k" => "v"}, "a" => "z"}],
+    ["{+a}{;b}", {"a" => "/x", "b" => ""}],
+    ["{a}/{b}{?c,d}", {"a" => nil, "c" => nil, "d" => "4"}],
+    ["{?a,b,c}", {"a" => nil}]
+  ].each do |pattern, hash|
+    it "expands '#{pattern}' from a lambda as it would from " +
+        "#{hash.inspect}" do
+      template = Addressable::Template.new(pattern)
+      sub = lambda { |name| hash.fetch(name) }
+      expect(template.expand(sub)).to eq(template.expand(hash))
+      expect(template.partial_expand(sub)).to eq(template.partial_expand(hash))
+    end
+  end
+
+  it "uses key? to tell an undefined variable from a missing one when " +
+      "partially expanding" do
+    lookup = Object.new
+    def lookup.[](name)
+      {"one" => "1"}[name]
+    end
+    def lookup.key?(name)
+      ["one", "two"].include?(name)
+    end
+    expect(
+      Addressable::Template.new("{one}/{two}/{three}").partial_expand(
+        lookup
+      ).pattern
+    ).to eq("1//{three}")
+  end
+
+  it "expands from a Struct" do
+    values = Struct.new(:a, :b).new("1", "2")
+    expect(
+      Addressable::Template.new("{a}{b}").expand(values).to_str
+    ).to eq("12")
+  end
+
+  it "still expands from an array of pairs" do
+    expect(
+      Addressable::Template.new("{a}{b}").expand([["a", "1"], [:b, "2"]]).to_str
+    ).to eq("12")
+  end
+
+  it "raises an error for both a mapping and a block" do
+    expect do
+      Addressable::Template.new("{a}").expand("a" => "1") { |name| name }
+    end.to raise_error(ArgumentError)
+    expect do
+      Addressable::Template.new("{a}").partial_expand("a" => "1") { |n| n }
+    end.to raise_error(ArgumentError)
+  end
+
+  it "raises an error for neither a mapping nor a block" do
+    expect do
+      Addressable::Template.new("{a}").expand
+    end.to raise_error(ArgumentError)
+    expect do
+      Addressable::Template.new("{a}").partial_expand
+    end.to raise_error(ArgumentError)
+  end
+
+  [nil, 42, "a", :a, true].each do |mapping|
+    it "raises an error for #{mapping.inspect} as a mapping" do
+      expect do
+        Addressable::Template.new("{a}").expand(mapping)
+      end.to raise_error(TypeError)
+      expect do
+        Addressable::Template.new("{a}").partial_expand(mapping)
+      end.to raise_error(TypeError)
+    end
+  end
 end
 
 describe "Level 1:" do

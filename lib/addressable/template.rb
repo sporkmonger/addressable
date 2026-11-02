@@ -74,6 +74,62 @@ module Addressable
     TEMPLATE_TOKEN = /[^{}]+|\{[^}]*\}?|\}/
     private_constant :RESERVED_OPERATORS, :VALID_EXPRESSION, :TEMPLATE_TOKEN
 
+    NO_MAPPING = Object.new.freeze
+    private_constant :NO_MAPPING
+
+    # Looks up variables in a mapping that isn't enumerable, such as a lambda,
+    # once each. As with Hash#fetch, a KeyError means the variable is missing,
+    # and nil means it's defined as nil.
+    class MappingLookup
+      MISSING = Object.new.freeze
+
+      def initialize(source)
+        @source = source
+        @values = {}
+      end
+
+      def [](name)
+        value = lookup(name)
+        value.equal?(MISSING) ? nil : value
+      end
+
+      def key?(name)
+        !lookup(name).equal?(MISSING)
+      end
+
+      private
+
+      def lookup(name)
+        @values.fetch(name) do
+          @values[name] =
+            if @source.respond_to?(:key?) && !@source.key?(name)
+              MISSING
+            else
+              begin
+                @source[name]
+              rescue KeyError => error
+                raise unless missing?(error, name)
+                MISSING
+              end
+            end
+        end
+      end
+
+      # KeyError#key is Ruby 2.6+. For an error with no key, MRI raises and
+      # TruffleRuby gives nil.
+      def missing?(error, name)
+        return true unless error.respond_to?(:key)
+        begin
+          key = error.key
+        rescue ArgumentError
+          return true
+        end
+        return true if key.nil?
+        (key.is_a?(String) || key.is_a?(Symbol)) && key.to_s == name
+      end
+    end
+    private_constant :MappingLookup
+
 
     LEADERS = {
       '?' => '?',
@@ -524,7 +580,21 @@ module Addressable
     ##
     # Expands a URI template into another URI template.
     #
-    # @param [Hash] mapping The mapping that corresponds to the pattern.
+    # @param [Hash, #each_pair, #[]] mapping
+    #   The values for the template's variables. This can be a Hash, an
+    #   array of name and value pairs, an object with <tt>each_pair</tt>
+    #   such as a Struct, or any object that responds to <tt>[]</tt>, such as
+    #   a lambda. A lambda or other <tt>[]</tt> object is called with each
+    #   variable's name as a String, at most once per name. Leave the mapping
+    #   out to look up variables with a block instead.
+    #
+    #   Lookups follow the <tt>Hash#fetch</tt> convention: raise
+    #   <tt>KeyError</tt> for a variable that's missing, and return <tt>nil</tt>
+    #   for a variable that's undefined. A missing variable's expression stays
+    #   in the returned template, and an undefined variable is expanded to
+    #   nothing, as with a Hash that lacks the key or maps it to <tt>nil</tt>.
+    #   An object that responds to <tt>key?</tt> reports missing variables with
+    #   <tt>key?</tt> instead.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
     # @param [Boolean] normalize_values
@@ -541,6 +611,15 @@ module Addressable
     # If a <tt>transform</tt> method is used, the value will not be percent
     # encoded automatically. Unicode normalization will be performed both
     # before and after sending the value to the transform method.
+    #
+    # @yield [name] Looks up a variable, when no mapping is given.
+    # @yieldparam [String] name The variable's name.
+    # @yieldreturn [Object] The variable's value, or <tt>nil</tt> if it's
+    #   undefined. Raise <tt>KeyError</tt> if the variable is missing.
+    #
+    # @raise [TypeError] If the mapping isn't one of the types above.
+    # @raise [ArgumentError] If both a mapping and a block are given, or
+    #   neither.
     #
     # @return [Addressable::Template] The partially expanded URI template.
     #
@@ -559,10 +638,17 @@ module Addressable
     #     "http://example.com/{?one,two,three}/"
     #   ).partial_expand({"one" => "1", "three" => 3}).pattern
     #   #=> "http://example.com/?one=1{&two}&three=3"
-    def partial_expand(mapping, processor=nil, normalize_values=true)
+    #
+    #   values = {"one" => "1"}
+    #   Addressable::Template.new(
+    #     "http://example.com/{one}/{two}/"
+    #   ).partial_expand { |name| values.fetch(name) }.pattern
+    #   #=> "http://example.com/1/{two}/"
+    def partial_expand(mapping=NO_MAPPING, processor=nil, normalize_values=true,
+                       &block)
       check_expressions
       result = self.pattern.dup
-      mapping = normalize_keys(mapping)
+      mapping = resolve_mapping(mapping, block)
       result.gsub!( EXPRESSION ) do |capture|
         transform_partial_capture(mapping, capture, processor, normalize_values)
       end
@@ -572,7 +658,19 @@ module Addressable
     ##
     # Expands a URI template into a full URI.
     #
-    # @param [Hash] mapping The mapping that corresponds to the pattern.
+    # @param [Hash, #each_pair, #[]] mapping
+    #   The values for the template's variables. This can be a Hash, an
+    #   array of name and value pairs, an object with <tt>each_pair</tt>
+    #   such as a Struct, or any object that responds to <tt>[]</tt>, such as
+    #   a lambda. A lambda or other <tt>[]</tt> object is called with each
+    #   variable's name as a String, at most once per name. Leave the mapping
+    #   out to look up variables with a block instead.
+    #
+    #   Lookups follow the <tt>Hash#fetch</tt> convention: raise
+    #   <tt>KeyError</tt> for a variable that's missing, and return <tt>nil</tt>
+    #   for a variable that's undefined. Both expand to nothing. An object that
+    #   responds to <tt>key?</tt> reports missing variables with <tt>key?</tt>
+    #   instead.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
     # @param [Boolean] normalize_values
@@ -589,6 +687,15 @@ module Addressable
     # If a <tt>transform</tt> method is used, the value will not be percent
     # encoded automatically. Unicode normalization will be performed both
     # before and after sending the value to the transform method.
+    #
+    # @yield [name] Looks up a variable, when no mapping is given.
+    # @yieldparam [String] name The variable's name.
+    # @yieldreturn [Object] The variable's value, or <tt>nil</tt> if it's
+    #   undefined. Raise <tt>KeyError</tt> if the variable is missing.
+    #
+    # @raise [TypeError] If the mapping isn't one of the types above.
+    # @raise [ArgumentError] If both a mapping and a block are given, or
+    #   neither.
     #
     # @return [Addressable::URI] The expanded URI template.
     #
@@ -627,9 +734,16 @@ module Addressable
     #     ExampleProcessor
     #   ).to_str
     #   #=> Addressable::Template::InvalidTemplateValueError
-    def expand(mapping, processor=nil, normalize_values=true)
+    #
+    #   repository = {"owner" => "sporkmonger", "repo" => "addressable"}
+    #   Addressable::Template.new(
+    #     "https://github.com/{owner}/{repo}"
+    #   ).expand { |name| repository.fetch(name) }.to_str
+    #   #=> "https://github.com/sporkmonger/addressable"
+    def expand(mapping=NO_MAPPING, processor=nil, normalize_values=true,
+               &block)
       check_expressions
-      mapping = normalize_keys(mapping)
+      mapping = resolve_mapping(mapping, block)
       result = map_literals(self.pattern) do |literal|
         Addressable::URI.encode_component(literal, RESERVED_ENCODE)
       end
@@ -1071,14 +1185,45 @@ module Addressable
     end
 
     ##
-    # Generates a hash with string keys
+    # Picks the mapping to expand with: the one passed, or the block.
     #
-    # @param [Hash] mapping A mapping hash to normalize
+    # @param [Object] mapping The mapping argument
+    # @param [Proc, nil] block The block
     #
-    # @return [Hash]
-    #   A hash with stringified keys
+    # @return [Hash, MappingLookup] The normalized mapping
+    def resolve_mapping(mapping, block)
+      if block
+        unless mapping.equal?(NO_MAPPING) || mapping.nil?
+          raise ArgumentError, "Pass a mapping or a block, not both."
+        end
+        return normalize_keys(block)
+      end
+      if mapping.equal?(NO_MAPPING)
+        raise ArgumentError, "A mapping or a block is required."
+      end
+      normalize_keys(mapping)
+    end
+
+    ##
+    # Generates a hash with string keys, or a lookup for a mapping that isn't
+    # enumerable
+    #
+    # @param [Hash, #each_pair, #inject, #[]] mapping A mapping to normalize
+    #
+    # @return [Hash, MappingLookup]
+    #   A hash with stringified keys, or a lookup
     def normalize_keys(mapping)
-      return mapping.inject({}) do |accu, pair|
+      if mapping.respond_to?(:each_pair)
+        pairs = mapping.to_enum(:each_pair)
+      elsif mapping.respond_to?(:inject)
+        pairs = mapping
+      elsif mapping.respond_to?(:[]) && !mapping.respond_to?(:to_str) &&
+          !(Symbol === mapping) && !(Numeric === mapping)
+        return MappingLookup.new(mapping)
+      else
+        raise TypeError, "Can't convert #{mapping.class} into a mapping."
+      end
+      return pairs.inject({}) do |accu, pair|
         name, value = pair
         if Symbol === name
           name = name.to_s
