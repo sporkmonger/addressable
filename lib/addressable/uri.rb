@@ -1084,10 +1084,11 @@ module Addressable
       current_user = self.user
       current_password = self.password
       (current_user || current_password) && @userinfo ||= begin
+        # Before Ruby 3.0, an interpolated string here would be frozen.
         if current_user && current_password
-          "#{current_user}:#{current_password}"
+          "#{current_user}:#{current_password}".dup
         elsif current_user && !current_password
-          "#{current_user}"
+          current_user.dup
         end
       end
     end

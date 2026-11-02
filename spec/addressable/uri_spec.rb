@@ -7830,6 +7830,13 @@ describe Addressable::URI, "when cloned" do
     end
   end
 
+  it "caches a mutable userinfo for a URI that isn't frozen" do
+    expect(uri.userinfo).not_to be_frozen
+    expect(Addressable::URI.parse("http://u@a.example/").userinfo).not_to(
+      be_frozen
+    )
+  end
+
   it "gives mutable strings to a dup of a frozen original" do
     copy = uri.freeze.dup
     expect(copy).not_to be_frozen

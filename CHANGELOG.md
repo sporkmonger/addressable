@@ -66,7 +66,8 @@
   is copied rather than frozen, so the caller's string stays mutable;
   `#clone` of a frozen URI is frozen the same way and `#dup` still gives
   mutable strings; on Ruby 3.0+, `#clone(freeze: true)` of an unfrozen URI
-  no longer raises `FrozenError` from its getters
+  no longer raises `FrozenError` from its getters; and before Ruby 3.0,
+  `#userinfo` no longer returns a frozen string for a URI that isn't frozen
 - `Addressable::URI`'s component setters, `.new` and `#merge` now reject
   `false` exactly as they reject `true`, with the same `TypeError` or
   `InvalidURIError`: before, most setters treated `false` as `nil` and
