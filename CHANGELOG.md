@@ -59,6 +59,14 @@
   digits on one of its lines: e.g. `"8080\nx"` was taken as 8080 and
   `":\n8080"` as no port; `#origin=` now raises for a port that isn't only
   digits, including a pct-encoded one, before changing the URI
+- `Addressable::URI#freeze` now freezes the strings the URI holds, so a
+  frozen URI can't be changed through the strings its getters return:
+  before, `uri.host << "x"` on a frozen URI changed its host while `#to_s`
+  and `#hash` kept the old values; a string passed to `.new` or a setter
+  is copied rather than frozen, so the caller's string stays mutable;
+  `#clone` of a frozen URI is frozen the same way and `#dup` still gives
+  mutable strings; on Ruby 3.0+, `#clone(freeze: true)` of an unfrozen URI
+  no longer raises `FrozenError` from its getters
 - `Addressable::URI`'s component setters, `.new` and `#merge` now reject
   `false` exactly as they reject `true`, with the same `TypeError` or
   `InvalidURIError`: before, most setters treated `false` as `nil` and

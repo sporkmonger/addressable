@@ -903,18 +903,7 @@ module Addressable
     #
     # @return [Addressable::URI] The frozen URI object.
     def freeze
-      self.normalized_scheme
-      self.normalized_user
-      self.normalized_password
-      self.normalized_userinfo
-      self.normalized_host
-      self.normalized_port
-      self.normalized_authority
-      self.normalized_site
-      self.normalized_path
-      self.normalized_query
-      self.normalized_fragment
-      self.hash
+      prepare_to_freeze
       super
     end
 
@@ -2696,6 +2685,38 @@ module Addressable
       instance_variables.each do |ivar|
         value = instance_variable_get(ivar)
         instance_variable_set(ivar, value.dup) if value.kind_of?(String)
+      end
+    end
+
+    # Ruby 3.0+ passes freeze: when clone is called with it.
+    def initialize_clone(other, freeze: nil)
+      super(other)
+      prepare_to_freeze if freeze.nil? ? other.frozen? : freeze
+    end
+
+    ##
+    # Computes every cached value, so that a frozen URI never needs to set
+    # one, and replaces the strings it holds with frozen copies. A string
+    # passed to a setter is copied rather than frozen, so that freezing the
+    # URI doesn't freeze the caller's string.
+    def prepare_to_freeze
+      self.normalized_scheme
+      self.normalized_user
+      self.normalized_password
+      self.normalized_userinfo
+      self.normalized_host
+      self.normalized_port
+      self.normalized_authority
+      self.normalized_site
+      self.normalized_path
+      self.normalized_query
+      self.normalized_fragment
+      self.hash
+      instance_variables.each do |ivar|
+        value = instance_variable_get(ivar)
+        if value.kind_of?(String) && !value.frozen?
+          instance_variable_set(ivar, value.dup.freeze)
+        end
       end
     end
 
