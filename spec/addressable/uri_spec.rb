@@ -354,6 +354,21 @@ describe Addressable::URI, "when created from nil components" do
     end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
+  [true, false].each do |value|
+    ["", "/path", "http://example.com/path?q#f"].each do |uri|
+      it "should raise a TypeError when the scheme of '#{uri}' is set to " +
+          "#{value}" do
+        target = Addressable::URI.parse(uri)
+        expect do
+          target.scheme = value
+        end.to raise_error(
+          TypeError, "Can't convert #{value.class} into String."
+        )
+        expect(target.to_s).to eq(uri)
+      end
+    end
+  end
+
   it "should raise an error if set into an invalid state" do
     expect do
       @uri.user = "user"
@@ -2106,6 +2121,102 @@ describe Addressable::URI, "when parsed from " +
 end
 
 # An empty port is the same as no port (Section 3.2.3 of RFC 3986).
+describe Addressable::URI, "when given false for a component" do
+  # Every public setter, including ones added later. URI.new and #merge take
+  # the same names as keys, and ignore the ones they don't support.
+  setters = Addressable::URI.public_instance_methods.grep(/\A[a-z_]+=\z/).sort
+  keys = setters.map { |setter| setter.to_s.chomp("=").to_sym }
+
+  def self.random_uris(count, seed)
+    random = Random.new(seed)
+    pick = lambda { |values| values[random.rand(values.size)] }
+    Array.new(count) do
+      scheme = pick.call([nil, "http", "https", "mailto", "foo"])
+      authority = pick.call(
+        [nil, "", "example.com", "a:b@example.com:8080", "[::1]", "u@h"]
+      )
+      path = pick.call(["", "/", "/p", "p", "x@y", "/a/b"])
+      query = pick.call([nil, "", "q=1", "a=b&c"])
+      fragment = pick.call([nil, "", "f"])
+      uri = "".dup
+      uri << "#{scheme}:" if scheme
+      uri << "//#{authority}" if authority
+      uri << path
+      uri << "?#{query}" if query
+      uri << "##{fragment}" if fragment
+      uri
+    end.select do |uri|
+      begin
+        Addressable::URI.parse(uri).to_s
+        true
+      rescue Addressable::URI::InvalidURIError
+        false
+      end
+    end
+  end
+
+  uris = [
+    "", "/p", "p?q", "?q", "#f", "//example.com", "mailto:x@y",
+    "https://[::1]/", "http://a:b@example.com:8080/p?q=1#f"
+  ] + random_uris(50, 3986)
+
+  def outcome
+    result = yield
+    [:ok, result.to_s]
+  rescue StandardError => error
+    message = error.message.gsub(/TrueClass|FalseClass/, "Boolean").
+      gsub(/\b(?:true|false)\b/, "boolean")
+    [:raise, error.class, message]
+  end
+
+  it "covers enough URIs and setters to be meaningful" do
+    expect(uris.uniq.size).to be > 25
+    expect(setters).to include(:scheme=, :host=, :path=, :query_values=)
+    expect(setters.size).to be >= 16
+  end
+
+  it "makes every setter treat false as it treats true" do
+    failures = []
+    uris.uniq.each do |uri|
+      setters.each do |setter|
+        results = [true, false].map do |value|
+          target = Addressable::URI.parse(uri)
+          outcome { target.send(setter, value) } + [target.to_s]
+        end
+        failures << [uri, setter, *results] if results[0] != results[1]
+      end
+    end
+    expect(failures).to be_empty, lambda {
+      "#{failures.size} setters treated false differently " +
+      "(uri, setter, true, false):\n" +
+      failures.first(10).map { |failure| "  #{failure.inspect}" }.join("\n")
+    }
+  end
+
+  it "makes URI.new and #merge treat false as they treat true" do
+    failures = []
+    keys.each do |key|
+      results = [true, false].map do |value|
+        outcome { Addressable::URI.new(key => value) }
+      end
+      failures << ["new", key, *results] if results[0] != results[1]
+    end
+    uris.uniq.each do |uri|
+      keys.each do |key|
+        results = [true, false].map do |value|
+          outcome { Addressable::URI.parse(uri).merge(key => value) }
+        end
+        failures << [uri, key, *results] if results[0] != results[1]
+      end
+    end
+    expect(failures).to be_empty, lambda {
+      "#{failures.size} calls treated false differently " +
+      "(uri, key, true, false):\n" +
+      failures.first(10).map { |failure| "  #{failure.inspect}" }.join("\n")
+    }
+  end
+end
+
 describe Addressable::URI, "when a setter raises an error" do
   def snapshot(uri)
     components = [

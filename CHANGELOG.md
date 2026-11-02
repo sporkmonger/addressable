@@ -59,6 +59,12 @@
   digits on one of its lines: e.g. `"8080\nx"` was taken as 8080 and
   `":\n8080"` as no port; `#origin=` now raises for a port that isn't only
   digits, including a pct-encoded one, before changing the URI
+- `Addressable::URI`'s component setters, `.new` and `#merge` now reject
+  `false` exactly as they reject `true`, with the same `TypeError` or
+  `InvalidURIError`: before, most setters treated `false` as `nil` and
+  cleared the component, `.new` ignored it, and `#scheme=` stored it, so
+  `uri.scheme = false` turned `http://example.com/` into
+  `false://example.com/`; only `nil` now means no component
 - a setter on `Addressable::URI` that raises now leaves the URI as it was:
   e.g. `uri.host = nil` on `http://example.com` raised `InvalidURIError` but
   still cleared the host, leaving `uri.to_s` as `http:`; every setter now
