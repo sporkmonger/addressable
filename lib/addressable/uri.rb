@@ -2487,15 +2487,6 @@ module Addressable
     SELF_REF = '.'
     PARENT = '..'
 
-    # Deprecated. No longer used by normalize_path; will be removed in 2.10.0.
-    RULE_2A = /\/\.\/|\/\.$/
-    RULE_2B_2C = /\/([^\/]*)\/\.\.\/|\/([^\/]*)\/\.\.$/
-    RULE_2D = /^\.\.?\/?/
-    RULE_PREFIXED_PARENT = /^\/\.\.?\/|^(\/\.\.?)+\/?$/
-    if respond_to?(:deprecate_constant, true)
-      deprecate_constant :RULE_2A, :RULE_2B_2C, :RULE_2D, :RULE_PREFIXED_PARENT
-    end
-
     ##
     # Resolves paths to their simplest form.
     #

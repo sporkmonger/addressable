@@ -117,6 +117,12 @@ module NormalizePathSpec
 end
 
 describe Addressable::URI, ".normalize_path" do
+  it "no longer defines the regular expressions deprecated in 2.9.1" do
+    [:RULE_2A, :RULE_2B_2C, :RULE_2D, :RULE_PREFIXED_PARENT].each do |name|
+      expect(Addressable::URI.const_defined?(name, false)).to eq(false)
+    end
+  end
+
   it "returns nil for nil" do
     expect(Addressable::URI.normalize_path(nil)).to be_nil
   end
