@@ -1130,10 +1130,10 @@ module Addressable
     # @return [Hash, MappingLookup]
     #   A hash with stringified keys, or a lookup
     def normalize_keys(mapping)
-      pairs = if mapping.respond_to?(:each_pair)
-        mapping.to_enum(:each_pair)
+      if mapping.respond_to?(:each_pair)
+        pairs = mapping.to_enum(:each_pair)
       elsif mapping.respond_to?(:inject)
-        mapping
+        pairs = mapping
       elsif mapping.respond_to?(:[]) && !mapping.respond_to?(:to_str) &&
           !(Symbol === mapping) && !(Numeric === mapping)
         return MappingLookup.new(mapping)
