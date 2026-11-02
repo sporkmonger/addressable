@@ -176,6 +176,64 @@ describe "Type conversion" do
   }
 end
 
+describe Addressable::Template, "when partially expanded" do
+  def self.cases(count, seed)
+    random = Random.new(seed)
+    operators = ["", "+", "#", ".", "/", ";", "?", "&"]
+    values = [
+      "1", "x y", "", nil, ["a", "b"], [], {"k" => "v"},
+      {"k" => "v", "j" => "w"}
+    ]
+    Array.new(count) do
+      operator = operators[random.rand(operators.size)]
+      vars = ["a", "b", "c"].shuffle(random: random).first(random.rand(1..3))
+      varspecs = vars.map { |name| random.rand(4) == 0 ? "#{name}*" : name }
+      given = vars.select { random.rand(2) == 0 }
+      first = Hash[given.map do |name|
+        [name, values[random.rand(values.size)]]
+      end]
+      later = Hash[(vars - given).map do |name|
+        [name, values[random.rand(values.size)]]
+      end]
+      ["{#{operator}#{varspecs.join(",")}}", first, later]
+    end
+  end
+
+  def self.query_pairs(string)
+    leader = string[0, 1]
+    pairs = string.sub(/\A[?&]/, "").split("&").sort
+    [["?", "&"].include?(leader) ? leader : "", pairs]
+  end
+
+  it "gives the same result as expanding at once" do
+    failures = []
+    self.class.cases(3000, 6570).each do |pattern, first, later|
+      template = Addressable::Template.new(pattern)
+      direct = template.expand(first.merge(later)).to_str
+      staged = template.partial_expand(first).expand(later).to_str
+      operator = pattern[1, 1]
+      defined_later = later.values.any? do |value|
+        !value.nil? && value != [] && value != {}
+      end
+      exact = if ["?", "&"].include?(operator)
+        self.class.query_pairs(staged) == self.class.query_pairs(direct)
+      elsif operator =~ /[a-z+#]/ && !first.empty? && defined_later
+        # A comma expression can't keep the "," before a variable that's
+        # only defined later, so this case is exact only without one.
+        true
+      else
+        staged == direct
+      end
+      failures << [pattern, first, later, staged, direct] unless exact
+    end
+    expect(failures).to be_empty, lambda {
+      "#{failures.size} partial expansions differ (pattern, first, later, " +
+      "staged, direct):\n" +
+      failures.first(10).map { |failure| "  #{failure.inspect}" }.join("\n")
+    }
+  end
+end
+
 describe Addressable::Template, "with a mapping that isn't a Hash" do
   it "expands from a lambda" do
     sub = lambda { |name| "foo-#{name}" }
@@ -1539,13 +1597,43 @@ describe Addressable::Template do
         )
       end
     end
+    context "partial_expand with every variable of a comma expression" do
+      {
+        "{one,two}" => "1,2",
+        "{+one,two}" => "1,2",
+        "{#one,two}" => "#1,2"
+      }.each do |pattern, expected|
+        it "expands #{pattern} as a whole" do
+          template = Addressable::Template.new(pattern)
+          expect(template.partial_expand(one: "1", two: "2").pattern).to eq(
+            expected
+          )
+        end
+      end
+    end
+    context "partial_expand with some variables of a comma expression" do
+      {
+        ["{one,two,three}", {two: "2", three: "3"}] => "{one}2,3",
+        ["{+one,two,three}", {one: "1", three: "3"}] => "1{+two},3",
+        ["{#one,two}", {one: "1"}] => "#1{+two}",
+        ["{#one,two}", {two: "2"}] => "{#one}#2"
+      }.each do |(pattern, mapping), expected|
+        it "keeps the separator between given values in #{pattern}" do
+          template = Addressable::Template.new(pattern)
+          expect(template.partial_expand(mapping).pattern).to eq(expected)
+          expect(Addressable::Template.new(expected).expand({}).to_str).to eq(
+            template.expand(mapping).to_str
+          )
+        end
+      end
+    end
     context "issue #307 - partial_expand form query with nil params" do
       subject do
         Addressable::Template.new("http://example.com/{?one,two,three}/")
       end
       it "builds a new pattern with two=nil" do
         expect(subject.partial_expand(two: nil).pattern).to eq(
-          "http://example.com/{?one}{&three}/"
+          "http://example.com/{?one,three}/"
         )
       end
       it "builds a new pattern with one=nil and two=nil" do
@@ -1565,7 +1653,7 @@ describe Addressable::Template do
       end
       it "builds a new pattern with one=nil" do
         expect(subject.partial_expand(one: nil).pattern).to eq(
-          "http://example.com/{?two}{&three}/"
+          "http://example.com/{?two,three}/"
         )
       end
     end
