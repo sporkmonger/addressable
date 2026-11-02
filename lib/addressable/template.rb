@@ -115,7 +115,8 @@ module Addressable
         end
       end
 
-      # KeyError#key is Ruby 2.6+, and raises when the error has no key.
+      # KeyError#key is Ruby 2.6+. For an error with no key, MRI raises and
+      # TruffleRuby gives nil.
       def missing?(error, name)
         return true unless error.respond_to?(:key)
         begin
@@ -123,6 +124,7 @@ module Addressable
         rescue ArgumentError
           return true
         end
+        return true if key.nil?
         (key.is_a?(String) || key.is_a?(Symbol)) && key.to_s == name
       end
     end
