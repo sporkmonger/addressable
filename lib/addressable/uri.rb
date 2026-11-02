@@ -880,17 +880,19 @@ module Addressable
       defer_validation do
         # Bunch of crazy logic required because of the composite components
         # like userinfo and authority.
-        self.scheme = options[:scheme] if options[:scheme]
-        self.user = options[:user] if options[:user]
-        self.password = options[:password] if options[:password]
-        self.userinfo = options[:userinfo] if options[:userinfo]
-        self.host = options[:host] if options[:host]
-        self.port = options[:port] if options[:port]
-        self.authority = options[:authority] if options[:authority]
-        self.path = options[:path] if options[:path]
-        self.query = options[:query] if options[:query]
-        self.query_values = options[:query_values] if options[:query_values]
-        self.fragment = options[:fragment] if options[:fragment]
+        self.scheme = options[:scheme] unless options[:scheme].nil?
+        self.user = options[:user] unless options[:user].nil?
+        self.password = options[:password] unless options[:password].nil?
+        self.userinfo = options[:userinfo] unless options[:userinfo].nil?
+        self.host = options[:host] unless options[:host].nil?
+        self.port = options[:port] unless options[:port].nil?
+        self.authority = options[:authority] unless options[:authority].nil?
+        self.path = options[:path] unless options[:path].nil?
+        self.query = options[:query] unless options[:query].nil?
+        unless options[:query_values].nil?
+          self.query_values = options[:query_values]
+        end
+        self.fragment = options[:fragment] unless options[:fragment].nil?
       end
 
       to_s # force path validation
@@ -948,7 +950,7 @@ module Addressable
     #
     # @param [String, #to_str] new_scheme The new scheme component.
     def scheme=(new_scheme)
-      if new_scheme && !new_scheme.respond_to?(:to_str)
+      if !new_scheme.nil? && !new_scheme.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_scheme.class} into String."
       elsif new_scheme
         new_scheme = new_scheme.to_str
@@ -1006,7 +1008,7 @@ module Addressable
     #
     # @param [String, #to_str] new_user The new user component.
     def user=(new_user)
-      if new_user && !new_user.respond_to?(:to_str)
+      if !new_user.nil? && !new_user.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_user.class} into String."
       end
       @user = new_user ? new_user.to_str : nil
@@ -1062,7 +1064,7 @@ module Addressable
     #
     # @param [String, #to_str] new_password The new password component.
     def password=(new_password)
-      if new_password && !new_password.respond_to?(:to_str)
+      if !new_password.nil? && !new_password.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_password.class} into String."
       end
       @password = new_password ? new_password.to_str : nil
@@ -1129,7 +1131,7 @@ module Addressable
     #
     # @param [String, #to_str] new_userinfo The new userinfo component.
     def userinfo=(new_userinfo)
-      if new_userinfo && !new_userinfo.respond_to?(:to_str)
+      if !new_userinfo.nil? && !new_userinfo.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_userinfo.class} into String."
       end
       new_user, new_password = if new_userinfo
@@ -1194,7 +1196,7 @@ module Addressable
     #
     # @param [String, #to_str] new_host The new host component.
     def host=(new_host)
-      if new_host && !new_host.respond_to?(:to_str)
+      if !new_host.nil? && !new_host.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_host.class} into String."
       end
       @host = new_host ? new_host.to_str : nil
@@ -1231,7 +1233,7 @@ module Addressable
       if new_hostname &&
           (new_hostname.respond_to?(:ipv4?) || new_hostname.respond_to?(:ipv6?))
         new_hostname = new_hostname.to_s
-      elsif new_hostname && !new_hostname.respond_to?(:to_str)
+      elsif !new_hostname.nil? && !new_hostname.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_hostname.class} into String."
       end
       v = new_hostname ? new_hostname.to_str : nil
@@ -1312,7 +1314,7 @@ module Addressable
     #
     # @param [String, #to_str] new_authority The new authority component.
     def authority=(new_authority)
-      if new_authority
+      unless new_authority.nil?
         if !new_authority.respond_to?(:to_str)
           raise TypeError, "Can't convert #{new_authority.class} into String."
         end
@@ -1371,7 +1373,7 @@ module Addressable
     #
     # @param [String, #to_str] new_origin The new origin component.
     def origin=(new_origin)
-      if new_origin
+      unless new_origin.nil?
         if !new_origin.respond_to?(:to_str)
           raise TypeError, "Can't convert #{new_origin.class} into String."
         end
@@ -1555,7 +1557,10 @@ module Addressable
     #
     # @param [String, #to_str] new_site The new site value.
     def site=(new_site)
-      if new_site
+      if new_site.nil?
+        self.scheme = nil
+        self.authority = nil
+      else
         if !new_site.respond_to?(:to_str)
           raise TypeError, "Can't convert #{new_site.class} into String."
         end
@@ -1566,9 +1571,6 @@ module Addressable
         self.authority = new_site[
           /^(?:(?:[^:\/?#]+):)?(?:\/\/([^\/?#]*))?$/, 1
         ]
-      else
-        self.scheme = nil
-        self.authority = nil
       end
     end
 
@@ -1617,7 +1619,7 @@ module Addressable
     #
     # @param [String, #to_str] new_path The new path component.
     def path=(new_path)
-      if new_path && !new_path.respond_to?(:to_str)
+      if !new_path.nil? && !new_path.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_path.class} into String."
       end
       @path = (new_path || EMPTY_STR).to_str
@@ -1689,7 +1691,7 @@ module Addressable
     #
     # @param [String, #to_str] new_query The new query component.
     def query=(new_query)
-      if new_query && !new_query.respond_to?(:to_str)
+      if !new_query.nil? && !new_query.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_query.class} into String."
       end
       @query = new_query ? new_query.to_str : nil
@@ -1889,7 +1891,7 @@ module Addressable
     #
     # @param [String, #to_str] new_fragment The new fragment component.
     def fragment=(new_fragment)
-      if new_fragment && !new_fragment.respond_to?(:to_str)
+      if !new_fragment.nil? && !new_fragment.respond_to?(:to_str)
         raise TypeError, "Can't convert #{new_fragment.class} into String."
       end
       @fragment = new_fragment ? new_fragment.to_str : nil
