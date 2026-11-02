@@ -2460,10 +2460,14 @@ module Addressable
       validation_was_deferred =
         !!(defined?(@validation_deferred) && @validation_deferred)
       raise LocalJumpError, "No block given." unless block_given?
+      saved = save_components unless validation_was_deferred || frozen?
       @validation_deferred = true
       yield
       @validation_deferred = validation_was_deferred
       validate unless validation_was_deferred
+    rescue Exception
+      restore_components(saved) if saved
+      raise
     ensure
       @validation_deferred = validation_was_deferred
     end
@@ -2697,6 +2701,24 @@ module Addressable
     # Resets instance variables
     #
     # @api private
+    ##
+    # A setter puts the components back if it raises, so that a failed
+    # assignment doesn't leave the URI half changed. Within defer_validation
+    # the outermost block does that instead, and a frozen URI can't change.
+    def components_restored_elsewhere?
+      frozen? || (defined?(@validation_deferred) && @validation_deferred)
+    end
+
+    def save_components
+      [@scheme, @user, @password, @host, @port, @path, @query, @fragment]
+    end
+
+    # The other instance variables are derived from these, so clear them.
+    def restore_components(saved)
+      reset_ivs
+      @scheme, @user, @password, @host, @port, @path, @query, @fragment = saved
+    end
+
     def reset_ivs
       @site = nil
       @normalized_site = nil
@@ -2727,5 +2749,30 @@ module Addressable
     NONE = Module.new.freeze
 
     private_constant :NONE
+
+    # Wraps each setter so that it changes nothing when it raises.
+    module RestoreOnFailure
+      [
+        :scheme=, :user=, :password=, :userinfo=, :host=, :hostname=, :tld=,
+        :authority=, :origin=, :port=, :site=, :path=, :query=,
+        :query_values=, :request_uri=, :fragment=
+      ].each do |setter|
+        # A method from define_method can't be called in another Ractor.
+        module_eval <<-RUBY, __FILE__, __LINE__ + 1
+          def #{setter}(value)
+            return super if components_restored_elsewhere?
+            saved = save_components
+            begin
+              super
+            rescue Exception
+              restore_components(saved)
+              raise
+            end
+          end
+        RUBY
+      end
+    end
+    private_constant :RestoreOnFailure
+    prepend RestoreOnFailure
   end
 end
