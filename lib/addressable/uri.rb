@@ -2392,6 +2392,9 @@ module Addressable
     ##
     # Converts the URI to a <code>String</code>.
     #
+    # A frozen URI returns a new, mutable copy each time, so that callers
+    # can change the string without changing the URI.
+    #
     # @return [String] The URI's <code>String</code> representation.
     def to_s
       if self.scheme == nil && self.path != nil && !self.path.empty? &&
@@ -2409,6 +2412,7 @@ module Addressable
         uri_string.force_encoding(Encoding::UTF_8)
         uri_string
       end
+      frozen? ? @uri_string.dup : @uri_string
     end
 
     ##
