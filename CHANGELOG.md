@@ -49,6 +49,10 @@
   e.g. a URI given the path `acct:bob@example.com` normalized to
   `acct%2Fbob@example.com`; every colon in that segment is now encoded as
   `%3A`, so it normalizes to `acct%3Abob@example.com`
+- fixes `Addressable::URI#normalize` raising `InvalidURIError` when removing
+  a leading `./` or `../` left a colon in the first segment of a relative
+  path: e.g. `../folder:2/readme.md` now normalizes to
+  `folder%3A2/readme.md` (#550)
 - `Addressable::URI#normalize` and `.normalized_encode` now keep `%3A`
   encoded in the first segment of a relative path, rather than raising
   `InvalidURIError` because the decoded colon would read as a scheme: e.g.

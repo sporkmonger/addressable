@@ -3278,6 +3278,16 @@ describe Addressable::URI, "when normalizing pct-encoded reserved characters" do
     expect(uri.normalize.to_s).to eq("a%3Ab%3Ac/d:e")
   end
 
+  # Removing the dot segment exposes the colon after parsing has accepted it.
+  ["./folder:2/readme.md", "../folder:2/readme.md"].each do |input|
+    it "encodes a colon exposed by removing the dot segment from #{input}" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.normalized_path).to eq("folder%3A2/readme.md")
+      expect(uri.normalize.to_s).to eq("folder%3A2/readme.md")
+      expect(uri.normalize!.to_s).to eq("folder%3A2/readme.md")
+    end
+  end
+
   it "keeps encoded delimiters in a sorted query" do
     uri = Addressable::URI.parse("http://example.com/?b=%26%3d&a%3d=%2B%FF")
     expect(uri.normalized_query(:sorted)).to eq("a%3D=%2B%FF&b=%26=")
