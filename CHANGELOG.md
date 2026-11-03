@@ -44,6 +44,11 @@
   `%25` now stays encoded, and a bare `%` is encoded before decoding; and a
   query with invalid UTF-8, such as `?q=%2B%FF`, no longer has its `%2B`
   encoded again as `%252B` (#589)
+- fixes `Addressable::URI#normalize` and `#normalized_path` encoding the
+  first colon in a relative path's first segment as `%2F`, an encoded slash:
+  e.g. a URI given the path `acct:bob@example.com` normalized to
+  `acct%2Fbob@example.com`; every colon in that segment is now encoded as
+  `%3A`, so it normalizes to `acct%3Abob@example.com`
 - `Addressable::URI#normalize` and `.normalized_encode` now keep `%3A`
   encoded in the first segment of a relative path, rather than raising
   `InvalidURIError` because the decoded colon would read as a scheme: e.g.

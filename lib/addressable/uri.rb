@@ -1616,10 +1616,6 @@ module Addressable
     def normalized_path
       @normalized_path ||= begin
         path = self.path.to_s
-        if self.scheme == nil && path =~ NORMPATH
-          # Relative paths with colons in the first segment are ambiguous.
-          path = path.sub(":", "%2F")
-        end
         # String#split(delimiter, -1) uses the more strict splitting behavior
         # found by default in Python.
         result = path.strip.split(SLASH, -1).map do |segment|
