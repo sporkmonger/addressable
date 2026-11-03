@@ -3268,6 +3268,26 @@ describe Addressable::URI, "when normalizing pct-encoded reserved characters" do
     expect(Addressable::URI.parse("x:a%3Ab").normalize.to_s).to eq("x:a:b")
   end
 
+  # A relative path's first segment can hold a colon, though to_s refuses to
+  # assemble it.
+  it "encodes a literal colon in the first segment of a relative path" do
+    uri = Addressable::URI.new
+    uri.path = "a:b:c/d:e"
+    expect { uri.to_s }.to raise_error(Addressable::URI::InvalidURIError)
+    expect(uri.normalized_path).to eq("a%3Ab%3Ac/d:e")
+    expect(uri.normalize.to_s).to eq("a%3Ab%3Ac/d:e")
+  end
+
+  # Removing the dot segment exposes the colon after parsing has accepted it.
+  ["./folder:2/readme.md", "../folder:2/readme.md"].each do |input|
+    it "encodes a colon exposed by removing the dot segment from #{input}" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.normalized_path).to eq("folder%3A2/readme.md")
+      expect(uri.normalize.to_s).to eq("folder%3A2/readme.md")
+      expect(uri.normalize!.to_s).to eq("folder%3A2/readme.md")
+    end
+  end
+
   it "keeps encoded delimiters in a sorted query" do
     uri = Addressable::URI.parse("http://example.com/?b=%26%3d&a%3d=%2B%FF")
     expect(uri.normalized_query(:sorted)).to eq("a%3D=%2B%FF&b=%26=")
@@ -7758,7 +7778,7 @@ describe Addressable::URI, "when assigning path values" do
   it "should correctly assign paths containing colons" do
     @uri.path = "acct:bob@sporkmonger.com"
     expect(@uri.path).to eq("acct:bob@sporkmonger.com")
-    expect(@uri.normalize.to_str).to eq("acct%2Fbob@sporkmonger.com")
+    expect(@uri.normalize.to_str).to eq("acct%3Abob@sporkmonger.com")
     expect { @uri.to_s }.to raise_error(
       Addressable::URI::InvalidURIError
     )
