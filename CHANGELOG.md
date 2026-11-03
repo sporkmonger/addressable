@@ -28,18 +28,26 @@
   `{"a b" => "c"}`, not `{"a+b" => "c"}`; `%2B` is still a plus; it also
   reads `+` as a space for `HTTP` and `HTTPS` in uppercase, not only
   lowercase; other schemes, such as `mailto`, still keep `+` as is (#607)
-- `Addressable::URI#normalize`, `#normalized_path`, `#normalized_query`,
-  `#normalized_fragment` and `.normalized_encode` no longer decode
-  pct-encoded reserved characters, as RFC 3986 says: e.g.
-  `normalized_encode("http://example.com/a%3Ab%2Fc")` gives
-  `http://example.com/a%3Ab%2Fc`, not `http://example.com/a:b/c`, `?a=1%262`
-  keeps `%26`, and `/sound%2bvision` normalizes to `/sound%2Bvision`, not
-  `/sound+vision`; so `http://example.com/a%3Ab` is no longer `==` to
-  `http://example.com/a:b`; unreserved characters are still decoded, and
-  a triplet is only decoded once, so `%252B` in a query stays `%252B`
-  rather than becoming `%2B`; a component with invalid UTF-8, such as `%FF`,
-  is now encoded with the given character class, so `%2B` no longer becomes
-  `%252B` and `%26` in a query pair is no longer decoded to `&` (#589)
+- fixes `Addressable::URI.normalized_encode` decoding pct-encoded delimiters
+  that change how the URI is read: e.g. `/a%2Fb` gave `/a/b`, `?a=1%262`
+  gave `?a=1&2`, and `?a=1%2B2` gave `?a=1+2`, which reads as a space; it
+  now keeps the same delimiters encoded as `#normalize`: `/` in the path;
+  `&`, `;` and `+` in the query; and `#` in the fragment; other reserved
+  characters are still decoded, as before (#589)
+- fixes `Addressable::URI#normalize`, `#normalized_query` and
+  `.normalized_encode` decoding `%3D` in a query name: e.g. `?a%3Db=1` gave
+  `?a=b=1`, so `#query_values` changed from `{"a=b" => "1"}` to
+  `{"a" => "b=1"}`; a `=` and a combining mark after it are also no longer
+  composed by Unicode normalization, which lost the `=` (#589)
+- fixes `Addressable::URI#normalize` decoding a triplet in a query twice:
+  e.g. `%252B` gave `%2B`, which reads as a plus sign rather than as `%2B`;
+  `%25` now stays encoded, and a bare `%` is encoded before decoding; and a
+  query with invalid UTF-8, such as `?q=%2B%FF`, no longer has its `%2B`
+  encoded again as `%252B` (#589)
+- `Addressable::URI#normalize` and `.normalized_encode` now keep `%3A`
+  encoded in the first segment of a relative path, rather than raising
+  `InvalidURIError` because the decoded colon would read as a scheme: e.g.
+  `a%3Ab/c%3Ad` normalizes to `a%3Ab/c:d` (#589)
 - the pure-Ruby `Addressable::IDNA.to_ascii` and `.to_unicode` now keep
   trailing empty labels, as the `idn-ruby` backend does: e.g.
   `to_ascii("bücher.example.")` gives `xn--bcher-kva.example.`, not

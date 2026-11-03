@@ -69,11 +69,14 @@ module Addressable
       QUERY = %r{[^a-zA-Z0-9\-\.\_\~\!\$\'\(\)\*\+\,\=\:\@\/\?%]|%(?!2B|2b)}
     end
 
-    # Normalization leaves pct-encoded reserved characters, and "%25",
-    # encoded (RFC 3986 section 6.2.2.2). Every "%" left after decoding then
-    # starts one of those triplets, so these classes never encode "%".
-    module NormalizeKeepingReserved
-      LEAVE_ENCODED = (CharacterClasses::RESERVED.delete("\\") + "%").freeze
+    # Normalization decodes a pct-encoded character unless it's a delimiter
+    # where it appears, since decoding it there would change how the URI is
+    # read: "/" in a path, "&", ";" and "+" in a query, and "=" in a query
+    # name. A delimiter that isn't allowed in the component, such as "?" in
+    # a path segment, is encoded again anyway. "%25" also stays encoded, and
+    # a bare "%" is encoded first, so every "%" left after decoding starts a
+    # triplet and none is decoded twice; so these classes never encode "%".
+    module NormalizeByPosition
       PCHAR = /[^#{CharacterClasses::PCHAR}%]/
       PATH = /[^#{CharacterClasses::PATH}%]/
       QUERY = /[^#{CharacterClasses::QUERY}%]/
@@ -82,11 +85,42 @@ module Addressable
         CharacterClasses::QUERY.sub("\\&", "").sub("\\;", "")
       }%]/
       FRAGMENT = /[^#{CharacterClasses::FRAGMENT}%]/
+      LEAVE_IN_SEGMENT = "%"
+      LEAVE_IN_PATH = "/%"
+      LEAVE_IN_QUERY_VALUE = "&;+%"
+      LEAVE_IN_QUERY_NAME = "&;+=%"
+      LEAVE_IN_FRAGMENT = "%"
+      # A relative path's first segment can't hold a colon (RFC 3986
+      # section 4.2).
+      FIRST_SEGMENT = /\A[^\/]*/
       BARE_PERCENT = /%(?![0-9A-Fa-f]{2})/
       TRIPLET = /%[0-9A-Fa-f]{2}/
       SPLIT_TRIPLETS = /(%[0-9A-Fa-f]{2})/
+
+      ##
+      # Normalizes a query's name=value pair, keeping "=" encoded in the
+      # name. The name and value are normalized apart, so NFC can't compose
+      # the "=" between them with a combining mark.
+      def self.query_pair(pair, character_class)
+        name, separator, value = pair.partition("=")
+        normalized = Addressable::URI.normalize_component(
+          name, character_class, LEAVE_IN_QUERY_NAME
+        )
+        return normalized if separator.empty?
+        normalized + separator + Addressable::URI.normalize_component(
+          value, character_class, LEAVE_IN_QUERY_VALUE
+        )
+      end
+
+      ##
+      # Encodes the colons in the first segment of a relative path, which
+      # would otherwise be read as ending a scheme.
+      def self.encode_relative_colons(path, scheme)
+        return path if scheme || path.start_with?("/")
+        path.sub(FIRST_SEGMENT) { |segment| segment.gsub(":", "%3A") }
+      end
     end
-    private_constant :NormalizeKeepingReserved
+    private_constant :NormalizeByPosition
 
     module CharacterClassesRegexps
       AUTHORITY = /[^#{CharacterClasses::AUTHORITY}]/
@@ -599,7 +633,7 @@ module Addressable
       # Then every "%" must start a triplet, or decoding could form one:
       # "%%32%46" would become "%2F".
       if keep_percent
-        component = component.gsub(NormalizeKeepingReserved::BARE_PERCENT, "%25")
+        component = component.gsub(NormalizeByPosition::BARE_PERCENT, "%25")
       end
       upcase_encoded = keep_percent ? "" : leave_encoded
       unencoded = self.unencode_component(component, String, leave_encoded)
@@ -608,7 +642,7 @@ module Addressable
           # Composing a triplet's last hex digit with a combining mark that
           # follows it would break the triplet, so only the text between
           # triplets is normalized.
-          unencoded.split(NormalizeKeepingReserved::SPLIT_TRIPLETS).map.
+          unencoded.split(NormalizeByPosition::SPLIT_TRIPLETS).map.
             with_index do |part, index|
             index.odd? ? part : part.unicode_normalize(:nfc)
           end.join
@@ -624,7 +658,7 @@ module Addressable
         encoded = self.encode_component(unencoded, character_class, upcase_encoded)
       end
       if keep_percent
-        encoded = encoded.gsub(NormalizeKeepingReserved::TRIPLET, &:upcase)
+        encoded = encoded.gsub(NormalizeByPosition::TRIPLET, &:upcase)
       end
       encoded.force_encoding(Encoding::UTF_8)
       return encoded
@@ -731,6 +765,10 @@ module Addressable
           end
         end
       end
+      # The query may hold invalid UTF-8, which String#split refuses.
+      query = uri_object.query && uri_object.query.b.split("&", -1).map do |pair|
+        NormalizeByPosition.query_pair(pair, NormalizeByPosition::QUERY)
+      end.join("&")
       encoded_uri = Addressable::URI.new(
         :scheme => self.encode_component(components[:scheme],
           Addressable::URI::CharacterClassesRegexps::SCHEME),
@@ -740,15 +778,15 @@ module Addressable
           Addressable::URI::CharacterClassesRegexps::UNRESERVED),
         :host => components[:host],
         :port => components[:port],
-        :path => self.normalize_component(uri_object.path,
-          NormalizeKeepingReserved::PATH,
-          NormalizeKeepingReserved::LEAVE_ENCODED),
-        :query => self.normalize_component(uri_object.query,
-          NormalizeKeepingReserved::QUERY,
-          NormalizeKeepingReserved::LEAVE_ENCODED),
+        :path => NormalizeByPosition.encode_relative_colons(
+          self.normalize_component(uri_object.path,
+            NormalizeByPosition::PATH, NormalizeByPosition::LEAVE_IN_PATH),
+          uri_object.scheme
+        ),
+        :query => query,
         :fragment => self.normalize_component(uri_object.fragment,
-          NormalizeKeepingReserved::FRAGMENT,
-          NormalizeKeepingReserved::LEAVE_ENCODED)
+          NormalizeByPosition::FRAGMENT,
+          NormalizeByPosition::LEAVE_IN_FRAGMENT)
       )
       if return_type == String
         return encoded_uri.to_s
@@ -1587,12 +1625,14 @@ module Addressable
         result = path.strip.split(SLASH, -1).map do |segment|
           Addressable::URI.normalize_component(
             segment,
-            NormalizeKeepingReserved::PCHAR,
-            NormalizeKeepingReserved::LEAVE_ENCODED
+            NormalizeByPosition::PCHAR,
+            NormalizeByPosition::LEAVE_IN_SEGMENT
           )
         end.join(SLASH)
 
-        result = URI.normalize_path(result)
+        result = NormalizeByPosition.encode_relative_colons(
+          URI.normalize_path(result), self.scheme
+        )
         if result.empty? &&
             ["http", "https", "ftp", "tftp"].include?(self.normalized_scheme)
           result = SLASH.dup
@@ -1662,11 +1702,7 @@ module Addressable
         pairs.delete_if(&:empty?).uniq! if flags.include?(:compacted)
         pairs.sort! if flags.include?(:sorted)
         component = pairs.map do |pair|
-          Addressable::URI.normalize_component(
-            pair,
-            NormalizeKeepingReserved::QUERY_PAIR,
-            NormalizeKeepingReserved::LEAVE_ENCODED
-          )
+          NormalizeByPosition.query_pair(pair, NormalizeByPosition::QUERY_PAIR)
         end.join("&")
         component == "" ? nil : component
       end
@@ -1866,8 +1902,8 @@ module Addressable
       @normalized_fragment = begin
         component = Addressable::URI.normalize_component(
           self.fragment,
-          NormalizeKeepingReserved::FRAGMENT,
-          NormalizeKeepingReserved::LEAVE_ENCODED
+          NormalizeByPosition::FRAGMENT,
+          NormalizeByPosition::LEAVE_IN_FRAGMENT
         )
         component == "" ? nil : component
       end

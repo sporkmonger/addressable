@@ -3195,41 +3195,82 @@ describe Addressable::URI, "when parsed from " +
 end
 
 # RFC 3986, section 6.2.2.2: only unreserved characters may be decoded during normalization
-describe Addressable::URI, "when normalizing URIs with percent-encoded reserved characters" do
-  def self.it_normalizes(input, expected)
+describe Addressable::URI, "when normalizing pct-encoded reserved characters" do
+  def self.it_normalizes(input, expected, encoded = expected)
     it "normalizes #{input.inspect} to #{expected.inspect}" do
-      expect(Addressable::URI.normalized_encode(input)).to eq(expected)
       expect(Addressable::URI.parse(input).normalize.to_s).to eq(expected)
+      expect(Addressable::URI.normalized_encode(input)).to eq(encoded)
     end
   end
 
+  # A reserved character is decoded unless it's a delimiter where it
+  # appears. One that isn't allowed in the component is encoded again.
   it_normalizes(
     "http://example.com/%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D/:@!$&'()*+,;=",
-    "http://example.com/%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D/:@!$&'()*+,;="
+    "http://example.com/:%2F%3F%23%5B%5D@!$&'()*+,;=/:@!$&'()*+,;="
   )
-
   it_normalizes(
-    "http://example.com/?%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D&raw=:/?@!$'()*+,=",
-    "http://example.com/?%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D&raw=:/?@!$'()*+,="
+    "http://example.com/?%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D=" \
+      "%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D&raw=:/?@!$'()*+,=",
+    "http://example.com/?:/?%23%5B%5D@!$%26'()*%2B,%3B%3D=" \
+      ":/?%23%5B%5D@!$%26'()*%2B,%3B=&raw=:/?@!$'()*+,="
   )
-
   it_normalizes(
     "http://example.com/#%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D/raw=:/?@!$&'()*+,;=",
-    "http://example.com/#%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D/raw=:/?@!$&'()*+,;="
+    "http://example.com/#:/?%23%5B%5D@!$&'()*+,;=/raw=:/?@!$&'()*+,;="
   )
 
-  # Positive control: unreserved characters should still be decoded.
   it_normalizes("http://example.com/%41%42%43", "http://example.com/ABC")
-
-  it_normalizes("http://example.com/a%3ab%2fc", "http://example.com/a%3Ab%2Fc")
+  it_normalizes("http://example.com/a%3ab%2fc", "http://example.com/a:b%2Fc")
+  it_normalizes("http://example.com/sound%2bvision", "http://example.com/sound+vision")
   it_normalizes("http://example.com/a%23b?c#d", "http://example.com/a%23b?c#d")
-  it_normalizes("http://example.com/?a=1%262&b=%3D", "http://example.com/?a=1%262&b=%3D")
+  it_normalizes("mailto:a%40b.example", "mailto:a@b.example")
+  it_normalizes(
+    "http://example.com/?redirect_uri=https%3A%2F%2Fx.example%2Fcb%3Fa%3D1%26b%3D2",
+    "http://example.com/?redirect_uri=https://x.example/cb?a=1%26b=2"
+  )
+  it_normalizes("http://example.com/?a=1%262&b=%3D", "http://example.com/?a=1%262&b==")
+  it_normalizes("http://example.com/?a=1%2B2&b=1%3B2", "http://example.com/?a=1%2B2&b=1%3B2")
+  it_normalizes("http://example.com/?a%3Db=1&c%3Dd", "http://example.com/?a%3Db=1&c%3Dd")
   it_normalizes("http://example.com/?a=%2B%FF", "http://example.com/?a=%2B%FF")
-  it_normalizes("http://example.com/%2B%FF#%2B%FF", "http://example.com/%2B%FF#%2B%FF")
+  it_normalizes("http://example.com/%2B%FF#%2B%FF", "http://example.com/+%FF#+%FF")
+  it_normalizes("http://example.com/#a%2Fb%23c", "http://example.com/#a/b%23c")
 
-  it "keeps encoded reserved characters in a sorted query" do
-    uri = Addressable::URI.parse("http://example.com/?b=%26%3d&a=%2B%FF")
-    expect(uri.normalized_query(:sorted)).to eq("a=%2B%FF&b=%26%3D")
+  # A ";" in a query is a pair separator for #normalize, as it was before.
+  it_normalizes("http://example.com/?a=1;b=2", "http://example.com/?a=1%3Bb=2",
+    "http://example.com/?a=1;b=2")
+
+  it "keeps a query name's \"=\" when NFC would compose it with a mark" do
+    uri = Addressable::URI.parse("http://example.com/?a≠")
+    expect(uri.normalize.to_s).to eq("http://example.com/?a=%CC%B8")
+    expect(Addressable::URI.normalized_encode(uri.to_s)).to eq(
+      "http://example.com/?a=%CC%B8"
+    )
+  end
+
+  it "keeps a query's delimiters encoded around invalid UTF-8" do
+    input = "http://example.com/?a=\xFF%3D&b%3D=%26".b
+    expect(Addressable::URI.normalized_encode(input)).to eq(
+      "http://example.com/?a=%FF=&b%3D=%26"
+    )
+    expect(Addressable::URI.parse(input).normalize.to_s).to eq(
+      "http://example.com/?a=%FF=&b%3D=%26"
+    )
+  end
+
+  it "keeps a colon encoded in the first segment of a relative path" do
+    expect(Addressable::URI.parse("a%3Ab/c%3Ad").normalize.to_s).to eq("a%3Ab/c:d")
+    expect(Addressable::URI.parse("./a%3Ab").normalize.to_s).to eq("a%3Ab")
+    expect(Addressable::URI.parse("../a%3Ab").normalize.to_s).to eq("a%3Ab")
+    expect(Addressable::URI.new(:path => "./a:b").normalize.to_s).to eq("a%3Ab")
+    expect(Addressable::URI.normalized_encode("a%3Ab/c%3Ad")).to eq("a%3Ab/c:d")
+    expect(Addressable::URI.parse("/a%3Ab").normalize.to_s).to eq("/a:b")
+    expect(Addressable::URI.parse("x:a%3Ab").normalize.to_s).to eq("x:a:b")
+  end
+
+  it "keeps encoded delimiters in a sorted query" do
+    uri = Addressable::URI.parse("http://example.com/?b=%26%3d&a%3d=%2B%FF")
+    expect(uri.normalized_query(:sorted)).to eq("a%3D=%2B%FF&b=%26=")
   end
 
   it "treats an encoded slash as part of a path segment" do
@@ -3237,19 +3278,28 @@ describe Addressable::URI, "when normalizing URIs with percent-encoded reserved 
     expect(uri.normalize.to_s).to eq("http://example.com/c")
   end
 
-  it "doesn't treat a reserved character and its encoding as equal" do
-    expect(Addressable::URI.parse("http://example.com/a%3Ab")).not_to eq(
+  it "treats a character and its encoding as equal unless it's a delimiter" do
+    expect(Addressable::URI.parse("http://example.com/a%3Ab")).to eq(
       Addressable::URI.parse("http://example.com/a:b")
     )
-    expect(Addressable::URI.parse("http://example.com/?a=%3D")).not_to eq(
+    expect(Addressable::URI.parse("http://example.com/?a=%3D")).to eq(
       Addressable::URI.parse("http://example.com/?a==")
     )
-    expect(Addressable::URI.parse("http://example.com/%41")).to eq(
-      Addressable::URI.parse("http://example.com/A")
+    expect(Addressable::URI.parse("http://example.com/a%2Fb")).not_to eq(
+      Addressable::URI.parse("http://example.com/a/b")
+    )
+    expect(Addressable::URI.parse("http://example.com/?a%3D=1")).not_to eq(
+      Addressable::URI.parse("http://example.com/?a==1")
+    )
+    expect(Addressable::URI.parse("http://example.com/?a=1%262")).not_to eq(
+      Addressable::URI.parse("http://example.com/?a=1&2")
+    )
+    expect(Addressable::URI.parse("http://example.com/?a=%2B")).not_to eq(
+      Addressable::URI.parse("http://example.com/?a=+")
     )
   end
 
-  it "keeps the character classes it no longer uses" do
+  it "keeps the normalize character classes" do
     expect(Addressable::URI::NormalizeCharacterClasses::PCHAR).to be_a(Regexp)
     expect(Addressable::URI::NormalizeCharacterClasses::FRAGMENT).to be_a(Regexp)
     expect(Addressable::URI::NormalizeCharacterClasses::QUERY).to be_a(Regexp)
@@ -3271,22 +3321,25 @@ describe Addressable::URI, "when normalizing URIs with percent-encoded reserved 
     )).to eq("a%252Bb%2B")
   end
 
-  it_normalizes("http://example.com/a%2Á", "http://example.com/a%2A%CC%81")
-  it_normalizes("http://example.com/a%2A%CC%81", "http://example.com/a%2A%CC%81")
-  it_normalizes("http://example.com/?q=%2Ḃ", "http://example.com/?q=%2B%CC%87")
-  it_normalizes("http://example.com/#%3D̸", "http://example.com/#%3D%CC%B8")
-  it_normalizes("http://example.com/e%CC%81%2Fé", "http://example.com/%C3%A9%2F%C3%A9")
+  it_normalizes("http://example.com/a%2A\u0301", "http://example.com/a*%CC%81")
+  it_normalizes("http://example.com/a%2F%CC%81", "http://example.com/a%2F%CC%81")
+  it_normalizes("http://example.com/?q=%2B\u0307", "http://example.com/?q=%2B%CC%87")
+  it_normalizes("http://example.com/?q%3D\u0338", "http://example.com/?q%3D%CC%B8")
+  it_normalizes("http://example.com/e%CC%81%2F\u00E9", "http://example.com/%C3%A9%2F%C3%A9")
 
-  # RFC 3986 section 6.2.2: decodes a triplet unless it's a reserved
-  # character, encodes a character that isn't allowed in the component, and
-  # applies NFC to the text between the triplets it keeps.
-  def self.reference_normalize(component, allowed)
+  # Decodes a triplet unless its character is in kept or is "%", encodes a
+  # character that isn't allowed, and applies NFC to the text between the
+  # triplets it keeps.
+  def self.reference_normalize(component, allowed, kept)
     unreserved = "A-Za-z0-9\\-._~"
-    reserved = ":/?#[]@!$&'()*+,;=".bytes
     items = component.scan(/%[0-9A-Fa-f]{2}|./m).map do |token|
       if token =~ /\A%[0-9A-Fa-f]{2}\z/
         byte = token[1..2].hex
-        reserved.include?(byte) ? [:kept, token.upcase] : [:text, byte.chr.b]
+        if (kept + "%").bytes.include?(byte)
+          [:kept, token.upcase]
+        else
+          [:text, byte.chr.b]
+        end
       else
         [:text, token.b]
       end
@@ -3314,7 +3367,15 @@ describe Addressable::URI, "when normalizing URIs with percent-encoded reserved 
     end.join
   end
 
-  it "normalizes like a single pass that decodes only unreserved characters" do
+  def self.reference_query(query, allowed)
+    query.split("&", -1).map do |pair|
+      name, separator, value = pair.partition("=")
+      reference_normalize(name, allowed, "&;+=") +
+        (separator.empty? ? "" : "=" + reference_normalize(value, allowed, "&;+"))
+    end.join("&")
+  end
+
+  it "normalizes like a single pass that keeps only delimiters encoded" do
     rng = Random.new(589)
     reserved = ":/?#[]@!$&'()*+,;=".chars
     pieces = reserved + %w(a Z 0 - _ ~ e) +
@@ -3341,20 +3402,20 @@ describe Addressable::URI, "when normalizing URIs with percent-encoded reserved 
       rescue Addressable::URI::InvalidURIError
         next
       end
-      path_part = self.class.reference_normalize(path, path_chars)
-      pairs = query.split("&", -1).map do |pair|
-        self.class.reference_normalize(pair, pair_chars)
-      end.join("&")
-      fragment_part = self.class.reference_normalize(fragment, query_chars)
+      path_part = self.class.reference_normalize(path, path_chars, "/")
+      fragment_part = self.class.reference_normalize(fragment, query_chars, "")
+      pairs = self.class.reference_query(query, pair_chars)
       normalized = "http://example.com/" + path_part +
         (pairs.empty? ? "" : "?" + pairs) +
         (fragment_part.empty? ? "" : "#" + fragment_part)
       encoded = "http://example.com/" + path_part +
-        "?" + self.class.reference_normalize(query, query_chars) +
+        "?" + self.class.reference_query(query, query_chars) +
         "#" + fragment_part
-      if uri.normalize.to_s != normalized ||
-          Addressable::URI.normalized_encode(input) != encoded
+      if uri.normalize.to_s != normalized
         wrong << [input, uri.normalize.to_s, normalized]
+      end
+      if Addressable::URI.normalized_encode(input) != encoded
+        wrong << [input, Addressable::URI.normalized_encode(input), encoded]
       end
     end
     expect(wrong.first(5)).to eq([])
@@ -5367,10 +5428,8 @@ describe Addressable::URI, "when parsed from " +
     @uri = Addressable::URI.parse("http://example.com/sound%2bvision")
   end
 
-  it "should have a normalized path of '/sound%2Bvision'" do
-    # `+` is a sub-delim (reserved per RFC 3986 §2.2), so `%2B` and `+` are
-    # not equivalent and the percent-encoded form must be preserved.
-    expect(@uri.normalized_path).to eq('/sound%2Bvision')
+  it "should have a normalized path of '/sound+vision'" do
+    expect(@uri.normalized_path).to eq('/sound+vision')
   end
 end
 
