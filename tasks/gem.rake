@@ -17,6 +17,7 @@ namespace :gem do
     s.required_ruby_version = ">= 2.2"
 
     s.add_runtime_dependency "public_suffix", ">= 2.0.2", "< 8.0"
+    s.add_runtime_dependency "ffi"
 
     s.require_path = "lib"
 
