@@ -148,6 +148,12 @@
   `InvalidTemplateValueError` for a prefix modifier on a list or associative
   array, which RFC 6570 says doesn't apply to them: before, `{list:2}` with
   `["red", "green"]` gave `re,gr`, and `{keys:1}` ignored the prefix
+- `Addressable::Template#expand` now encodes every `#` after the one that
+  starts the fragment as `%23`, since RFC 3986 doesn't allow `#` in a
+  fragment: e.g. `x{#var}` with `a#b` expands to `x#a%23b`, not `x#a#b`, and
+  `x#a#{var}` to `x#a%23...`; `#match` and `#extract` accept such a `#` either
+  as written or encoded; `#partial_expand` returns a template, so it doesn't
+  encode a `#` it fills in; `#expand` encodes it when it produces the URI
 - `Addressable::Template#expand` now pct-encodes non-ASCII literal
   characters, as RFC 6570 says: e.g. `café/{var}` expands to
   `caf%C3%A9/value`, not `café/value`; pct-encoded triplets and reserved
