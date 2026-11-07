@@ -148,12 +148,12 @@
   `InvalidTemplateValueError` for a prefix modifier on a list or associative
   array, which RFC 6570 says doesn't apply to them: before, `{list:2}` with
   `["red", "green"]` gave `re,gr`, and `{keys:1}` ignored the prefix
-- `Addressable::Template#expand` now pct-encodes literal characters that
-  aren't allowed in a URI, as RFC 6570 says: e.g. `café/{var}` expands to
-  `caf%C3%A9/value`, not `café/value`, and `50%off/{var}` to
-  `50%25off/value`; pct-encoded triplets and reserved characters in
-  literals are kept; `#match` and `#extract` accept such a literal either
-  as written or encoded; `#partial_expand` leaves literals as written
+- `Addressable::Template#expand` now pct-encodes non-ASCII literal
+  characters, as RFC 6570 says: e.g. `café/{var}` expands to
+  `caf%C3%A9/value`, not `café/value`; pct-encoded triplets and reserved
+  characters in literals are kept; `#match` and `#extract` accept such a
+  literal either as written or encoded; `#partial_expand` leaves literals as
+  written
 - `Addressable::Template#match` and `#extract` now match text in braces that
   isn't an expression as written: e.g. `x{a.*}/{var}` no longer matches
   `x{aZZZ}/value`, and `x{a(}/{var}` no longer raises `RegexpError`

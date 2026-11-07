@@ -667,7 +667,7 @@ describe "Modifiers" do
     it "matches the expression as literal text" do
       template = Addressable::Template.new("/x{var:0}/{semi}")
       expect(template.extract("/x{var:0}/a")).to eq("semi" => "a")
-      expect(template.extract("/x%7Bvar:0%7D/a")).to eq("semi" => "a")
+      expect(template.extract("/x%7Bvar:0%7D/a")).to eq(nil)
       expect(template.extract("/x/a")).to eq(nil)
     end
   end
@@ -772,7 +772,9 @@ describe "Expansion" do
   end
   # RFC 6570 section 3.1: literal characters outside the reserved and
   # unreserved sets are pct-encoded as UTF-8, and pct-encoded triplets are
-  # copied as they are.
+  # copied as they are. The literals grammar allows only non-ASCII characters
+  # to be encoded this way, so ASCII characters it leaves out are left as they
+  # are, as most other implementations do.
   context "literals" do
     subject { {"var" => "value"} }
     it_behaves_like 'expands', {
@@ -782,18 +784,58 @@ describe "Expansion" do
       'x%20y/{var}' => 'x%20y/value',
       'x%20y{var}z%20w' => 'x%20yvaluez%20w',
       'a%2fb/{var}' => 'a%2fb/value',
-      'x y/{var}' => 'x%20y/value',
-      '50%off/{var}' => '50%25off/value',
-      '50%2/{var}' => '50%252/value',
-      'a<b>/{var}' => 'a%3Cb%3E/value',
       "http://example.com/{var}?a=b&c=d#e:f@g!$'()*+,;=" =>
         "http://example.com/value?a=b&c=d#e:f@g!$'()*+,;="
     }
 
+    {
+      "/this has spaces" => "/this has spaces",
+      "x y/{var}" => "x y/value",
+      "\"{var}" => "\"value",
+      "{var}<" => "value<",
+      "a>" => "a>",
+      "a\\b" => "a\\b",
+      "a^b" => "a^b",
+      "a`b" => "a`b",
+      "a|b" => "a|b",
+      "a\tb" => "a\tb",
+      "a\x7Fb" => "a\x7Fb",
+      "50%off/{var}" => "50%off/value",
+      "50%2/{var}" => "50%2/value",
+      "%" => "%",
+      "\u00E9 {var}" => "%C3%A9 value"
+    }.each do |pattern, expansion|
+      it "leaves an ASCII character outside the grammar in #{pattern.inspect}" do
+        template = Addressable::Template.new(pattern)
+        expect(template.expand(subject).to_s).to eq(expansion)
+        expect(template.partial_expand({}).pattern).to eq(pattern)
+      end
+    end
+
+    it "encodes only non-ASCII literals in a pattern that isn't UTF-8" do
+      pattern = "a b\xE9/{var}".dup.force_encoding("ISO-8859-1")
+      expect(Addressable::Template.new(pattern).expand(subject).to_s).to eq(
+        "a b%E9/value"
+      )
+    end
+
+    it "matches an ASCII character outside the grammar only as written" do
+      template = Addressable::Template.new("a b/{var}")
+      expect(template.extract("a b/value")).to eq("var" => "value")
+      expect(template.extract("a%20b/value")).to eq(nil)
+    end
+
+    it "treats a single quote as a literal (RFC 6570 erratum 6937)" do
+      template = Addressable::Template.new("'{var}'")
+      expect(template.expand(subject).to_s).to eq("'value'")
+      expect(template.partial_expand({}).pattern).to eq("'{var}'")
+      expect(template.extract("'value'")).to eq(subject)
+    end
+
     it "keeps literals as they are in a partial expansion" do
-      template = Addressable::Template.new("caf\u00E9 {var}/{other}")
+      template = Addressable::Template.new("caf\u00E9{var}/{other}")
       expect(template.partial_expand("var" => "1").pattern).to eq(
-        "caf\u00E9 1/{other}"
+        "caf\u00E91/{other}"
       )
     end
 
@@ -810,16 +852,16 @@ describe "Expansion" do
       expect(template.extract("http://example.com/caf%C3%A8/value")).to eq(nil)
     end
 
-    it "matches a percent sign in either form" do
+    it "matches a percent sign as written" do
       template = Addressable::Template.new("/50%off/{var}")
-      expect(template.extract("/50%25off/value")).to eq("var" => "value")
       expect(template.extract("/50%off/value")).to eq("var" => "value")
+      expect(template.extract("/50%25off/value")).to eq(nil)
     end
 
     it "matches braces that don't start an expression as they are" do
       template = Addressable::Template.new("x{a.*}/{var}")
       expect(template.extract("x{a.*}/value")).to eq("var" => "value")
-      expect(template.extract("x%7Ba.*%7D/value")).to eq("var" => "value")
+      expect(template.extract("x%7Ba.*%7D/value")).to eq(nil)
       expect(template.extract("x{aZZZ}/value")).to eq(nil)
       template = Addressable::Template.new("x{a(}/{var}")
       expect(template.extract("x{a(}/value")).to eq("var" => "value")
@@ -827,8 +869,7 @@ describe "Expansion" do
 
     it "extracts the values from an expansion" do
       rng = Random.new(1741)
-      literals = ["a", "/", "?", "&", "=", "%", "%2F", " ", "\u00E9",
-        "\u20AC", "<", "|"]
+      literals = ["a", "/", "?", "&", "=", "'", "%2F", "\u00E9", "\u20AC"]
       operators = ["", "+", "#", ".", "/", ";", "?", "&"]
       valid = /\A(?:[#{
         Addressable::URI::CharacterClasses::RESERVED_AND_UNRESERVED

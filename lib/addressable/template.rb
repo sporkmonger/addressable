@@ -72,7 +72,12 @@ module Addressable
     # Literal text, an expression up to the next "}" (or the end, if there's
     # no "}"), or a "}" that doesn't close an expression.
     TEMPLATE_TOKEN = /[^{}]+|\{[^}]*\}?|\}/
-    private_constant :RESERVED_OPERATORS, :VALID_EXPRESSION, :TEMPLATE_TOKEN
+    # Expansion encodes non-ASCII literals (RFC 6570 section 3.1). An ASCII
+    # character the literals grammar leaves out stays as it is, as most other
+    # implementations do.
+    LITERAL_ENCODE = /[^\x00-\x7F]/
+    private_constant :RESERVED_OPERATORS, :VALID_EXPRESSION, :TEMPLATE_TOKEN,
+      :LITERAL_ENCODE
 
     NO_MAPPING = Object.new.freeze
     private_constant :NO_MAPPING
@@ -745,7 +750,7 @@ module Addressable
       check_expressions
       mapping = resolve_mapping(mapping, block)
       result = map_literals(self.pattern) do |literal|
-        Addressable::URI.encode_component(literal, RESERVED_ENCODE)
+        Addressable::URI.encode_component(literal, LITERAL_ENCODE)
       end
       result.gsub!( EXPRESSION ) do |capture|
         transform_capture(mapping, capture, processor, normalize_values)
@@ -1000,14 +1005,10 @@ module Addressable
     # @return [String] The regular expression source.
     def literal_regexp(literal)
       literal.scan(PCT_ENCODED_OR_CHARACTER).map do |character|
-        if character =~ RESERVED_ENCODE
+        if character =~ LITERAL_ENCODE
           encoded =
-            Addressable::URI.encode_component(character, RESERVED_ENCODE)
-          # Expansion would have encoded a "%" that starts a triplet. The
-          # source can't use braces, which would read as an expression.
-          raw = character == "%" ? "%(?![0-9A-Fa-f][0-9A-Fa-f])" :
-            Regexp.escape(character)
-          "(?:#{raw}|(?i:#{encoded}))"
+            Addressable::URI.encode_component(character, LITERAL_ENCODE)
+          "(?:#{Regexp.escape(character)}|(?i:#{encoded}))"
         else
           Regexp.escape(character)
         end
