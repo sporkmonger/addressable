@@ -38,14 +38,16 @@ module Addressable
 
     var_char =
       "(?>(?:[#{variable_char_class}]|%[a-fA-F0-9][a-fA-F0-9])+)"
+    # Matching accepts a non-ASCII character as it is or pct-encoded.
+    non_ascii = "[^\\x00-\\x7F]"
     RESERVED =
-      "(?:[#{anything}]|%[a-fA-F0-9][a-fA-F0-9])"
+      "(?:[#{anything}]|#{non_ascii}|%[a-fA-F0-9][a-fA-F0-9])"
     RESERVED_NO_COMMA =
-      "(?:[#{anything.delete(',')}]|%[a-fA-F0-9][a-fA-F0-9])"
+      "(?:[#{anything.delete(',')}]|#{non_ascii}|%[a-fA-F0-9][a-fA-F0-9])"
     UNRESERVED =
       "(?:[#{
         Addressable::URI::CharacterClasses::UNRESERVED
-      }]|%[a-fA-F0-9][a-fA-F0-9])"
+      }]|#{non_ascii}|%[a-fA-F0-9][a-fA-F0-9])"
     # Reserved and fragment expansion encode every character outside the
     # reserved and unreserved sets, except a "%" that starts a pct-encoded
     # triplet (RFC 6570 section 3.2.3).
@@ -54,6 +56,9 @@ module Addressable
     # A "#" after the one that starts a fragment, as written or as expansion
     # encodes it.
     NUMBER_SIGN_EITHER_FORM = "(?:\\#|%23)"
+    # A literal's token: a run of non-ASCII pct-encoded octets, one triplet, or
+    # one character.
+    LITERAL_TOKEN = /(?:%[89A-Fa-f][0-9A-Fa-f])+|%[0-9A-Fa-f]{2}|./m
     variable =
       "(?:#{var_char}(?:\\.?#{var_char})*)"
     varspec =
@@ -80,7 +85,7 @@ module Addressable
     # implementations do.
     LITERAL_ENCODE = /[^\x00-\x7F]/
     private_constant :RESERVED_OPERATORS, :VALID_EXPRESSION, :TEMPLATE_TOKEN,
-      :LITERAL_ENCODE, :NUMBER_SIGN_EITHER_FORM
+      :LITERAL_ENCODE, :NUMBER_SIGN_EITHER_FORM, :LITERAL_TOKEN
 
     NO_MAPPING = Object.new.freeze
     private_constant :NO_MAPPING
@@ -1012,10 +1017,22 @@ module Addressable
     end
 
     ##
-    # Builds a regular expression for literal text. A literal character that
-    # expansion pct-encodes (RFC 6570 section 3.1) matches either as it is
-    # or encoded, and so does a "#" that expansion may have encoded because
-    # a fragment had already started.
+    # Builds a regular expression for a non-ASCII character, as it is or
+    # pct-encoded in either case.
+    #
+    # @param [String] character The character.
+    #
+    # @return [String] The regular expression source.
+    def either_form(character)
+      encoded = Addressable::URI.encode_component(character, LITERAL_ENCODE)
+      "(?:#{Regexp.escape(character)}|(?i:#{encoded}))"
+    end
+
+    ##
+    # Builds a regular expression for literal text. A non-ASCII character,
+    # written as it is or as pct-encoded UTF-8, matches either way, since
+    # expansion pct-encodes it (RFC 6570 section 3.1). So does a "#" that
+    # expansion may have encoded because a fragment had already started.
     #
     # @param [String] literal The literal text.
     # @param [TrueClass, FalseClass] fragment
@@ -1023,17 +1040,23 @@ module Addressable
     #
     # @return [String] The regular expression source.
     def literal_regexp(literal, fragment = false)
-      literal.scan(PCT_ENCODED_OR_CHARACTER).map do |character|
-        if character == '#'
+      literal.scan(LITERAL_TOKEN).map do |token|
+        if token == '#'
           source = fragment ? NUMBER_SIGN_EITHER_FORM : '\\#'
           fragment = true
           source
-        elsif character =~ LITERAL_ENCODE
-          encoded =
-            Addressable::URI.encode_component(character, LITERAL_ENCODE)
-          "(?:#{Regexp.escape(character)}|(?i:#{encoded}))"
+        elsif token =~ LITERAL_ENCODE
+          token.each_char.map { |character| either_form(character) }.join
+        elsif token.length > 3 || token =~ /\A%[89A-Fa-f]/
+          decoded = Addressable::URI.unencode_component(token).dup
+          decoded.force_encoding(Encoding::UTF_8)
+          if decoded.valid_encoding?
+            decoded.each_char.map { |character| either_form(character) }.join
+          else
+            "(?i:#{Regexp.escape(token)})"
+          end
         else
-          Regexp.escape(character)
+          Regexp.escape(token)
         end
       end.join
     end
@@ -1468,7 +1491,8 @@ module Addressable
         explodes = varspecs.map { |varspec| varspec[VARSPEC, 2] == '*' }
         first_explode = explodes.index(true)
         not_after_value =
-          "(?<![#{Addressable::URI::CharacterClasses::UNRESERVED}])"
+          "(?<![#{Addressable::URI::CharacterClasses::UNRESERVED}])" \
+          "(?<![^\\x00-\\x7F])"
         combined = varspecs.each_with_index.map do |varspec, position|
           _, name, modifier = *varspec.match(VARSPEC)
 

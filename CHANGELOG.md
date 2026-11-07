@@ -154,6 +154,11 @@
   `x#a#{var}` to `x#a%23...`; `#match` and `#extract` accept such a `#` either
   as written or encoded; `#partial_expand` returns a template, so it doesn't
   encode a `#` it fills in; `#expand` encodes it when it produces the URI
+- `Addressable::Template#match` and `#extract` now accept non-ASCII text
+  in a URI either as written or pct-encoded as UTF-8: e.g. `/{var}` extracts
+  `café` from both `/caf%C3%A9` and `/café`, which didn't match before; a
+  non-ASCII literal in the template matches either form too, whichever form
+  the template uses
 - `Addressable::Template#expand` now pct-encodes non-ASCII literal
   characters, as RFC 6570 says: e.g. `café/{var}` expands to
   `caf%C3%A9/value`, not `café/value`; pct-encoded triplets and reserved
