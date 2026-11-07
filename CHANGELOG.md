@@ -133,8 +133,12 @@
   pct-encoded triplets in reserved (`{+var}`) and fragment (`{#var}`)
   expansion, as RFC 6570 says: e.g. `{+id}` with `admin%2F` expands to
   `admin%2F`, not `admin%252F`; a `%` that doesn't start a triplet is still
-  encoded as `%25`, and a prefix modifier counts a triplet as one character;
-  `#extract` decodes the triplet, so it gives `admin/` for that expansion
+  encoded as `%25`, and a prefix modifier counts a triplet as one character
+- `Addressable::Template#extract` and `#match` now keep a pct-encoded
+  reserved character in `{+var}` and `{#var}` values, so that expanding the
+  value gives the same URI: e.g. `{+id}` on `admin%2F` gives `admin%2F`, not
+  `admin/`; `%25` stays encoded when two hex digits follow it, and other
+  triplets are still decoded
 - `Addressable::Template#expand` and `#partial_expand` now raise
   `Addressable::Template::InvalidTemplateError`, naming the expression and
   its position, for a template that doesn't match the RFC 6570 grammar, as

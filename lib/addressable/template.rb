@@ -59,6 +59,12 @@ module Addressable
     # A literal's token: a run of non-ASCII pct-encoded octets, one triplet, or
     # one character.
     LITERAL_TOKEN = /(?:%[89A-Fa-f][0-9A-Fa-f])+|%[0-9A-Fa-f]{2}|./m
+    # Reserved and fragment expansion put these characters in the URI as they
+    # are, so extraction has to leave their triplets encoded to get the same
+    # URI back.
+    RESERVED_TRIPLETS = ":/?#[]@!$&'()*+,;=%"
+    # Decoding this "%" can't turn the characters after it into a triplet.
+    PCT_ALONE = /%25(?![0-9A-Fa-f]{2})/
     variable =
       "(?:#{var_char}(?:\\.?#{var_char})*)"
     varspec =
@@ -85,7 +91,8 @@ module Addressable
     # implementations do.
     LITERAL_ENCODE = /[^\x00-\x7F]/
     private_constant :RESERVED_OPERATORS, :VALID_EXPRESSION, :TEMPLATE_TOKEN,
-      :LITERAL_ENCODE, :NUMBER_SIGN_EITHER_FORM, :LITERAL_TOKEN
+      :LITERAL_ENCODE, :NUMBER_SIGN_EITHER_FORM, :LITERAL_TOKEN,
+      :RESERVED_TRIPLETS, :PCT_ALONE
 
     NO_MAPPING = Object.new.freeze
     private_constant :NO_MAPPING
@@ -572,9 +579,9 @@ module Addressable
                   acc
                 }
               elsif value.is_a?(Array)
-                value = value.map{|v| Addressable::URI.unencode_component(v) }
+                value = value.map{|v| unencode_value(v, operator) }
               else
-                value = Addressable::URI.unencode_component(value)
+                value = unencode_value(value, operator)
               end
             end
             if !mapping.has_key?(name) || mapping[name].nil?
@@ -1344,6 +1351,23 @@ module Addressable
         accu[name] = value
         accu
       end
+    end
+
+    ##
+    # Decodes a captured value so that expanding it again gives an equivalent
+    # URI. Reserved and fragment expansion keep pct-encoded triplets, so those
+    # operators decode a triplet only if expansion would encode it again.
+    #
+    # @param [String, NilClass] value The captured value.
+    # @param [String, NilClass] operator The operator of the expression.
+    #
+    # @return [String, NilClass] The decoded value.
+    def unencode_value(value, operator)
+      return Addressable::URI.unencode_component(value) unless
+        value && (operator == '+' || operator == '#')
+
+      Addressable::URI.unencode_component(value, String, RESERVED_TRIPLETS).
+        b.gsub(PCT_ALONE, '%').force_encoding(Encoding::UTF_8)
     end
 
     ##

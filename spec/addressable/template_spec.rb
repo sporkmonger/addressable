@@ -533,6 +533,7 @@ describe "Level 4" do
   context "Expansion with value modifiers" do
     it_behaves_like 'expands', {
       '{var:3}' => 'val',
+      '{var:20}' => 'value', # RFC 6570 section 2.4.1
       '{var:30}' => 'value',
       '{list}' => 'red,green,blue',
       '{list*}' => 'red,green,blue',
@@ -2561,5 +2562,183 @@ describe Addressable::Template, "with a number sign after the fragment starts" d
     template = Addressable::Template.new("/{var}#x")
     expect(template.extract("/v%23x")).to be_nil
     expect(template.extract("/v#x")).to eq("var" => "v")
+  end
+end
+
+describe Addressable::Template, "extracting from reserved expansion" do
+  ["{+var}", "x{#var}"].each do |pattern|
+    prefix = pattern.start_with?("x") ? "x#" : ""
+
+    context "with #{pattern}" do
+      subject { Addressable::Template.new(pattern) }
+
+      {
+        "a%2Fb" => "a%2Fb",
+        "a%2fb" => "a%2fb",
+        "a%3Ab%40c" => "a%3Ab%40c",
+        "%5B%5D" => "%5B%5D",
+        "a%20b" => "a b",
+        "caf%C3%A9" => "café",
+        "%41" => "A",
+        "100%25" => "100%",
+        "%25zz" => "%zz",
+        "%252F" => "%252F",
+        "%2541" => "%2541",
+        "%25%41B" => "%25AB",
+        "%25%2F" => "%%2F"
+      }.each do |encoded, value|
+        it "extracts #{value.inspect} from #{encoded}" do
+          expect(subject.extract("#{prefix}#{encoded}")).to eq("var" => value)
+        end
+
+        it "expands that value to a URI equivalent to #{encoded}" do
+          uri = "#{prefix}#{encoded}"
+          expanded = subject.expand(subject.extract(uri))
+          expect(expanded.normalize).to eq(Addressable::URI.parse(uri).normalize)
+        end
+      end
+
+      it "returns the original value for a pct-encoded one" do
+        uri = subject.expand("var" => "a%2Fb").to_s
+        expect(subject.extract(uri)).to eq("var" => "a%2Fb")
+      end
+
+      it "doesn't raise when a triplet decodes to invalid UTF-8" do
+        extracted = subject.extract("#{prefix}%FF%2F")["var"]
+        expect(extracted.bytes).to eq("\xFF%2F".bytes)
+        expect(extracted.encoding).to eq(Encoding::UTF_8)
+      end
+    end
+  end
+
+  it "keeps reserved triplets in an exploded member" do
+    template = Addressable::Template.new("{+list*}")
+    expect(template.extract("a%2Cb%20c")).to eq("list" => ["a%2Cb c"])
+  end
+
+  it "keeps reserved triplets in each variable of an expression" do
+    template = Addressable::Template.new("/{+a,b}")
+    expect(template.extract("/a%2Fb,c%3Bd")).to eq(
+      "a" => "a%2Fb", "b" => "c%3Bd"
+    )
+  end
+
+  it "leaves a variable with no value undefined" do
+    expect(Addressable::Template.new("/x{+var}{#frag}").extract("/x")).to eq(
+      "var" => nil, "frag" => nil
+    )
+  end
+
+  ["{var}", "{/var}", "{.var}"].each do |pattern|
+    it "still decodes reserved triplets for #{pattern}" do
+      template = Addressable::Template.new(pattern)
+      uri = template.expand("var" => "a/b").to_s
+      expect(template.extract(uri)).to eq("var" => "a/b")
+    end
+  end
+
+  it "still decodes reserved triplets for query expansion" do
+    template = Addressable::Template.new("{?var}{&other}")
+    expect(template.extract("?var=a%2Fb&other=c%2Fd")).to eq(
+      "var" => "a/b", "other" => "c/d"
+    )
+  end
+
+  it "passes the value to a processor unchanged" do
+    processor = Class.new do
+      def self.restore(_name, value)
+        value
+      end
+    end
+    template = Addressable::Template.new("/{+var}")
+    expect(template.extract("/a%2Fb%20c", processor)).to eq(
+      "var" => "a%2Fb%20c"
+    )
+  end
+end
+
+describe Addressable::Template, "with values pct-encoded at several levels" do
+  # Each value is followed by what extraction gives back from its expansion
+  # in reserved and fragment expansion, which keep a pct-encoded triplet and
+  # so can't tell some values apart (e.g. "%" and "%25" both expand to %25).
+  reserved = {
+    "a/b" => "a/b",
+    "a%2Fb" => "a%2Fb",
+    "a%252Fb" => "a%252Fb",
+    "a%25252Fb" => "a%25252Fb",
+    "%" => "%",
+    "%25" => "%",
+    "%2525" => "%2525",
+    "%41" => "A",
+    "%2541" => "%2541",
+    "%252541" => "%252541",
+    "a%20b" => "a b",
+    "a%2520b" => "a%2520b",
+    "caf%C3%A9" => "caf\u00E9",
+    "caf%25C3%25A9" => "caf%25C3%25A9",
+    "%25%2F" => "%%2F",
+    "%2F%252F" => "%2F%252F",
+    "a#b" => "a#b",
+    "a%23b" => "a%23b",
+    "%3Ab" => "%3Ab",
+    "%253Ab" => "%253Ab"
+  }
+
+  ["/x{var}", "/x{/var}", "/x{.var}", "/x{;var}", "/x{?var}",
+    "/x?y=1{&var}"].each do |pattern|
+    context "with #{pattern}" do
+      subject { Addressable::Template.new(pattern) }
+
+      reserved.keys.each do |value|
+        it "gives #{value.inspect} back and keeps the URI over three cycles" do
+          uri = subject.expand("var" => value).to_s
+          expect(subject.extract(uri)).to eq("var" => value)
+          3.times do
+            uri_again = subject.expand(subject.extract(uri)).to_s
+            expect(uri_again).to eq(uri)
+            uri = uri_again
+          end
+        end
+      end
+    end
+  end
+
+  ["/x{+var}", "/x{#var}"].each do |pattern|
+    context "with #{pattern}" do
+      subject { Addressable::Template.new(pattern) }
+
+      reserved.each do |value, extracted|
+        if pattern.include?("#") && value == "a#b"
+          # The fragment's own "#" comes first, so the value's is encoded.
+          extracted = "a%23b"
+        end
+
+        it "gives #{extracted.inspect} for #{value.inspect}, an equivalent " \
+            "URI, then the same URI over two more cycles" do
+          uri = subject.expand("var" => value).to_s
+          expect(subject.extract(uri)).to eq("var" => extracted)
+          # Decoding an unreserved triplet, such as %41, normalizes the URI.
+          uri_again = subject.expand(subject.extract(uri)).to_s
+          expect(Addressable::URI.parse(uri_again).normalize).to eq(
+            Addressable::URI.parse(uri).normalize
+          )
+          uri = uri_again
+          2.times do
+            uri_again = subject.expand(subject.extract(uri)).to_s
+            expect(uri_again).to eq(uri)
+            uri = uri_again
+          end
+        end
+      end
+    end
+  end
+
+  it "gives a reserved expansion at the start a value it can expand again" do
+    template = Addressable::Template.new("{+var}")
+    ["%3Ab", "41%3A=%2F"].each do |uri|
+      extracted = template.extract(uri)
+      expect(extracted).to eq("var" => uri)
+      expect(template.expand(extracted).to_s).to eq(uri)
+    end
   end
 end
