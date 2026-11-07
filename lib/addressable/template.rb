@@ -17,6 +17,7 @@
 #++
 
 
+require "strscan"
 require "addressable/version"
 require "addressable/uri"
 
@@ -45,10 +46,15 @@ module Addressable
       "(?:[#{
         Addressable::URI::CharacterClasses::UNRESERVED
       }]|%[a-fA-F0-9][a-fA-F0-9])"
+    # Reserved and fragment expansion encode every character outside the
+    # reserved and unreserved sets, except a "%" that starts a pct-encoded
+    # triplet (RFC 6570 section 3.2.3).
+    RESERVED_ENCODE = /%(?![0-9A-Fa-f]{2})|[^%#{anything}]/
+    PCT_ENCODED_OR_CHARACTER = /%[0-9A-Fa-f]{2}|./m
     variable =
       "(?:#{var_char}(?:\\.?#{var_char})*)"
     varspec =
-      "(?:(#{variable})(\\*|:\\d+)?)"
+      "(?:(#{variable})(\\*|:[1-9]\\d{0,3})?)"
     VARNAME =
       /^#{variable}$/
     VARSPEC =
@@ -59,6 +65,75 @@ module Addressable
       "+#./;?&=,!@|"
     EXPRESSION =
       /\{([#{operator}])?(#{varspec}(?:,#{varspec})*)\}/
+    # RFC 6570 reserves these operators for future extensions.
+    RESERVED_OPERATORS = "=,!@|"
+    VALID_EXPRESSION =
+      /\A\{[+#.\/;?&]?#{varspec}(?:,#{varspec})*\}\z/
+    # Literal text, an expression up to the next "}" (or the end, if there's
+    # no "}"), or a "}" that doesn't close an expression.
+    TEMPLATE_TOKEN = /[^{}]+|\{[^}]*\}?|\}/
+    # Expansion encodes non-ASCII literals (RFC 6570 section 3.1). An ASCII
+    # character the literals grammar leaves out stays as it is, as most other
+    # implementations do.
+    LITERAL_ENCODE = /[^\x00-\x7F]/
+    private_constant :RESERVED_OPERATORS, :VALID_EXPRESSION, :TEMPLATE_TOKEN,
+      :LITERAL_ENCODE
+
+    NO_MAPPING = Object.new.freeze
+    private_constant :NO_MAPPING
+
+    # Looks up variables in a mapping that isn't enumerable, such as a lambda,
+    # once each. As with Hash#fetch, a KeyError means the variable is missing,
+    # and nil means it's defined as nil.
+    class MappingLookup
+      MISSING = Object.new.freeze
+
+      def initialize(source)
+        @source = source
+        @values = {}
+      end
+
+      def [](name)
+        value = lookup(name)
+        value.equal?(MISSING) ? nil : value
+      end
+
+      def key?(name)
+        !lookup(name).equal?(MISSING)
+      end
+
+      private
+
+      def lookup(name)
+        @values.fetch(name) do
+          @values[name] =
+            if @source.respond_to?(:key?) && !@source.key?(name)
+              MISSING
+            else
+              begin
+                @source[name]
+              rescue KeyError => error
+                raise unless missing?(error, name)
+                MISSING
+              end
+            end
+        end
+      end
+
+      # KeyError#key is Ruby 2.6+. For an error with no key, MRI raises and
+      # TruffleRuby gives nil.
+      def missing?(error, name)
+        return true unless error.respond_to?(:key)
+        begin
+          key = error.key
+        rescue ArgumentError
+          return true
+        end
+        return true if key.nil?
+        (key.is_a?(String) || key.is_a?(Symbol)) && key.to_s == name
+      end
+    end
+    private_constant :MappingLookup
 
 
     LEADERS = {
@@ -83,8 +158,14 @@ module Addressable
     end
 
     ##
+    # Raised if a template that doesn't match the RFC 6570 grammar is
+    # expanded.
+    class InvalidTemplateError < StandardError
+    end
+
+    ##
     # Raised if an invalid template operator is used in a pattern.
-    class InvalidTemplateOperatorError < StandardError
+    class InvalidTemplateOperatorError < InvalidTemplateError
     end
 
     ##
@@ -143,10 +224,10 @@ module Addressable
       #   Note that this list will include nils for any variables which
       #   were in the Template, but did not appear in the URI.
       def values
-        @values ||= self.variables.inject([]) do |accu, key|
+        (@values ||= self.variables.inject([]) do |accu, key|
           accu << self.mapping[key]
           accu
-        end
+        end).dup
       end
       alias_method :captures, :values
 
@@ -285,6 +366,12 @@ module Addressable
     alias_method :eql?, :==
 
     ##
+    # @return [Integer] A hash consistent with template equality.
+    def hash
+      self.pattern.hash
+    end
+
+    ##
     # Extracts a mapping from the URI using a URI Template pattern.
     #
     # @param [Addressable::URI, #to_str] uri
@@ -413,15 +500,25 @@ module Addressable
     #   match.captures
     #   #=> ["a", ["b", "c"]]
     def match(uri, processor=nil)
-      uri = Addressable::URI.parse(uri) unless uri.is_a?(Addressable::URI)
+      unless uri.is_a?(Addressable::URI)
+        begin
+          uri = Addressable::URI.parse(uri)
+        rescue Addressable::URI::InvalidURIError
+          # Per the documented contract, match returns nil for any input
+          # that doesn't match the template - including a string that
+          # isn't even a valid URI.
+          return nil
+        end
+      end
       mapping = {}
 
       # First, we need to process the pattern, and extract the values.
       expansions, expansion_regexp =
         parse_template_pattern(pattern, processor)
 
-      return nil unless uri.to_str.match(expansion_regexp)
-      unparsed_values = uri.to_str.scan(expansion_regexp).flatten
+      matched = uri.to_str.match(expansion_regexp)
+      return nil unless matched
+      unparsed_values = matched.captures
 
       if uri.to_str == pattern
         return Addressable::Template::MatchData.new(uri, self, mapping)
@@ -488,7 +585,21 @@ module Addressable
     ##
     # Expands a URI template into another URI template.
     #
-    # @param [Hash] mapping The mapping that corresponds to the pattern.
+    # @param [Hash, #each_pair, #[]] mapping
+    #   The values for the template's variables. This can be a Hash, an
+    #   array of name and value pairs, an object with <tt>each_pair</tt>
+    #   such as a Struct, or any object that responds to <tt>[]</tt>, such as
+    #   a lambda. A lambda or other <tt>[]</tt> object is called with each
+    #   variable's name as a String, at most once per name. Leave the mapping
+    #   out to look up variables with a block instead.
+    #
+    #   Lookups follow the <tt>Hash#fetch</tt> convention: raise
+    #   <tt>KeyError</tt> for a variable that's missing, and return <tt>nil</tt>
+    #   for a variable that's undefined. A missing variable's expression stays
+    #   in the returned template, and an undefined variable is expanded to
+    #   nothing, as with a Hash that lacks the key or maps it to <tt>nil</tt>.
+    #   An object that responds to <tt>key?</tt> reports missing variables with
+    #   <tt>key?</tt> instead.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
     # @param [Boolean] normalize_values
@@ -505,6 +616,15 @@ module Addressable
     # If a <tt>transform</tt> method is used, the value will not be percent
     # encoded automatically. Unicode normalization will be performed both
     # before and after sending the value to the transform method.
+    #
+    # @yield [name] Looks up a variable, when no mapping is given.
+    # @yieldparam [String] name The variable's name.
+    # @yieldreturn [Object] The variable's value, or <tt>nil</tt> if it's
+    #   undefined. Raise <tt>KeyError</tt> if the variable is missing.
+    #
+    # @raise [TypeError] If the mapping isn't one of the types above.
+    # @raise [ArgumentError] If both a mapping and a block are given, or
+    #   neither.
     #
     # @return [Addressable::Template] The partially expanded URI template.
     #
@@ -523,9 +643,17 @@ module Addressable
     #     "http://example.com/{?one,two,three}/"
     #   ).partial_expand({"one" => "1", "three" => 3}).pattern
     #   #=> "http://example.com/?one=1{&two}&three=3"
-    def partial_expand(mapping, processor=nil, normalize_values=true)
+    #
+    #   values = {"one" => "1"}
+    #   Addressable::Template.new(
+    #     "http://example.com/{one}/{two}/"
+    #   ).partial_expand { |name| values.fetch(name) }.pattern
+    #   #=> "http://example.com/1/{two}/"
+    def partial_expand(mapping=NO_MAPPING, processor=nil, normalize_values=true,
+                       &block)
+      check_expressions
       result = self.pattern.dup
-      mapping = normalize_keys(mapping)
+      mapping = resolve_mapping(mapping, block)
       result.gsub!( EXPRESSION ) do |capture|
         transform_partial_capture(mapping, capture, processor, normalize_values)
       end
@@ -535,7 +663,19 @@ module Addressable
     ##
     # Expands a URI template into a full URI.
     #
-    # @param [Hash] mapping The mapping that corresponds to the pattern.
+    # @param [Hash, #each_pair, #[]] mapping
+    #   The values for the template's variables. This can be a Hash, an
+    #   array of name and value pairs, an object with <tt>each_pair</tt>
+    #   such as a Struct, or any object that responds to <tt>[]</tt>, such as
+    #   a lambda. A lambda or other <tt>[]</tt> object is called with each
+    #   variable's name as a String, at most once per name. Leave the mapping
+    #   out to look up variables with a block instead.
+    #
+    #   Lookups follow the <tt>Hash#fetch</tt> convention: raise
+    #   <tt>KeyError</tt> for a variable that's missing, and return <tt>nil</tt>
+    #   for a variable that's undefined. Both expand to nothing. An object that
+    #   responds to <tt>key?</tt> reports missing variables with <tt>key?</tt>
+    #   instead.
     # @param [#validate, #transform] processor
     #   An optional processor object may be supplied.
     # @param [Boolean] normalize_values
@@ -552,6 +692,15 @@ module Addressable
     # If a <tt>transform</tt> method is used, the value will not be percent
     # encoded automatically. Unicode normalization will be performed both
     # before and after sending the value to the transform method.
+    #
+    # @yield [name] Looks up a variable, when no mapping is given.
+    # @yieldparam [String] name The variable's name.
+    # @yieldreturn [Object] The variable's value, or <tt>nil</tt> if it's
+    #   undefined. Raise <tt>KeyError</tt> if the variable is missing.
+    #
+    # @raise [TypeError] If the mapping isn't one of the types above.
+    # @raise [ArgumentError] If both a mapping and a block are given, or
+    #   neither.
     #
     # @return [Addressable::URI] The expanded URI template.
     #
@@ -590,9 +739,19 @@ module Addressable
     #     ExampleProcessor
     #   ).to_str
     #   #=> Addressable::Template::InvalidTemplateValueError
-    def expand(mapping, processor=nil, normalize_values=true)
-      result = self.pattern.dup
-      mapping = normalize_keys(mapping)
+    #
+    #   repository = {"owner" => "sporkmonger", "repo" => "addressable"}
+    #   Addressable::Template.new(
+    #     "https://github.com/{owner}/{repo}"
+    #   ).expand { |name| repository.fetch(name) }.to_str
+    #   #=> "https://github.com/sporkmonger/addressable"
+    def expand(mapping=NO_MAPPING, processor=nil, normalize_values=true,
+               &block)
+      check_expressions
+      mapping = resolve_mapping(mapping, block)
+      result = map_literals(self.pattern) do |literal|
+        Addressable::URI.encode_component(literal, LITERAL_ENCODE)
+      end
       result.gsub!( EXPRESSION ) do |capture|
         transform_capture(mapping, capture, processor, normalize_values)
       end
@@ -607,7 +766,7 @@ module Addressable
     #
     # @return [Array] The variables present in the template's pattern.
     def variables
-      @variables ||= ordered_variable_defaults.map { |var, val| var }.uniq
+      (@variables ||= ordered_variable_defaults.map { |var, val| var }.uniq).dup
     end
     alias_method :keys, :variables
     alias_method :names, :variables
@@ -618,8 +777,8 @@ module Addressable
     #
     # @return [Hash] Mapping of template variables to their defaults
     def variable_defaults
-      @variable_defaults ||=
-        Hash[*ordered_variable_defaults.reject { |k, v| v.nil? }.flatten]
+      (@variable_defaults ||=
+        Hash[*ordered_variable_defaults.reject { |k, v| v.nil? }.flatten]).dup
     end
 
     ##
@@ -655,6 +814,34 @@ module Addressable
     end
 
   private
+    ##
+    # Raises InvalidTemplateError for the first part of the pattern that
+    # isn't a literal or an expression (RFC 6570 section 3).
+    def check_expressions
+      position = 0
+      pattern.scan(TEMPLATE_TOKEN) do |token|
+        if token.start_with?("}")
+          raise InvalidTemplateError, "Unmatched \"}\" at position #{position}"
+        elsif token.start_with?("{")
+          if !token.end_with?("}")
+            raise InvalidTemplateError,
+              "Unclosed template expression #{token.inspect} " \
+              "at position #{position}"
+          elsif token !~ VALID_EXPRESSION
+            if RESERVED_OPERATORS.include?(token[1])
+              raise InvalidTemplateOperatorError,
+                "Invalid template operator #{token[1].inspect} in " \
+                "#{token.inspect} at position #{position}"
+            end
+            raise InvalidTemplateError,
+              "Invalid template expression #{token.inspect} " \
+              "at position #{position}"
+          end
+        end
+        position += token.length
+      end
+    end
+
     def ordered_variable_defaults
       @ordered_variable_defaults ||= begin
         expansions, _ = parse_template_pattern(pattern)
@@ -696,34 +883,172 @@ module Addressable
     def transform_partial_capture(mapping, capture, processor = nil,
                                   normalize_values = true)
       _, operator, varlist = *capture.match(EXPRESSION)
-
+      operator ||= ""
       vars = varlist.split(",")
+      given = lambda { |varspec| mapping.key?(varspec[VARSPEC, 1]) }
+      defined = lambda do |varspec|
+        given.call(varspec) &&
+          !defined_value(mapping[varspec[VARSPEC, 1]]).nil?
+      end
+
+      if vars.all?(&given)
+        return transform_capture(mapping, capture, processor, normalize_values)
+      elsif vars.none?(&given)
+        return capture
+      end
 
       if operator == "?"
         # partial expansion of form style query variables sometimes requires a
         # slight reordering of the variables to produce a valid url.
-        first_to_expand = vars.find { |varspec|
-          _, name, _ =  *varspec.match(VARSPEC)
-          mapping.key?(name) && !mapping[name].nil?
-        }
+        first_to_expand = vars.find(&defined)
 
         vars = [first_to_expand] + vars.reject {|varspec| varspec == first_to_expand}  if first_to_expand
       end
 
-      vars.
-        inject("".dup) do |acc, varspec|
-          _, name, _ =  *varspec.match(VARSPEC)
-          next_val = if mapping.key? name
-                       transform_capture(mapping, "{#{operator}#{varspec}}",
-                                         processor, normalize_values)
-                     else
-                       "{#{operator}#{varspec}}"
-                     end
-          # If we've already expanded at least one '?' operator with non-empty
-          # value, change to '&'
-          operator = "&" if (operator == "?") && (next_val != "")
-          acc << next_val
+      # An undefined variable adds nothing to a query, so it mustn't split the
+      # missing variables around it into expressions with "?" and "&".
+      if %w(? &).include?(operator)
+        vars = vars.select { |v| !given.call(v) || defined.call(v) }
       end
+
+      # Consecutive variables that are all given, or all missing, stay in one
+      # expression, so that their separator is kept.
+      runs = vars.chunk { |varspec| given.call(varspec) }.to_a
+      if %w(+ #).include?(operator) || operator.empty?
+        transform_partial_comma_runs(
+          mapping, operator, runs, defined, processor, normalize_values
+        )
+      else
+        runs.inject("".dup) do |acc, (is_given, run)|
+          expression = "{#{operator}#{run.join(',')}}"
+          if is_given
+            value = transform_capture(
+              mapping, expression, processor, normalize_values
+            )
+            # After a value, the rest of a query continues with "&".
+            operator = "&" if operator == "?" && !value.empty?
+            acc << value
+          else
+            acc << expression
+          end
+        end
+      end
+    end
+
+    ##
+    # Partially expands the runs of a simple, reserved or fragment expression,
+    # whose values are separated by commas. RFC 6570 has no expression that
+    # adds a comma only if a later variable is defined, so the result is the
+    # same as expanding at once only if each missing variable ends up
+    # undefined. After the first value, a fragment expression's runs use
+    # reserved expansion, which adds no second "#".
+    #
+    # @param [Hash] mapping The mapping to replace captures
+    # @param [String] operator The expression's operator.
+    # @param [Array] runs The given and missing runs of varspecs.
+    # @param [Proc] defined Whether a varspec's variable is given and defined.
+    # @param [#validate, #transform] processor
+    #   An optional processor object may be supplied.
+    # @param [Boolean] normalize_values
+    #   Optional flag to enable/disable unicode normalization. Default: true
+    #
+    # @return [String] The partially expanded expression
+    def transform_partial_comma_runs(mapping, operator, runs, defined,
+                                     processor, normalize_values)
+      started = false
+      runs.inject("".dup) do |acc, (is_given, run)|
+        run_operator = started && operator == "#" ? "+" : operator
+        expression = "{#{run_operator}#{run.join(',')}}"
+        if is_given
+          # An empty string is defined, so it still takes a separator.
+          if run.any?(&defined)
+            acc << "," if started
+            started = true
+          end
+          acc << transform_capture(
+            mapping, expression, processor, normalize_values
+          )
+        else
+          acc << expression
+        end
+      end
+    end
+
+    ##
+    # Replaces the literal text between the expressions of a pattern.
+    #
+    # @param [String] pattern The URI template pattern.
+    #
+    # @yield [literal] Each run of literal text.
+    #
+    # @return [String] The pattern with each literal replaced.
+    def map_literals(pattern)
+      result = "".dup
+      # StringScanner works in byte offsets; character offsets would make
+      # this quadratic for a pattern with non-ASCII characters.
+      scanner = StringScanner.new(pattern)
+      while (text = scanner.scan_until(EXPRESSION))
+        expression = scanner.matched
+        literal = text.byteslice(0, text.bytesize - expression.bytesize)
+        result << yield(literal) << expression
+      end
+      result << yield(scanner.rest)
+    end
+
+    ##
+    # Builds a regular expression for literal text. A literal character that
+    # expansion pct-encodes (RFC 6570 section 3.1) matches either as it is
+    # or encoded.
+    #
+    # @param [String] literal The literal text.
+    #
+    # @return [String] The regular expression source.
+    def literal_regexp(literal)
+      literal.scan(PCT_ENCODED_OR_CHARACTER).map do |character|
+        if character =~ LITERAL_ENCODE
+          encoded =
+            Addressable::URI.encode_component(character, LITERAL_ENCODE)
+          "(?:#{Regexp.escape(character)}|(?i:#{encoded}))"
+        else
+          Regexp.escape(character)
+        end
+      end.join
+    end
+
+    ##
+    # Takes the first characters of a value for a prefix modifier. Reserved
+    # and fragment expansion count a pct-encoded triplet as one character,
+    # so that it isn't split (RFC 6570 section 2.4.1).
+    #
+    # @param [String] value The value
+    # @param [Integer] length The maximum number of characters
+    # @param [Boolean] allow_reserved Whether pct-encoded triplets are kept
+    #
+    # @return [String] The prefix
+    def prefix(value, length, allow_reserved)
+      value = value.to_str
+      return value[0...length] unless allow_reserved
+      value.scan(PCT_ENCODED_OR_CHARACTER).first(length).join
+    end
+
+    ##
+    # Drops the undefined (nil) members of a list or associative array value.
+    # RFC 6570 treats a list or associative array with no defined members as
+    # undefined, as it does nil.
+    #
+    # @param [Object] value The mapped value
+    #
+    # @return [Object, nil] The value without its undefined members, or nil
+    #   if the value is undefined
+    def defined_value(value)
+      value = if value.kind_of?(Hash)
+        value.reject { |_, member| member.nil? }
+      elsif value.respond_to?(:to_ary)
+        value.to_ary.reject { |member| member.nil? }
+      else
+        value
+      end
+      value unless value == {} || value == []
     end
 
     ##
@@ -757,8 +1082,8 @@ module Addressable
       _, operator, varlist = *capture.match(EXPRESSION)
       return_value = varlist.split(',').inject([]) do |acc, varspec|
         _, name, modifier = *varspec.match(VARSPEC)
-        value = mapping[name]
-        unless value == nil || value == {}
+        value = defined_value(mapping[name])
+        unless value.nil?
           allow_reserved = %w(+ #).include?(operator)
           # Common primitives where the .to_s output is well-defined
           if Numeric === value || Symbol === value ||
@@ -772,22 +1097,27 @@ module Addressable
             raise TypeError,
               "Can't convert #{value.class} into String or Array."
           end
+          # RFC 6570 section 2.4.1
+          if length && (Hash === value || value.respond_to?(:to_ary))
+            raise InvalidTemplateValueError,
+              "The prefix modifier #{modifier} can't be applied to the " \
+              "list or associative array #{name.inspect}."
+          end
 
           value = normalize_value(value) if normalize_values
 
           if processor == nil || !processor.respond_to?(:transform)
             # Handle percent escaping
             if allow_reserved
-              encode_map =
-                Addressable::URI::CharacterClasses::RESERVED +
-                Addressable::URI::CharacterClasses::UNRESERVED
+              encode_map = RESERVED_ENCODE
             else
               encode_map = Addressable::URI::CharacterClasses::UNRESERVED
             end
             if value.kind_of?(Array)
               transformed_value = value.map do |val|
                 if length
-                  Addressable::URI.encode_component(val[0...length], encode_map)
+                  Addressable::URI.encode_component(
+                    prefix(val, length, allow_reserved), encode_map)
                 else
                   Addressable::URI.encode_component(val, encode_map)
                 end
@@ -817,7 +1147,7 @@ module Addressable
             else
               if length
                 transformed_value = Addressable::URI.encode_component(
-                  value[0...length], encode_map)
+                  prefix(value, length, allow_reserved), encode_map)
               else
                 transformed_value = Addressable::URI.encode_component(
                   value, encode_map)
@@ -900,7 +1230,7 @@ module Addressable
     def normalize_value(value)
       # Handle unicode normalization
       if value.respond_to?(:to_ary)
-        value.to_ary.map! { |val| normalize_value(val) }
+        value = value.to_ary.map { |val| normalize_value(val) }
       elsif value.kind_of?(Hash)
         value = value.inject({}) { |acc, (k, v)|
           acc[normalize_value(k)] = normalize_value(v)
@@ -917,14 +1247,45 @@ module Addressable
     end
 
     ##
-    # Generates a hash with string keys
+    # Picks the mapping to expand with: the one passed, or the block.
     #
-    # @param [Hash] mapping A mapping hash to normalize
+    # @param [Object] mapping The mapping argument
+    # @param [Proc, nil] block The block
     #
-    # @return [Hash]
-    #   A hash with stringified keys
+    # @return [Hash, MappingLookup] The normalized mapping
+    def resolve_mapping(mapping, block)
+      if block
+        unless mapping.equal?(NO_MAPPING) || mapping.nil?
+          raise ArgumentError, "Pass a mapping or a block, not both."
+        end
+        return normalize_keys(block)
+      end
+      if mapping.equal?(NO_MAPPING)
+        raise ArgumentError, "A mapping or a block is required."
+      end
+      normalize_keys(mapping)
+    end
+
+    ##
+    # Generates a hash with string keys, or a lookup for a mapping that isn't
+    # enumerable
+    #
+    # @param [Hash, #each_pair, #inject, #[]] mapping A mapping to normalize
+    #
+    # @return [Hash, MappingLookup]
+    #   A hash with stringified keys, or a lookup
     def normalize_keys(mapping)
-      return mapping.inject({}) do |accu, pair|
+      if mapping.respond_to?(:each_pair)
+        pairs = mapping.to_enum(:each_pair)
+      elsif mapping.respond_to?(:inject)
+        pairs = mapping
+      elsif mapping.respond_to?(:[]) && !mapping.respond_to?(:to_str) &&
+          !(Symbol === mapping) && !(Numeric === mapping)
+        return MappingLookup.new(mapping)
+      else
+        raise TypeError, "Can't convert #{mapping.class} into a mapping."
+      end
+      return pairs.inject({}) do |accu, pair|
         name, value = pair
         if Symbol === name
           name = name.to_s
@@ -959,6 +1320,77 @@ module Addressable
     end
 
     ##
+    # Describes what follows each expression in a template pattern.
+    #
+    # @param [String] escaped_pattern The escaped URI template pattern.
+    #
+    # @return [Array<Array>] For each expression, the <tt>MatchData</tt> of
+    #   the expression directly after it (or <tt>nil</tt>), and whether the
+    #   text after it could start with a comma.
+    def expression_followers(escaped_pattern)
+      expressions = escaped_pattern.to_enum(:scan, EXPRESSION).map do
+        Regexp.last_match
+      end
+      expressions.each_with_index.map do |current, index|
+        following = expressions[index + 1]
+        following = nil unless following && following.begin(0) == current.end(0)
+        # Expressions can match nothing, so look past any that can't start
+        # with a comma.
+        position = current.end(0)
+        comma = expressions[(index + 1)..-1].any? do |later|
+          break false unless later.begin(0) == position
+          position = later.end(0)
+          may_start_with_comma?(later[1], later[2])
+        end
+        [following, comma || escaped_pattern[position] == ',']
+      end
+    end
+
+    ##
+    # Whether an expression could match a string that starts with a comma.
+    #
+    # @param [String, nil] operator The expression's operator.
+    # @param [String] varlist The expression's variable list.
+    #
+    # @return [TrueClass, FalseClass]
+    def may_start_with_comma?(operator, varlist)
+      return false unless LEADERS.fetch(operator, '').empty?
+      operator == '+' || !(varlist =~ VARSPEC && $2 != '*')
+    end
+
+    ##
+    # Whether an expression, followed directly by another one, could only
+    # match characters that the other one could also match, in any amount.
+    #
+    # @param [MatchData] following The expression that follows.
+    # @param [String, nil] operator The operator of the first expression.
+    # @param [Array<String>] varspecs The varspecs of the first expression.
+    #
+    # @return [TrueClass, FalseClass]
+    def absorbed_by?(following, operator, varspecs)
+      last = following[2].split(',').last
+      case following[1]
+      when '+'
+        # An unexploded last variable matches any characters that an
+        # expression can, and can end anywhere.
+        last[VARSPEC, 2] != '*'
+      when nil
+        if last[VARSPEC, 2] == '*'
+          # Matches any unreserved characters and commas.
+          operator.nil? || operator == '.'
+        elsif following[2] == last
+          # Matches any unreserved characters.
+          operator == '.' || (operator.nil? && varspecs.size == 1 &&
+            varspecs.first[VARSPEC, 2] != '*')
+        else
+          false
+        end
+      else
+        false
+      end
+    end
+
+    ##
     # Generates the <tt>Regexp</tt> that parses a template pattern.
     #
     # @param [String] pattern The URI template pattern.
@@ -968,40 +1400,42 @@ module Addressable
     #   An array of expansion variables nad a regular expression which may be
     #   used to parse a template pattern
     def parse_new_template_pattern(pattern, processor = nil)
-      # Escape the pattern. The two gsubs restore the escaped curly braces
-      # back to their original form. Basically, escape everything that isn't
-      # within an expansion.
-      escaped_pattern = Regexp.escape(
-        pattern
-      ).gsub(/\\\{(.*?)\\\}/) do |escaped|
-        escaped.gsub(/\\(.)/, "\\1")
+      # Escape the literal text between the expressions.
+      escaped_pattern = map_literals(pattern) do |literal|
+        literal_regexp(literal)
       end
 
       expansions = []
+      # Processor patterns can match anything, so they get 2.9.0's choices.
+      plain_processor = !(processor && processor.respond_to?(:match))
+      followers = expression_followers(escaped_pattern)
 
       # Create a regular expression that captures the values of the
       # variables in the URI.
       regexp_string = escaped_pattern.gsub( EXPRESSION ) do |expansion|
-        post_expansion = $'
 
+        index = expansions.size
         expansions << expansion
         _, operator, varlist = *expansion.match(EXPRESSION)
         leader = Regexp.escape(LEADERS.fetch(operator, ''))
         joiner = Regexp.escape(JOINERS.fetch(operator, ','))
         varspecs = varlist.split(',')
-        # For multi-variable +/# expressions with no explode modifier, use atomic
-        # joiners and remove outer optionality on non-last variables to prevent
-        # O(2^k) backtracking from the combination of optional variables and
-        # optional separators.
-        has_explode = varspecs.any? { |vs| vs.match(VARSPEC)&.captures&.last == '*' }
-        atomic_multi = varspecs.size > 1 &&
-                       (operator == '+' || operator == '#') &&
-                       !has_explode
-        joiner_sep = atomic_multi ? "(?>#{joiner}?)" : "#{joiner}?"
-        combined = varspecs.map do |varspec|
+        results = varspecs.map do |varspec|
+          name = varspec[VARSPEC, 1]
+          processor && processor.respond_to?(:match) ? processor.match(name) : nil
+        end
+        # Without processor patterns, any variable in the expression can take
+        # the characters that an earlier variable leaves, which lets the
+        # variables after the first one have fewer choices below.
+        plain = results.compact.empty?
+        explodes = varspecs.map { |varspec| varspec[VARSPEC, 2] == '*' }
+        first_explode = explodes.index(true)
+        not_after_value =
+          "(?<![#{Addressable::URI::CharacterClasses::UNRESERVED}])"
+        combined = varspecs.each_with_index.map do |varspec, position|
           _, name, modifier = *varspec.match(VARSPEC)
 
-          result = processor && processor.respond_to?(:match) ? processor.match(name) : nil
+          result = results[position]
           if result
             "(?<#{name}>#{ result })"
           else
@@ -1015,7 +1449,9 @@ module Addressable
             when '.'
               "#{ UNRESERVED.gsub('\.', '') }*?"
             when ';'
-              "#{ UNRESERVED }*=?#{ UNRESERVED }*?"
+              # The same strings, tried in the same order, as 2.9.0's
+              # "U*=?U*?", but a name without "=" can only match one way.
+              "(?:#{UNRESERVED}*=#{UNRESERVED}*?|#{UNRESERVED}*)"
             when '?'
               "#{ UNRESERVED }*=#{ UNRESERVED }*?"
             when '&'
@@ -1024,22 +1460,117 @@ module Addressable
               "#{ UNRESERVED }*?"
             end
             if modifier == '*'
+              # The ; ? and & members match the same strings, in the same
+              # order of preference, as 2.9.0's members joined by an optional
+              # joiner, but each character can only belong to one member.
               seg = case operator
-                    when '+', '#' then "(?>#{RESERVED_NO_COMMA}*)"
+                    when '+', '#' then "#{RESERVED_NO_COMMA}*+"
+                    when ';' then "(?:#{UNRESERVED}|=)*"
+                    when '?', '&'
+                      "#{UNRESERVED}*=(?:#{UNRESERVED}*=)*#{UNRESERVED}*?"
                     else group
                     end
-              joiner_pattern = operator.nil? ? joiner : "#{joiner}?"
-              "(?<#{name}>#{seg}(?:#{joiner_pattern}#{seg})*)?"
-            elsif atomic_multi && varspec != varspecs.last
-              "(?<#{name}>(?>#{RESERVED_NO_COMMA}*))"
-            elsif operator == '+' && varspecs.size == 1 &&
-                  post_expansion.start_with?('{+')
-              "(?<#{name}>(?>#{RESERVED}*))?"
+              # The joiner between exploded members must be mandatory. With
+              # an optional joiner, a run of members can be partitioned in
+              # exponentially many ways, which backtracks catastrophically on
+              # engines without match memoization (MRI < 3.2, JRuby,
+              # TruffleRuby).
+              value = "#{seg}(?:#{joiner}#{seg})*"
+            end
+            if plain && first_explode && position > first_explode &&
+                (operator == '+' || operator == '#' || operator == ';')
+              # Exploded values were tried longest first, so whatever this
+              # variable could match after the first exploded one, that one
+              # already tried matching itself. Only the last unexploded + or
+              # # variable can stop inside a member, where an exploded
+              # variable can't. As in 2.9.0, a variable is the last one if
+              # its varspec is the same as the last varspec.
+              if operator == ';'
+                "(?<#{name}>)"
+              elsif modifier != '*' && varspec == varspecs.last
+                "(?<#{name}>#{RESERVED_NO_COMMA}*?)?"
+              else
+                # 2.9.0 skipped the variable when it couldn't be empty.
+                "(?:(?<#{name}>)(?!#{RESERVED_NO_COMMA}))?"
+              end
+            elsif plain && modifier == '*' && explodes[(position + 1)..-1].any? &&
+                (operator.nil? || operator == '/' || operator == '.')
+              # Exploded values were tried shortest first, and a later
+              # exploded variable can match whatever this one leaves, so once
+              # a split fails, every split where this variable is longer
+              # fails too. Of the values tried, only the leading joiners are
+              # shorter than every value tried before them.
+              "(?<#{name}>(?:#{joiner})*)"
+            elsif plain && position > 0 && explodes[position - 1] &&
+                (operator == '?' || operator == '&')
+              # Whatever this variable could match after an exploded one,
+              # that one already tried matching itself, unless it couldn't:
+              # an exploded member can't be empty, so this variable may only
+              # start right after an empty one.
+              "(?<#{name}>(?<=#{leader}#{joiner}|#{joiner}#{joiner})" \
+                "#{value || group})?"
+            elsif operator == ';' && plain && position > 0
+              # Values were tried longest first, and splitting an earlier
+              # variable's run of characters with this one never gave a
+              # different result, so this one may only start after that run.
+              "(?<#{name}>(?:#{not_after_value}#{value || group})?)"
+            elsif modifier == '*'
+              "(?<#{name}>#{value})?"
+            elsif varspecs.size > 1 && (operator == '+' || operator == '#') &&
+                  varspec != varspecs.last
+              "(?<#{name}>#{RESERVED_NO_COMMA}*+)?"
+            elsif plain && position < varspecs.size - 1 &&
+                  (operator.nil? || operator == '/' || operator == '.')
+              # Values were tried shortest first, so a run of characters
+              # without a joiner went to a later variable. The only other
+              # value that could change the result is the whole run up to the
+              # next joiner.
+              "(?<#{name}>(?:#{group}(?=#{joiner}))??)"
             else
               "(?<#{name}>#{group})?"
             end
           end
-        end.join(joiner_sep)
+        end
+        following, comma_follows = followers[index]
+        single = varspecs.size == 1 && varspecs.first[VARSPEC, 2] != '*'
+        if plain_processor && following &&
+            absorbed_by?(following, operator, varspecs)
+          # Each expression tried its empty alternative first. When the next
+          # one follows it directly and can match anything it could, followed
+          # by anything the next one could match on its own, every other
+          # choice ends where the empty one can also end, so the empty
+          # alternative always gave the first match.
+          leader = "(?!)#{leader}"
+          combined = combined.join("#{joiner}?")
+        elsif plain_processor && single && following &&
+            following[1].nil? && following[2] =~ VARSPEC && $2 != '*' &&
+            (operator == '+' || operator == '#')
+          # Values were tried shortest first, and the next expression can
+          # match any unreserved characters, so the value only needs to end
+          # after a character that the next expression couldn't match.
+          combined = "(?<#{varspecs.first[VARSPEC, 1]}>" \
+            "#{RESERVED}*?#{not_after_value})?"
+        elsif plain && varspecs.size > 1 &&
+            (operator == '+' || operator == '#') &&
+            !comma_follows &&
+            varspecs.none? { |varspec| varspec[VARSPEC, 2] == '*' } &&
+            !varspecs[0...-1].include?(varspecs.last)
+          # 2.9.0 tried each value with the joiner after it first, then the
+          # value on its own, then skipping the variable, and every other
+          # choice gave a value to a later variable that an earlier one had
+          # already been tried with. A variable after a skipped one is
+          # skipped too. Stopping before a joiner is left out, so this is
+          # only used when no joiner can follow the expression. As in 2.9.0,
+          # a variable is the last one if its varspec is the same as the
+          # last varspec.
+          nested = varspecs[0...-1].reverse.inject("") do |inner, varspec|
+            "(?:(?<#{varspec[VARSPEC, 1]}>#{RESERVED_NO_COMMA}*+)" \
+              "#{joiner}?+#{inner}|(?=#{RESERVED_NO_COMMA}))"
+          end
+          combined = nested + combined.last
+        else
+          combined = combined.join("#{joiner}?")
+        end
         "(?:|#{leader}#{combined})"
       end
 

@@ -55,6 +55,45 @@ module Addressable::IDNA
       | \xF4[\x80-\x8F][\x80-\xBF]{2}       # plane 16
       )/mnx
 
+    # Characters that nameprep doesn't allow in a label (Section 5 of
+    # RFC 3491), or that it maps to nothing, so they can't be in a label that
+    # toASCII produces. Some code points are in more than one table; they're
+    # listed only under the first, since Ruby warns about a duplicated range
+    # in a character class.
+    NAMEPREP_PROHIBITED = Regexp.new("[" + [
+      # Table C.1.2, non-ASCII space characters
+      "\u00A0\u1680\u2000-\u200B\u202F\u205F\u3000",
+      # Table C.2.2, non-ASCII control characters
+      "\u0080-\u009F\u06DD\u070F\u180E\u200C\u200D\u2028\u2029" +
+        "\u2060-\u2063\u206A-\u206F\uFEFF\uFFF9-\uFFFC\u{1D173}-\u{1D17A}",
+      # Table C.3, private use
+      "\uE000-\uF8FF\u{F0000}-\u{FFFFD}\u{100000}-\u{10FFFD}",
+      # Table C.4, non-character code points
+      "\uFDD0-\uFDEF" + (0..16).map do |plane|
+        [plane * 0x10000 + 0xFFFE, 0x2D, plane * 0x10000 + 0xFFFF].pack("U*")
+      end.join,
+      # Table C.6, inappropriate for plain text (U+FFF9 to U+FFFC are in C.2.2)
+      "\uFFFD",
+      # Table C.7, inappropriate for canonical representation
+      "\u2FF0-\u2FFB",
+      # Table C.8, change display properties or are deprecated (U+206A to
+      # U+206F are in C.2.2)
+      "\u0340\u0341\u200E\u200F\u202A-\u202E",
+      # Table C.9, tagging characters
+      "\u{E0001}\u{E0020}-\u{E007F}",
+      # Table B.1, commonly mapped to nothing (U+200B is in C.1.2, and U+200C,
+      # U+200D, U+2060 and U+FEFF are in C.2.2)
+      "\u00AD\u034F\u1806\u180B-\u180D\uFE00-\uFE0F"
+    ].join + "]")
+
+    # Characters that change how a label displays without being visible
+    # themselves: controls, format characters such as bidi overrides and
+    # isolates, and default ignorable code points, including those added to
+    # Unicode after the version nameprep is based on. Format characters that
+    # are also default ignorable are left out of the second set, since Ruby
+    # warns about a duplicated range in a character class.
+    DISPLAY_CHANGING = /[\p{Cc}\p{Cf}[\p{Default_Ignorable_Code_Point}&&\P{Cf}]]/
+
     # :startdoc:
 
     # Converts from a Unicode internationalized domain name to an ASCII
@@ -66,7 +105,7 @@ module Addressable::IDNA
         input.force_encoding(Encoding::ASCII_8BIT)
       end
       if input =~ UTF8_REGEX && input =~ UTF8_REGEX_MULTIBYTE
-        parts = unicode_downcase(input).split('.')
+        parts = unicode_downcase(input).split('.', -1)
         parts.map! do |part|
           if part.respond_to?(:force_encoding)
             part.force_encoding(Encoding::ASCII_8BIT)
@@ -87,12 +126,26 @@ module Addressable::IDNA
     # domain name as described in RFC 3490.
     def self.to_unicode(input)
       input = input.to_s unless input.is_a?(String)
-      parts = input.split('.')
+      parts = input.split('.', -1)
       parts.map! do |part|
         if part =~ /^#{ACE_PREFIX}(.+)/
           begin
-            punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
-          rescue Addressable::IDNA::PunycodeBadInput
+            decoded = punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
+            # A label that doesn't convert back to itself isn't a valid
+            # A-label (Section 4.2 of RFC 3490, steps 6 and 7). That includes
+            # a label that decodes to only ASCII characters. A label with a
+            # character that would change how it displays is returned
+            # unchanged too.
+            if to_ascii(decoded).downcase != part.downcase ||
+                decoded =~ NAMEPREP_PROHIBITED || decoded =~ DISPLAY_CHANGING
+              part
+            else
+              decoded
+            end
+          rescue Addressable::IDNA::PunycodeBadInput,
+                 Addressable::IDNA::PunycodeBigOutput,
+                 Addressable::IDNA::PunycodeOverflow,
+                 RangeError, ArgumentError
             # toUnicode is explicitly defined as never-fails by the spec
             part
           end
@@ -4411,50 +4464,50 @@ module Addressable::IDNA
     def self.punycode_encode(unicode)
       unicode = unicode.to_s unless unicode.is_a?(String)
       input = unicode.unpack("U*")
-      output = [0] * (ACE_MAX_LENGTH + 1)
-      input_length = input.size
-      output_length = [ACE_MAX_LENGTH]
+      output = []
+      max_out = ACE_MAX_LENGTH
 
-      # Initialize the state
-      n = PUNYCODE_INITIAL_N
-      delta = out = 0
-      max_out = output_length[0]
-      bias = PUNYCODE_INITIAL_BIAS
+      # The positions of each non-basic code point, and a Fenwick tree of
+      # the positions of the code points handled so far, so that counting
+      # the handled code points before a position doesn't take a pass over
+      # the input.
+      positions = {}
+      handled = Array.new(input.size + 1, 0)
 
       # Handle the basic code points:
-      input_length.times do |j|
-        if punycode_basic?(input[j])
-          if max_out - out < 2
+      input.each_with_index do |codepoint, j|
+        if punycode_basic?(codepoint)
+          if max_out - output.size < 2
             raise PunycodeBigOutput,
               "Output would exceed the space provided."
           end
-          output[out] = input[j]
-          out += 1
+          output << codepoint
+          handled[j + 1] = 1
+        else
+          (positions[codepoint] ||= []) << j
         end
       end
+      (1..input.size).each do |i|
+        parent = i + (i & -i)
+        handled[parent] += handled[i] if parent <= input.size
+      end
 
-      h = b = out
+      h = b = output.size
 
       # h is the number of code points that have been handled, b is the
-      # number of basic code points, and out is the number of characters
-      # that have been output.
+      # number of basic code points, and output.size is the number of
+      # characters that have been output.
 
-      if b > 0
-        output[out] = PUNYCODE_DELIMITER
-        out += 1
-      end
+      output << PUNYCODE_DELIMITER if b > 0
 
-      # Main encoding loop:
+      # Main encoding loop: handle each non-basic code point in ascending
+      # order.
 
-      while h < input_length
-        # All non-basic code points < n have been
-        # handled already.  Find the next larger one:
+      n = PUNYCODE_INITIAL_N
+      delta = 0
+      bias = PUNYCODE_INITIAL_BIAS
 
-        m = PUNYCODE_MAXINT
-        input_length.times do |j|
-          m = input[j] if (n...m) === input[j]
-        end
-
+      positions.keys.sort.each do |m|
         # Increase delta enough to advance the decoder's
         # <n,i> state to <m,0>, but guard against overflow:
 
@@ -4464,47 +4517,56 @@ module Addressable::IDNA
         delta += (m - n) * (h + 1)
         n = m
 
-        input_length.times do |j|
-          # Punycode does not need to check whether input[j] is basic:
-          if input[j] < n
-            delta += 1
-            if delta == 0
-              raise PunycodeOverflow,
-                "Input needs wider integers to process."
+        # Each occurrence of n adds the handled code points since the last
+        # one, which RFC 3492 counts as code points less than n.
+        handled_before_pass = h
+        counted = 0
+        positions[n].each do |position|
+          before = 0
+          i = position
+          while i > 0
+            before += handled[i]
+            i -= i & -i
+          end
+          delta += before - counted
+          counted = before
+
+          # Represent delta as a generalized variable-length integer:
+
+          q = delta; k = PUNYCODE_BASE
+          while true
+            if output.size >= max_out
+              raise PunycodeBigOutput,
+                "Output would exceed the space provided."
             end
+            t = (
+              if k <= bias
+                PUNYCODE_TMIN
+              elsif k >= bias + PUNYCODE_TMAX
+                PUNYCODE_TMAX
+              else
+                k - bias
+              end
+            )
+            break if q < t
+            output <<
+              punycode_encode_digit(t + (q - t) % (PUNYCODE_BASE - t))
+            q = (q - t) / (PUNYCODE_BASE - t)
+            k += PUNYCODE_BASE
           end
 
-          if input[j] == n
-            # Represent delta as a generalized variable-length integer:
+          output << punycode_encode_digit(q)
+          bias = punycode_adapt(delta, h + 1, h == b)
+          delta = 0
+          h += 1
+        end
+        delta += handled_before_pass - counted
 
-            q = delta; k = PUNYCODE_BASE
-            while true
-              if out >= max_out
-                raise PunycodeBigOutput,
-                  "Output would exceed the space provided."
-              end
-              t = (
-                if k <= bias
-                  PUNYCODE_TMIN
-                elsif k >= bias + PUNYCODE_TMAX
-                  PUNYCODE_TMAX
-                else
-                  k - bias
-                end
-              )
-              break if q < t
-              output[out] =
-                punycode_encode_digit(t + (q - t) % (PUNYCODE_BASE - t))
-              out += 1
-              q = (q - t) / (PUNYCODE_BASE - t)
-              k += PUNYCODE_BASE
-            end
-
-            output[out] = punycode_encode_digit(q)
-            out += 1
-            bias = punycode_adapt(delta, h + 1, h == b)
-            delta = 0
-            h += 1
+        positions[n].each do |position|
+          i = position + 1
+          while i <= input.size
+            handled[i] += 1
+            i += i & -i
           end
         end
 
@@ -4512,20 +4574,7 @@ module Addressable::IDNA
         n += 1
       end
 
-      output_length[0] = out
-
-      outlen = out
-      outlen.times do |j|
-        c = output[j]
-        unless c >= 0 && c <= 127
-          raise StandardError, "Invalid output char."
-        end
-        unless PUNYCODE_PRINT_ASCII[c]
-          raise PunycodeBadInput, "Input is invalid."
-        end
-      end
-
-      output[0..outlen].map { |x| x.chr }.join("").sub(/\0+\z/, "")
+      output.pack("C*").force_encoding(Encoding::US_ASCII)
     end
     private_class_method :punycode_encode
 
@@ -4670,11 +4719,11 @@ module Addressable::IDNA
     # (for use in representing integers) in the range 0 to
     # base - 1, or PUNYCODE_BASE if codepoint does not represent a value.
     def self.punycode_decode_digit(codepoint)
-      if codepoint - 48 < 10
+      if codepoint >= 48 && codepoint <= 57
         codepoint - 22
-      elsif codepoint - 65 < 26
+      elsif codepoint >= 65 && codepoint <= 90
         codepoint - 65
-      elsif codepoint - 97 < 26
+      elsif codepoint >= 97 && codepoint <= 122
         codepoint - 97
       else
         PUNYCODE_BASE

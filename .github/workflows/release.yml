@@ -6,7 +6,35 @@ on:
       - addressable-*
 
 jobs:
+  # only commits that are on main are published, however the tag was made
+  verify-tag:
+    if: github.repository == 'sporkmonger/addressable'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify the tagged commit is on main
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "ERROR: $GITHUB_REF_NAME ($GITHUB_SHA) is not on main"
+            exit 1
+          fi
+
+  # the full CI workflow must pass before anything is published
+  test:
+    needs: verify-tag
+    if: github.repository == 'sporkmonger/addressable'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/test.yml
+
   release:
+    needs: test
     if: github.repository == 'sporkmonger/addressable'
     runs-on: ubuntu-latest
     permissions:
@@ -22,9 +50,9 @@ jobs:
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           bundler-cache: true
           ruby-version: ruby
@@ -37,7 +65,7 @@ jobs:
             exit 1
           fi
 
-      - uses: rubygems/configure-rubygems-credentials@762a4b77c3300434bb57c7ce80b20e36231927aa # v2.0.0
+      - uses: rubygems/configure-rubygems-credentials@dc5a8d8553e6ee01fc26761a49e99e733d17954a # v2.1.0
 
       # ensure gem can be built and installed
       - run: bundle exec rake gem:install

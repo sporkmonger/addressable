@@ -1,6 +1,11 @@
 name: CI
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  # called by the release workflow, so a gem is only published when CI passes
+  workflow_call:
 
 permissions: {}
 
@@ -15,12 +20,12 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
 
-      - uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           bundler-cache: true
           ruby-version: ruby
@@ -46,13 +51,13 @@ jobs:
     env:
       IDNA_MODE: ${{ matrix.idna_mode }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
 
       - name: Setup ruby
-        uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           bundler-cache: false
           ruby-version: ${{ matrix.ruby }}
@@ -89,13 +94,13 @@ jobs:
       COVERALLS_DEBUG: true
       CI_BUILD_NUMBER: ${{ github.run_id }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install libidn
         run: sudo apt-get install libidn11-dev
 
       - name: Setup ruby
-        uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           bundler-cache: false
           ruby-version: ${{ matrix.ruby }}
@@ -163,7 +168,7 @@ jobs:
       # https://github.com/jruby/jruby/issues/7182#issuecomment-1112953015
       JAVA_OPTS: -Djdk.io.File.enableADS=true
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install libidn (Ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
@@ -176,7 +181,7 @@ jobs:
       - name: Setup ruby
         continue-on-error: ${{ matrix.allow-failure || false }}
         id: setupruby
-        uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           bundler-cache: false
           ruby-version: ${{ matrix.ruby }}

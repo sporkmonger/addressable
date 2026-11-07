@@ -28,6 +28,15 @@ shared_examples_for 'expands' do |tests|
       tmpl = Addressable::Template.new(template).expand(subject)
       expect(tmpl.to_str).to eq(expansion)
     end
+
+    it "#{template} to #{exp} from a lambda" do
+      mapping = subject
+      lookup = lambda do |name|
+        mapping.key?(name) ? mapping[name] : mapping[name.to_sym]
+      end
+      tmpl = Addressable::Template.new(template).expand(lookup)
+      expect(tmpl.to_str).to eq(expansion)
+    end
   end
 end
 
@@ -49,6 +58,41 @@ describe "eql?" do
     addressable_uri = Addressable::URI.parse uri
     expect(addressable_template).to_not be_eql(addressable_uri)
     expect(addressable_uri).to_not be_eql(addressable_template)
+  end
+end
+
+describe "hash" do
+  let(:template) { Addressable::Template.new('https://www.example.com/{foo}') }
+  let(:other_template) do
+    Addressable::Template.new('https://www.example.com/{foo}')
+  end
+
+  it 'is the same for equal templates' do
+    expect(template.hash).to eq(other_template.hash)
+  end
+
+  it 'differs when the pattern differs' do
+    different = Addressable::Template.new('https://www.example.com/{bar}')
+    expect(template.hash).to_not eq(different.hash)
+  end
+
+  it 'is the same for an equal template of a subclass' do
+    subclassed = Class.new(Addressable::Template).new(template.pattern)
+    expect(template).to be_eql(subclassed)
+    expect(template.hash).to eq(subclassed.hash)
+  end
+
+  it 'is the same after freezing' do
+    hash = template.hash
+    expect(template.freeze.hash).to eq(hash)
+  end
+
+  it 'finds an equal template used as a Hash key' do
+    expect({ template => :found }[other_template]).to eq(:found)
+  end
+
+  it 'removes equal templates with uniq' do
+    expect([template, other_template].uniq).to eq([template])
   end
 end
 
@@ -82,6 +126,36 @@ describe "#to_regexp" do
   end
 end
 
+describe "#match" do
+  it "returns nil, rather than raising, for a string that isn't a valid URI" do
+    template = Addressable::Template.new("https://{domain}")
+    expect { template.match("x;x:x") }.not_to raise_error
+    expect(template.match("x;x:x")).to be_nil
+  end
+
+  it "still matches a valid URI normally" do
+    template = Addressable::Template.new("https://{domain}/{path}")
+    match = template.match("https://example.com/foo")
+    expect(match.variables).to eq(["domain", "path"])
+    expect(match.captures).to eq(["example.com", "foo"])
+  end
+end
+
+describe "#extract" do
+  it "returns nil, rather than raising, for a string that isn't a valid URI" do
+    template = Addressable::Template.new("https://{domain}")
+    expect { template.extract("x;x:x") }.not_to raise_error
+    expect(template.extract("x;x:x")).to be_nil
+  end
+
+  it "still extracts from a valid URI normally" do
+    template = Addressable::Template.new("https://{domain}/{path}")
+    expect(template.extract("https://example.com/foo")).to eq(
+      "domain" => "example.com", "path" => "foo"
+    )
+  end
+end
+
 describe "Type conversion" do
   subject {
     {
@@ -100,6 +174,254 @@ describe "Type conversion" do
     '{sym}' => 'symbolic',
     '{decimal}' => RUBY_VERSION < '2.4.0' ? '0.1E1' : '0.1e1'
   }
+end
+
+describe Addressable::Template, "when partially expanded" do
+  def self.cases(count, seed)
+    random = Random.new(seed)
+    operators = ["", "+", "#", ".", "/", ";", "?", "&"]
+    values = [
+      "1", "x y", "", nil, ["a", "b"], [], {"k" => "v"},
+      {"k" => "v", "j" => "w"}
+    ]
+    Array.new(count) do
+      operator = operators[random.rand(operators.size)]
+      vars = ["a", "b", "c"].shuffle(random: random).first(random.rand(1..3))
+      varspecs = vars.map { |name| random.rand(4) == 0 ? "#{name}*" : name }
+      given = vars.select { random.rand(2) == 0 }
+      first = Hash[given.map do |name|
+        [name, values[random.rand(values.size)]]
+      end]
+      later = Hash[(vars - given).map do |name|
+        [name, values[random.rand(values.size)]]
+      end]
+      ["{#{operator}#{varspecs.join(",")}}", first, later]
+    end
+  end
+
+  def self.query_pairs(string)
+    leader = string[0, 1]
+    pairs = string.sub(/\A[?&]/, "").split("&").sort
+    [["?", "&"].include?(leader) ? leader : "", pairs]
+  end
+
+  it "gives the same result as expanding at once" do
+    failures = []
+    self.class.cases(3000, 6570).each do |pattern, first, later|
+      template = Addressable::Template.new(pattern)
+      direct = template.expand(first.merge(later)).to_str
+      staged = template.partial_expand(first).expand(later).to_str
+      operator = pattern[1, 1]
+      defined_later = later.values.any? do |value|
+        !value.nil? && value != [] && value != {}
+      end
+      exact = if ["?", "&"].include?(operator)
+        self.class.query_pairs(staged) == self.class.query_pairs(direct)
+      elsif operator =~ /[a-z+#]/ && !first.empty? && defined_later
+        # A comma expression can't keep the "," before a variable that's
+        # only defined later, so this case is exact only without one.
+        true
+      else
+        staged == direct
+      end
+      failures << [pattern, first, later, staged, direct] unless exact
+    end
+    expect(failures).to be_empty, lambda {
+      "#{failures.size} partial expansions differ (pattern, first, later, " +
+      "staged, direct):\n" +
+      failures.first(10).map { |failure| "  #{failure.inspect}" }.join("\n")
+    }
+  end
+end
+
+describe Addressable::Template, "with a mapping that isn't a Hash" do
+  it "expands from a lambda" do
+    sub = lambda { |name| "foo-#{name}" }
+    expect(
+      Addressable::Template.new("{bar}/{baz}").expand(sub).to_str
+    ).to eq("foo-bar/foo-baz")
+  end
+
+  it "expands from a block" do
+    result = Addressable::Template.new("{bar}/{baz}").expand do |name|
+      "foo-#{name}"
+    end
+    expect(result.to_str).to eq("foo-bar/foo-baz")
+  end
+
+  it "expands from a block with a processor" do
+    processor = Object.new
+    def processor.transform(name, value)
+      value.upcase
+    end
+    result = Addressable::Template.new("{bar}").expand(nil, processor) do |n|
+      "foo-#{n}"
+    end
+    expect(result.to_str).to eq("FOO-BAR")
+  end
+
+  it "expands from any object that responds to []" do
+    lookup = Object.new
+    def lookup.[](name)
+      {"a" => "1", "list" => ["x", "y"], "keys" => {"k" => "v"}}[name]
+    end
+    expect(
+      Addressable::Template.new("{a}{/list*}{?keys*,missing}").expand(
+        lookup
+      ).to_str
+    ).to eq("1/x/y?k=v")
+  end
+
+  it "looks up each variable only once" do
+    calls = Hash.new(0)
+    sub = lambda { |name| calls[name] += 1; "v" }
+    Addressable::Template.new("{a}{a}{+a}{?a,b}").expand(sub)
+    Addressable::Template.new("{c}{?c,d}").partial_expand(sub)
+    expect(calls).to eq("a" => 1, "b" => 1, "c" => 1, "d" => 1)
+  end
+
+  it "looks up variables by their names as strings" do
+    names = []
+    Addressable::Template.new("{a}{x.y}").expand(lambda { |n| names << n; nil })
+    expect(names).to eq(["a", "x.y"])
+  end
+
+  it "keeps expressions whose variables a lambda raises KeyError for " +
+      "when partially expanding" do
+    values = {"one" => "1"}
+    sub = lambda { |name| values.fetch(name) }
+    expect(
+      Addressable::Template.new("{one}/{two}").partial_expand(sub).pattern
+    ).to eq("1/{two}")
+    expect(
+      Addressable::Template.new("{one}/{two}").partial_expand do |name|
+        {"two" => "2"}.fetch(name)
+      end.pattern
+    ).to eq("{one}/2")
+  end
+
+  it "removes expressions whose variables a block gives nil for when " +
+      "partially expanding, as for a Hash value of nil" do
+    template = Addressable::Template.new("{one}/{two}{?three}")
+    result = template.partial_expand do |name|
+      {"one" => "1", "two" => nil}.fetch(name)
+    end
+    expect(result.pattern).to eq("1/{?three}")
+    expect(result).to eq(template.partial_expand("one" => "1", "two" => nil))
+  end
+
+  it "treats a KeyError as an undefined variable when expanding" do
+    expect(
+      Addressable::Template.new("{one}/{two}").expand do |name|
+        {"one" => "1"}.fetch(name)
+      end.to_str
+    ).to eq("1/")
+  end
+
+  it "takes a KeyError for a symbol with the variable's name as missing" do
+    values = {:one => "1"}
+    expect(
+      Addressable::Template.new("{one}/{two}").partial_expand do |name|
+        values.fetch(name.to_sym)
+      end.pattern
+    ).to eq("1/{two}")
+  end
+
+  it "takes a KeyError with no key as missing" do
+    expect(
+      Addressable::Template.new("{one}").partial_expand do |name|
+        raise KeyError, "no #{name}"
+      end.pattern
+    ).to eq("{one}")
+  end
+
+  if KeyError.method_defined?(:key)
+    it "raises a KeyError for a different key" do
+      settings = {}
+      expect do
+        Addressable::Template.new("{one}").partial_expand do |name|
+          settings.fetch("other")
+        end
+      end.to raise_error(KeyError)
+    end
+  end
+
+  [
+    ["{a}/{b}", {"a" => "1"}],
+    ["{?a,b,c}", {"b" => "2"}],
+    ["{?a,b,c}", {"a" => "1", "c" => 3}],
+    ["{&a,b}{/list*}", {"list" => ["x", "y"]}],
+    ["{#keys*}{.a}", {"keys" => {"k" => "v"}, "a" => "z"}],
+    ["{+a}{;b}", {"a" => "/x", "b" => ""}],
+    ["{a}/{b}{?c,d}", {"a" => nil, "c" => nil, "d" => "4"}],
+    ["{?a,b,c}", {"a" => nil}]
+  ].each do |pattern, hash|
+    it "expands '#{pattern}' from a lambda as it would from " +
+        "#{hash.inspect}" do
+      template = Addressable::Template.new(pattern)
+      sub = lambda { |name| hash.fetch(name) }
+      expect(template.expand(sub)).to eq(template.expand(hash))
+      expect(template.partial_expand(sub)).to eq(template.partial_expand(hash))
+    end
+  end
+
+  it "uses key? to tell an undefined variable from a missing one when " +
+      "partially expanding" do
+    lookup = Object.new
+    def lookup.[](name)
+      {"one" => "1"}[name]
+    end
+    def lookup.key?(name)
+      ["one", "two"].include?(name)
+    end
+    expect(
+      Addressable::Template.new("{one}/{two}/{three}").partial_expand(
+        lookup
+      ).pattern
+    ).to eq("1//{three}")
+  end
+
+  it "expands from a Struct" do
+    values = Struct.new(:a, :b).new("1", "2")
+    expect(
+      Addressable::Template.new("{a}{b}").expand(values).to_str
+    ).to eq("12")
+  end
+
+  it "still expands from an array of pairs" do
+    expect(
+      Addressable::Template.new("{a}{b}").expand([["a", "1"], [:b, "2"]]).to_str
+    ).to eq("12")
+  end
+
+  it "raises an error for both a mapping and a block" do
+    expect do
+      Addressable::Template.new("{a}").expand("a" => "1") { |name| name }
+    end.to raise_error(ArgumentError)
+    expect do
+      Addressable::Template.new("{a}").partial_expand("a" => "1") { |n| n }
+    end.to raise_error(ArgumentError)
+  end
+
+  it "raises an error for neither a mapping nor a block" do
+    expect do
+      Addressable::Template.new("{a}").expand
+    end.to raise_error(ArgumentError)
+    expect do
+      Addressable::Template.new("{a}").partial_expand
+    end.to raise_error(ArgumentError)
+  end
+
+  [nil, 42, "a", :a, true].each do |mapping|
+    it "raises an error for #{mapping.inspect} as a mapping" do
+      expect do
+        Addressable::Template.new("{a}").expand(mapping)
+      end.to raise_error(TypeError)
+      expect do
+        Addressable::Template.new("{a}").partial_expand(mapping)
+      end.to raise_error(TypeError)
+    end
+  end
 end
 
 describe "Level 1:" do
@@ -301,6 +623,54 @@ describe "Modifiers" do
       '{semi:2}' => '%3B'
     }
   end
+  # RFC 6570 section 2.4.1: max-length is 1 to 9999, with no leading zero.
+  context "length outside the bounds" do
+    it_behaves_like 'expands', {
+      '{var:1}' => 'v',
+      '{var:9999}' => 'value',
+      '{var:3,semi}' => 'val,%3B'
+    }
+
+    {
+      "/x{var:0}" => 2,
+      "/x{var:00}" => 2,
+      "/x{var:03}" => 2,
+      "/x{var:10000}" => 2,
+      "/x{var:99999999999999999999}" => 2,
+      "/x{var:}" => 2,
+      "/x{var:\u0661}" => 2,
+      "/x{var:0,semi}" => 2,
+      "/x{+var:0}" => 2,
+      "{semi}/{var:05}" => 7
+    }.each do |pattern, position|
+      it "raises InvalidTemplateError when expanding #{pattern}" do
+        template = Addressable::Template.new(pattern)
+        expression = pattern[position..-1]
+        message = "Invalid template expression #{expression.inspect} " \
+          "at position #{position}"
+        expect { template.expand(subject) }.to raise_error(
+          Addressable::Template::InvalidTemplateError, message
+        )
+        expect { template.partial_expand("semi" => ";") }.to raise_error(
+          Addressable::Template::InvalidTemplateError, message
+        )
+      end
+    end
+
+    it "doesn't treat the expression as a variable" do
+      ["/x{var:0}", "/x{var:05}", "/x{var:10000}", "/x{var:0,semi}"].each do |pattern|
+        expect(Addressable::Template.new(pattern).variables).to eq([])
+      end
+      expect(Addressable::Template.new("/x{var:9999}").variables).to eq(["var"])
+    end
+
+    it "matches the expression as literal text" do
+      template = Addressable::Template.new("/x{var:0}/{semi}")
+      expect(template.extract("/x{var:0}/a")).to eq("semi" => "a")
+      expect(template.extract("/x%7Bvar:0%7D/a")).to eq(nil)
+      expect(template.extract("/x/a")).to eq(nil)
+    end
+  end
   context "explode" do
     it_behaves_like 'expands', {
       'find{?year*}' => 'find?year=1965&year=2000&year=2012',
@@ -400,6 +770,388 @@ describe "Expansion" do
       '{#keys*}' => '#semi=;,dot=.,comma=,',
     }
   end
+  # RFC 6570 section 3.1: literal characters outside the reserved and
+  # unreserved sets are pct-encoded as UTF-8, and pct-encoded triplets are
+  # copied as they are. The literals grammar allows only non-ASCII characters
+  # to be encoded this way, so ASCII characters it leaves out are left as they
+  # are, as most other implementations do.
+  context "literals" do
+    subject { {"var" => "value"} }
+    it_behaves_like 'expands', {
+      "caf\u00E9/{var}" => 'caf%C3%A9/value',
+      "{var}/\u20AC" => 'value/%E2%82%AC',
+      "\u{1D11E}{var}" => '%F0%9D%84%9Evalue',
+      'x%20y/{var}' => 'x%20y/value',
+      'x%20y{var}z%20w' => 'x%20yvaluez%20w',
+      'a%2fb/{var}' => 'a%2fb/value',
+      "http://example.com/{var}?a=b&c=d#e:f@g!$'()*+,;=" =>
+        "http://example.com/value?a=b&c=d#e:f@g!$'()*+,;="
+    }
+
+    {
+      "/this has spaces" => "/this has spaces",
+      "x y/{var}" => "x y/value",
+      "\"{var}" => "\"value",
+      "{var}<" => "value<",
+      "a>" => "a>",
+      "a\\b" => "a\\b",
+      "a^b" => "a^b",
+      "a`b" => "a`b",
+      "a|b" => "a|b",
+      "a\tb" => "a\tb",
+      "a\x7Fb" => "a\x7Fb",
+      "50%off/{var}" => "50%off/value",
+      "50%2/{var}" => "50%2/value",
+      "%" => "%",
+      "\u00E9 {var}" => "%C3%A9 value"
+    }.each do |pattern, expansion|
+      it "leaves an ASCII character outside the grammar in #{pattern.inspect}" do
+        template = Addressable::Template.new(pattern)
+        expect(template.expand(subject).to_s).to eq(expansion)
+        expect(template.partial_expand({}).pattern).to eq(pattern)
+      end
+    end
+
+    it "encodes only non-ASCII literals in a pattern that isn't UTF-8" do
+      pattern = "a b\xE9/{var}".dup.force_encoding("ISO-8859-1")
+      expect(Addressable::Template.new(pattern).expand(subject).to_s).to eq(
+        "a b%E9/value"
+      )
+    end
+
+    it "matches an ASCII character outside the grammar only as written" do
+      template = Addressable::Template.new("a b/{var}")
+      expect(template.extract("a b/value")).to eq("var" => "value")
+      expect(template.extract("a%20b/value")).to eq(nil)
+    end
+
+    it "treats a single quote as a literal (RFC 6570 erratum 6937)" do
+      template = Addressable::Template.new("'{var}'")
+      expect(template.expand(subject).to_s).to eq("'value'")
+      expect(template.partial_expand({}).pattern).to eq("'{var}'")
+      expect(template.extract("'value'")).to eq(subject)
+    end
+
+    it "keeps literals as they are in a partial expansion" do
+      template = Addressable::Template.new("caf\u00E9{var}/{other}")
+      expect(template.partial_expand("var" => "1").pattern).to eq(
+        "caf\u00E91/{other}"
+      )
+    end
+
+    it "matches a literal in either form" do
+      template =
+        Addressable::Template.new("http://example.com/caf\u00E9/{var}")
+      [
+        "http://example.com/caf%C3%A9/value",
+        "http://example.com/caf%c3%a9/value",
+        "http://example.com/caf\u00E9/value"
+      ].each do |uri|
+        expect(template.extract(uri)).to eq("var" => "value")
+      end
+      expect(template.extract("http://example.com/caf%C3%A8/value")).to eq(nil)
+    end
+
+    it "matches a percent sign as written" do
+      template = Addressable::Template.new("/50%off/{var}")
+      expect(template.extract("/50%off/value")).to eq("var" => "value")
+      expect(template.extract("/50%25off/value")).to eq(nil)
+    end
+
+    it "matches braces that don't start an expression as they are" do
+      template = Addressable::Template.new("x{a.*}/{var}")
+      expect(template.extract("x{a.*}/value")).to eq("var" => "value")
+      expect(template.extract("x%7Ba.*%7D/value")).to eq(nil)
+      expect(template.extract("x{aZZZ}/value")).to eq(nil)
+      template = Addressable::Template.new("x{a(}/{var}")
+      expect(template.extract("x{a(}/value")).to eq("var" => "value")
+    end
+
+    it "extracts the values from an expansion" do
+      rng = Random.new(1741)
+      literals = ["a", "/", "?", "&", "=", "'", "%2F", "\u00E9", "\u20AC"]
+      operators = ["", "+", "#", ".", "/", ";", "?", "&"]
+      valid = /\A(?:[#{
+        Addressable::URI::CharacterClasses::RESERVED_AND_UNRESERVED
+      }]|%[0-9A-Fa-f]{2})*\z/
+      wrong = []
+      2000.times do |index|
+        names = []
+        pattern = "".dup
+        rng.rand(1..3).times do
+          pattern << Array.new(rng.rand(0..3)) do
+            literals.sample(random: rng)
+          end.join
+          name = "v#{names.size}"
+          names << name
+          pattern << "{#{operators.sample(random: rng)}#{name}}"
+          pattern << "Z"
+        end
+        pattern << Array.new(rng.rand(0..3)) { literals.sample(random: rng) }.join
+        mapping = {}
+        names.each { |name| mapping[name] = "x#{rng.rand(100)}" }
+        template = Addressable::Template.new(pattern)
+        expanded = template.expand(mapping).to_s
+        extracted = template.extract(expanded)
+        if expanded !~ valid || extracted != mapping
+          wrong << [pattern, expanded, extracted]
+        end
+      end
+      expect(wrong.first(5)).to eq([])
+    end
+  end
+
+  # RFC 6570 section 3: an error in a template is indicated to the caller.
+  # These are the negative tests from uri-templates/uritemplate-test.
+  context "malformed templates" do
+    subject {
+      {
+        "id" => "thing",
+        "var" => "value",
+        "hello" => "Hello World!",
+        "with space" => "fail",
+        " leading_space" => "Hi!",
+        "trailing_space " => "Bye!",
+        "empty" => "",
+        "path" => "/foo/bar",
+        "list" => ["red", "green", "blue"],
+        "keys" => {"semi" => ";", "dot" => ".", "comma" => ","},
+        "example" => "red",
+        "searchTerms" => "uri templates",
+        "~thing" => "some-user",
+        "default-graph-uri" => [
+          "http://www.example/book/", "http://www.example/papers/"
+        ],
+        "query" => "PREFIX dc: <http://purl.org/dc/elements/1.1/> " \
+          "SELECT ?book ?who WHERE { ?book dc:creator ?who }"
+      }
+    }
+    error = Addressable::Template::InvalidTemplateError
+
+    {
+      "{/id*" => [error, 'Unclosed template expression "{/id*" at position 0'],
+      "/id*}" => [error, 'Unmatched "}" at position 4'],
+      "{/?id}" => [error, 'Invalid template expression "{/?id}" at position 0'],
+      "{var:prefix}" => [error],
+      "{hello:2*}" => [error],
+      "{??hello}" => [error],
+      "{with space}" => [error],
+      "{ leading_space}" => [error],
+      "{trailing_space }" => [error],
+      "{$var}" => [error],
+      "{*keys?}" => [error],
+      "{?empty=default,var}" => [error],
+      "{var}{-prefix|/-/|var}" =>
+        [error, 'Invalid template expression "{-prefix|/-/|var}" at position 5'],
+      "?q={searchTerms}&amp;c={example:color?}" => [error],
+      "x{?empty|foo=none}" => [error],
+      "/h{#hello+}" => [error],
+      "/h\#{hello+}" => [error],
+      "{;keys:1*}" => [error],
+      "?{-join|&|var,list}" => [error],
+      "/people/{~thing}" => [error],
+      "/{default-graph-uri}" => [error],
+      "/sparql{?query,default-graph-uri}" => [error],
+      "/sparql{?query){&default-graph-uri*}" => [error,
+        'Invalid template expression "{?query){&default-graph-uri*}" ' \
+        'at position 7'],
+      "/resolution{?x, y}" => [error],
+      "{var:0}" => [error],
+      "{var:01}" => [error],
+      "{var:10000}" => [error],
+      "{var:}" => [error],
+      "{x.}" => [error],
+      "{x..y}" => [error],
+      "{%2x}" => [error],
+      "{}" => [error],
+      "{{var}}" => [error],
+      "{var}{" => [error, 'Unclosed template expression "{" at position 5'],
+      "}{var}" => [error, 'Unmatched "}" at position 0'],
+      "{!hello}" => [Addressable::Template::InvalidTemplateOperatorError,
+        'Invalid template operator "!" in "{!hello}" at position 0'],
+      "{=path}" => [Addressable::Template::InvalidTemplateOperatorError],
+      "{|var*}" => [Addressable::Template::InvalidTemplateOperatorError],
+      "{,var}" => [Addressable::Template::InvalidTemplateOperatorError],
+      "/{@var}" => [Addressable::Template::InvalidTemplateOperatorError,
+        'Invalid template operator "@" in "{@var}" at position 1']
+    }.each do |pattern, (error_class, message)|
+      it "raises #{error_class} when expanding #{pattern.inspect}" do
+        template = Addressable::Template.new(pattern)
+        expectation = [error_class, message].compact
+        expect { template.expand(subject) }.to raise_error(*expectation)
+        expect { template.partial_expand(subject) }.to raise_error(*expectation)
+        expect { template.partial_expand({}) }.to raise_error(*expectation)
+      end
+    end
+
+    it "raises errors that are InvalidTemplateErrors" do
+      expect(Addressable::Template::InvalidTemplateOperatorError.ancestors).to(
+        include(Addressable::Template::InvalidTemplateError)
+      )
+      expect(Addressable::Template::InvalidTemplateError.ancestors).to(
+        include(StandardError)
+      )
+    end
+
+    it "still creates and matches the template" do
+      template = Addressable::Template.new("x{a.*}/{var}")
+      expect(template.variables).to eq(["var"])
+      expect(template.extract("x{a.*}/value")).to eq("var" => "value")
+    end
+
+    it "expands variable names the grammar allows" do
+      template = Addressable::Template.new("{x.y}/{%41}/{a_1}{?b,c}{x.y:2}")
+      expect(template.expand(
+        "x.y" => "123", "%41" => "2", "a_1" => "3", "b" => "4", "c" => "5"
+      ).to_str).to eq("123/2/3?b=4&c=512")
+    end
+
+    it "expands long templates with non-ASCII literals in linear time" do
+      template = Addressable::Template.new("é{a}" * 100_000)
+      expect do
+        Timeout.timeout(10) do
+          expect(template.expand("a" => "x").to_str).to eq("%C3%A9x" * 100_000)
+        end
+      end.not_to raise_error
+    end
+
+    it "checks long templates in linear time" do
+      [
+        "{" * 100_000,
+        "}" * 100_000,
+        "{a" * 50_000,
+        "{" + ("a." * 50_000) + "}",
+        "{" + ("a," * 50_000) + "!}",
+        "{" + ("%2" * 50_000) + "}",
+        ("{a}" * 30_000) + "{",
+        ("é{a}" * 30_000) + "}",
+        ("é" * 100_000) + "{é}"
+      ].each do |pattern|
+        template = Addressable::Template.new(pattern)
+        expect do
+          Timeout.timeout(10) do
+            expect { template.expand({}) }.to raise_error(
+              Addressable::Template::InvalidTemplateError
+            )
+          end
+        end.not_to raise_error
+      end
+    end
+  end
+
+  # RFC 6570 section 2.4.1: prefix modifiers don't apply to composite values.
+  context "prefix modifiers on composite values" do
+    subject {
+      {
+        "var" => "value",
+        "list" => ["red", "green"],
+        "keys" => {"semi" => ";", "dot" => "."},
+        "empty_list" => [],
+        "nil_list" => [nil],
+        "empty_keys" => {}
+      }
+    }
+
+    ["{list:1}", "{+list:4}", "{#list:2}", "{?list:3}", "{/var,list:1}",
+      "{keys:1}", "{+keys:1}", "{;keys:2}", "{&keys:9999}"].each do |pattern|
+      it "raises InvalidTemplateValueError when expanding #{pattern}" do
+        template = Addressable::Template.new(pattern)
+        expect { template.expand(subject) }.to raise_error(
+          Addressable::Template::InvalidTemplateValueError,
+          /prefix modifier :\d+ can't be applied to the list or associative array "(list|keys)"/
+        )
+        expect { template.partial_expand(subject) }.to raise_error(
+          Addressable::Template::InvalidTemplateValueError
+        )
+      end
+    end
+
+    it_behaves_like 'expands', {
+      '{var:3}' => 'val',
+      '{list}' => 'red,green',
+      '{keys*}' => 'semi=%3B,dot=.',
+      'x{empty_list:1}' => 'x',
+      'x{nil_list:1}' => 'x',
+      'x{?empty_keys:1}' => 'x',
+      'x{undefined:1}' => 'x'
+    }
+
+    it "leaves the expression in a partial expansion without the value" do
+      template = Addressable::Template.new("{list:1}/{var}")
+      expect(template.partial_expand("var" => "v").pattern).to eq("{list:1}/v")
+    end
+  end
+
+  # RFC 6570 section 3.2.3: reserved and fragment expansion pass
+  # pct-encoded triplets through, and encode any other "%".
+  context "pct-encoded triplets" do
+    subject {
+      {
+        "id" => "admin%2F",
+        "not_pct" => "%foo",
+        "short" => "50%2",
+        "lower" => "a%2fb",
+        "list" => ["red%25", "%2Fgreen", "blue "],
+        "keys" => {"key1" => "val1%2F", "key%3A" => "%zz"}
+      }
+    }
+    it_behaves_like 'expands', {
+      '{+id}' => 'admin%2F',
+      '{#id}' => '#admin%2F',
+      '{id}' => 'admin%252F',
+      '{/id}' => '/admin%252F',
+      '{?id}' => '?id=admin%252F',
+      '{+not_pct}' => '%25foo',
+      '{#not_pct}' => '#%25foo',
+      '{not_pct}' => '%25foo',
+      '{+short}' => '50%252',
+      '{+lower}' => 'a%2fb',
+      '{+list}' => 'red%25,%2Fgreen,blue%20',
+      '{#list}' => '#red%25,%2Fgreen,blue%20',
+      '{+list*}' => 'red%25,%2Fgreen,blue%20',
+      '{list}' => 'red%2525,%252Fgreen,blue%20',
+      '{+keys}' => 'key1,val1%2F,key%3A,%25zz',
+      '{#keys*}' => '#key1=val1%2F,key%3A=%25zz',
+      '{keys}' => 'key1,val1%252F,key%253A,%25zz',
+      '{+id:6}' => 'admin%2F',
+      '{+id:5}' => 'admin',
+      '{#not_pct:2}' => '#%25f',
+      '{id:6}' => 'admin%25'
+    }
+
+    it "leaves an expanded value as it is when expanding it again" do
+      rng = Random.new(1203)
+      alphabet = ["%", "%", "2", "F", "f", "a", "Z", "/", "?", "#", "[",
+        " ", ",", "~", "\u00E9", "\u20AC", "<", "^"]
+      reserved = Addressable::Template.new("{+value}")
+      fragment = Addressable::Template.new("{#value}")
+      wrong = []
+      3000.times do
+        value = Array.new(rng.rand(0..8)) { alphabet.sample(random: rng) }.join
+        expanded = reserved.expand("value" => value).to_s
+        unless expanded =~ /\A(?:[#{
+            Addressable::URI::CharacterClasses::RESERVED_AND_UNRESERVED
+          }]|%[0-9A-Fa-f]{2})*\z/
+          wrong << [value, expanded]
+        end
+        if reserved.expand("value" => expanded).to_s != expanded
+          wrong << [value, expanded]
+        end
+        if fragment.expand("value" => value).to_s != "#" + expanded
+          wrong << [value, expanded]
+        end
+        # Decoding gives the value back, reading a "%" that doesn't start a
+        # pct-encoded triplet as itself.
+        decoded = Addressable::URI.unencode(
+          value.gsub(/%(?![0-9A-Fa-f]{2})/, "%25")
+        )
+        if Addressable::URI.unencode(expanded) != decoded
+          wrong << [value, expanded]
+        end
+      end
+      expect(wrong.first(5)).to eq([])
+    end
+  end
   context "label expansion (.)" do
     it_behaves_like 'expands', {
       '{.who}' => '.fred',
@@ -488,6 +1240,102 @@ describe "Expansion" do
       expect { subject.expand(Object.new => "1") }.to raise_error TypeError
     end
   end
+
+  # RFC 6570 section 2.3: a list or associative array with no defined
+  # members is undefined, and undefined (nil) members are left out.
+  context "undefined list and associative array members" do
+    subject {
+      {
+        "x" => "1",
+        "empty_list" => [],
+        "empty_keys" => {},
+        "nil_list" => [nil],
+        "nils" => [nil, nil],
+        "mixed" => ["a", nil, "b"],
+        "nil_keys" => {"k" => nil},
+        "mixed_keys" => {"a" => "1", "b" => nil}
+      }
+    }
+    it_behaves_like 'expands', {
+      'X{empty_list}Y' => 'XY',
+      'X{#empty_list}Y' => 'XY',
+      'X{.empty_list}Y' => 'XY',
+      'X{/empty_list*}Y' => 'XY',
+      'X{;empty_list}Y' => 'XY',
+      'X{;empty_list*}Y' => 'XY',
+      'X{?empty_list}Y' => 'XY',
+      'X{&empty_list*}Y' => 'XY',
+      'X{#empty_keys}Y' => 'XY',
+      'X{?empty_keys*}Y' => 'XY',
+      'X{nil_list}Y' => 'XY',
+      'X{#nils}Y' => 'XY',
+      'X{/nils*}Y' => 'XY',
+      'X{;nils*}Y' => 'XY',
+      'X{?nil_list}Y' => 'XY',
+      'X{nil_keys}Y' => 'XY',
+      'X{+nil_keys*}Y' => 'XY',
+      'X{?nil_keys}Y' => 'XY',
+      'X{mixed}Y' => 'Xa,bY',
+      'X{.mixed*}Y' => 'X.a.bY',
+      'X{/mixed*}Y' => 'X/a/bY',
+      'X{;mixed*}Y' => 'X;mixed=a;mixed=bY',
+      'X{?mixed*}Y' => 'X?mixed=a&mixed=bY',
+      'X{mixed_keys}Y' => 'Xa,1Y',
+      'X{;mixed_keys*}Y' => 'X;a=1Y',
+      'X{?mixed_keys*}Y' => 'X?a=1Y',
+      '{?empty_list,x}' => '?x=1',
+      '{?x,nil_list}' => '?x=1',
+      '{?mixed_keys*,x}' => '?a=1&x=1',
+      '{;nils,x}' => ';x=1',
+      '{/nil_keys,x}' => '/1'
+    }
+
+    it "doesn't change the values" do
+      mapping = subject
+      Addressable::Template.new("{mixed}{?mixed_keys*}").expand(mapping)
+      expect(mapping["mixed"]).to eq(["a", nil, "b"])
+      expect(mapping["mixed_keys"]).to eq({"a" => "1", "b" => nil})
+    end
+
+    it "expands a value with nil members as the value without them" do
+      rng = Random.new(611)
+      names = %w(a b c d)
+      values = [
+        nil, "", "v", [], [nil], [nil, nil], ["1", nil, "2"], ["1"],
+        {}, {"k" => nil}, {"k" => "1", "j" => nil}, {"k" => "1"}
+      ]
+      operators = ["", "+", "#", ".", "/", ";", "?", "&"]
+      wrong = []
+      2000.times do
+        varlist = names.sample(rng.rand(1..3), random: rng).map do |name|
+          rng.rand(4).zero? ? "#{name}*" : name
+        end
+        template = Addressable::Template.new(
+          "x{#{operators.sample(random: rng)}#{varlist.join(",")}}y"
+        )
+        mapping = {}
+        names.each do |name|
+          mapping[name] = values.sample(random: rng) if rng.rand(3) > 0
+        end
+        defined = {}
+        mapping.each do |name, value|
+          value = if value.kind_of?(Hash)
+            value.reject { |_, member| member.nil? }
+          elsif value.kind_of?(Array)
+            value.compact
+          else
+            value
+          end
+          defined[name] = value unless value == [] || value == {}
+        end
+        expanded = template.expand(mapping).to_s
+        if expanded != template.expand(defined).to_s
+          wrong << [template.pattern, mapping, expanded]
+        end
+      end
+      expect(wrong.first(5)).to eq([])
+    end
+  end
 end
 
 class ExampleTwoProcessor
@@ -530,6 +1378,37 @@ describe Addressable::Template do
     subject { Addressable::Template.new("http://example.com/{first}/{+second}/") }
     it 'freezes the template' do
       expect(subject.freeze).to be_frozen
+    end
+
+    it "isn't changed by changing the variables it returned" do
+      subject.freeze
+      subject.variables.clear
+      subject.keys << "third"
+      subject.names.push("fourth")
+      expect(subject.variables).to eq(["first", "second"])
+    end
+  end
+
+  describe "variables" do
+    subject { Addressable::Template.new("http://example.com/{first}/{+second}/") }
+
+    it "isn't changed by changing an earlier result" do
+      subject.variables.clear
+      subject.keys << "third"
+      subject.names.push("fourth")
+      expect(subject.variables).to eq(["first", "second"])
+      expect(subject.match("http://example.com/a/b/").mapping).to eq(
+        "first" => "a", "second" => "b"
+      )
+    end
+  end
+
+  describe "variable_defaults" do
+    subject { Addressable::Template.new("http://example.com/{first}/") }
+
+    it "isn't changed by changing an earlier result" do
+      subject.variable_defaults["first"] = "default"
+      expect(subject.variable_defaults).to eq({})
     end
   end
 
@@ -621,6 +1500,33 @@ describe Addressable::Template do
       }
       its(:variables){ should == ["path", "hash", "first"] }
       its(:captures){ should == ["foo", nil, nil] }
+    end
+    context "multi-variable + expression followed by a literal" do
+      subject {
+        Addressable::Template.new(
+          "http://example.com/{+base,file}/edit"
+        ).match("http://example.com/docs/readme/edit")
+      }
+      its(:variables){ should == ["base", "file"] }
+      its(:captures){ should == [nil, "docs/readme"] }
+    end
+    context "multi-variable # expression followed by a literal" do
+      subject {
+        Addressable::Template.new(
+          "http://example.com/{#a,b}/{+c}"
+        ).match("http://example.com/#x/")
+      }
+      its(:variables){ should == ["a", "b", "c"] }
+      its(:captures){ should == [nil, "x", nil] }
+    end
+    context "+ expression with a variable before an explode modifier" do
+      subject {
+        Addressable::Template.new(
+          "http://example.com/{+path,segments*}"
+        ).match("http://example.com/a/b")
+      }
+      its(:variables){ should == ["path", "segments"] }
+      its(:captures){ should == ["a/b", []] }
     end
   end
 
@@ -732,13 +1638,43 @@ describe Addressable::Template do
         )
       end
     end
+    context "partial_expand with every variable of a comma expression" do
+      {
+        "{one,two}" => "1,2",
+        "{+one,two}" => "1,2",
+        "{#one,two}" => "#1,2"
+      }.each do |pattern, expected|
+        it "expands #{pattern} as a whole" do
+          template = Addressable::Template.new(pattern)
+          expect(template.partial_expand(one: "1", two: "2").pattern).to eq(
+            expected
+          )
+        end
+      end
+    end
+    context "partial_expand with some variables of a comma expression" do
+      {
+        ["{one,two,three}", {two: "2", three: "3"}] => "{one}2,3",
+        ["{+one,two,three}", {one: "1", three: "3"}] => "1{+two},3",
+        ["{#one,two}", {one: "1"}] => "#1{+two}",
+        ["{#one,two}", {two: "2"}] => "{#one}#2"
+      }.each do |(pattern, mapping), expected|
+        it "keeps the separator between given values in #{pattern}" do
+          template = Addressable::Template.new(pattern)
+          expect(template.partial_expand(mapping).pattern).to eq(expected)
+          expect(Addressable::Template.new(expected).expand({}).to_str).to eq(
+            template.expand(mapping).to_str
+          )
+        end
+      end
+    end
     context "issue #307 - partial_expand form query with nil params" do
       subject do
         Addressable::Template.new("http://example.com/{?one,two,three}/")
       end
       it "builds a new pattern with two=nil" do
         expect(subject.partial_expand(two: nil).pattern).to eq(
-          "http://example.com/{?one}{&three}/"
+          "http://example.com/{?one,three}/"
         )
       end
       it "builds a new pattern with one=nil and two=nil" do
@@ -758,7 +1694,7 @@ describe Addressable::Template do
       end
       it "builds a new pattern with one=nil" do
         expect(subject.partial_expand(one: nil).pattern).to eq(
-          "http://example.com/{?two}{&three}/"
+          "http://example.com/{?two,three}/"
         )
       end
     end
@@ -814,6 +1750,73 @@ describe Addressable::Template do
       end
     end
   end
+  describe "Partial expand with undefined members" do
+    subject {
+      Addressable::Template.new("http://example.com/{?empty,y,x}")
+    }
+    it "skips an empty list when choosing the first query variable" do
+      expect(subject.partial_expand("empty" => [], "x" => "1").pattern).to eq(
+        "http://example.com/?x=1{&y}"
+      )
+    end
+    it "skips an empty associative array" do
+      expect(subject.partial_expand("empty" => {}, "x" => "1").pattern).to eq(
+        "http://example.com/?x=1{&y}"
+      )
+    end
+    it "skips a list with only nil members" do
+      expect(
+        subject.partial_expand("empty" => [nil, nil], "x" => "1").pattern
+      ).to eq("http://example.com/?x=1{&y}")
+    end
+    it "skips an associative array with only nil members" do
+      expect(
+        subject.partial_expand("empty" => {"k" => nil}, "x" => "1").pattern
+      ).to eq("http://example.com/?x=1{&y}")
+    end
+    it "keeps the query valid when the rest is undefined" do
+      partial = subject.partial_expand("empty" => [nil], "x" => "1")
+      expect(partial.expand({}).to_s).to eq("http://example.com/?x=1")
+      expect(partial.expand("y" => "2").to_s).to eq(
+        "http://example.com/?x=1&y=2"
+      )
+    end
+    it "treats a list with only nil members as nil" do
+      expect(subject.partial_expand("empty" => [nil]).pattern).to eq(
+        subject.partial_expand("empty" => nil).pattern
+      )
+    end
+
+    it "expands to the same URI as a full expansion" do
+      rng = Random.new(6110)
+      names = %w(a b c d)
+      values = [
+        nil, "", "v", [], [nil], [nil, nil], ["1", nil, "2"], ["1"],
+        {}, {"k" => nil}, {"k" => "1", "j" => nil}, {"k" => "1"}
+      ]
+      wrong = []
+      2000.times do
+        operator = [".", "/", ";", "?", "&"].sample(random: rng)
+        varlist = names.sample(rng.rand(1..3), random: rng).map do |name|
+          rng.rand(4).zero? ? "#{name}*" : name
+        end
+        template = Addressable::Template.new(
+          "x{#{operator}#{varlist.join(",")}}y"
+        )
+        mapping = {}
+        names.each do |name|
+          mapping[name] = values.sample(random: rng) if rng.rand(3) > 0
+        end
+        partial = template.partial_expand(mapping).expand({}).to_s
+        full = template.expand(mapping).to_s
+        if partial != full
+          wrong << [template.pattern, mapping, partial, full]
+        end
+      end
+      expect(wrong.first(5)).to eq([])
+    end
+  end
+
   describe "Partial expand with strings" do
     context "partial_expand with two simple values" do
       subject {
@@ -880,6 +1883,65 @@ describe Addressable::Template do
       it "does not normalize unicode when byte semantics requested" do
         uri = subject.expand({ "query" => "Cafe\u0301" }, nil, false).to_str
         expect(uri).to eq("http://example.com/search/Cafe%CC%81/")
+      end
+    end
+    context "expand with array values" do
+      subject { Addressable::Template.new("http://example.com/{?list*}") }
+      let(:list) { ["Cafe\u0301", 1, :two] }
+
+      it "leaves the array unchanged" do
+        uri = subject.expand("list" => list).to_str
+        expect(uri).to eq("http://example.com/?list=Caf%C3%A9&list=1&list=two")
+        expect(list).to eq(["Cafe\u0301", 1, :two])
+      end
+
+      it "leaves the array unchanged in a partial expansion" do
+        template = Addressable::Template.new("http://example.com/{?list*,x}")
+        expect(template.partial_expand("list" => list).pattern).to eq(
+          "http://example.com/?list=Caf%C3%A9&list=1&list=two{&x}"
+        )
+        expect(list).to eq(["Cafe\u0301", 1, :two])
+      end
+
+      it "expands a frozen array" do
+        uri = subject.expand("list" => ["Cafe\u0301", "b"].freeze).to_str
+        expect(uri).to eq("http://example.com/?list=Caf%C3%A9&list=b")
+      end
+
+      it "expands a frozen array in a partial expansion" do
+        template = Addressable::Template.new("http://example.com/{?list*,x}")
+        expect(template.partial_expand("list" => %w(a b).freeze).pattern).to eq(
+          "http://example.com/?list=a&list=b{&x}"
+        )
+      end
+
+      it "expands an object that converts to an array" do
+        list = Struct.new(:to_ary).new(["Cafe\u0301", 2].freeze)
+        uri = subject.expand("list" => list).to_str
+        expect(uri).to eq("http://example.com/?list=Caf%C3%A9&list=2")
+        expect(list.to_ary).to eq(["Cafe\u0301", 2])
+      end
+
+      it "leaves an array returned by a processor unchanged" do
+        result = ["Cafe\u0301", "b"]
+        processor = Object.new
+        processor.define_singleton_method(:transform) { |_name, _value| result }
+        template = Addressable::Template.new("http://example.com{/list*}")
+        expect(template.expand({ "list" => "x" }, processor).to_str).to eq(
+          "http://example.com/Caf\u00e9/b"
+        )
+        expect(result).to eq(["Cafe\u0301", "b"])
+      end
+
+      it "expands a frozen array returned by a processor" do
+        processor = Object.new
+        processor.define_singleton_method(:transform) do |_name, _value|
+          %w(a b).freeze
+        end
+        template = Addressable::Template.new("http://example.com{/list*}")
+        expect(template.expand({ "list" => "x" }, processor).to_str).to eq(
+          "http://example.com/a/b"
+        )
       end
     end
     context "expand with a processor" do
@@ -1081,6 +2143,24 @@ describe Addressable::Template do
               expect(subject.match(("a=1;" * 1000) + "!")).to be_nil
             end
           end.not_to raise_error
+        end
+      end
+      {
+        "{/foo*}" => "/" + ("a/" * 1000) + "!",
+        "/prefix{/foo*}" => "/prefix/" + ("a/" * 1000) + "!",
+        "{.foo*}" => "." + ("a." * 1000) + "!",
+        "{;foo*}" => ";" + ("a=1;" * 1000) + "!",
+        "{;foo*} (members without values)" => ";" + ("ab;" * 1000) + "!"
+      }.each do |pattern, payload|
+        context "#{pattern} against a payload starting with its operator" do
+          subject { Addressable::Template.new(pattern.split(" ").first) }
+          it "should match in linear time against a non-matching payload" do
+            expect do
+              Timeout.timeout(10) do
+                expect(subject.match(payload)).to be_nil
+              end
+            end.not_to raise_error
+          end
         end
       end
       context "? operator with explode modifier" do
@@ -1335,6 +2415,20 @@ describe Addressable::Template::MatchData do
   its(:string) { should == its.to_s }
   its(:pre_match) { should == "" }
   its(:post_match) { should == "" }
+
+  it "isn't changed by changing the values it returned" do
+    its.values.clear
+    its.captures << "ef"
+    expect(its.values).to eq(['ab', 'cd'])
+    expect(its.to_a).to eq(['ab/cd', 'ab', 'cd'])
+  end
+
+  it "doesn't change the template by changing the variables it returned" do
+    its.variables.clear
+    its.keys << "baz"
+    expect(its.names).to eq(['foo', 'bar'])
+    expect(template.variables).to eq(['foo', 'bar'])
+  end
 
   describe 'values_at' do
     it 'returns an array with the values' do

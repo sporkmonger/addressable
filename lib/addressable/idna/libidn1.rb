@@ -32,16 +32,37 @@ module Addressable
         deprecate :unicode_normalize_kc, "String#unicode_normalize(:nfkc)", 2023, 4
       end
 
+      # Labels are converted separately, since libidn fails on a name with an
+      # empty label, and a label that can't be converted is kept unchanged.
       def self.to_ascii(value)
-        IDN::Idna.toASCII(value, IDN::Idna::ALLOW_UNASSIGNED)
-      rescue IDN::Idna::IdnaError => e
-        Addressable::IDNA.strict_mode ? raise(Error.new(e.message)) : value
+        value.split('.', -1).map do |label|
+          begin
+            label.empty? ? label : IDN::Idna.toASCII(label, IDN::Idna::ALLOW_UNASSIGNED)
+          rescue IDN::Idna::IdnaError => e
+            Addressable::IDNA.strict_mode ? raise(Error.new(e.message)) : label
+          end
+        end.join('.')
       end
 
+      # Characters that change how a label displays without being visible
+      # themselves: controls, format characters such as bidi overrides and
+      # isolates, and default ignorable code points. libidn rejects most of
+      # them, but not those added to Unicode after the version it checks
+      # against, such as U+2066 to U+2069. Format characters that are also
+      # default ignorable are left out of the second set, since Ruby warns
+      # about a duplicated range in a character class.
+      DISPLAY_CHANGING = /[\p{Cc}\p{Cf}[\p{Default_Ignorable_Code_Point}&&\P{Cf}]]/
+
       def self.to_unicode(value)
-        IDN::Idna.toUnicode(value, IDN::Idna::ALLOW_UNASSIGNED)
-      rescue IDN::Idna::IdnaError => e
-        Addressable::IDNA.strict_mode ? raise(Error.new(e.message)) : value
+        value.split('.', -1).map do |label|
+          next label if label.empty?
+          begin
+            decoded = IDN::Idna.toUnicode(label, IDN::Idna::ALLOW_UNASSIGNED)
+            decoded =~ DISPLAY_CHANGING ? label : decoded
+          rescue IDN::Idna::IdnaError => e
+            Addressable::IDNA.strict_mode ? raise(Error.new(e.message)) : label
+          end
+        end.join('.')
       end
     end
   end

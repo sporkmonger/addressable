@@ -1,5 +1,271 @@
 # Changelog
 
+## Addressable 2.10.0 (unreleased) <a name="v2.10.0">
+- release tags are only created and published from `main`: `rake git:tag:create`
+  refuses any other branch, uncommitted changes, a `main` that doesn't match
+  `origin/main` and an existing tag, and the Release workflow refuses a tag on
+  a commit that isn't on `main`
+- fixes `Addressable::URI#route_from` and `#route_to` giving routes that don't
+  resolve to the target: e.g. from `http://example.com/a/b?x=1` to
+  `http://example.com/a/` the route was empty, which resolves to the base, and
+  is now `./`; this also happened when only the base had a query (#623) or a
+  fragment, when the target's path had empty segments, as in `/a//b`, and when
+  the target had an empty path or no authority
+- `Addressable::URI#route_from` and `#route_to` no longer add a `../` that
+  climbs above the root: e.g. from `http://example.com/a` to
+  `http://example.com/` the route is now `./`, not `../`
+- `Addressable::Template#hash` is now the same for equal templates, so
+  templates with the same pattern find each other as `Hash` keys and are
+  merged by `uniq` and `Set`; before, every template had its own hash (#604)
+- fixes `Addressable::URI#userinfo=` splitting the user from the password at
+  the last colon instead of the first, as `Addressable::URI.parse` and
+  `#authority=` do: e.g. `alice:one:two` gave the user `alice:one` and the
+  password `one:two`, repeating `one` in `#to_s`, and `alice` gave no user at
+  all; an empty string now gives an empty user rather than none, as parsing
+  `http://@example.com` does (#606)
+- `Addressable::URI#query_values` now reads `+` as a space in names as well as
+  values, as form encoding does: e.g. `http://example.com/?a+b=c` gives
+  `{"a b" => "c"}`, not `{"a+b" => "c"}`; `%2B` is still a plus; it also
+  reads `+` as a space for `HTTP` and `HTTPS` in uppercase, not only
+  lowercase; other schemes, such as `mailto`, still keep `+` as is (#607)
+- fixes `Addressable::URI.normalized_encode` decoding pct-encoded delimiters
+  that change how the URI is read: e.g. `/a%2Fb` gave `/a/b`, `?a=1%262`
+  gave `?a=1&2`, and `?a=1%2B2` gave `?a=1+2`, which reads as a space; it
+  now keeps the same delimiters encoded as `#normalize`: `/` in the path;
+  `&`, `;` and `+` in the query; and `#` in the fragment; other reserved
+  characters are still decoded, as before (#589)
+- fixes `Addressable::URI#normalize`, `#normalized_query` and
+  `.normalized_encode` decoding `%3D` in a query name: e.g. `?a%3Db=1` gave
+  `?a=b=1`, so `#query_values` changed from `{"a=b" => "1"}` to
+  `{"a" => "b=1"}`; a `=` and a combining mark after it are also no longer
+  composed by Unicode normalization, which lost the `=` (#589)
+- fixes `Addressable::URI#normalize` decoding a triplet in a query twice:
+  e.g. `%252B` gave `%2B`, which reads as a plus sign rather than as `%2B`;
+  `%25` now stays encoded, and a bare `%` is encoded before decoding; and a
+  query with invalid UTF-8, such as `?q=%2B%FF`, no longer has its `%2B`
+  encoded again as `%252B` (#589)
+- fixes `Addressable::URI#normalize` and `#normalized_path` encoding the
+  first colon in a relative path's first segment as `%2F`, an encoded slash:
+  e.g. a URI given the path `acct:bob@example.com` normalized to
+  `acct%2Fbob@example.com`; every colon in that segment is now encoded as
+  `%3A`, so it normalizes to `acct%3Abob@example.com`
+- fixes `Addressable::URI#normalize` raising `InvalidURIError` when removing
+  a leading `./` or `../` left a colon in the first segment of a relative
+  path: e.g. `../folder:2/readme.md` now normalizes to
+  `folder%3A2/readme.md` (#550)
+- `Addressable::URI#normalize` and `.normalized_encode` now keep `%3A`
+  encoded in the first segment of a relative path, rather than raising
+  `InvalidURIError` because the decoded colon would read as a scheme: e.g.
+  `a%3Ab/c%3Ad` normalizes to `a%3Ab/c:d` (#589)
+- the pure-Ruby `Addressable::IDNA.to_ascii` and `.to_unicode` now keep
+  trailing empty labels, as the `idn-ruby` backend does: e.g.
+  `to_ascii("bücher.example.")` gives `xn--bcher-kva.example.`, not
+  `xn--bcher-kva.example`; so with the pure-Ruby backend,
+  `http://bücher.example../` now normalizes to
+  `http://xn--bcher-kva.example../`, not `http://xn--bcher-kva.example/`,
+  and `#display_uri` keeps the dots too; `#normalize` still drops a single
+  trailing dot (#609)
+- `Addressable::URI#origin=` now keeps an IPv6 or IPvFuture host in brackets
+  whole: e.g. `http://[::1]:8080` gives the host `[::1]` and the port 8080;
+  it now raises `InvalidURIError` for a string that isn't a serialized
+  origin (a scheme, a host and an optional port), such as
+  `http://user@example.com` or `http://example.com/a`, which have userinfo
+  and a path (#616)
+- `Addressable::URI#port=` and `Addressable::URI.new` now raise
+  `InvalidURIError` for a port with a line break, which they took as the
+  digits on one of its lines: e.g. `"8080\nx"` was taken as 8080 and
+  `":\n8080"` as no port; `#origin=` now raises for a port that isn't only
+  digits, including a pct-encoded one, before changing the URI
+- `Addressable::Template#partial_expand` now keeps the separators of an
+  expression with several variables: e.g. `{a,b}` with both given becomes
+  `1,2`, not `12`, and `{#a,b}` becomes `#1,2`, not `#1#2`; variables that
+  aren't given stay together in one expression, so `{?a,b,c}` with `b` set
+  to `nil` becomes `{?a,c}`, not `{?a}{&c}`, which expanded to `&c=3` with
+  no `?`; for a `{a,b}`, `{+a,b}` or `{#a,b}` expression with only some of
+  its variables given, the result matches `#expand` if the missing
+  variables end up undefined, but has one comma too few for each that's
+  defined, since RFC 6570 has no expression for a comma that depends on a
+  later variable
+- removes `Addressable::URI::RULE_2A`, `RULE_2B_2C`, `RULE_2D` and
+  `RULE_PREFIXED_PARENT`, deprecated in 2.9.1; `.normalize_path` hasn't used
+  them since then
+- `Addressable::URI#freeze` now freezes the strings the URI holds, so a
+  frozen URI can't be changed through the strings its getters return:
+  before, `uri.host << "x"` on a frozen URI changed its host while `#to_s`
+  and `#hash` kept the old values; `#to_s` and `#to_str` of a frozen URI
+  still return a mutable string, now a new copy each time, so changing it
+  doesn't change the URI; a string passed to `.new` or a setter
+  is copied rather than frozen, so the caller's string stays mutable;
+  `#clone` of a frozen URI is frozen the same way and `#dup` still gives
+  mutable strings; on Ruby 3.0+, `#clone(freeze: true)` of an unfrozen URI
+  no longer raises `FrozenError` from its getters; and before Ruby 3.0,
+  `#userinfo` no longer returns a frozen string for a URI that isn't frozen
+- `Addressable::URI`'s component setters, `.new` and `#merge` now reject
+  `false` exactly as they reject `true`, with the same `TypeError` or
+  `InvalidURIError`: before, most setters treated `false` as `nil` and
+  cleared the component, `.new` ignored it, and `#scheme=` stored it, so
+  `uri.scheme = false` turned `http://example.com/` into
+  `false://example.com/`; only `nil` now means no component
+- a setter on `Addressable::URI` that raises now leaves the URI as it was:
+  e.g. `uri.host = nil` on `http://example.com` raised `InvalidURIError` but
+  still cleared the host, leaving `uri.to_s` as `http:`; every setter now
+  puts back all components when it raises, and so does
+  `#defer_validation` when its block or the validation at its end raises,
+  so a group of assignments in one `#defer_validation` block takes effect
+  together or not at all
+- `Addressable::Template#expand` and `#partial_expand` now take values
+  from more than a `Hash`: an object with `each_pair`, such as a `Struct`;
+  any object that responds to `[]`, such as a lambda, which is called once
+  per variable with its name; or a block given in place of the mapping,
+  e.g. `template.partial_expand { |name| values.fetch(name) }`; lookups
+  follow the `Hash#fetch` convention, so raising `KeyError` means the
+  variable is missing, and `#partial_expand` keeps its expression, while
+  returning `nil` means it's undefined, and both methods expand it to
+  nothing, just as for a `Hash`; an object that responds to `key?` reports
+  missing variables with `key?` instead; any other mapping now raises
+  `TypeError` instead of `NoMethodError` (#512, #133)
+- `Addressable::Template#expand` and `#partial_expand` now treat an empty
+  list or associative array, and one with only `nil` members, as
+  undefined, and leave out `nil` members, as RFC 6570 says: e.g. `{?list}`
+  with `[]` expands to nothing, not `?list=`, and `{/list*}` with
+  `["a", nil, "b"]` expands to `/a/b`, not `/a//b` (#611)
+- `Addressable::Template#expand` and `#partial_expand` now keep
+  pct-encoded triplets in reserved (`{+var}`) and fragment (`{#var}`)
+  expansion, as RFC 6570 says: e.g. `{+id}` with `admin%2F` expands to
+  `admin%2F`, not `admin%252F`; a `%` that doesn't start a triplet is still
+  encoded as `%25`, and a prefix modifier counts a triplet as one character;
+  `#extract` decodes the triplet, so it gives `admin/` for that expansion
+- `Addressable::Template#expand` and `#partial_expand` now raise
+  `Addressable::Template::InvalidTemplateError`, naming the expression and
+  its position, for a template that doesn't match the RFC 6570 grammar, as
+  RFC 6570 says the error should be indicated: e.g. an unclosed `{/id*`, a
+  stray `}`, `{with space}`, `{x..y}` or `{var:0}`, which were kept in the
+  result as text; an operator RFC 6570 reserves (`=`, `,`, `!`, `@`, `|`)
+  raises `InvalidTemplateOperatorError`, now a subclass of
+  `InvalidTemplateError`, where before `{!var}` expanded like `{var}`;
+  `.new`, `#match` and `#extract` still accept such templates
+- `Addressable::Template#expand` and `#partial_expand` now raise
+  `InvalidTemplateValueError` for a prefix modifier on a list or associative
+  array, which RFC 6570 says doesn't apply to them: before, `{list:2}` with
+  `["red", "green"]` gave `re,gr`, and `{keys:1}` ignored the prefix
+- `Addressable::Template#expand` now pct-encodes non-ASCII literal
+  characters, as RFC 6570 says: e.g. `café/{var}` expands to
+  `caf%C3%A9/value`, not `café/value`; pct-encoded triplets and reserved
+  characters in literals are kept; `#match` and `#extract` accept such a
+  literal either as written or encoded; `#partial_expand` leaves literals as
+  written
+- `Addressable::Template#match` and `#extract` now match text in braces that
+  isn't an expression as written: e.g. `x{a.*}/{var}` no longer matches
+  `x{aZZZ}/value`, and `x{a(}/{var}` no longer raises `RegexpError`
+- fixes `Addressable::Template#variables`, `#variable_defaults` and
+  `Addressable::Template::MatchData#values` returning the cached array or
+  hash: e.g. clearing the array from `#variables` emptied the variables of
+  that template, even a frozen one, for every later call; each call now
+  returns a copy (#619)
+- `Addressable::Template` now only reads a prefix modifier from 1 to 9999
+  with no leading zero, as RFC 6570 says; other lengths, such as `{var:0}`,
+  `{var:05}` and `{var:10000}`, are malformed expressions, so `#expand` and
+  `#partial_expand` raise `InvalidTemplateError` where `{var:10000}` used to
+  expand to the whole value, and `#match` reads them as literal text; a
+  length too large for a machine integer no longer raises `RangeError` (#618)
+
+## Addressable 2.9.2 <a name="v2.9.2">
+- fixes `Addressable::URI` returning stale values after a component was
+  changed: e.g. after `host=`, `#site`, `#normalized_site`,
+  `#normalized_authority` and `#normalize` could still use the old host, and
+  after `scheme=`, `#normalized_port` could keep a port that's the new
+  scheme's default (#613)
+- fixes `Addressable::URI#normalized_query` reusing the result of an earlier
+  call with different flags: e.g. after `normalized_query(:sorted)`,
+  `normalized_query` and `#normalize` gave a sorted query, and after
+  `normalized_query`, `normalized_query(:sorted)` gave an unsorted one (#608)
+- fixes `Addressable::Template#expand` and `#partial_expand` changing the
+  arrays given as values: e.g. `[1, :a]` became `["1", "a"]`; a frozen array
+  raised `FrozenError`, and an object that responds to `to_ary`
+  raised `TypeError` (#605)
+- fixes `Addressable::URI#clone` sharing component strings with the original:
+  e.g. appending to the clone's `#host` also changed the original's host, but
+  not its cached normalized values; `#dup` already made a separate copy (#617)
+- fixes the pure-Ruby `Addressable::IDNA.to_unicode` raising `ZeroDivisionError`
+  on some malformed labels, e.g. `xn--rp3=`, which also made
+  `Addressable::URI#display_uri` raise, because the Punycode decoder
+  treated punctuation as digits; such labels are now returned unchanged (#614)
+- speeds up the pure-Ruby `Addressable::IDNA.to_unicode`, which became up to
+  25 times slower in 2.9.1 on long labels with many non-ASCII characters;
+  Punycode encoding no longer takes quadratic time (#645)
+- fixes the "character class has duplicated range" warnings that 2.9.1 gave
+  when `Addressable::IDNA` was loaded with warnings enabled
+- fixes the "instance variable @validation_deferred not initialized" warning
+  that 2.9.1 gave for every new `Addressable::URI` on Ruby before 3.0 with
+  warnings enabled, and a "shadowing outer local variable" warning from
+  `Addressable::Template` on Ruby 2.4 and 2.5
+
+## Addressable 2.9.1 <a name="v2.9.1">
+- fixes denial of service in `Addressable::URI.normalize_path`, which took
+  quadratic time on paths with many dot segments; `URI#normalize`, `#join`,
+  `#==` and `#===` were affected (GHSA-qq38-m9mg-xjj5)
+- fixes `Addressable::URI.normalize_path` keeping segments that a `..` should
+  have removed after a `..` above the root, e.g.
+  `/../../public/x/../../secret` normalized to `/public/x/secret` instead of
+  `/secret` (GHSA-8gmh-2hhj-2hv9)
+- fixes `Addressable::URI.normalize_path` treating a raw line feed as a
+  segment boundary, e.g. joining `..\n/secret` onto `/public/` gave
+  `/\n/secret`
+- deprecates `Addressable::URI::RULE_2A`, `RULE_2B_2C`, `RULE_2D` and
+  `RULE_PREFIXED_PARENT`, which are no longer used; they will be removed in
+  2.10.0
+- fixes denial of service in `Addressable::Template#match` and `#extract`,
+  which still backtracked exponentially in 2.9.0 for exploded `/`, `.`, `;`,
+  `?` and `&` expressions (e.g. `{/path*}`) on regex engines without match
+  memoization, such as JRuby, TruffleRuby and MRI before 3.2; match results
+  are unchanged (GHSA-j82w-28jv-3pmj)
+- fixes denial of service in `Addressable::Template#match` and `#extract`,
+  which backtracked polynomially or exponentially on the same regex engines
+  for expressions with several variables (e.g. `{/owner,repo,ref}`, or
+  `{+a,b,c}` with many variables), for `;` expressions, and for adjacent
+  expressions (e.g. `{+a}{+b}{+c}` or `{+a}{b}`); match results are unchanged
+  (GHSA-9f42-57jx-vpp3)
+- fixes denial of service in `Addressable::Template#match` and `#extract`,
+  which backtracked polynomially for expressions with several exploded
+  variables (e.g. `{+a*,b*}`), including on MRI 3.2; match results are
+  unchanged (GHSA-4w5q-wg7v-w6gp)
+- fixes `Addressable::IDNA.to_unicode` in the pure-Ruby backend decoding
+  Punycode labels that aren't valid A-labels: labels that decode to only
+  ASCII characters (e.g. `xn--google-` decoded to `google`) and labels that
+  don't convert back to themselves; such a label is now returned unchanged,
+  as with libidn, so `Addressable::URI#display_uri` no longer shows a host
+  that differs from `#normalized_host` (GHSA-9crm-g4mf-wc5j)
+- fixes `Addressable::IDNA.to_unicode` decoding Punycode labels with
+  characters that change how a host displays without being visible
+  themselves, such as bidi overrides and isolates (e.g. U+202E and U+2066),
+  zero width characters and control characters; such a label is now
+  returned unchanged, so `Addressable::URI#display_uri` no longer shows
+  them. The pure-Ruby backend also no longer decodes labels with other
+  characters that nameprep prohibits, as with libidn (GHSA-539f-xcgw-2gjg)
+- fixes `Addressable::URI#route_from` and `#route_to` raising
+  `InvalidURIError` when the route's first segment contains a colon
+  (e.g. `/a:b` from `/a`); the route is now `./a:b` ([#625])
+- fixes `Addressable::IDNA.to_unicode` raising in the pure-Ruby backend for
+  Punycode labels that are too long, overflow the decoder, or decode past
+  U+10FFFF; the label is now returned unchanged, as with libidn, so
+  `Addressable::URI#display_uri` no longer raises for such hosts ([#620])
+- fixes `Addressable::URI#display_uri` raising `InvalidURIError` for URIs
+  without a host, such as `abc` or `mailto:user@example.com`; relative URIs
+  are also no longer displayed with an empty authority (e.g. `/path/to` was
+  displayed as `///path/to`) ([#610])
+- fixes `Addressable::Template#match` and `#extract` raising
+  `Addressable::URI::InvalidURIError` for a string that isn't a valid URI;
+  they now return `nil`, as for any other URI that doesn't match ([#621])
+- fixes `Addressable::URI#origin=` raising `InvalidURIError` for an origin
+  with an empty port (e.g. `http://example.com:`), which is the same as no
+  port ([#627])
+
+[#610]: https://github.com/sporkmonger/addressable/pull/610
+[#620]: https://github.com/sporkmonger/addressable/pull/620
+[#621]: https://github.com/sporkmonger/addressable/pull/621
+[#625]: https://github.com/sporkmonger/addressable/pull/625
+[#627]: https://github.com/sporkmonger/addressable/pull/627
+
 ## Addressable 2.9.0 <a name="v2.9.0">
 - fixes ReDoS vulnerability in Addressable::Template#match (fixes incomplete
   remediation in 2.8.10)
