@@ -51,6 +51,9 @@ module Addressable
     # triplet (RFC 6570 section 3.2.3).
     RESERVED_ENCODE = /%(?![0-9A-Fa-f]{2})|[^%#{anything}]/
     PCT_ENCODED_OR_CHARACTER = /%[0-9A-Fa-f]{2}|./m
+    # A "#" after the one that starts a fragment, as written or as expansion
+    # encodes it.
+    NUMBER_SIGN_EITHER_FORM = "(?:\\#|%23)"
     variable =
       "(?:#{var_char}(?:\\.?#{var_char})*)"
     varspec =
@@ -77,7 +80,7 @@ module Addressable
     # implementations do.
     LITERAL_ENCODE = /[^\x00-\x7F]/
     private_constant :RESERVED_OPERATORS, :VALID_EXPRESSION, :TEMPLATE_TOKEN,
-      :LITERAL_ENCODE
+      :LITERAL_ENCODE, :NUMBER_SIGN_EITHER_FORM
 
     NO_MAPPING = Object.new.freeze
     private_constant :NO_MAPPING
@@ -755,7 +758,7 @@ module Addressable
       result.gsub!( EXPRESSION ) do |capture|
         transform_capture(mapping, capture, processor, normalize_values)
       end
-      return Addressable::URI.parse(result)
+      return Addressable::URI.parse(encode_later_number_signs(result))
     end
 
     ##
@@ -990,22 +993,42 @@ module Addressable
       while (text = scanner.scan_until(EXPRESSION))
         expression = scanner.matched
         literal = text.byteslice(0, text.bytesize - expression.bytesize)
-        result << yield(literal) << expression
+        result << yield(literal, expression) << expression
       end
-      result << yield(scanner.rest)
+      result << yield(scanner.rest, nil)
+    end
+
+    ##
+    # A URI fragment can't contain "#" (RFC 3986 section 3.5), so expansion
+    # encodes every "#" after the first one, which starts the fragment.
+    #
+    # @param [String] uri The expanded URI.
+    #
+    # @return [String] The URI with any later "#" encoded as "%23".
+    def encode_later_number_signs(uri)
+      start = uri.index('#')
+      return uri unless start
+      uri[0..start] + uri[(start + 1)..-1].gsub('#', '%23')
     end
 
     ##
     # Builds a regular expression for literal text. A literal character that
     # expansion pct-encodes (RFC 6570 section 3.1) matches either as it is
-    # or encoded.
+    # or encoded, and so does a "#" that expansion may have encoded because
+    # a fragment had already started.
     #
     # @param [String] literal The literal text.
+    # @param [TrueClass, FalseClass] fragment
+    #   Whether a fragment may have started before the literal.
     #
     # @return [String] The regular expression source.
-    def literal_regexp(literal)
+    def literal_regexp(literal, fragment = false)
       literal.scan(PCT_ENCODED_OR_CHARACTER).map do |character|
-        if character =~ LITERAL_ENCODE
+        if character == '#'
+          source = fragment ? NUMBER_SIGN_EITHER_FORM : '\\#'
+          fragment = true
+          source
+        elsif character =~ LITERAL_ENCODE
           encoded =
             Addressable::URI.encode_component(character, LITERAL_ENCODE)
           "(?:#{Regexp.escape(character)}|(?i:#{encoded}))"
@@ -1400,9 +1423,20 @@ module Addressable
     #   An array of expansion variables nad a regular expression which may be
     #   used to parse a template pattern
     def parse_new_template_pattern(pattern, processor = nil)
-      # Escape the literal text between the expressions.
-      escaped_pattern = map_literals(pattern) do |literal|
-        literal_regexp(literal)
+      # Escape the literal text between the expressions. Once a fragment
+      # may have started, expansion encodes a later "#" as "%23", so the
+      # literals and fragment expressions after that point match it either
+      # way. Reserved and fragment expansion may start a fragment.
+      fragment = false
+      either_leader = []
+      escaped_pattern = map_literals(pattern) do |literal, expression|
+        source = literal_regexp(literal, fragment)
+        fragment ||= literal.include?('#')
+        if expression
+          either_leader << fragment
+          fragment ||= expression =~ /\A\{[+#]/ ? true : false
+        end
+        source
       end
 
       expansions = []
@@ -1418,6 +1452,9 @@ module Addressable
         expansions << expansion
         _, operator, varlist = *expansion.match(EXPRESSION)
         leader = Regexp.escape(LEADERS.fetch(operator, ''))
+        if operator == '#' && either_leader[index]
+          leader = NUMBER_SIGN_EITHER_FORM
+        end
         joiner = Regexp.escape(JOINERS.fetch(operator, ','))
         varspecs = varlist.split(',')
         results = varspecs.map do |varspec|

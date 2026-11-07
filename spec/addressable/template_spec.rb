@@ -1137,7 +1137,10 @@ describe "Expansion" do
         if reserved.expand("value" => expanded).to_s != expanded
           wrong << [value, expanded]
         end
-        if fragment.expand("value" => value).to_s != "#" + expanded
+        # The fragment's own "#" comes first, so any "#" in the value is
+        # encoded.
+        if fragment.expand("value" => value).to_s !=
+            "#" + expanded.gsub("#", "%23")
           wrong << [value, expanded]
         end
         # Decoding gives the value back, reading a "%" that doesn't start a
@@ -2484,5 +2487,79 @@ describe Addressable::Template::MatchData do
         expect(its[2, 1]).to eq(['cd'])
       end
     end
+  end
+end
+
+describe Addressable::Template, "with a number sign after the fragment starts" do
+  {
+    ["x{#var}", {"var" => "a#b"}] => "x#a%23b",
+    ["{+var}", {"var" => "p#q#r"}] => "p#q%23r",
+    ["{+base}{#frag}", {"base" => "p#q", "frag" => "r"}] => "p#q%23r",
+    ['x#a#{var}', {"var" => "v"}] => "x#a%23v",
+    ["{#a}{#b}", {"a" => "p", "b" => "q"}] => "#p%23q",
+    ["x{#var}", {"var" => "a%23b"}] => "x#a%23b",
+    ["x{#var}", {"var" => "b"}] => "x#b",
+    ["{var}", {"var" => "p#q"}] => "p%23q",
+    ["/x{?q}{#var}", {"q" => "a#b", "var" => "c#d"}] => "/x?q=a%23b#c%23d"
+  }.each do |(pattern, mapping), expected|
+    context "expanding #{pattern} with #{mapping.inspect}" do
+      subject { Addressable::Template.new(pattern) }
+
+      it "encodes every number sign after the first as %23" do
+        expect(subject.expand(mapping).to_s).to eq(expected)
+      end
+
+      it "matches the expansion and expands the result to the same URI" do
+        extracted = subject.extract(expected)
+        expect(extracted).not_to be_nil
+        expect(subject.expand(extracted.reject { |_, v| v.nil? }).to_s).to eq(
+          expected
+        )
+      end
+    end
+  end
+
+  it "returns a URI whose fragment holds the encoded number sign" do
+    uri = Addressable::Template.new("x{#var}").expand("var" => "a#b")
+    expect(uri.fragment).to eq("a%23b")
+  end
+
+  it "leaves the number signs in a partially expanded pattern as they are" do
+    template = Addressable::Template.new("x#a{+var}{#frag}")
+    partial = template.partial_expand("var" => "b#c")
+    expect(partial.pattern).to eq("x#ab#c{#frag}")
+    expect(partial.expand("frag" => "d").to_s).to eq("x#ab%23c%23d")
+    expect(template.expand("var" => "b#c", "frag" => "d").to_s).to eq(
+      "x#ab%23c%23d"
+    )
+  end
+
+  it "matches a literal number sign after the first either way" do
+    template = Addressable::Template.new('x#a#{var}')
+    expect(template.extract("x#a%23v")).to eq("var" => "v")
+    expect(template.extract("x#a#v")).to eq("var" => "v")
+  end
+
+  it "matches a fragment leader after the first either way" do
+    template = Addressable::Template.new("x#a{#var}")
+    expect(template.extract("x#a%23v")).to eq("var" => "v")
+    expect(template.extract("x#a#v")).to eq("var" => "v")
+  end
+
+  it "matches a literal number sign after reserved expansion either way" do
+    template = Addressable::Template.new("{+base}#x")
+    expect(template.extract("p#q%23x")).to eq("base" => "p#q")
+    expect(template.extract("p#x")).to eq("base" => "p")
+  end
+
+  it "doesn't take %23 for the number sign that starts the fragment" do
+    expect(Addressable::Template.new('/p#{var}').extract("/p%23x")).to be_nil
+    expect(Addressable::Template.new("/p{#var}").extract("/p%23x")).to be_nil
+  end
+
+  it "doesn't take %23 for a number sign before any fragment" do
+    template = Addressable::Template.new("/{var}#x")
+    expect(template.extract("/v%23x")).to be_nil
+    expect(template.extract("/v#x")).to eq("var" => "v")
   end
 end
