@@ -155,6 +155,10 @@
   `x#a#{var}` to `x#a%23...`; `#match` and `#extract` accept such a `#` either
   as written or encoded; `#partial_expand` returns a template, so it doesn't
   encode a `#` it fills in; `#expand` encodes it when it produces the URI
+- `Addressable::Template#expand` and `#partial_expand` now leave out the
+  `=` for an empty member of an exploded list or associative array in `;`
+  expansion, as RFC 6570 says: e.g. `{;a*}` with `["", "y"]` expands to
+  `;a;a=y`, not `;a=;a=y`, and with `{"k" => ""}` to `;k`, not `;k=`
 - `Addressable::Template#extract` and `#match` now give an exploded list in
   `;`, `?` or `&` expansion as a list: e.g. `{?a*}` on `?a=x&a=y` gives
   `["x", "y"]`, not `{"a" => "y"}`; pairs that all repeat the variable's

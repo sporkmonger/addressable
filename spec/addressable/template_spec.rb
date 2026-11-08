@@ -2889,9 +2889,6 @@ describe Addressable::Template, "extracting an exploded named list" do
     it "extracts #{mapping.inspect} from #{uri} with #{pattern}" do
       template = Addressable::Template.new(pattern)
       expect(template.extract(uri)).to eq(mapping)
-      # {;a*} expands an empty member as ";a=", where RFC 6570 section 3.2.7
-      # gives ";a", so that URI isn't checked for expanding to the same URI.
-      next if uri.include?(";a;")
       expect(template.expand(mapping).to_s).to eq(uri)
     end
   end
@@ -2913,5 +2910,38 @@ describe Addressable::Template, "extracting an exploded named list" do
     expect(Addressable::Template.new("{?a*}").extract("?k=x=y")).to eq(
       "a" => {"k" => "x=y"}
     )
+  end
+end
+
+describe Addressable::Template, "expanding empty members with ;" do
+  # RFC 6570 appendix A: an exploded member or pair whose value is empty
+  # gets the operator's ifemp string, which is empty for ";".
+  {
+    ["{;a*}", {"a" => ["", "y"]}] => ";a;a=y",
+    ["{;a*}", {"a" => [""]}] => ";a",
+    ["{;a*}", {"a" => {"k" => "", "l" => "v"}}] => ";k;l=v",
+    ["{;a*}", {"a" => {"k" => "v", "l" => ""}}] => ";k=v;l",
+    ["{;a,b*}", {"a" => "", "b" => ["", "z"]}] => ";a;b;b=z",
+    ["{;a}", {"a" => ["", "y"]}] => ";a=,y",
+    ["{?a*}", {"a" => ["", "y"]}] => "?a=&a=y",
+    ["{?a*}", {"a" => {"k" => ""}}] => "?k=",
+    ["{&a*}", {"a" => ["", "y"]}] => "&a=&a=y"
+  }.each do |(pattern, mapping), expected|
+    it "expands #{pattern} with #{mapping.inspect} to #{expected}" do
+      template = Addressable::Template.new(pattern)
+      expect(template.expand(mapping).to_s).to eq(expected)
+    end
+  end
+
+  it "expands empty exploded members the same way when partially expanding" do
+    template = Addressable::Template.new("{;a*}{?b}")
+    partial = template.partial_expand("a" => ["", "y"])
+    expect(partial.pattern).to eq(";a;a=y{?b}")
+  end
+
+  it "extracts the members again" do
+    template = Addressable::Template.new("{;a*}")
+    expect(template.extract(";a;a=y")).to eq("a" => ["", "y"])
+    expect(template.extract(";k;l=v")).to eq("a" => {"k" => "", "l" => "v"})
   end
 end
