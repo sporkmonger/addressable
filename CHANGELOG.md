@@ -155,6 +155,20 @@
   `x#a#{var}` to `x#a%23...`; `#match` and `#extract` accept such a `#` either
   as written or encoded; `#partial_expand` returns a template, so it doesn't
   encode a `#` it fills in; `#expand` encodes it when it produces the URI
+- `Addressable::Template#expand` and `#partial_expand` now transcode a
+  value in another character encoding to UTF-8 before pct-encoding it, as
+  RFC 6570 section 3.2.1 says: e.g. `M\xE9thode` in ISO-8859-1 expands to
+  `M%C3%A9thode`; before, its bytes were read as UTF-8, which raised
+  `ArgumentError` for most such values; binary and US-ASCII values are read
+  as UTF-8 as before
+- fixes `Addressable::Template#expand` and `#partial_expand` raising
+  `ArgumentError` for a value that isn't valid UTF-8; its bytes are now
+  pct-encoded as they are, as `CGI.escape` does, so `"M\xE9thode".b`
+  expands to `M%E9thode`, and a value `#extract` gives from `%A4` expands to
+  `%A4` again
+- fixes `Addressable::Template#match` and `#extract` raising `ArgumentError`
+  for a URI that isn't valid UTF-8, such as `"/caf\xFF".b`; they now return
+  `nil`, as for any other string that isn't a valid URI
 - fixes `Addressable::Template#variables`, `#keys`, `#variable_defaults`,
   `#match`, `#extract`, `#to_regexp` and `#freeze` raising `RegexpError` for
   a variable name that starts with a digit, such as `{42}`, which RFC 6570
