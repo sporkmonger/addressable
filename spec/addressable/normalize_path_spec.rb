@@ -21,9 +21,10 @@ require "timeout"
 require "addressable/uri"
 
 module NormalizePathSpec
-  # Addressable 2.9.0's URI.normalize_path, kept verbatim as a compatibility
-  # oracle. It runs in quadratic time, so only give it short inputs.
-  module Legacy
+  # A version of URI.normalize_path that applies each of its rules in turn
+  # until none matches. It's the reference for normalize_path's results on
+  # short paths. It runs in quadratic time, so only give it short inputs.
+  module Reference
     SLASH = '/'
     EMPTY_STR = ''
     SELF_REF = '.'
@@ -117,7 +118,7 @@ module NormalizePathSpec
 end
 
 describe Addressable::URI, ".normalize_path" do
-  it "no longer defines the regular expressions deprecated in 2.9.1" do
+  it "doesn't define its rules' regular expressions as constants" do
     [:RULE_2A, :RULE_2B_2C, :RULE_2D, :RULE_PREFIXED_PARENT].each do |name|
       expect(Addressable::URI.const_defined?(name, false)).to eq(false)
     end
@@ -127,7 +128,7 @@ describe Addressable::URI, ".normalize_path" do
     expect(Addressable::URI.normalize_path(nil)).to be_nil
   end
 
-  context "compared with 2.9.0" do
+  context "compared with the reference" do
     # Several of these are not RFC 3986 behavior but are kept for
     # compatibility.
     {
@@ -157,8 +158,8 @@ describe Addressable::URI, ".normalize_path" do
       "a/.." => "a/..",
       "a/../b" => "a/../b",
       "a//../.." => "a/..",
-      # Inherited from the 2.9.0 rules, which strip leading dots without
-      # checking for a segment boundary.
+      # The rules strip leading dots without checking for a segment
+      # boundary.
       "a/../../b" => "a/b",
       ".htaccess" => "htaccess",
       "..x/y" => "x/y",
@@ -174,14 +175,16 @@ describe Addressable::URI, ".normalize_path" do
     }.each do |input, expected|
       it "normalizes #{input.inspect} to #{expected.inspect}" do
         expect(Addressable::URI.normalize_path(input)).to eq(expected)
-        expect(NormalizePathSpec::Legacy.normalize_path(input)).to eq(expected)
+        expect(NormalizePathSpec::Reference.normalize_path(input)).to eq(
+          expected
+        )
       end
     end
 
     it "agrees on every path of up to 10 characters from '/', '.' and 'a'" do
       NormalizePathSpec.strings(["/", ".", "a"], 10).each do |path|
         expect(Addressable::URI.normalize_path(path)).to eq(
-          NormalizePathSpec::Legacy.normalize_path(path)
+          NormalizePathSpec::Reference.normalize_path(path)
         ), "for #{path.inspect}"
       end
     end
@@ -189,7 +192,7 @@ describe Addressable::URI, ".normalize_path" do
     it "agrees on every path of up to 7 characters from '/', '.', 'a' and 'b'" do
       NormalizePathSpec.strings(["/", ".", "a", "b"], 7).each do |path|
         expect(Addressable::URI.normalize_path(path)).to eq(
-          NormalizePathSpec::Legacy.normalize_path(path)
+          NormalizePathSpec::Reference.normalize_path(path)
         ), "for #{path.inspect}"
       end
     end
@@ -205,9 +208,8 @@ describe Addressable::URI, ".normalize_path" do
       end
     end
 
-    # 2.9.0 removed every textual copy of the first "/X/../" pair it found,
-    # so a later "/../../" was collapsed on its own instead of each ".."
-    # removing the segment before it.
+    # Each ".." removes the segment before it, even where the same "/X/../"
+    # text appears more than once.
     {
       "/../../c/d/../../" => "/",
       "/../../a/../../." => "/",
@@ -224,8 +226,8 @@ describe Addressable::URI, ".normalize_path" do
     end
 
     it "does not keep segments that a parent reference removed" do
-      # 2.9.0 gave "/public/x/secret", which passes a "/public/" prefix check
-      # for a path that resolves outside of it.
+      # Keeping "/public/x/" would pass a "/public/" prefix check for a path
+      # that resolves outside of it.
       path = "/../../public/x/../../secret"
       expect(Addressable::URI.normalize_path(path)).to eq("/secret")
       uri = Addressable::URI.parse("http://example.com" + path)
@@ -245,8 +247,7 @@ describe Addressable::URI, ".normalize_path" do
   end
 
   context "with line breaks in the path" do
-    # 2.9.0 used ^ and $, which also match around a line break, so a raw
-    # newline acted like a segment boundary.
+    # A raw line feed is part of a segment, not a boundary between segments.
     it "treats a line feed as an ordinary character" do
       expect(Addressable::URI.normalize_path("/a/..\nb")).to eq("/a/..\nb")
       expect(Addressable::URI.normalize_path("/x/..\n/y/..")).to eq("/x/..\n/")
@@ -263,13 +264,13 @@ describe Addressable::URI, ".normalize_path" do
     end
 
     it "does not treat a segment ending in a line feed as a parent reference" do
-      # 2.9.0 joined this to "/\n/secret", leaving the base directory.
+      # Read as a parent reference, it would leave the base directory.
       base = Addressable::URI.parse("http://example.com/public/")
       expect(base.join("..\n/secret").path).to eq("/public/..\n/secret")
     end
 
     it "does not remove characters from the middle of a segment" do
-      # 2.9.0 gave "/public/a\nb".
+      # Removing the "../" after the line feed would give "/public/a\nb".
       expect(Addressable::URI.normalize_path("/public/a\n../b")).to eq(
         "/public/a\n../b"
       )
@@ -292,7 +293,7 @@ describe Addressable::URI, ".normalize_path" do
           path = path.dup.force_encoding(encoding)
           result = Addressable::URI.normalize_path(path)
           expect(result.encoding).to eq(
-            NormalizePathSpec::Legacy.normalize_path(path).encoding
+            NormalizePathSpec::Reference.normalize_path(path).encoding
           ), "for #{path.inspect} in #{encoding}"
           expect(result.encoding.to_s).to eq(encoding)
         end
@@ -301,11 +302,11 @@ describe Addressable::URI, ".normalize_path" do
       expect(Addressable::URI.normalize_path("/\xFF/../b".b)).to eq("/b".b)
     end
 
-    it "raises ArgumentError for invalid UTF-8, as 2.9.0 did" do
+    it "raises ArgumentError for invalid UTF-8, as the reference does" do
       path = "/\xFF/../b".dup.force_encoding("UTF-8")
-      expect { NormalizePathSpec::Legacy.normalize_path(path) }.to raise_error(
-        ArgumentError
-      )
+      expect {
+        NormalizePathSpec::Reference.normalize_path(path)
+      }.to raise_error(ArgumentError)
       expect { Addressable::URI.normalize_path(path) }.to raise_error(
         ArgumentError
       )
@@ -313,8 +314,8 @@ describe Addressable::URI, ".normalize_path" do
   end
 
   context "with adversarial input" do
-    # On 2.9.0 each of these takes minutes, since every pass over the path
-    # removed at most one dot segment.
+    # Removing at most one dot segment per pass over the path would take
+    # minutes for each of these.
     {
       "nested parent references" => "/" + ("a/" * 20_000) + ("../" * 20_000),
       "nested distinct segments" =>
