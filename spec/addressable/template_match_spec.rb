@@ -23,9 +23,10 @@ require "addressable/template"
 module TemplateMatchSpec
   OPERATORS = [nil, "+", "#", "/", ".", ";", "?", "&"]
 
-  # Addressable 2.9.0's Template#parse_new_template_pattern, kept verbatim as
-  # a compatibility oracle. The constants it uses have not changed.
-  LEGACY_PARSE_NEW_TEMPLATE_PATTERN = <<-'RUBY'
+  # A direct version of Template#parse_new_template_pattern, without the
+  # changes that keep matching from backtracking catastrophically. It's the
+  # reference for the order in which a match tries its choices.
+  REFERENCE_PARSE_NEW_TEMPLATE_PATTERN = <<-'RUBY'
     def parse_new_template_pattern(pattern, processor = nil)
       # Escape the pattern. The two gsubs restore the escaped curly braces
       # back to their original form. Basically, escape everything that isn't
@@ -96,19 +97,19 @@ module TemplateMatchSpec
     end
   RUBY
 
-  module Legacy
+  module Reference
     %w[
       EXPRESSION VARSPEC LEADERS JOINERS RESERVED RESERVED_NO_COMMA UNRESERVED
     ].each do |name|
       const_set(name, Addressable::Template.const_get(name))
     end
 
-    module_eval(LEGACY_PARSE_NEW_TEMPLATE_PATTERN)
+    module_eval(REFERENCE_PARSE_NEW_TEMPLATE_PATTERN)
     extend self
   end
 
-  def self.legacy_regexp(pattern)
-    Legacy.parse_new_template_pattern(pattern)[1]
+  def self.reference_regexp(pattern)
+    Reference.parse_new_template_pattern(pattern)[1]
   end
 
   def self.regexp(pattern)
@@ -168,7 +169,7 @@ module TemplateMatchSpec
 end
 
 describe Addressable::Template, "#match" do
-  context "compared with 2.9.0" do
+  context "when a URI can be split between variables more than one way" do
     {
       ["{;a*}", ";a;;b"] => {"a" => {"a" => "", nil => "", "b" => ""}},
       ["{/a*}{/b}", "/x/y/z"] => {"a" => ["x", "y", "z"], "b" => nil},
@@ -243,20 +244,9 @@ describe Addressable::Template, "#match" do
       ["{+v1,v2,v3}x", "a,b,x"] => {"v1" => "a", "v2" => "b", "v3" => ""},
       ["{#v1,v2}", "#,b"] => {"v1" => "", "v2" => "b"},
       ["{+v1,v2},x", "a,b,x"] => {"v1" => "a", "v2" => "b"},
-      ["{+v1,v2,v1}", "a,b,c"] => {"v1" => "", "v2" => "a"}
-    }.each do |(pattern, uri), mapping|
-      it "matches #{uri.inspect} against #{pattern} as 2.9.0 did" do
-        expect(Addressable::Template.new(pattern).match(uri).mapping).to eq(
-          mapping
-        )
-      end
-    end
-
-    # These match the same text as 2.9.0, but give exploded ;, ? and &
-    # values differently: a value keeps everything after its first "=",
-    # where 2.9.0 dropped it from a second "=" on, and pairs that all repeat
-    # the variable's name are a list, where 2.9.0 kept only the last pair.
-    {
+      ["{+v1,v2,v1}", "a,b,c"] => {"v1" => "", "v2" => "a"},
+      # An exploded ;, ? or & value keeps everything after its first "=",
+      # and pairs that all repeat the variable's name are a list.
       ["{;b*}", ";b==a"] => {"b" => ["=a"]},
       ["{;a*}", ";a=b=c;d"] => {"a" => {"a" => "b=c", "d" => ""}},
       ["{&b*}", "&k=ab%3Bb="] => {"b" => {"k" => "ab;b="}},
@@ -275,16 +265,15 @@ describe Addressable::Template, "#match" do
       ["{;a*}{?b*}", ";a=1;b?c=d=e"] => {
         "a" => {"a" => "1", "b" => ""}, "b" => {"c" => "d=e"}
       },
-      # As in 2.9.0, for ? and & an empty member before the first exploded
-      # variable's values gives them to the next one.
+      # For ? and &, an empty member before the first exploded variable's
+      # values gives them to the next one.
       ["{?a*,b*}", "?&b=2"] => {"a" => nil, "b" => ["2"]},
       ["{&a*,b*}", "&&b=2"] => {"a" => nil, "b" => ["2"]},
       ["{?a*,b,c*}", "?&=="] => {
         "a" => nil, "b" => nil, nil => "", "c" => {"" => ""}
       }
     }.each do |(pattern, uri), mapping|
-      it "matches #{uri.inspect} against #{pattern} as 2.9.0 did, but " \
-          "keeps each exploded value whole" do
+      it "matches #{uri.inspect} against #{pattern}" do
         expect(Addressable::Template.new(pattern).match(uri).mapping).to eq(
           mapping
         )
@@ -293,9 +282,9 @@ describe Addressable::Template, "#match" do
 
     TemplateMatchSpec::OPERATORS.product(["", "*"]).each do |operator, modifier|
       pattern = "{#{operator}a#{modifier}}"
-      it "tries the same end positions in the same order for #{pattern}" do
-        legacy = TemplateMatchSpec.unanchored(
-          TemplateMatchSpec.legacy_regexp(pattern)
+      it "tries the reference's end positions in its order for #{pattern}" do
+        reference = TemplateMatchSpec.unanchored(
+          TemplateMatchSpec.reference_regexp(pattern)
         )
         current = TemplateMatchSpec.unanchored(
           TemplateMatchSpec.regexp(pattern)
@@ -303,7 +292,7 @@ describe Addressable::Template, "#match" do
         alphabet = TemplateMatchSpec.alphabet(operator)
         TemplateMatchSpec.strings(alphabet, 5).each do |string|
           expect(TemplateMatchSpec.end_positions(current, string)).to eq(
-            TemplateMatchSpec.end_positions(legacy, string)
+            TemplateMatchSpec.end_positions(reference, string)
           ), "for #{string.inspect}"
         end
       end
@@ -324,12 +313,12 @@ describe Addressable::Template, "#match" do
         "{#{operator}a}{c*}", "{#{operator}a,b}{c,d*}", "{#{operator}a}{+c*}x",
         "{#{operator}a,b}{c,d}"
       ].each do |pattern|
-        it "captures the same values as 2.9.0 for #{pattern}" do
-          legacy = TemplateMatchSpec.legacy_regexp(pattern)
+        it "captures the same values as the reference for #{pattern}" do
+          reference = TemplateMatchSpec.reference_regexp(pattern)
           current = TemplateMatchSpec.regexp(pattern)
           alphabet = TemplateMatchSpec.alphabet(operator, "x")
           TemplateMatchSpec.strings(alphabet, 5).each do |string|
-            expected = legacy.match(string)
+            expected = reference.match(string)
             actual = current.match(string)
             expect(TemplateMatchSpec.named_captures(actual)).to eq(
               TemplateMatchSpec.named_captures(expected)
@@ -350,7 +339,7 @@ describe Addressable::Template, "#match" do
       expect(names).to eq(["a", "b", "c"])
     end
 
-    it "keeps 2.9.0's matching of adjacent expressions with a processor" do
+    it "gives the later of adjacent expressions the value with a processor" do
       processor = Object.new
       def processor.match(name)
         nil
@@ -361,7 +350,7 @@ describe Addressable::Template, "#match" do
       )
     end
 
-    it "keeps 2.9.0's matching when a processor supplies a pattern" do
+    it "matches the other variables around a processor's pattern" do
       processor = Object.new
       def processor.match(name)
         name == "b" ? "[0-9]+" : nil
