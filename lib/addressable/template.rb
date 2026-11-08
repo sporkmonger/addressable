@@ -815,6 +815,10 @@ module Addressable
     # URI values, but it cannot fully handle, for example, values that would
     # extract to an `Array`.
     #
+    # Each variable has a named group. A group name can't start with a digit,
+    # so a variable whose name does has its group named with a leading ".":
+    # `{42}` has the group `.42`.
+    #
     # @return [Regexp] A regular expression which should match the template.
     def to_regexp
       _, source = parse_template_pattern(pattern)
@@ -838,7 +842,10 @@ module Addressable
     #
     # @api private
     def named_captures
-      self.to_regexp.named_captures
+      captures = self.to_regexp.named_captures
+      captures.each_with_object({}) do |(group, indexes), names|
+        names[variable_name(group)] = indexes
+      end
     end
 
   private
@@ -1367,6 +1374,29 @@ module Addressable
     end
 
     ##
+    # The name of the regular expression group for a variable. A group name
+    # can't start with a digit, which a variable name can (RFC 6570 section
+    # 2.3), so such a name gets a leading ".". No variable name starts with
+    # ".", so this can't collide with another variable's group.
+    #
+    # @param [String] name The variable name.
+    #
+    # @return [String] The group name.
+    def capture_name(name)
+      name =~ /\A[0-9]/ ? ".#{name}" : name
+    end
+
+    ##
+    # The variable name for a regular expression group name.
+    #
+    # @param [String] group The group name.
+    #
+    # @return [String] The variable name.
+    def variable_name(group)
+      group.start_with?(".") ? group[1..-1] : group
+    end
+
+    ##
     # Generates the <tt>Regexp</tt> that parses a template pattern. Memoizes the
     # value if template processor not set (processors may not be deterministic)
     #
@@ -1515,6 +1545,7 @@ module Addressable
           "(?<![^\\x00-\\x7F])"
         combined = varspecs.each_with_index.map do |varspec, position|
           _, name, modifier = *varspec.match(VARSPEC)
+          name = capture_name(name)
 
           result = results[position]
           if result
@@ -1629,7 +1660,7 @@ module Addressable
           # Values were tried shortest first, and the next expression can
           # match any unreserved characters, so the value only needs to end
           # after a character that the next expression couldn't match.
-          combined = "(?<#{varspecs.first[VARSPEC, 1]}>" \
+          combined = "(?<#{capture_name(varspecs.first[VARSPEC, 1])}>" \
             "#{RESERVED}*?#{not_after_value})?"
         elsif plain && varspecs.size > 1 &&
             (operator == '+' || operator == '#') &&
@@ -1645,7 +1676,8 @@ module Addressable
           # a variable is the last one if its varspec is the same as the
           # last varspec.
           nested = varspecs[0...-1].reverse.inject("") do |inner, varspec|
-            "(?:(?<#{varspec[VARSPEC, 1]}>#{RESERVED_NO_COMMA}*+)" \
+            "(?:(?<#{capture_name(varspec[VARSPEC, 1])}>" \
+              "#{RESERVED_NO_COMMA}*+)" \
               "#{joiner}?+#{inner}|(?=#{RESERVED_NO_COMMA}))"
           end
           combined = nested + combined.last

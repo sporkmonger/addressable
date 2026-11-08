@@ -155,6 +155,10 @@
   `x#a#{var}` to `x#a%23...`; `#match` and `#extract` accept such a `#` either
   as written or encoded; `#partial_expand` returns a template, so it doesn't
   encode a `#` it fills in; `#expand` encodes it when it produces the URI
+- fixes `Addressable::Template#variables`, `#keys`, `#variable_defaults`,
+  `#match`, `#extract`, `#to_regexp` and `#freeze` raising `RegexpError` for
+  a variable name that starts with a digit, such as `{42}`, which RFC 6570
+  allows; `#to_regexp` names that variable's group with a leading `.`
 - `Addressable::Template#match` and `#extract` now accept non-ASCII text
   in a URI either as written or pct-encoded as UTF-8: e.g. `/{var}` extracts
   `café` from both `/caf%C3%A9` and `/café`, which didn't match before; a
