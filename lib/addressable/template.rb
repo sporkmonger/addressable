@@ -53,6 +53,7 @@ module Addressable
     # triplet (RFC 6570 section 3.2.3).
     RESERVED_ENCODE = /%(?![0-9A-Fa-f]{2})|[^%#{anything}]/
     PCT_ENCODED_OR_CHARACTER = /%[0-9A-Fa-f]{2}|./m
+    HEX_DIGITS = "0123456789ABCDEFabcdef".bytes.freeze
     # Whether a regular expression group name can start with ".". Ruby 2.3
     # and earlier only allow a letter or "_" as its first character.
     GROUP_NAME_CAN_START_WITH_DOT = begin
@@ -94,7 +95,7 @@ module Addressable
     LITERAL_ENCODE = /[^\x00-\x7F]/
     private_constant :RESERVED_OPERATORS, :VALID_EXPRESSION, :TEMPLATE_TOKEN,
       :LITERAL_ENCODE, :NUMBER_SIGN_EITHER_FORM, :LITERAL_TOKEN,
-      :GROUP_NAME_CAN_START_WITH_DOT
+      :GROUP_NAME_CAN_START_WITH_DOT, :HEX_DIGITS
 
     NO_MAPPING = Object.new.freeze
     private_constant :NO_MAPPING
@@ -537,6 +538,9 @@ module Addressable
     #   match.captures
     #   #=> ["a", ["b", "c"]]
     def match(uri, processor=nil)
+      # Text that isn't valid UTF-8 isn't a valid URI or IRI, so it doesn't
+      # match, as below.
+      return nil unless valid_utf8?(uri)
       unless uri.is_a?(Addressable::URI)
         begin
           uri = Addressable::URI.parse(uri)
@@ -1113,7 +1117,25 @@ module Addressable
     def prefix(value, length, allow_reserved)
       value = value.to_str
       return value[0...length] unless allow_reserved
-      value.scan(PCT_ENCODED_OR_CHARACTER).first(length).join
+      return value.scan(PCT_ENCODED_OR_CHARACTER).first(length).join if
+        value.valid_encoding?
+      # A regular expression can't scan text that isn't valid UTF-8, but its
+      # characters can be read one at a time, each invalid byte as one.
+      hex = lambda do |character|
+        character && character.bytesize == 1 &&
+          HEX_DIGITS.include?(character.getbyte(0))
+      end
+      characters = value.each_char.to_a
+      tokens = []
+      until characters.empty? || tokens.size == length
+        if characters[0] == "%" && hex.call(characters[1]) &&
+            hex.call(characters[2])
+          tokens << characters.shift(3).join
+        else
+          tokens << characters.shift
+        end
+      end
+      tokens.join
     end
 
     ##
@@ -1323,12 +1345,49 @@ module Addressable
         }
       else
         value = value.to_s if !value.kind_of?(String)
-        if value.encoding != Encoding::UTF_8
-          value = value.dup.force_encoding(Encoding::UTF_8)
-        end
-        value = value.unicode_normalize(:nfc)
+        value = utf8_value(value)
+        # Text that isn't valid UTF-8 can't be normalized; its bytes are
+        # pct-encoded as they are.
+        value = value.unicode_normalize(:nfc) if value.valid_encoding?
       end
       value
+    end
+
+    ##
+    # A value as UTF-8. RFC 6570 section 3.2.1 transcodes a value in another
+    # character encoding to UTF-8. A binary or US-ASCII value, or one that
+    # isn't valid in its own encoding, is read as UTF-8 as it is.
+    #
+    # @param [String] value The value.
+    #
+    # @return [String] The value in UTF-8, which may not be valid UTF-8.
+    def utf8_value(value)
+      encoding = value.encoding
+      return value if encoding == Encoding::UTF_8
+      if encoding != Encoding::BINARY && encoding != Encoding::US_ASCII &&
+          value.valid_encoding?
+        begin
+          return value.encode(Encoding::UTF_8)
+        rescue EncodingError
+          # A character with no Unicode equivalent keeps its bytes.
+        end
+      end
+      value.dup.force_encoding(Encoding::UTF_8)
+    end
+
+    ##
+    # Whether a URI's text is valid UTF-8, read as UTF-8 whatever its
+    # encoding, as Addressable::URI reads it.
+    #
+    # @param [Addressable::URI, #to_str] uri The URI.
+    #
+    # @return [TrueClass, FalseClass]
+    def valid_utf8?(uri)
+      return true unless uri.respond_to?(:to_str)
+      text = uri.to_str
+      text = text.dup.force_encoding(Encoding::UTF_8) unless
+        text.encoding == Encoding::UTF_8
+      text.valid_encoding?
     end
 
     ##

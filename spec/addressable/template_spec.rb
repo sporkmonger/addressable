@@ -1740,10 +1740,11 @@ describe Addressable::Template do
         )
       end
 
-      it "raises on invalid unicode input" do
-        expect {
-          subject.partial_expand("query" => "M\xE9thode".b)
-        }.to raise_error(ArgumentError, "invalid byte sequence in UTF-8")
+      it "encodes the bytes of input that isn't valid UTF-8" do
+        template = subject.partial_expand("query" => "M\xE9thode".b)
+        expect(template.pattern).to eq(
+          "http://example.com/{resource}/M%E9thode/"
+        )
       end
 
       it "does not normalize unicode when byte semantics requested" do
@@ -1878,10 +1879,9 @@ describe Addressable::Template do
         expect(uri).to eq("http://example.com/search/Caf%C3%A9/")
       end
 
-      it "raises on invalid unicode input" do
-        expect {
-          subject.expand("query" => "M\xE9thode".b).to_str
-        }.to raise_error(ArgumentError, "invalid byte sequence in UTF-8")
+      it "encodes the bytes of input that isn't valid UTF-8" do
+        uri = subject.expand("query" => "M\xE9thode".b).to_str
+        expect(uri).to eq("http://example.com/search/M%E9thode/")
       end
 
       it "does not normalize unicode when byte semantics requested" do
@@ -2754,5 +2754,121 @@ describe Addressable::Template, "with a name that has a dot or a triplet" do
         expect(subject.freeze).to be_frozen
       end
     end
+  end
+end
+
+describe Addressable::Template, "with text that isn't valid UTF-8" do
+  invalid = "\xA4".dup.force_encoding("UTF-8")
+
+  # Each byte that isn't valid UTF-8 is pct-encoded as it is.
+  {
+    "{a}" => "/x%A4", "{+a}" => "/x%A4", "{#a}" => "/x#%A4",
+    "{/a}" => "/x/%A4", "{.a}" => "/x.%A4", "{;a}" => "/x;a=%A4",
+    "{?a}" => "/x?a=%A4", "{&a}" => "/x&a=%A4", "{a*}" => "/x%A4",
+    "{a:2}" => "/x%A4"
+  }.each do |expression, expected|
+    it "expands #{expression} with a value that isn't valid UTF-8" do
+      template = Addressable::Template.new("/x#{expression}")
+      expect(template.expand("a" => invalid).to_s).to eq(expected)
+    end
+  end
+
+  it "expands a binary value that isn't valid UTF-8" do
+    template = Addressable::Template.new("/x{a}")
+    expect(template.expand("a" => "\xA4".b).to_s).to eq("/x%A4")
+  end
+
+  it "expands lists and hashes with values that aren't valid UTF-8" do
+    expect(
+      Addressable::Template.new("/x{a}").expand("a" => [invalid, "b"]).to_s
+    ).to eq("/x%A4,b")
+    expect(
+      Addressable::Template.new("/x{?a*}").expand("a" => {"k" => invalid}).to_s
+    ).to eq("/x?k=%A4")
+  end
+
+  it "partially expands a value that isn't valid UTF-8" do
+    template = Addressable::Template.new("/x{a}{b}")
+    expect(template.partial_expand("a" => invalid).pattern).to eq("/x%A4{b}")
+  end
+
+  # RFC 6570 section 3.2.1: a value in another character encoding is
+  # transcoded to UTF-8 before it's pct-encoded.
+  {
+    "ISO-8859-1" => ["M\u00E9thode", "M%C3%A9thode"],
+    "Windows-1252" => ["\u20AC5", "%E2%82%AC5"],
+    "Shift_JIS" => ["\u65E5\u672C", "%E6%97%A5%E6%9C%AC"],
+    "UTF-16LE" => ["a/\u00E9", "a%2F%C3%A9"]
+  }.each do |encoding, (text, expected)|
+    it "transcodes a #{encoding} value to UTF-8" do
+      template = Addressable::Template.new("/x{a}")
+      value = text.encode(encoding)
+      expect(template.expand("a" => value).to_s).to eq("/x#{expected}")
+    end
+  end
+
+  it "transcodes before taking a prefix" do
+    template = Addressable::Template.new("/x{a:2}")
+    value = "\u00E9t\u00E9".encode("ISO-8859-1")
+    expect(template.expand("a" => value).to_s).to eq("/x%C3%A9t")
+  end
+
+  it "transcodes keys and values of an associative array" do
+    template = Addressable::Template.new("/x{?a*}")
+    value = {"\u00E9".encode("ISO-8859-1") => "\u00E8".encode("ISO-8859-1")}
+    expect(template.expand("a" => value).to_s).to eq("/x?%C3%A9=%C3%A8")
+  end
+
+  it "transcodes a value when partially expanding" do
+    template = Addressable::Template.new("/x{a}{b}")
+    value = "\u00E9".encode("ISO-8859-1")
+    expect(template.partial_expand("a" => value).pattern).to eq("/x%C3%A9{b}")
+  end
+
+  it "encodes the bytes of a value that isn't valid in its own encoding" do
+    template = Addressable::Template.new("/x{a}")
+    value = "\x81".dup.force_encoding("Shift_JIS")
+    expect(template.expand("a" => value).to_s).to eq("/x%81")
+  end
+
+  it "takes a reserved prefix of a value that isn't valid UTF-8" do
+    template = Addressable::Template.new("/x{+a:2}")
+    expect(template.expand("a" => invalid + "%2Fc").to_s).to eq("/x%A4%2F")
+  end
+
+  it "still normalizes a value that is valid UTF-8" do
+    template = Addressable::Template.new("/x{a}")
+    expect(template.expand("a" => "é").to_s).to eq("/x%C3%A9")
+  end
+
+  it "expands an extracted value that isn't valid UTF-8 to the same URI" do
+    template = Addressable::Template.new("/x{a}")
+    extracted = template.extract("/x%A4")
+    expect(extracted["a"].bytes).to eq([0xA4])
+    expect(template.expand(extracted).to_s).to eq("/x%A4")
+  end
+
+  {
+    "binary" => "/x\xFF".b,
+    "UTF-8" => "/x\xFF".dup.force_encoding("UTF-8"),
+    "ISO-8859-1" => "/x\xE9".dup.force_encoding("ISO-8859-1")
+  }.each do |label, uri|
+    it "doesn't match a #{label} URI that isn't valid UTF-8" do
+      template = Addressable::Template.new("/x{a}")
+      expect(template.match(uri)).to be_nil
+      expect(template.extract(uri)).to be_nil
+    end
+  end
+
+  it "doesn't match a parsed URI that isn't valid UTF-8" do
+    uri = Addressable::URI.parse("/x\xFF".b)
+    expect(Addressable::Template.new("/x{a}").extract(uri)).to be_nil
+  end
+
+  it "still matches a binary URI that is valid UTF-8" do
+    template = Addressable::Template.new("/x{a}")
+    expect(template.extract("/caf\xC3\xA9".b.sub("/caf", "/x"))).to eq(
+      "a" => "é"
+    )
   end
 end
