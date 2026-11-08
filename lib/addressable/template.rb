@@ -406,8 +406,9 @@ module Addressable
     # operators, expanding an extracted value can give a different URI:
     # <tt>{+path}</tt> extracts <tt>a/b</tt> from <tt>a%2Fb</tt>, which
     # expands to <tt>a/b</tt>, and a value pct-encoded twice comes back
-    # encoded once. A processor whose <tt>restore</tt> method returns the
-    # value unchanged gets each value as it appears in the URI.
+    # encoded once. With any processor, even one that only responds to
+    # <tt>match</tt>, values aren't decoded: each is given as it appears in
+    # the URI, after <tt>restore</tt> if the processor has it.
     #
     # @return [Hash, NilClass]
     #   The <tt>Hash</tt> mapping that was extracted from the URI, or
@@ -477,8 +478,9 @@ module Addressable
     # operators, expanding an extracted value can give a different URI:
     # <tt>{+path}</tt> extracts <tt>a/b</tt> from <tt>a%2Fb</tt>, which
     # expands to <tt>a/b</tt>, and a value pct-encoded twice comes back
-    # encoded once. A processor whose <tt>restore</tt> method returns the
-    # value unchanged gets each value as it appears in the URI.
+    # encoded once. With any processor, even one that only responds to
+    # <tt>match</tt>, values aren't decoded: each is given as it appears in
+    # the URI, after <tt>restore</tt> if the processor has it.
     #
     # @return [Hash, NilClass]
     #   The <tt>Hash</tt> mapping that was extracted from the URI, or

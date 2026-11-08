@@ -2633,6 +2633,20 @@ describe Addressable::Template, "with values pct-encoded at several levels" do
     expect(template.expand("path" => "a%2Fb").to_s).to eq("/files/a%2Fb")
   end
 
+  it "doesn't decode values when a processor only responds to match" do
+    processor = Class.new do
+      def self.match(_name)
+        ".*?"
+      end
+    end
+    template = Addressable::Template.new("/search/{q}")
+    uri = "/search/caf%C3%A9%20au%20lait"
+    expect(template.extract(uri)).to eq("q" => "caf\u00E9 au lait")
+    expect(template.extract(uri, processor)).to eq(
+      "q" => "caf%C3%A9%20au%20lait"
+    )
+  end
+
   it "gives a processor each value as it appears in the URI" do
     processor = Class.new do
       def self.restore(_name, value)
