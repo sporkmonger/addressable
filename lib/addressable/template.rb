@@ -420,6 +420,12 @@ module Addressable
     # <tt>match</tt>, values aren't decoded: each is given as it appears in
     # the URI, after <tt>restore</tt> if the processor has it.
     #
+    # An exploded <tt>;</tt>, <tt>?</tt> or <tt>&</tt> value whose pairs all
+    # have the variable's name as their key is a list; other pairs are an
+    # associative array. The key is compared with the name as written, so
+    # <tt>{?a*}</tt> reads <tt>?%61=x</tt> as the pair <tt>%61</tt>, decoded
+    # to <tt>a</tt>, not as a list.
+    #
     # @return [Hash, NilClass]
     #   The <tt>Hash</tt> mapping that was extracted from the URI, or
     #   <tt>nil</tt> if the URI didn't match the template.
@@ -491,6 +497,12 @@ module Addressable
     # encoded once. With any processor, even one that only responds to
     # <tt>match</tt>, values aren't decoded: each is given as it appears in
     # the URI, after <tt>restore</tt> if the processor has it.
+    #
+    # An exploded <tt>;</tt>, <tt>?</tt> or <tt>&</tt> value whose pairs all
+    # have the variable's name as their key is a list; other pairs are an
+    # associative array. The key is compared with the name as written, so
+    # <tt>{?a*}</tt> reads <tt>?%61=x</tt> as the pair <tt>%61</tt>, decoded
+    # to <tt>a</tt>, not as a list.
     #
     # @return [Hash, NilClass]
     #   The <tt>Hash</tt> mapping that was extracted from the URI, or
@@ -1286,7 +1298,10 @@ module Addressable
               end
             end
           end
-          acc << [name, transformed_value]
+          # A list or associative array with a member isn't empty, even if
+          # its members join to an empty string (RFC 6570 section 3.2.7).
+          composite = Hash === value || value.respond_to?(:to_ary)
+          acc << [name, transformed_value, composite]
         end
         acc
       end
@@ -1322,7 +1337,7 @@ module Addressable
       when ';'
         # An empty member or pair value gets no "=" (RFC 6570 appendix A).
         # Values are pct-encoded, so a pair that ends in "=" is empty.
-        return_value.map{|k,v|
+        return_value.map{|k,v,composite|
           if v.is_a?(Array) && v.first =~ /=/
             ';' + v.map{|pair| pair.end_with?('=') ? pair[0...-1] : pair}.
               join(";")
@@ -1331,7 +1346,7 @@ module Addressable
               inner_value == '' ? k : "#{k}=#{inner_value}"
             }.join(";")
           else
-            v && v != '' ?  ";#{k}=#{v}" : ";#{k}"
+            (v && v != '') || composite ? ";#{k}=#{v}" : ";#{k}"
           end
         }.join
       else

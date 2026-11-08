@@ -2903,6 +2903,14 @@ describe Addressable::Template, "extracting an exploded named list" do
     end
   end
 
+  it "compares each key with the variable's name as written" do
+    template = Addressable::Template.new("{?a*}")
+    expect(template.extract("?%61=x")).to eq("a" => {"a" => "x"})
+    expect(template.extract("?a=x&%61=y")).to eq("a" => {"a" => "y"})
+    template = Addressable::Template.new("{?a%20b*}")
+    expect(template.extract("?a%20b=x&a%20b=y")).to eq("a%20b" => ["x", "y"])
+  end
+
   it "keeps a value's \"=\" in an exploded list or associative array" do
     expect(Addressable::Template.new("{?a*}").extract("?a=x=y&a=z")).to eq(
       "a" => ["x=y", "z"]
@@ -2943,5 +2951,32 @@ describe Addressable::Template, "expanding empty members with ;" do
     template = Addressable::Template.new("{;a*}")
     expect(template.extract(";a;a=y")).to eq("a" => ["", "y"])
     expect(template.extract(";k;l=v")).to eq("a" => {"k" => "", "l" => "v"})
+  end
+end
+
+describe Addressable::Template, "expanding a list with one empty member" do
+  # RFC 6570 section 3.2.7 appends "=" unless the variable's value is
+  # empty, and a list is undefined, not empty, when it has no members
+  # (section 2.3), so a list whose only member is empty still gets "=".
+  {
+    ["{;a}", {"a" => [""]}] => ";a=",
+    ["{;a}", {"a" => ["", nil]}] => ";a=",
+    ["{;a,b}", {"a" => [""], "b" => "x"}] => ";a=;b=x",
+    ["{;a}", {"a" => ""}] => ";a",
+    ["{;a}", {"a" => ["", ""]}] => ";a=,",
+    ["{;a}", {"a" => []}] => "",
+    ["{?a}", {"a" => [""]}] => "?a=",
+    ["{&a}", {"a" => [""]}] => "&a=",
+    ["{;a*}", {"a" => [""]}] => ";a"
+  }.each do |(pattern, mapping), expected|
+    it "expands #{pattern} with #{mapping.inspect} to #{expected.inspect}" do
+      template = Addressable::Template.new(pattern)
+      expect(template.expand(mapping).to_s).to eq(expected)
+    end
+  end
+
+  it "expands it the same way when partially expanding" do
+    template = Addressable::Template.new("{;a}{?b}")
+    expect(template.partial_expand("a" => [""]).pattern).to eq(";a={?b}")
   end
 end
