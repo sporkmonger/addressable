@@ -1320,11 +1320,16 @@ module Addressable
           end
         }.join(joiner)
       when ';'
+        # An empty member or pair value gets no "=" (RFC 6570 appendix A).
+        # Values are pct-encoded, so a pair that ends in "=" is empty.
         return_value.map{|k,v|
           if v.is_a?(Array) && v.first =~ /=/
-            ';' + v.join(";")
+            ';' + v.map{|pair| pair.end_with?('=') ? pair[0...-1] : pair}.
+              join(";")
           elsif v.is_a?(Array)
-            ';' + v.map{|inner_value| "#{k}=#{inner_value}"}.join(";")
+            ';' + v.map{|inner_value|
+              inner_value == '' ? k : "#{k}=#{inner_value}"
+            }.join(";")
           else
             v && v != '' ?  ";#{k}=#{v}" : ";#{k}"
           end
