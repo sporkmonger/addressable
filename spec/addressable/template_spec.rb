@@ -2662,13 +2662,19 @@ end
 
 describe Addressable::Template, "with a name that starts with a digit" do
   # RFC 6570 section 2.3 allows a digit as the first character of a name,
-  # which a Ruby regular expression group name can't start with.
+  # which a Ruby regular expression group name can't start with. Ruby 2.3
+  # and earlier only allow word characters in a group name at all.
+  dot_allowed = Addressable::Template.const_get(:GROUP_NAME_ALLOWS_DOT)
+  group = lambda { |name| dot_allowed ? ".#{name}" : "__#{name}__" }
+
   {
     "/{42}" => [{"42" => "x"}, "/x"],
     "/{1x}" => [{"1x" => "x"}, "/x"],
     "/{1x.y}" => [{"1x.y" => "x"}, "/x"],
     "/{42}{?q}" => [{"42" => "x", "q" => "y"}, "/x?q=y"]
   }.each do |pattern, (mapping, uri)|
+    next if pattern.include?(".") && !dot_allowed
+
     context "in #{pattern}" do
       subject { Addressable::Template.new(pattern) }
 
@@ -2692,11 +2698,11 @@ describe Addressable::Template, "with a name that starts with a digit" do
         expect(subject.freeze).to be_frozen
       end
 
-      it "gives a regular expression with the name after a leading dot" do
+      it "gives a regular expression with a group for the name" do
         match = subject.to_regexp.match(uri)
         mapping.each_key do |name|
           next unless name =~ /\A\d/
-          expect(match[".#{name}"]).to eq(mapping[name])
+          expect(match[group.call(name)]).to eq(mapping[name])
         end
       end
     end
@@ -2706,7 +2712,7 @@ describe Addressable::Template, "with a name that starts with a digit" do
     template = Addressable::Template.new("/{42}/{_42}")
     expect(template.extract("/a/b")).to eq("42" => "a", "_42" => "b")
     match = template.to_regexp.match("/a/b")
-    expect(match[".42"]).to eq("a")
+    expect(match[group.call("42")]).to eq("a")
     expect(match["_42"]).to eq("b")
   end
 end
