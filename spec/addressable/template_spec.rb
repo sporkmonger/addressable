@@ -2945,3 +2945,30 @@ describe Addressable::Template, "expanding empty members with ;" do
     expect(template.extract(";k;l=v")).to eq("a" => {"k" => "", "l" => "v"})
   end
 end
+
+describe Addressable::Template, "expanding a list with one empty member" do
+  # RFC 6570 section 3.2.7 appends "=" unless the variable's value is
+  # empty, and a list is undefined, not empty, when it has no members
+  # (section 2.3), so a list whose only member is empty still gets "=".
+  {
+    ["{;a}", {"a" => [""]}] => ";a=",
+    ["{;a}", {"a" => ["", nil]}] => ";a=",
+    ["{;a,b}", {"a" => [""], "b" => "x"}] => ";a=;b=x",
+    ["{;a}", {"a" => ""}] => ";a",
+    ["{;a}", {"a" => ["", ""]}] => ";a=,",
+    ["{;a}", {"a" => []}] => "",
+    ["{?a}", {"a" => [""]}] => "?a=",
+    ["{&a}", {"a" => [""]}] => "&a=",
+    ["{;a*}", {"a" => [""]}] => ";a"
+  }.each do |(pattern, mapping), expected|
+    it "expands #{pattern} with #{mapping.inspect} to #{expected.inspect}" do
+      template = Addressable::Template.new(pattern)
+      expect(template.expand(mapping).to_s).to eq(expected)
+    end
+  end
+
+  it "expands it the same way when partially expanding" do
+    template = Addressable::Template.new("{;a}{?b}")
+    expect(template.partial_expand("a" => [""]).pattern).to eq(";a={?b}")
+  end
+end

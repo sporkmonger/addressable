@@ -155,6 +155,10 @@
   `x#a#{var}` to `x#a%23...`; `#match` and `#extract` accept such a `#` either
   as written or encoded; `#partial_expand` returns a template, so it doesn't
   encode a `#` it fills in; `#expand` encodes it when it produces the URI
+- `Addressable::Template#expand` and `#partial_expand` now append `=` for a
+  list with one empty member in `;` expansion, as RFC 6570 section 3.2.7
+  does for any value that isn't empty: e.g. `{;a}` with `[""]` expands to
+  `;a=`, not `;a`; an empty string still expands to `;a`
 - `Addressable::Template#expand` and `#partial_expand` now leave out the
   `=` for an empty member of an exploded list or associative array in `;`
   expansion, as RFC 6570 says: e.g. `{;a*}` with `["", "y"]` expands to
@@ -162,10 +166,11 @@
 - `Addressable::Template#extract` and `#match` now give an exploded list in
   `;`, `?` or `&` expansion as a list: e.g. `{?a*}` on `?a=x&a=y` gives
   `["x", "y"]`, not `{"a" => "y"}`; pairs that all repeat the variable's
-  name are a list, even a single pair (`?a=x` gives `["x"]`), and other
-  pairs are still an associative array; each value also keeps everything
-  after its first `=`, so `?a=x=y` gives `["x=y"]`, not `x`; a processor's
-  `restore` method gets the list
+  name are a list, even a single pair (`?a=x` gives `["x"]`, not
+  `{"a" => "x"}`), and other pairs are still an associative array; each
+  value also keeps everything after its first `=`, so `?a=x=y` gives
+  `["x=y"]`, not `{"a" => "x"}`; a processor's `restore` method gets the
+  list
 - `Addressable::Template#expand` and `#partial_expand` now transcode a
   value in another character encoding to UTF-8 before pct-encoding it, as
   RFC 6570 section 3.2.1 says: e.g. `M\xE9thode` in ISO-8859-1 expands to

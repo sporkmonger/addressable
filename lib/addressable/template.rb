@@ -1286,7 +1286,10 @@ module Addressable
               end
             end
           end
-          acc << [name, transformed_value]
+          # A list or associative array with a member isn't empty, even if
+          # its members join to an empty string (RFC 6570 section 3.2.7).
+          composite = Hash === value || value.respond_to?(:to_ary)
+          acc << [name, transformed_value, composite]
         end
         acc
       end
@@ -1322,7 +1325,7 @@ module Addressable
       when ';'
         # An empty member or pair value gets no "=" (RFC 6570 appendix A).
         # Values are pct-encoded, so a pair that ends in "=" is empty.
-        return_value.map{|k,v|
+        return_value.map{|k,v,composite|
           if v.is_a?(Array) && v.first =~ /=/
             ';' + v.map{|pair| pair.end_with?('=') ? pair[0...-1] : pair}.
               join(";")
@@ -1331,7 +1334,7 @@ module Addressable
               inner_value == '' ? k : "#{k}=#{inner_value}"
             }.join(";")
           else
-            v && v != '' ?  ";#{k}=#{v}" : ";#{k}"
+            (v && v != '') || composite ? ";#{k}=#{v}" : ";#{k}"
           end
         }.join
       else
