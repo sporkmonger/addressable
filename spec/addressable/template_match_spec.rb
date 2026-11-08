@@ -170,25 +170,7 @@ end
 describe Addressable::Template, "#match" do
   context "compared with 2.9.0" do
     {
-      ["{;b*}", ";b==a"] => {"b" => {"b" => ""}},
-      ["{;a*}", ";a=b=c;d"] => {"a" => {"a" => "b", "d" => ""}},
       ["{;a*}", ";a;;b"] => {"a" => {"a" => "", nil => "", "b" => ""}},
-      ["{&b*}", "&k=ab%3Bb="] => {"b" => {"k" => "ab;b"}},
-      ["{?a*}", "?a=b=c&d=e"] => {"a" => {"a" => "b", "d" => "e"}},
-      ["{?a*}", "?a=bc=d"] => {"a" => {"a" => "bc"}},
-      ["{;b*,c*}", ";n=ak=ab;c=a2Cb"] => {
-        "b" => {"n" => "ak", "c" => "a2Cb"}, "c" => {}
-      },
-      ["{?a*,a*,a*}", "?a=aba=ab&a=ab"] => {"a" => {"a" => "ab"}},
-      ["{?a*,c*}", "?a=b=c&d=e"] => {
-        "a" => {"a" => "b", "d" => "e"}, "c" => nil
-      },
-      ["{&a*}{&b}", "&x=1=2&b=3"] => {
-        "a" => {"x" => "1", "b" => "3"}, "b" => nil
-      },
-      ["{;a*}{?b*}", ";a=1;b?c=d=e"] => {
-        "a" => {"a" => "1", "b" => ""}, "b" => {"c" => "d"}
-      },
       ["{/a*}{/b}", "/x/y/z"] => {"a" => ["x", "y", "z"], "b" => nil},
       ["{.a*}{.b}", ".x.y.z"] => {"a" => ["x", "y", "z"], "b" => nil},
       ["{a*}{b}", "x,y,z"] => {"a" => ["x,y,"], "b" => "z"},
@@ -217,11 +199,6 @@ describe Addressable::Template, "#match" do
       ["{?a*,b*}", "?a=1&b=2"] => {"a" => {"a" => "1", "b" => "2"}, "b" => nil},
       ["{?a*,b*,c}", "?a=1&b=2&c=3"] => {
         "a" => {"a" => "1", "b" => "2", "c" => "3"}, "b" => nil, "c" => nil
-      },
-      ["{?a*,b*}", "?&b=2"] => {"a" => nil, "b" => {"b" => "2"}},
-      ["{&a*,b*}", "&&b=2"] => {"a" => nil, "b" => {"b" => "2"}},
-      ["{?a*,b,c*}", "?&=="] => {
-        "a" => nil, "b" => nil, nil => "", "c" => {nil => ""}
       },
       # ...and the last one for /, . and the default operator.
       ["{/a*,b*}", "/x/y"] => {"a" => [], "b" => ["x", "y"]},
@@ -269,6 +246,45 @@ describe Addressable::Template, "#match" do
       ["{+v1,v2,v1}", "a,b,c"] => {"v1" => "", "v2" => "a"}
     }.each do |(pattern, uri), mapping|
       it "matches #{uri.inspect} against #{pattern} as 2.9.0 did" do
+        expect(Addressable::Template.new(pattern).match(uri).mapping).to eq(
+          mapping
+        )
+      end
+    end
+
+    # These match the same text as 2.9.0, but give exploded ;, ? and &
+    # values differently: a value keeps everything after its first "=",
+    # where 2.9.0 dropped it from a second "=" on, and pairs that all repeat
+    # the variable's name are a list, where 2.9.0 kept only the last pair.
+    {
+      ["{;b*}", ";b==a"] => {"b" => ["=a"]},
+      ["{;a*}", ";a=b=c;d"] => {"a" => {"a" => "b=c", "d" => ""}},
+      ["{&b*}", "&k=ab%3Bb="] => {"b" => {"k" => "ab;b="}},
+      ["{?a*}", "?a=b=c&d=e"] => {"a" => {"a" => "b=c", "d" => "e"}},
+      ["{?a*}", "?a=bc=d"] => {"a" => ["bc=d"]},
+      ["{;b*,c*}", ";n=ak=ab;c=a2Cb"] => {
+        "b" => {"n" => "ak=ab", "c" => "a2Cb"}, "c" => {}
+      },
+      ["{?a*,a*,a*}", "?a=aba=ab&a=ab"] => {"a" => ["aba=ab", "ab"]},
+      ["{?a*,c*}", "?a=b=c&d=e"] => {
+        "a" => {"a" => "b=c", "d" => "e"}, "c" => nil
+      },
+      ["{&a*}{&b}", "&x=1=2&b=3"] => {
+        "a" => {"x" => "1=2", "b" => "3"}, "b" => nil
+      },
+      ["{;a*}{?b*}", ";a=1;b?c=d=e"] => {
+        "a" => {"a" => "1", "b" => ""}, "b" => {"c" => "d=e"}
+      },
+      # As in 2.9.0, for ? and & an empty member before the first exploded
+      # variable's values gives them to the next one.
+      ["{?a*,b*}", "?&b=2"] => {"a" => nil, "b" => ["2"]},
+      ["{&a*,b*}", "&&b=2"] => {"a" => nil, "b" => ["2"]},
+      ["{?a*,b,c*}", "?&=="] => {
+        "a" => nil, "b" => nil, nil => "", "c" => {"" => ""}
+      }
+    }.each do |(pattern, uri), mapping|
+      it "matches #{uri.inspect} against #{pattern} as 2.9.0 did, but " \
+          "keeps each exploded value whole" do
         expect(Addressable::Template.new(pattern).match(uri).mapping).to eq(
           mapping
         )
