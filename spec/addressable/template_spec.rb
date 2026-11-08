@@ -2660,6 +2660,63 @@ describe Addressable::Template, "with values pct-encoded at several levels" do
   end
 end
 
+describe Addressable::Template, "with a name that starts with a digit" do
+  # RFC 6570 section 2.3 allows a digit as the first character of a name,
+  # which a Ruby regular expression group name can't start with. Ruby 2.3
+  # and earlier only allow word characters in a group name at all.
+  dot_allowed = Addressable::Template.const_get(:GROUP_NAME_ALLOWS_DOT)
+  group = lambda { |name| dot_allowed ? ".#{name}" : "__#{name}__" }
+
+  {
+    "/{42}" => [{"42" => "x"}, "/x"],
+    "/{1x}" => [{"1x" => "x"}, "/x"],
+    "/{1x.y}" => [{"1x.y" => "x"}, "/x"],
+    "/{42}{?q}" => [{"42" => "x", "q" => "y"}, "/x?q=y"]
+  }.each do |pattern, (mapping, uri)|
+    next if pattern.include?(".") && !dot_allowed
+
+    context "in #{pattern}" do
+      subject { Addressable::Template.new(pattern) }
+
+      it "lists its variables" do
+        expect(subject.variables).to eq(mapping.keys)
+        expect(subject.keys).to eq(mapping.keys)
+        expect(subject.variable_defaults).to eq({})
+      end
+
+      it "extracts and matches its expansion" do
+        expect(subject.expand(mapping).to_s).to eq(uri)
+        expect(subject.extract(uri)).to eq(mapping)
+        expect(subject.match(uri).mapping).to eq(mapping)
+      end
+
+      it "names its captures after the variables" do
+        expect(subject.named_captures.keys).to eq(mapping.keys)
+      end
+
+      it "can be frozen" do
+        expect(subject.freeze).to be_frozen
+      end
+
+      it "gives a regular expression with a group for the name" do
+        match = subject.to_regexp.match(uri)
+        mapping.each_key do |name|
+          next unless name =~ /\A\d/
+          expect(match[group.call(name)]).to eq(mapping[name])
+        end
+      end
+    end
+  end
+
+  it "keeps a name that starts with a digit apart from every other name" do
+    template = Addressable::Template.new("/{42}/{_42}")
+    expect(template.extract("/a/b")).to eq("42" => "a", "_42" => "b")
+    match = template.to_regexp.match("/a/b")
+    expect(match[group.call("42")]).to eq("a")
+    expect(match["_42"]).to eq("b")
+  end
+end
+
 describe Addressable::Template, "with a name that has a dot or a triplet" do
   # RFC 6570 section 2.3 allows "." between characters of a variable name
   # and pct-encoded triplets in it.
