@@ -11,6 +11,10 @@ implementation, with support for IRIs, IDNA and URI templates (RFC 6570).
   - `idna/native.rb`: uses libidn through the `idn-ruby` gem, when installed
   - `idna/pure.rb`: pure-Ruby fallback, used when `idn-ruby` can't be loaded
 - `spec/`: RSpec specs
+  - `fixtures/uritemplate-test/`: the community RFC 6570 test suite, a git
+    subtree of uri-templates/uritemplate-test; don't edit it, and update it
+    with `git subtree pull --squash` (see
+    `spec/addressable/template_conformance_spec.rb`)
 - `tasks/`: Rake tasks for specs, gem packaging, tagging and profiling
 
 ## Running the specs
