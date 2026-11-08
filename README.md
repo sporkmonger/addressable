@@ -94,44 +94,54 @@ template.extract(uri)
 $ gem install addressable
 ```
 
-# IDNA support (unicode hostnames)
+## IDNA support (unicode hostnames)
 
-Three IDNA implementations are available, the first one available is used:
-- A `libidn1` wrapper (if `libidn` and the `idn` gem are installed), supporting IDNA2003.
-- A pure ruby implementation (slower), [almost](https://github.com/sporkmonger/addressable/issues/491) supporting IDNA2008.
-- A `libidn2` wrapper (if `libidn2` is installed), supporting IDNA2008+UTS#46.
+Addressable converts internationalized hostnames (e.g. `bücher.example`) to
+ASCII (`xn--bcher-kva.example`) and back, using one of these backends:
 
-Note: in the future major version, `libidn2` will become the default.
+| Backend | Standard | Requires | Used |
+|---|---|---|---|
+| `Addressable::IDNA::Libidn1` | IDNA2003 | `libidn` and the `idn-ruby` gem | by default, when available |
+| `Addressable::IDNA::Pure` | IDNA2003, with some IDNA2008 behavior ([#491](https://github.com/sporkmonger/addressable/issues/491)) | nothing | by default, otherwise |
+| `Addressable::IDNA::Libidn2` | IDNA2008 + UTS#46 | `libidn2` (through `ffi`) | only when selected |
 
-To install `libidn2`:
+`libidn2` is planned to become the default in the next major version.
+
+To install `libidn2` (usually already installed on Linux and macOS):
 
 ```console
-$ sudo apt-get install libidn2-dev # Debian/Ubuntu
-$ brew install libidn2 # OS X
+$ sudo apt-get install libidn2-0 # Debian/Ubuntu
+$ brew install libidn2 # macOS
 ```
 
-To install `libidn1` and the `idn` gem (also add it to your Gemfile):
+To install `libidn` and the `idn-ruby` gem (also add it to your Gemfile):
 
 ```console
 $ sudo apt-get install libidn11-dev # Debian/Ubuntu
-$ brew install libidn # OS X
+$ brew install libidn # macOS
 $ gem install idn-ruby
 ```
 
-Optionally you can turn on the strict mode which will raise exceptions in case of invalid hostname during IDNA conversion. The default (`false`) silently ignores them and keeps the hostname unchanged. The strictness will depend on the backend used, libidn2 is stricter than libidn1 for example.
-```ruby
-Addressable::IDNA.backend.strict_mode = true # default: false
-```
-
-Finally if you want to force a different IDNA implementation, you can do so like this (after addressable is required):
+To select a backend, require it and assign it, after requiring Addressable:
 
 ```ruby
-require "addressable/idna/pure"
-Addressable::IDNA.backend = Addressable::IDNA::Pure
 require "addressable/idna/libidn2"
 Addressable::IDNA.backend = Addressable::IDNA::Libidn2
-# Check which implmentation is active:
-puts Addressable::IDNA.backend.name
+
+Addressable::IDNA.backend # => Addressable::IDNA::Libidn2
+```
+
+By default, a hostname label that can't be converted is kept unchanged. You
+can turn on the strict mode to raise an error instead: `Addressable::IDNA`
+methods raise `Addressable::IDNA::Error`, and `Addressable::URI` methods raise
+`Addressable::URI::InvalidURIError`, with the IDNA error as its `cause`. How
+strict this is depends on the backend: `libidn2` rejects more hostnames than
+`libidn1`, and the pure Ruby backend rejects only the longest labels.
+
+```ruby
+Addressable::IDNA.strict_mode = true # default: false
+Addressable::URI.parse("http://xn--zckp1cyg1.sblo.jp/").display_uri
+# => Addressable::URI::InvalidURIError (with libidn2)
 ```
 
 ## Semantic Versioning

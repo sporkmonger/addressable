@@ -36,7 +36,70 @@ class TestHelper
   end
 end
 
+# Warnings raised by Addressable's own code, or by its specs, fail the run.
+# Warnings from other gems are still printed but are otherwise ignored.
+module StrictWarnings
+  PROJECT_PATHS = %r{\A#{Regexp.escape(File.expand_path("..", __dir__))}/(?:lib|spec)/}
+
+  def self.warnings
+    @warnings ||= []
+  end
+
+  def warn(message, *args, **options)
+    # Before 3.4, Kernel#warn calls this even for a category that's turned
+    # off, and leaves it to the original Warning.warn to drop the warning.
+    category = options[:category]
+    if message =~ PROJECT_PATHS && (category.nil? || Warning[category])
+      StrictWarnings.warnings << message
+    end
+    # Rubies before 3.0 don't pass a category, and their Warning.warn
+    # takes no keywords.
+    options.empty? ? super(message, *args) : super
+  end
+end
+
+if defined?(Warning) && Warning.respond_to?(:warn)
+  if Warning.respond_to?(:[]=)
+    categories = Warning.respond_to?(:categories) ?
+      Warning.categories : [:deprecated, :experimental, :performance]
+    # TruffleRuby's performance warnings flag every regexp built at runtime,
+    # which templates can't avoid.
+    categories -= [:performance] if RUBY_ENGINE == "truffleruby"
+    categories.each do |category|
+      begin
+        Warning[category] = true
+      rescue ArgumentError
+        # This Ruby doesn't have this category.
+      end
+    end
+  end
+  Warning.extend(StrictWarnings)
+end
+
+# Uses an IDNA backend for each example of a group, and restores the
+# previous one after it, so the other specs run with the default backend.
+module IDNABackendHelper
+  def use_idna_backend(backend)
+    around do |example|
+      previous = Addressable::IDNA.backend
+      begin
+        Addressable::IDNA.backend = backend
+        example.run
+      ensure
+        Addressable::IDNA.backend = previous
+      end
+    end
+  end
+end
+
 RSpec.configure do |config|
   config.warnings = true
   config.filter_run_when_matching :focus
+  config.extend IDNABackendHelper
+
+  config.after(:suite) do
+    unless StrictWarnings.warnings.empty?
+      raise "Warnings from lib/ or spec/:\n" + StrictWarnings.warnings.uniq.join
+    end
+  end
 end

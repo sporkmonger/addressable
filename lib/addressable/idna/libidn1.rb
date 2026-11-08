@@ -16,6 +16,8 @@
 #    limitations under the License.
 #++
 
+require "addressable/idna/core"
+
 # libidn1 implementing IDNA2003
 require "idn"
 
@@ -32,16 +34,28 @@ module Addressable
         deprecate :unicode_normalize_kc, "String#unicode_normalize(:nfkc)", 2023, 4
       end
 
+      # Labels are converted separately, since libidn fails on a name with an
+      # empty label, and a label that can't be converted is kept unchanged.
       def self.to_ascii(value)
-        IDN::Idna.toASCII(value, IDN::Idna::ALLOW_UNASSIGNED)
-      rescue IDN::Idna::IdnaError => e
-        Addressable::IDNA.strict_mode ? raise(Error.new(e.message)) : value
+        value.split('.', -1).map do |label|
+          begin
+            label.empty? ? label : IDN::Idna.toASCII(label, IDN::Idna::ALLOW_UNASSIGNED)
+          rescue IDN::Idna::IdnaError => e
+            Addressable::IDNA.strict_mode ? raise(Error.new(e.message)) : label
+          end
+        end.join('.')
       end
 
       def self.to_unicode(value)
-        IDN::Idna.toUnicode(value, IDN::Idna::ALLOW_UNASSIGNED)
-      rescue IDN::Idna::IdnaError => e
-        Addressable::IDNA.strict_mode ? raise(Error.new(e.message)) : value
+        value.split('.', -1).map do |label|
+          next label if label.empty?
+          begin
+            decoded = IDN::Idna.toUnicode(label, IDN::Idna::ALLOW_UNASSIGNED)
+            decoded =~ DISPLAY_CHANGING ? label : decoded
+          rescue IDN::Idna::IdnaError => e
+            Addressable::IDNA.strict_mode ? raise(Error.new(e.message)) : label
+          end
+        end.join('.')
       end
     end
   end

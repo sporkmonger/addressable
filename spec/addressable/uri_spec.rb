@@ -79,6 +79,38 @@ describe Addressable::URI, "when created with a invalid encoded port number" do
   end
 end
 
+describe Addressable::URI, "when created with a port number with a " +
+    "line break" do
+  ["8080\n", "\n8080", "80\nx"].each do |port|
+    it "should raise an error for #{port.inspect}" do
+      expect do
+        Addressable::URI.new(:host => "example.com", :port => port)
+      end.to raise_error(Addressable::URI::InvalidURIError)
+    end
+  end
+end
+
+describe Addressable::URI, "when assigned a port number with a line break" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com:8080/")
+  end
+
+  ["81\n", "\n81", "81\nx", "x\n81", ":\n81", "81\r\n", "%0A81"].each do |port|
+    it "should raise an error for #{port.inspect}" do
+      expect do
+        @uri.port = port
+      end.to raise_error(Addressable::URI::InvalidURIError)
+      expect(@uri.port).to eq(8080)
+      expect(@uri.to_s).to eq("http://example.com:8080/")
+    end
+  end
+
+  it "should still accept a port number without one" do
+    @uri.port = "81"
+    expect(@uri.port).to eq(81)
+  end
+end
+
 describe Addressable::URI, "when created with a non-string scheme" do
   it "should raise an error" do
     expect do
@@ -320,6 +352,21 @@ describe Addressable::URI, "when created from nil components" do
     expect do
       @uri.scheme = "sch\neme"
     end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  [true, false].each do |value|
+    ["", "/path", "http://example.com/path?q#f"].each do |uri|
+      it "should raise a TypeError when the scheme of '#{uri}' is set to " +
+          "#{value}" do
+        target = Addressable::URI.parse(uri)
+        expect do
+          target.scheme = value
+        end.to raise_error(
+          TypeError, "Can't convert #{value.class} into String."
+        )
+        expect(target.to_s).to eq(uri)
+      end
+    end
   end
 
   it "should raise an error if set into an invalid state" do
@@ -1138,6 +1185,25 @@ describe Addressable::URI, "when created with a host with trailing dots" do
     expect(@uri.normalize.normalize.normalize.host).to eq(
       @uri.normalize.host
     )
+  end
+end
+
+describe Addressable::URI, "when parsed with an internationalized host " +
+    "with trailing dots" do
+  it "should keep the dots when normalized and displayed" do
+    uri = Addressable::URI.parse("http://bücher.example../")
+    expect(uri.normalize.to_s).to eq("http://xn--bcher-kva.example../")
+    expect(uri.display_uri.to_s).to eq("http://bücher.example../")
+  end
+
+  it "should keep the dots when an A-label host is displayed" do
+    uri = Addressable::URI.parse("http://xn--bcher-kva.example../")
+    expect(uri.display_uri.to_s).to eq("http://bücher.example../")
+  end
+
+  it "should drop a single trailing dot when normalized" do
+    uri = Addressable::URI.parse("http://bücher.example./")
+    expect(uri.normalize.to_s).to eq("http://xn--bcher-kva.example/")
   end
 end
 
@@ -2054,6 +2120,430 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+# An empty port is the same as no port (Section 3.2.3 of RFC 3986).
+describe Addressable::URI, "when frozen with components it holds" do
+  readers = Addressable::URI.public_instance_methods(false).select do |name|
+    !name.to_s.end_with?("!", "=") &&
+      ![:display, :freeze, :defer_validation, :dup, :clone].include?(name) &&
+      [0, -1].include?(Addressable::URI.instance_method(name).arity)
+  end
+
+  [
+    "", "/p", "p?q", "http://user:pw@example.com:8080/p?q=1#f",
+    "HTTP://EXAMPLE.com.:%38%30/%70a%74%68?a=%31#1%323",
+    "https://[::1]:443/", "http://www.詹姆斯.com/caf%C3%A9?é#é",
+    "mailto:x@y", "//example.com"
+  ].each do |input|
+    it "returns only frozen strings it holds for '#{input}'" do
+      uri = Addressable::URI.parse(input).freeze
+      unfrozen = readers.select do |name|
+        begin
+          first = uri.public_send(name)
+        rescue StandardError
+          next false
+        end
+        first.is_a?(String) && first.equal?(uri.public_send(name)) &&
+          !first.frozen?
+      end
+      expect(unfrozen).to be_empty
+    end
+
+    it "answers every reader without a FrozenError for '#{input}'" do
+      uri = Addressable::URI.parse(input).freeze
+      frozen_error = defined?(FrozenError) ? FrozenError : RuntimeError
+      raising = readers.select do |name|
+        begin
+          uri.public_send(name)
+          false
+        rescue frozen_error => error
+          error.message =~ /frozen/
+        rescue StandardError
+          false
+        end
+      end
+      expect(raising).to be_empty
+    end
+  end
+
+  [:to_s, :to_str].each do |name|
+    it "returns a mutable copy from ##{name} for each call" do
+      uri = Addressable::URI.parse("http://example.com/a?b#c").freeze
+      string = uri.public_send(name)
+      expect(string).to eq("http://example.com/a?b#c")
+      expect(string).not_to be_frozen
+      expect(string.encoding).to eq(Encoding::UTF_8)
+      expect(string).not_to equal(uri.public_send(name))
+      string.force_encoding(Encoding::BINARY) << "x"
+      expect(uri.public_send(name)).to eq("http://example.com/a?b#c")
+      expect(uri.public_send(name).encoding).to eq(Encoding::UTF_8)
+      expect(uri.hash).to eq(
+        Addressable::URI.parse("http://example.com/a?b#c").hash
+      )
+    end
+  end
+
+  it "keeps returning its cached string from #to_s when not frozen" do
+    uri = Addressable::URI.parse("http://example.com/")
+    expect(uri.to_s).to equal(uri.to_s)
+    expect(uri.to_s).not_to be_frozen
+  end
+
+  it "checks enough readers to be meaningful" do
+    expect(readers).to include(:host, :normalized_host, :to_s, :authority)
+    expect(readers.size).to be > 30
+  end
+
+  it "doesn't freeze the strings it was given" do
+    components = {
+      :scheme => "http".dup, :user => "user".dup, :password => "pw".dup,
+      :host => "example.com".dup, :path => "/p".dup, :query => "q".dup,
+      :fragment => "f".dup
+    }
+    uri = Addressable::URI.new(components).freeze
+    components.each_value { |string| expect(string).not_to be_frozen }
+    expect(uri.host).to eq("example.com")
+    expect(uri.host).to be_frozen
+  end
+end
+
+describe Addressable::URI, "when given false for a component" do
+  # Every public setter, including ones added later. URI.new and #merge take
+  # the same names as keys, and ignore the ones they don't support.
+  setters = Addressable::URI.public_instance_methods.grep(/\A[a-z_]+=\z/).sort
+  keys = setters.map { |setter| setter.to_s.chomp("=").to_sym }
+
+  def self.random_uris(count, seed)
+    random = Random.new(seed)
+    pick = lambda { |values| values[random.rand(values.size)] }
+    Array.new(count) do
+      scheme = pick.call([nil, "http", "https", "mailto", "foo"])
+      authority = pick.call(
+        [nil, "", "example.com", "a:b@example.com:8080", "[::1]", "u@h"]
+      )
+      path = pick.call(["", "/", "/p", "p", "x@y", "/a/b"])
+      query = pick.call([nil, "", "q=1", "a=b&c"])
+      fragment = pick.call([nil, "", "f"])
+      uri = "".dup
+      uri << "#{scheme}:" if scheme
+      uri << "//#{authority}" if authority
+      uri << path
+      uri << "?#{query}" if query
+      uri << "##{fragment}" if fragment
+      uri
+    end.select do |uri|
+      begin
+        Addressable::URI.parse(uri).to_s
+        true
+      rescue Addressable::URI::InvalidURIError
+        false
+      end
+    end
+  end
+
+  uris = [
+    "", "/p", "p?q", "?q", "#f", "//example.com", "mailto:x@y",
+    "https://[::1]/", "http://a:b@example.com:8080/p?q=1#f"
+  ] + random_uris(50, 3986)
+
+  def outcome
+    result = yield
+    [:ok, result.to_s]
+  rescue StandardError => error
+    message = error.message.gsub(/TrueClass|FalseClass/, "Boolean").
+      gsub(/\b(?:true|false)\b/, "boolean")
+    [:raise, error.class, message]
+  end
+
+  it "covers enough URIs and setters to be meaningful" do
+    expect(uris.uniq.size).to be > 25
+    expect(setters).to include(:scheme=, :host=, :path=, :query_values=)
+    expect(setters.size).to be >= 16
+  end
+
+  it "makes every setter treat false as it treats true" do
+    failures = []
+    uris.uniq.each do |uri|
+      setters.each do |setter|
+        results = [true, false].map do |value|
+          target = Addressable::URI.parse(uri)
+          outcome { target.send(setter, value) } + [target.to_s]
+        end
+        failures << [uri, setter, *results] if results[0] != results[1]
+      end
+    end
+    expect(failures).to be_empty, lambda {
+      "#{failures.size} setters treated false differently " +
+      "(uri, setter, true, false):\n" +
+      failures.first(10).map { |failure| "  #{failure.inspect}" }.join("\n")
+    }
+  end
+
+  it "makes URI.new and #merge treat false as they treat true" do
+    failures = []
+    keys.each do |key|
+      results = [true, false].map do |value|
+        outcome { Addressable::URI.new(key => value) }
+      end
+      failures << ["new", key, *results] if results[0] != results[1]
+    end
+    uris.uniq.each do |uri|
+      keys.each do |key|
+        results = [true, false].map do |value|
+          outcome { Addressable::URI.parse(uri).merge(key => value) }
+        end
+        failures << [uri, key, *results] if results[0] != results[1]
+      end
+    end
+    expect(failures).to be_empty, lambda {
+      "#{failures.size} calls treated false differently " +
+      "(uri, key, true, false):\n" +
+      failures.first(10).map { |failure| "  #{failure.inspect}" }.join("\n")
+    }
+  end
+end
+
+describe Addressable::URI, "when a setter raises an error" do
+  def snapshot(uri)
+    components = [
+      :scheme, :user, :password, :userinfo, :host, :port, :authority, :path,
+      :query, :fragment, :site, :origin, :to_s
+    ]
+    state = components.map { |component| uri.send(component) }
+    state << uri.normalize.to_s << uri.hash
+  end
+
+  [
+    ["mailto:x@y", :origin=, "https://o.example"],
+    ["http://example.com/", :origin=, "ftp://exa mple.com"],
+    ["http://example.com/", :host=, "evil.example/@"],
+    ["http://example.com", :host=, nil],
+    ["http://user@example.com/", :host=, nil],
+    ["http://example.com/", :hostname=, "a b"],
+    ["http://example.com/", :tld=, "a b"],
+    ["http://example.com/", :authority=, "exa mple.com"],
+    ["http://example.com/", :site=, "http://a b"],
+    ["http://example.com/a", :scheme=, "1http"],
+    ["/path", :user=, "alice"],
+    ["/path", :password=, "secret"],
+    ["/path", :userinfo=, "alice:secret"],
+    ["/path", :port=, 8080],
+    ["/a", :path=, "//b"],
+    ["http://example.com/?q=1#f", :port=, "bogus"]
+  ].each do |uri, setter, value|
+    it "should leave '#{uri}' unchanged when #{setter} #{value.inspect} raises" do
+      fresh = Addressable::URI.parse(uri)
+      expected = snapshot(fresh)
+      [false, true].each do |warm|
+        target = Addressable::URI.parse(uri)
+        snapshot(target) if warm
+        expect do
+          target.send(setter, value)
+        end.to raise_error(Addressable::URI::InvalidURIError)
+        expect(snapshot(target)).to eq(expected)
+        expect(target).to eq(fresh)
+      end
+    end
+  end
+
+  it "should leave the URI unchanged when validation raises at the end " +
+      "of defer_validation" do
+    uri = Addressable::URI.parse("http://example.com/")
+    expected = snapshot(uri)
+    expect do
+      uri.defer_validation do
+        uri.user = "alice"
+        uri.host = nil
+      end
+    end.to raise_error(Addressable::URI::InvalidURIError)
+    expect(snapshot(uri)).to eq(expected)
+  end
+
+  it "should leave the URI unchanged when the defer_validation block raises" do
+    uri = Addressable::URI.parse("http://example.com/")
+    expected = snapshot(uri)
+    expect do
+      uri.defer_validation do
+        uri.host = "other.example"
+        raise ArgumentError, "stop"
+      end
+    end.to raise_error(ArgumentError)
+    expect(snapshot(uri)).to eq(expected)
+  end
+
+  it "should restore the URI from the outermost defer_validation block" do
+    uri = Addressable::URI.parse("http://example.com/")
+    expected = snapshot(uri)
+    expect do
+      uri.defer_validation do
+        uri.host = "other.example"
+        uri.defer_validation do
+          uri.user = "alice"
+        end
+        uri.host = nil
+      end
+    end.to raise_error(Addressable::URI::InvalidURIError)
+    expect(snapshot(uri)).to eq(expected)
+  end
+
+  it "should keep the changes of setters that succeed" do
+    uri = Addressable::URI.parse("http://example.com/")
+    uri.host = "other.example"
+    expect { uri.port = "bogus" }.to raise_error(Addressable::URI::InvalidURIError)
+    expect(uri.to_s).to eq("http://other.example/")
+  end
+
+  it "should still raise FrozenError from a frozen URI's setters" do
+    uri = Addressable::URI.parse("http://example.com/").freeze
+    expect { uri.host = "other.example" }.to raise_error(
+      defined?(FrozenError) ? FrozenError : RuntimeError
+    )
+    expect(uri.to_s).to eq("http://example.com/")
+  end
+end
+
+describe Addressable::URI, "when assigned an origin with an empty port" do
+  before do
+    @uri = Addressable::URI.parse("http://placeholder.example/p?q=1#f")
+  end
+
+  {
+    "http://example.com:" => "http://example.com",
+    "HTTPS://EXAMPLE.org:" => "https://example.org",
+    "ws://192.0.2.1:" => "ws://192.0.2.1",
+    "foo://a-b.example:" => "foo://a-b.example",
+    "http://%65xample.com:" => "http://example.com",
+    "http://[::1]:" => "http://[::1]",
+    "http://[v1.fe80::a]:" => "http://[v1.fe80::a]"
+  }.each do |origin, expected|
+    it "should treat '#{origin}' as having no port" do
+      @uri.origin = origin
+      expect(@uri.origin).to eq(expected)
+      expect(@uri.port).to eq(nil)
+      expect(@uri.to_s).to eq("#{origin.sub(/:\z/, "")}/p?q=1#f")
+      expect(@uri.origin).to eq(Addressable::URI.parse(origin).origin)
+    end
+  end
+
+  [
+    "http://u:p@example.com:",
+    "http://user:secret@example.com:",
+    "http://example.com:8080/a:",
+    "http://example.com/a:",
+    "http://example.com:?a:"
+  ].each do |origin|
+    it "should raise for '#{origin}', which isn't an origin" do
+      expect do
+        @uri.origin = origin
+      end.to raise_error(Addressable::URI::InvalidURIError)
+      expect(@uri.to_s).to eq("http://placeholder.example/p?q=1#f")
+    end
+  end
+end
+
+# A serialized origin is a scheme, host and port (Section 6.2 of RFC 6454).
+describe Addressable::URI, "when assigned an origin" do
+  before do
+    @uri = Addressable::URI.parse("http://placeholder.example/p?q=1#f")
+  end
+
+  {
+    "http://[::1]" => ["[::1]", nil],
+    "http://[::1]:8080" => ["[::1]", 8080],
+    "https://[2001:db8::7]:443" => ["[2001:db8::7]", 443],
+    "http://[2001:DB8:0:0:8:800:200C:417A]:81" =>
+      ["[2001:DB8:0:0:8:800:200C:417A]", 81],
+    "http://[v1.fe80::a]:8080" => ["[v1.fe80::a]", 8080],
+    "http://192.0.2.1:8080" => ["192.0.2.1", 8080],
+    "http://example.com:80" => ["example.com", 80]
+  }.each do |origin, (host, port)|
+    it "should take the host and port from '#{origin}'" do
+      @uri.origin = origin
+      expect(@uri.host).to eq(host)
+      expect(@uri.port).to eq(port)
+      expect(@uri.path).to eq("/p")
+      expect(@uri.query).to eq("q=1")
+      expect(@uri.fragment).to eq("f")
+      expect(@uri.origin).to eq(Addressable::URI.parse(origin).origin)
+    end
+  end
+
+  {
+    "http://user@example.com" => "userinfo",
+    "http://example.com/" => "a path",
+    "http://example.com:8080/a" => "a path",
+    "http://[::1]/" => "a path",
+    "http://example.com?q" => "a query",
+    "http://example.com#f" => "a fragment"
+  }.each do |origin, part|
+    it "should raise for '#{origin}', which has #{part}" do
+      expect do
+        @uri.origin = origin
+      end.to raise_error(
+        Addressable::URI::InvalidURIError,
+        "An origin cannot include userinfo, a path, query, or fragment."
+      )
+      expect(@uri.to_s).to eq("http://placeholder.example/p?q=1#f")
+    end
+  end
+
+  [
+    "http://user:secret@example.com",
+    "http://user:8080@example.com",
+    "http://[::1]@example.com"
+  ].each do |origin|
+    it "should raise for '#{origin}', which has userinfo" do
+      expect do
+        @uri.origin = origin
+      end.to raise_error(
+        Addressable::URI::InvalidURIError,
+        "An origin cannot include userinfo, a path, query, or fragment."
+      )
+      expect(@uri.to_s).to eq("http://placeholder.example/p?q=1#f")
+    end
+  end
+
+  {
+    "http://example.com:http" => "http",
+    "http://example.com:8080:8081" => "8080:8081",
+    "http://[::1]:8080]" => "8080]",
+    "http://example.com:8080\n" => "8080\n",
+    "http://example.com:\n8080" => "\n8080",
+    "http://[::1]::\n8080" => ":\n8080"
+  }.each do |origin, port|
+    it "should raise for '#{origin.inspect}', which has an invalid port" do
+      expect do
+        @uri.origin = origin
+      end.to raise_error(
+        Addressable::URI::InvalidURIError,
+        "Invalid port number: #{port.inspect}"
+      )
+      expect(@uri.to_s).to eq("http://placeholder.example/p?q=1#f")
+    end
+  end
+
+  it "should raise for an origin with an unclosed IPv6 host" do
+    expect do
+      @uri.origin = "http://[::1"
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should name the missing scheme" do
+    expect do
+      @uri.origin = "//example.com"
+    end.to raise_error(
+      Addressable::URI::InvalidURIError, "An origin cannot omit the scheme."
+    )
+  end
+
+  it "should name the missing host" do
+    expect do
+      @uri.origin = "http://"
+    end.to raise_error(
+      Addressable::URI::InvalidURIError, "An origin cannot omit the host."
+    )
+  end
+end
+
 # Section 5.1.2 of RFC 2616
 describe Addressable::URI, "when parsed from " +
     "'HTTP://www.w3.org/pub/WWW/TheProject.html'" do
@@ -2701,6 +3191,254 @@ describe Addressable::URI, "when parsed from " +
 
   it "should be identical to its duplicate" do
     expect(@uri).to eq(@uri.dup)
+  end
+end
+
+# RFC 3986, section 6.2.2.2: only unreserved characters may be decoded during normalization
+describe Addressable::URI, "when normalizing pct-encoded reserved characters" do
+  def self.it_normalizes(input, expected, encoded = expected)
+    it "normalizes #{input.inspect} to #{expected.inspect}" do
+      expect(Addressable::URI.parse(input).normalize.to_s).to eq(expected)
+      expect(Addressable::URI.normalized_encode(input)).to eq(encoded)
+    end
+  end
+
+  # A reserved character is decoded unless it's a delimiter where it
+  # appears. One that isn't allowed in the component is encoded again.
+  it_normalizes(
+    "http://example.com/%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D/:@!$&'()*+,;=",
+    "http://example.com/:%2F%3F%23%5B%5D@!$&'()*+,;=/:@!$&'()*+,;="
+  )
+  it_normalizes(
+    "http://example.com/?%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D=" \
+      "%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D&raw=:/?@!$'()*+,=",
+    "http://example.com/?:/?%23%5B%5D@!$%26'()*%2B,%3B%3D=" \
+      ":/?%23%5B%5D@!$%26'()*%2B,%3B=&raw=:/?@!$'()*+,="
+  )
+  it_normalizes(
+    "http://example.com/#%3A%2F%3F%23%5B%5D%40%21%24%26%27%28%29%2A%2B%2C%3B%3D/raw=:/?@!$&'()*+,;=",
+    "http://example.com/#:/?%23%5B%5D@!$&'()*+,;=/raw=:/?@!$&'()*+,;="
+  )
+
+  it_normalizes("http://example.com/%41%42%43", "http://example.com/ABC")
+  it_normalizes("http://example.com/a%3ab%2fc", "http://example.com/a:b%2Fc")
+  it_normalizes("http://example.com/sound%2bvision", "http://example.com/sound+vision")
+  it_normalizes("http://example.com/a%23b?c#d", "http://example.com/a%23b?c#d")
+  it_normalizes("mailto:a%40b.example", "mailto:a@b.example")
+  it_normalizes(
+    "http://example.com/?redirect_uri=https%3A%2F%2Fx.example%2Fcb%3Fa%3D1%26b%3D2",
+    "http://example.com/?redirect_uri=https://x.example/cb?a=1%26b=2"
+  )
+  it_normalizes("http://example.com/?a=1%262&b=%3D", "http://example.com/?a=1%262&b==")
+  it_normalizes("http://example.com/?a=1%2B2&b=1%3B2", "http://example.com/?a=1%2B2&b=1%3B2")
+  it_normalizes("http://example.com/?a%3Db=1&c%3Dd", "http://example.com/?a%3Db=1&c%3Dd")
+  it_normalizes("http://example.com/?a=%2B%FF", "http://example.com/?a=%2B%FF")
+  it_normalizes("http://example.com/%2B%FF#%2B%FF", "http://example.com/+%FF#+%FF")
+  it_normalizes("http://example.com/#a%2Fb%23c", "http://example.com/#a/b%23c")
+
+  # A ";" in a query is a pair separator for #normalize, as it was before.
+  it_normalizes("http://example.com/?a=1;b=2", "http://example.com/?a=1%3Bb=2",
+    "http://example.com/?a=1;b=2")
+
+  it "keeps a query name's \"=\" when NFC would compose it with a mark" do
+    uri = Addressable::URI.parse("http://example.com/?a≠")
+    expect(uri.normalize.to_s).to eq("http://example.com/?a=%CC%B8")
+    expect(Addressable::URI.normalized_encode(uri.to_s)).to eq(
+      "http://example.com/?a=%CC%B8"
+    )
+  end
+
+  it "keeps a query's delimiters encoded around invalid UTF-8" do
+    input = "http://example.com/?a=\xFF%3D&b%3D=%26".b
+    expect(Addressable::URI.normalized_encode(input)).to eq(
+      "http://example.com/?a=%FF=&b%3D=%26"
+    )
+    expect(Addressable::URI.parse(input).normalize.to_s).to eq(
+      "http://example.com/?a=%FF=&b%3D=%26"
+    )
+  end
+
+  it "keeps a colon encoded in the first segment of a relative path" do
+    expect(Addressable::URI.parse("a%3Ab/c%3Ad").normalize.to_s).to eq("a%3Ab/c:d")
+    expect(Addressable::URI.parse("./a%3Ab").normalize.to_s).to eq("a%3Ab")
+    expect(Addressable::URI.parse("../a%3Ab").normalize.to_s).to eq("a%3Ab")
+    expect(Addressable::URI.new(:path => "./a:b").normalize.to_s).to eq("a%3Ab")
+    expect(Addressable::URI.normalized_encode("a%3Ab/c%3Ad")).to eq("a%3Ab/c:d")
+    expect(Addressable::URI.parse("/a%3Ab").normalize.to_s).to eq("/a:b")
+    expect(Addressable::URI.parse("x:a%3Ab").normalize.to_s).to eq("x:a:b")
+  end
+
+  # A relative path's first segment can hold a colon, though to_s refuses to
+  # assemble it.
+  it "encodes a literal colon in the first segment of a relative path" do
+    uri = Addressable::URI.new
+    uri.path = "a:b:c/d:e"
+    expect { uri.to_s }.to raise_error(Addressable::URI::InvalidURIError)
+    expect(uri.normalized_path).to eq("a%3Ab%3Ac/d:e")
+    expect(uri.normalize.to_s).to eq("a%3Ab%3Ac/d:e")
+  end
+
+  # Removing the dot segment exposes the colon after parsing has accepted it.
+  ["./folder:2/readme.md", "../folder:2/readme.md"].each do |input|
+    it "encodes a colon exposed by removing the dot segment from #{input}" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.normalized_path).to eq("folder%3A2/readme.md")
+      expect(uri.normalize.to_s).to eq("folder%3A2/readme.md")
+      expect(uri.normalize!.to_s).to eq("folder%3A2/readme.md")
+    end
+  end
+
+  it "keeps encoded delimiters in a sorted query" do
+    uri = Addressable::URI.parse("http://example.com/?b=%26%3d&a%3d=%2B%FF")
+    expect(uri.normalized_query(:sorted)).to eq("a%3D=%2B%FF&b=%26=")
+  end
+
+  it "treats an encoded slash as part of a path segment" do
+    uri = Addressable::URI.parse("http://example.com/a%2Fb/../c")
+    expect(uri.normalize.to_s).to eq("http://example.com/c")
+  end
+
+  it "treats a character and its encoding as equal unless it's a delimiter" do
+    expect(Addressable::URI.parse("http://example.com/a%3Ab")).to eq(
+      Addressable::URI.parse("http://example.com/a:b")
+    )
+    expect(Addressable::URI.parse("http://example.com/?a=%3D")).to eq(
+      Addressable::URI.parse("http://example.com/?a==")
+    )
+    expect(Addressable::URI.parse("http://example.com/a%2Fb")).not_to eq(
+      Addressable::URI.parse("http://example.com/a/b")
+    )
+    expect(Addressable::URI.parse("http://example.com/?a%3D=1")).not_to eq(
+      Addressable::URI.parse("http://example.com/?a==1")
+    )
+    expect(Addressable::URI.parse("http://example.com/?a=1%262")).not_to eq(
+      Addressable::URI.parse("http://example.com/?a=1&2")
+    )
+    expect(Addressable::URI.parse("http://example.com/?a=%2B")).not_to eq(
+      Addressable::URI.parse("http://example.com/?a=+")
+    )
+  end
+
+  it "keeps the normalize character classes" do
+    expect(Addressable::URI::NormalizeCharacterClasses::PCHAR).to be_a(Regexp)
+    expect(Addressable::URI::NormalizeCharacterClasses::FRAGMENT).to be_a(Regexp)
+    expect(Addressable::URI::NormalizeCharacterClasses::QUERY).to be_a(Regexp)
+  end
+
+  it_normalizes("http://example.com/a%252Fb", "http://example.com/a%252Fb")
+  it_normalizes("http://example.com/?q=%2526x", "http://example.com/?q=%2526x")
+  it_normalizes("http://example.com/?q=%252B", "http://example.com/?q=%252B")
+  it_normalizes("http://example.com/#%2523", "http://example.com/#%2523")
+  it_normalizes("http://example.com/%25%32%46", "http://example.com/%252F")
+  it_normalizes("http://example.com/100%/a%zz", "http://example.com/100%25/a%25zz")
+  it_normalizes("http://example.com/a%%32%46b", "http://example.com/a%252Fb")
+  it_normalizes("http://example.com/?q=%%32%42", "http://example.com/?q=%252B")
+  it_normalizes("http://example.com/#%%32%33", "http://example.com/#%2523")
+
+  it "doesn't decode a triplet twice when leaving characters encoded" do
+    expect(Addressable::URI.normalize_component(
+      "a%252Bb%2B", Addressable::URI::CharacterClasses::QUERY, "+"
+    )).to eq("a%252Bb%2B")
+  end
+
+  it_normalizes("http://example.com/a%2A\u0301", "http://example.com/a*%CC%81")
+  it_normalizes("http://example.com/a%2F%CC%81", "http://example.com/a%2F%CC%81")
+  it_normalizes("http://example.com/?q=%2B\u0307", "http://example.com/?q=%2B%CC%87")
+  it_normalizes("http://example.com/?q%3D\u0338", "http://example.com/?q%3D%CC%B8")
+  it_normalizes("http://example.com/e%CC%81%2F\u00E9", "http://example.com/%C3%A9%2F%C3%A9")
+
+  # Decodes a triplet unless its character is in kept or is "%", encodes a
+  # character that isn't allowed, and applies NFC to the text between the
+  # triplets it keeps.
+  def self.reference_normalize(component, allowed, kept)
+    unreserved = "A-Za-z0-9\\-._~"
+    items = component.scan(/%[0-9A-Fa-f]{2}|./m).map do |token|
+      if token =~ /\A%[0-9A-Fa-f]{2}\z/
+        byte = token[1..2].hex
+        if (kept + "%").bytes.include?(byte)
+          [:kept, token.upcase]
+        else
+          [:text, byte.chr.b]
+        end
+      else
+        [:text, token.b]
+      end
+    end
+    runs = items.chunk_while { |a, b| a[0] == :text && b[0] == :text }.map do |group|
+      [group[0][0], group.map { |item| item[1] }.join]
+    end
+    valid = runs.all? do |kind, text|
+      kind == :kept || text.dup.force_encoding(Encoding::UTF_8).valid_encoding?
+    end
+    runs.map do |kind, text|
+      next text if kind == :kept
+      characters = if valid
+        text.force_encoding(Encoding::UTF_8).unicode_normalize(:nfc).chars
+      else
+        text.bytes.map { |byte| byte.chr.b }
+      end
+      characters.map do |character|
+        if character =~ /\A[#{unreserved}#{allowed}]\z/
+          character
+        else
+          character.bytes.map { |byte| "%%%02X" % byte }.join
+        end
+      end.join
+    end.join
+  end
+
+  def self.reference_query(query, allowed)
+    query.split("&", -1).map do |pair|
+      name, separator, value = pair.partition("=")
+      reference_normalize(name, allowed, "&;+=") +
+        (separator.empty? ? "" : "=" + reference_normalize(value, allowed, "&;+"))
+    end.join("&")
+  end
+
+  it "normalizes like a single pass that keeps only delimiters encoded" do
+    rng = Random.new(589)
+    reserved = ":/?#[]@!$&'()*+,;=".chars
+    pieces = reserved + %w(a Z 0 - _ ~ e) +
+      reserved.map { |c| "%%%02X" % c.ord } +
+      reserved.map { |c| "%%%02x" % c.ord } +
+      %w(%41 %7a %30 %2D %5F %7E %25 2F 3a 41 26 % %G1 %FF %C3%A9) +
+      %w(%32 %46 %33 %42 %36 %61 %65 %CC%81) +
+      ["é", "\"", "<", "|", "́", "̧", "̸", "̇"]
+    sub_delims = Regexp.escape("!$&'()*+,;=")
+    path_chars = sub_delims + ":@/"
+    query_chars = sub_delims + ":@/?"
+    pair_chars = Regexp.escape("!$'()*+,=") + ":@/?"
+    wrong = []
+    2000.times do
+      part = lambda do
+        Array.new(rng.rand(0..6)) { pieces.sample(random: rng) }.join
+      end
+      path = part.call.delete("?#")
+      query = part.call.delete("#")
+      fragment = part.call
+      input = "http://example.com/#{path}?#{query}##{fragment}"
+      begin
+        uri = Addressable::URI.parse(input)
+      rescue Addressable::URI::InvalidURIError
+        next
+      end
+      path_part = self.class.reference_normalize(path, path_chars, "/")
+      fragment_part = self.class.reference_normalize(fragment, query_chars, "")
+      pairs = self.class.reference_query(query, pair_chars)
+      normalized = "http://example.com/" + path_part +
+        (pairs.empty? ? "" : "?" + pairs) +
+        (fragment_part.empty? ? "" : "#" + fragment_part)
+      encoded = "http://example.com/" + path_part +
+        "?" + self.class.reference_query(query, query_chars) +
+        "#" + fragment_part
+      if uri.normalize.to_s != normalized
+        wrong << [input, uri.normalize.to_s, normalized]
+      end
+      if Addressable::URI.normalized_encode(input) != encoded
+        wrong << [input, Addressable::URI.normalized_encode(input), encoded]
+      end
+    end
+    expect(wrong.first(5)).to eq([])
   end
 end
 
@@ -3360,6 +4098,13 @@ describe Addressable::URI, "when parsed from " +
     )
   end
 
+  it "should have a route of './' from " +
+      "'http://example.com/path/to/resource/?query=x'" do
+    expect(
+      @uri.route_from("http://example.com/path/to/resource/?query=x").to_s
+    ).to eq("./")
+  end
+
   it "should correctly convert to a hash" do
     expect(@uri.to_hash).to eq({
       :scheme => "http",
@@ -3563,6 +4308,25 @@ describe Addressable::URI, "when parsed from " +
 
   it "should have no fragment" do
     expect(@uri.fragment).to eq(nil)
+  end
+
+  it "should have a route of 'file.txt' from " +
+      "'http://example.com/file.txt?x=1'" do
+    expect(@uri.route_from("http://example.com/file.txt?x=1")).to eq(
+      Addressable::URI.parse("file.txt")
+    )
+  end
+end
+
+describe Addressable::URI, "when parsed from " +
+    "'http://example.com/a:b'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com/a:b")
+  end
+
+  it "should have a route of './a:b' from " +
+      "'http://example.com/a:b?x=1'" do
+    expect(@uri.route_from("http://example.com/a:b?x=1").to_s).to eq("./a:b")
   end
 end
 
@@ -4234,6 +4998,177 @@ describe Addressable::URI, "when parsed from " +
   end
 end
 
+# A relative-path reference can't start with a segment containing a colon,
+# because it would be read as a scheme. Such a segment must be preceded by a
+# dot-segment (Section 4.2 of RFC 3986).
+describe Addressable::URI, "when routing to a segment containing a colon" do
+  {
+    ["http://example.com/a:b", "http://example.com/a"] => "./a:b",
+    ["http://example.com/a:b?q#f", "http://example.com/x"] => "./a:b?q#f",
+    ["http://example.com/x/a:b/c", "http://example.com/x/y"] => "./a:b/c",
+    ["http://example.com/a:b", "http://example.com/a:c"] => "./a:b",
+    ["http://example.com/b:", "http://example.com/a"] => "./b:",
+    ["foo:a:b", "foo:c"] => "./a:b",
+    ["http://example.com/x/a:b", "http://example.com/x/y/z"] => "../a:b",
+    ["http://example.com/a/a:b", "http://example.com/b/c"] => "../a/a:b",
+    ["http://example.com/a:b", "http://example.com/"] => "/a:b",
+    ["https://example.com/a:b", "http://example.com/a"] =>
+      "https://example.com/a:b"
+  }.each do |(target, base), route|
+    it "should have a route of '#{route}' to '#{target}' from '#{base}'" do
+      uri = Addressable::URI.parse(target)
+      expect(uri.route_from(base).to_s).to eq(route)
+      expect(Addressable::URI.parse(base).route_to(target).to_s).to eq(route)
+      expect(Addressable::URI.join(base, uri.route_from(base))).to eq(uri)
+    end
+  end
+end
+
+# A route resolves to its target against the normalized base (Section 5.2 of
+# RFC 3986). An empty path keeps the base's query, a path starting with "//"
+# would be read as an authority, and without an authority a path can't be
+# reached from a base path with a different kind of start.
+describe Addressable::URI, "when routing between URIs" do
+  {
+    ["http://example.com/a/", "http://example.com/a/b"] => "./",
+    ["http://example.com/a/", "http://example.com/a/b?x=1"] => "./",
+    ["http://example.com/a/?q", "http://example.com/a/b?x=1"] => "./?q",
+    ["http://example.com/a/#f", "http://example.com/a/b?q"] => "./#f",
+    ["http://example.com/x//", "http://example.com/x//y"] => "./",
+    ["http://example.com/", "http://example.com/a"] => "./",
+    ["http://example.com/?q", "http://example.com/a/b"] => "../?q",
+    ["http://example.com/a/b/", "http://example.com/a/b/c/d"] => "../",
+    ["http://example.com/a/b", "http://example.com/a/b#f"] => "b",
+    ["http://example.com/a/b?q", "http://example.com/a/b?q#f"] => "?q",
+    ["http://example.com/a/b#f", "http://example.com/a/b#g"] => "#f",
+    ["http://example.com/a//b", "http://example.com/a/b"] => ".//b",
+    ["http://example.com//b", "http://example.com/a"] => ".//b",
+    ["http://example.com//b", "http://example.com/"] => ".//b",
+    ["http://example.com/a//b/c", "http://example.com/x/y/z"] =>
+      "../../a//b/c",
+    ["foo://example.com", "foo://example.com/a"] => "foo://example.com",
+    ["foo://example.com?q", "foo://example.com/?q"] => "foo://example.com?q",
+    ["foo://example.com/", "foo://example.com?q"] => "./",
+    ["foo://example.com/a", "foo://example.com"] => "/a",
+    ["foo:x", "foo://example.com/a"] => "foo:x",
+    ["foo:/x", "foo://example.com/a"] => "foo:/x",
+    ["foo:/a", "foo:b"] => "/a",
+    ["foo:", "foo:a"] => "./",
+    ["foo:", "foo:a/b"] => "foo:",
+    ["foo:a", "foo:b/c"] => "foo:a",
+    ["foo:b/a", "foo:b/c"] => "a",
+    ["foo:a?q", "foo:/b"] => "foo:a?q",
+    ["foo:a:b/..", "foo:b"] => "foo:a:b/.."
+  }.each do |(target, base), route|
+    it "should have a route of '#{route}' to '#{target}' from '#{base}'" do
+      uri = Addressable::URI.parse(target)
+      expect(uri.route_from(base).to_s).to eq(route)
+      expect(Addressable::URI.parse(base).route_to(target).to_s).to eq(route)
+      expect(Addressable::URI.parse(base).normalize.join(route)).to eq(uri)
+    end
+  end
+
+  it "should have routes that resolve to their targets" do
+    random = Random.new(623)
+    segments = ["a", "b", "", ".", "..", "a:b", "%7E", "x y", "%2E", "%2e%2E"]
+    pick = lambda { |values| values[random.rand(values.size)] }
+    build = lambda do |scheme, authority|
+      path = case random.rand(10)
+      when 0 then ""
+      when 1 then "/"
+      else
+        Array.new(random.rand(1..4)) { pick.call(segments) }.join("/")
+      end
+      path = "/" + path if authority || random.rand(2) == 0
+      uri = authority ? "#{scheme}://#{authority}#{path}" : "#{scheme}:#{path}"
+      query = pick.call([nil, "", "q", "x=1", "a:b"])
+      fragment = pick.call([nil, "", "f"])
+      uri += "?#{query}" if query
+      uri += "##{fragment}" if fragment
+      uri
+    end
+    authorities = [nil, "example.com", "other.example", "u@example.com:81"]
+    wrong = []
+    3000.times do
+      scheme = pick.call(["http", "foo"])
+      authority = pick.call(authorities)
+      base = build.call(scheme, authority)
+      target = case random.rand(10)
+      when 0 then base
+      when 1 then build.call(pick.call(["http", "foo"]), pick.call(authorities))
+      else build.call(scheme, authority)
+      end
+      begin
+        base = Addressable::URI.parse(base).normalize
+        target = Addressable::URI.parse(target).normalize
+      rescue Addressable::URI::InvalidURIError
+        next
+      end
+      begin
+        route = target.route_from(base)
+        resolved = base.join(route)
+        unless resolved == target &&
+            base.route_to(target).to_s == route.to_s
+          wrong << [base.to_s, target.to_s, route.to_s]
+        end
+      rescue Addressable::URI::InvalidURIError => error
+        wrong << [base.to_s, target.to_s, error.message]
+      end
+    end
+    expect(wrong.first(5)).to eq([])
+  end
+end
+
+# The user name ends at the first colon, and the rest is the password
+# (Section 3.2.1 of RFC 3986). An empty user name differs from no user name
+# (Section 3.1 of RFC 1738).
+describe Addressable::URI, "when assigning userinfo" do
+  {
+    "alice:one:two" => ["alice", "one:two", "http://alice:one:two@example.com"],
+    "alice" => ["alice", nil, "http://alice@example.com"],
+    "alice:" => ["alice", "", "http://alice:@example.com"],
+    ":secret" => ["", "secret", "http://:secret@example.com"],
+    "" => ["", nil, "http://@example.com"],
+    "%3A:x:y" => ["%3A", "x:y", "http://%3A:x:y@example.com"]
+  }.each do |userinfo, (user, password, uri_string)|
+    it "should split '#{userinfo}' at its first colon" do
+      uri = Addressable::URI.parse("http://example.com")
+      uri.userinfo = userinfo
+      expect([uri.user, uri.password]).to eq([user, password])
+      expect(uri.userinfo).to eq(userinfo)
+      expect(uri.to_s).to eq(uri_string)
+    end
+
+    it "should split '#{userinfo}' as parsing and authority= do" do
+      uri = Addressable::URI.parse("http://example.com")
+      uri.userinfo = userinfo
+      parsed = Addressable::URI.parse("http://#{userinfo}@example.com")
+      expect([uri.user, uri.password]).to eq([parsed.user, parsed.password])
+      uri.authority = "#{userinfo}@example.com"
+      expect([uri.user, uri.password]).to eq([parsed.user, parsed.password])
+    end
+  end
+
+  it "should give back any userinfo it was assigned" do
+    random = Random.new(606)
+    characters = ["a", "b", ":", "%3A", "~", "!"]
+    wrong = []
+    1000.times do
+      userinfo = Array.new(random.rand(0..6)) do
+        characters[random.rand(characters.size)]
+      end.join
+      uri = Addressable::URI.parse("http://example.com")
+      uri.userinfo = userinfo
+      parsed = Addressable::URI.parse("http://#{userinfo}@example.com")
+      unless uri.userinfo == userinfo &&
+          [uri.user, uri.password] == [parsed.user, parsed.password]
+        wrong << [userinfo, uri.user, uri.password]
+      end
+    end
+    expect(wrong.first(5)).to eq([])
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
   "'http://example.com/search?q=Q%26A'" do
 
@@ -4382,6 +5317,47 @@ describe Addressable::URI, "when parsed from 'mailto:?q=a+b'" do
 
   it "should have query_values of {'q' => 'a+b'}" do
     expect(@uri.query_values).to eq("q" => "a+b")
+  end
+end
+
+# In a form-encoded query, "+" is a space in names as well as values, and
+# "%2B" is a plus (Section 5.1 of the WHATWG URL Standard).
+describe Addressable::URI, "when reading form-encoded query names" do
+  {
+    "http://example.com/?a+b=c+d" => [["a b", "c d"]],
+    "https://example.com/?a+b=c+d" => [["a b", "c d"]],
+    "/path?a+b=c+d" => [["a b", "c d"]],
+    "HTTP://example.com/?a+b=c+d" => [["a b", "c d"]],
+    "HttpS://example.com/?a+b=c+d" => [["a b", "c d"]],
+    "http://example.com/?a%2Bb=c%2Bd" => [["a+b", "c+d"]],
+    "http://example.com/?a+%2B+b=1&+" => [["a + b", "1"], [" "]],
+    "mailto:?a+b=c+d" => [["a+b", "c+d"]],
+    "ftp://example.com/?a+b=c+d" => [["a+b", "c+d"]]
+  }.each do |uri, values|
+    it "should have query_values of #{values.inspect} for '#{uri}'" do
+      expect(Addressable::URI.parse(uri).query_values(Array)).to eq(values)
+    end
+  end
+
+  it "should give back any query_values it was assigned" do
+    random = Random.new(607)
+    characters = ["a", "+", " ", "%", "=", "&", "%2B", "\u00E9", "~"]
+    starts = ["http://example.com/", "HTTP://example.com/", "/path",
+      "mailto:a@example.com", "ftp://example.com/"]
+    text = lambda do |range|
+      Array.new(random.rand(range)) do
+        characters[random.rand(characters.size)]
+      end.join
+    end
+    wrong = []
+    1000.times do
+      values = {}
+      random.rand(1..3).times { values[text.call(1..4)] = text.call(0..4) }
+      uri = Addressable::URI.parse(starts[random.rand(starts.size)])
+      uri.query_values = values
+      wrong << [uri.to_s, values] unless uri.query_values == values
+    end
+    expect(wrong.first(5)).to eq([])
   end
 end
 
@@ -5257,7 +6233,7 @@ describe Addressable::URI, "when parsed from invalid IDNA hostname " +
   begin
     require "addressable/idna/libidn2"
     context "with libidn2" do
-      before { Addressable::IDNA.backend = Addressable::IDNA::Libidn2 }
+      use_idna_backend Addressable::IDNA::Libidn2
 
       context "when strict_mode is true" do
         before { Addressable::IDNA.strict_mode = true }
@@ -5294,7 +6270,7 @@ describe Addressable::URI, "when parsed from invalid IDNA hostname " +
   begin
     require "addressable/idna/libidn1"
     context "with libidn1" do
-      before { Addressable::IDNA.backend = Addressable::IDNA::Libidn1 }
+      use_idna_backend Addressable::IDNA::Libidn1
 
       context "when strict_mode is true" do
         before { Addressable::IDNA.strict_mode = true }
@@ -5325,7 +6301,7 @@ describe Addressable::URI, "when parsed from invalid IDNA hostname " +
 
   require "addressable/idna/pure"
   context "with pure-ruby IDNA implementation" do
-    before { Addressable::IDNA.backend = Addressable::IDNA::Pure }
+    use_idna_backend Addressable::IDNA::Pure
 
     context "when strict_mode is true" do
       before { Addressable::IDNA.strict_mode = true }
@@ -5350,12 +6326,99 @@ describe Addressable::URI, "when parsed from invalid IDNA hostname " +
     end
 
     it "display_uri should be kept as http://xn---3a.com/" do
-      pending "incorrect result"
       expect(@uri.display_uri.to_s).to eq("http://xn---3a.com/")
     end
 
     it "normalized_host should be kept as http://xn---3a.com/" do
       expect(@uri.normalized_host).to eq("xn---3a.com")
+    end
+  end
+end
+
+describe Addressable::URI, "when displaying a host with an invalid A-label" do
+  [
+    "https://xn--google-.example.org/cb",
+    "https://www.xn--munchen-gie.de/"
+  ].each do |input|
+    it "should display '#{input}' with its normalized host" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.display_uri.host).to eq(uri.normalized_host)
+      expect(uri.display_uri.to_s).to eq(input)
+    end
+  end
+end
+
+describe Addressable::URI, "when displaying a host with a label that " +
+    "decodes to characters that change how it displays" do
+  [
+    "http://xn--abcmoc-dm0c.com/",
+    "https://www.xn--mnchen-3ya1545d.de/",
+    "https://www.xn--mnchen-3ya3274d.de/"
+  ].each do |input|
+    it "should display '#{input}' with its normalized host" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.display_uri.host).to eq(uri.normalized_host)
+      expect(uri.display_uri.to_s).to eq(input)
+    end
+  end
+end
+
+describe Addressable::URI, "when displaying a URI without a host" do
+  # Each of these raised InvalidURIError, because display_uri gave the URI
+  # an empty host.
+  [
+    "abc",
+    "a/b?q#f",
+    "mailto:user@example.com",
+    "urn:isbn:0451450523",
+    "news:comp.lang.ruby"
+  ].each do |input|
+    it "should display '#{input}' as its normalized form" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.display_uri.to_s).to eq(uri.normalize.to_s)
+      expect(uri.display_uri.host).to eq(nil)
+    end
+  end
+
+  # Each of these was displayed with an empty authority ("//") that the URI
+  # does not have.
+  [
+    "/path/to",
+    "?q",
+    "#f",
+    ""
+  ].each do |input|
+    it "should display '#{input}' without adding an authority" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.display_uri.to_s).to eq(uri.normalize.to_s)
+      expect(uri.display_uri.host).to eq(nil)
+    end
+  end
+
+  it "should keep an empty host" do
+    uri = Addressable::URI.parse("file:///etc/hosts")
+    expect(uri.display_uri.to_s).to eq("file:///etc/hosts")
+    expect(uri.display_uri.host).to eq("")
+  end
+
+  it "should not change the URI being displayed" do
+    uri = Addressable::URI.parse("mailto:user@example.com")
+    uri.display_uri
+    expect(uri.to_s).to eq("mailto:user@example.com")
+    expect(uri.host).to eq(nil)
+  end
+end
+
+describe Addressable::URI, "when parsed with a host label that can't be " +
+    "decoded from Punycode" do
+  [
+    "xn--" + ("a" * 600),
+    "xn--" + ("9" * 20),
+    "xn--99999999999a"
+  ].each do |label|
+    it "should display the label unchanged for '#{label[0, 24]}'" do
+      uri = Addressable::URI.parse("http://www.#{label}.com/path")
+      expect(uri.display_uri.to_s).to eq("http://www.#{label}.com/path")
     end
   end
 end
@@ -6826,7 +7889,7 @@ describe Addressable::URI, "when assigning path values" do
   it "should correctly assign paths containing colons" do
     @uri.path = "acct:bob@sporkmonger.com"
     expect(@uri.path).to eq("acct:bob@sporkmonger.com")
-    expect(@uri.normalize.to_str).to eq("acct%2Fbob@sporkmonger.com")
+    expect(@uri.normalize.to_str).to eq("acct%3Abob@sporkmonger.com")
     expect { @uri.to_s }.to raise_error(
       Addressable::URI::InvalidURIError
     )
@@ -6894,6 +7957,113 @@ describe Addressable::URI, "when initializing a subclass of Addressable::URI" do
   end
 end
 
+describe Addressable::URI, "when cloned" do
+  let(:input) { "http://u:p@a.example:8080/p?q#f" }
+  let(:uri) { Addressable::URI.parse(input) }
+  let(:components) { %i[scheme user password host path query fragment] }
+
+  def strings(uri)
+    uri.instance_variables.map { |ivar| uri.instance_variable_get(ivar) }.
+      select { |value| value.kind_of?(String) }
+  end
+
+  it "is equal to the original" do
+    copy = uri.clone
+    expect(copy).to eq(uri)
+    expect(copy.to_s).to eq(input)
+    expect(copy.class).to eq(uri.class)
+  end
+
+  it "keeps the original unchanged when the clone's strings change" do
+    copy = uri.clone
+    components.each { |component| copy.public_send(component) << "x" }
+    expect(uri.to_s).to eq(input)
+    components.each do |component|
+      expect(uri.public_send(component)).to eq(
+        Addressable::URI.parse(input).public_send(component)
+      )
+    end
+  end
+
+  it "keeps the clone unchanged when the original's strings change" do
+    copy = uri.clone
+    components.each { |component| uri.public_send(component) << "x" }
+    components.each do |component|
+      expect(copy.public_send(component)).to eq(
+        Addressable::URI.parse(input).public_send(component)
+      )
+    end
+  end
+
+  it "keeps the original's cached values unchanged" do
+    uri.normalize
+    uri.to_s
+    copy = uri.clone
+    copy.normalized_host << "x"
+    copy.to_s << "x"
+    expect(uri.normalized_host).to eq("a.example")
+    expect(uri.to_s).to eq(input)
+  end
+
+  it "shares no strings with the original" do
+    uri.freeze
+    copy = uri.clone
+    expect(strings(copy).size).to eq(strings(uri).size)
+    strings(copy).each do |string|
+      expect(strings(uri).none? { |original| original.equal?(string) }).to eq(true)
+    end
+  end
+
+  it "keeps a frozen original's strings frozen in the clone" do
+    uri.freeze
+    copy = uri.clone
+    expect(copy).to be_frozen
+    expect { copy.host << "x" }.to raise_error(
+      defined?(FrozenError) ? FrozenError : RuntimeError
+    )
+    expect(strings(copy)).to all(be_frozen)
+    expect(uri.host).to eq("a.example")
+  end
+
+  if RUBY_VERSION >= "3.0"
+    it "prepares a clone frozen from an unfrozen original" do
+      copy = uri.clone(freeze: true)
+      expect(copy).to be_frozen
+      expect(copy.normalized_host).to eq("a.example")
+      expect(copy.authority).to eq("u:p@a.example:8080")
+      expect(strings(copy)).to all(be_frozen)
+      expect(uri).not_to be_frozen
+      expect(strings(uri)).to all(satisfy { |string| !string.frozen? })
+    end
+
+    it "gives mutable strings to a clone that isn't frozen" do
+      copy = uri.freeze.clone(freeze: false)
+      expect(copy).not_to be_frozen
+      expect(strings(copy)).to all(satisfy { |string| !string.frozen? })
+    end
+  end
+
+  it "caches a mutable userinfo for a URI that isn't frozen" do
+    expect(uri.userinfo).not_to be_frozen
+    expect(Addressable::URI.parse("http://u@a.example/").userinfo).not_to(
+      be_frozen
+    )
+  end
+
+  it "gives mutable strings to a dup of a frozen original" do
+    copy = uri.freeze.dup
+    expect(copy).not_to be_frozen
+    expect(strings(copy)).to all(satisfy { |string| !string.frozen? })
+    copy.host = "b.example"
+    expect(copy.to_s).to eq("http://u:p@b.example:8080/p?q#f")
+  end
+
+  it "keeps the methods defined on the original" do
+    uri.define_singleton_method(:extra) { "extra" }
+    expect(uri.clone.extra).to eq("extra")
+  end
+end
+
 describe Addressable::URI, "support serialization roundtrip" do
   before do
     @uri = Addressable::URI.new(
@@ -6930,9 +8100,15 @@ describe Addressable::URI, "when initialized in a non-main `Ractor`" do
     pending("Ruby 3.0+ for `Ractor` support") unless defined?(Ractor)
     value_method = RUBY_VERSION >= "3.5.0" ? :value : :take # see https://github.com/ruby/ruby/pull/13445
     main = Addressable::URI.parse("http://example.com")
-    expect(
-      Ractor.new { Addressable::URI.parse("http://example.com") }.public_send(value_method)
-    ).to eq(main)
+    # Ruby warns that Ractor is experimental.
+    experimental = Warning[:experimental]
+    Warning[:experimental] = false
+    begin
+      ractor = Ractor.new { Addressable::URI.parse("http://example.com") }
+    ensure
+      Warning[:experimental] = experimental
+    end
+    expect(ractor.public_send(value_method)).to eq(main)
   end unless (TestHelper.is_mri? && TestHelper.is_windows?) # Since Ruby 4 this test made the Windows job time out
 end
 

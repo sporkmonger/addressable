@@ -1,19 +1,19 @@
 # -*- encoding: utf-8 -*-
-# stub: addressable 2.9.0 ruby lib
+# stub: addressable 2.9.2 ruby lib
 
 Gem::Specification.new do |s|
   s.name = "addressable".freeze
-  s.version = "2.9.0".freeze
+  s.version = "2.9.2".freeze
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0".freeze) if s.respond_to? :required_rubygems_version=
-  s.metadata = { "changelog_uri" => "https://github.com/sporkmonger/addressable/blob/main/CHANGELOG.md#v2.9.0" } if s.respond_to? :metadata=
+  s.metadata = { "changelog_uri" => "https://github.com/sporkmonger/addressable/blob/main/CHANGELOG.md#v2.9.2" } if s.respond_to? :metadata=
   s.require_paths = ["lib".freeze]
   s.authors = ["Bob Aman".freeze]
-  s.date = "2026-04-05"
+  s.date = "2026-11-01"
   s.description = "Addressable is an alternative implementation to the URI implementation that is\npart of Ruby's standard library. It is flexible, offers heuristic parsing, and\nadditionally provides extensive support for IRIs and URI templates.\n".freeze
   s.email = "bob@sporkmonger.com".freeze
   s.extra_rdoc_files = ["README.md".freeze]
-  s.files = ["CHANGELOG.md".freeze, "LICENSE.txt".freeze, "README.md".freeze, "lib/addressable.rb".freeze, "lib/addressable/idna.rb".freeze, "lib/addressable/idna/native.rb".freeze, "lib/addressable/idna/native2.rb".freeze, "lib/addressable/idna/pure.rb".freeze, "lib/addressable/template.rb".freeze, "lib/addressable/uri.rb".freeze, "lib/addressable/version.rb".freeze]
+  s.files = ["CHANGELOG.md".freeze, "LICENSE.txt".freeze, "README.md".freeze, "lib/addressable.rb".freeze, "lib/addressable/idna.rb".freeze, "lib/addressable/idna/core.rb".freeze, "lib/addressable/idna/libidn1.rb".freeze, "lib/addressable/idna/libidn2.rb".freeze, "lib/addressable/idna/native.rb".freeze, "lib/addressable/idna/pure.rb".freeze, "lib/addressable/template.rb".freeze, "lib/addressable/uri.rb".freeze, "lib/addressable/version.rb".freeze]
   s.homepage = "https://github.com/sporkmonger/addressable".freeze
   s.licenses = ["Apache-2.0".freeze]
   s.rdoc_options = ["--main".freeze, "README.md".freeze]
