@@ -400,6 +400,16 @@ module Addressable
     #   The <tt>match</tt> method has no effect on multivariate operator
     #   expansions.
     #
+    # Without a processor, each value is pct-decoded once. Reserved
+    # (<tt>{+var}</tt>) and fragment (<tt>{#var}</tt>) expansion keep a
+    # value's pct-encoded triplets (RFC 6570 section 3.2.3), so for those
+    # operators, expanding an extracted value can give a different URI:
+    # <tt>{+path}</tt> extracts <tt>a/b</tt> from <tt>a%2Fb</tt>, which
+    # expands to <tt>a/b</tt>, and a value pct-encoded twice comes back
+    # encoded once. With any processor, even one that only responds to
+    # <tt>match</tt>, values aren't decoded: each is given as it appears in
+    # the URI, after <tt>restore</tt> if the processor has it.
+    #
     # @return [Hash, NilClass]
     #   The <tt>Hash</tt> mapping that was extracted from the URI, or
     #   <tt>nil</tt> if the URI didn't match the template.
@@ -461,6 +471,16 @@ module Addressable
     #   matching on that particular variable. The default value is `".*?"`.
     #   The <tt>match</tt> method has no effect on multivariate operator
     #   expansions.
+    #
+    # Without a processor, each value is pct-decoded once. Reserved
+    # (<tt>{+var}</tt>) and fragment (<tt>{#var}</tt>) expansion keep a
+    # value's pct-encoded triplets (RFC 6570 section 3.2.3), so for those
+    # operators, expanding an extracted value can give a different URI:
+    # <tt>{+path}</tt> extracts <tt>a/b</tt> from <tt>a%2Fb</tt>, which
+    # expands to <tt>a/b</tt>, and a value pct-encoded twice comes back
+    # encoded once. With any processor, even one that only responds to
+    # <tt>match</tt>, values aren't decoded: each is given as it appears in
+    # the URI, after <tt>restore</tt> if the processor has it.
     #
     # @return [Hash, NilClass]
     #   The <tt>Hash</tt> mapping that was extracted from the URI, or

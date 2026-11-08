@@ -134,7 +134,8 @@
   expansion, as RFC 6570 says: e.g. `{+id}` with `admin%2F` expands to
   `admin%2F`, not `admin%252F`; a `%` that doesn't start a triplet is still
   encoded as `%25`, and a prefix modifier counts a triplet as one character;
-  `#extract` decodes the triplet, so it gives `admin/` for that expansion
+  `#extract` still decodes each value once, so it gives `admin/` for that
+  expansion, and expanding `admin/` gives `admin/`, a different URI
 - `Addressable::Template#expand` and `#partial_expand` now raise
   `Addressable::Template::InvalidTemplateError`, naming the expression and
   its position, for a template that doesn't match the RFC 6570 grammar, as

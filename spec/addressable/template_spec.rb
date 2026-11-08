@@ -533,6 +533,7 @@ describe "Level 4" do
   context "Expansion with value modifiers" do
     it_behaves_like 'expands', {
       '{var:3}' => 'val',
+      '{var:20}' => 'value', # RFC 6570 section 2.4.1
       '{var:30}' => 'value',
       '{list}' => 'red,green,blue',
       '{list*}' => 'red,green,blue',
@@ -2561,5 +2562,100 @@ describe Addressable::Template, "with a number sign after the fragment starts" d
     template = Addressable::Template.new("/{var}#x")
     expect(template.extract("/v%23x")).to be_nil
     expect(template.extract("/v#x")).to eq("var" => "v")
+  end
+end
+
+describe Addressable::Template, "with values pct-encoded at several levels" do
+  # Each value is followed by what extraction gives back from its expansion
+  # in reserved and fragment expansion: the text of the URI, pct-decoded
+  # once, since those operators keep a value's pct-encoded triplets.
+  reserved = {
+    "a/b" => "a/b",
+    "a%2Fb" => "a/b",
+    "a%252Fb" => "a%2Fb",
+    "a%25252Fb" => "a%252Fb",
+    "%" => "%",
+    "%25" => "%",
+    "%2525" => "%25",
+    "%41" => "A",
+    "%2541" => "%41",
+    "%252541" => "%2541",
+    "a%20b" => "a b",
+    "a%2520b" => "a%20b",
+    "caf%C3%A9" => "café",
+    "caf%25C3%25A9" => "caf%C3%A9",
+    "%25%2F" => "%/",
+    "%2F%252F" => "/%2F",
+    "a#b" => "a#b",
+    "a%23b" => "a#b",
+    "%3Ab" => ":b",
+    "%253Ab" => "%3Ab"
+  }
+
+  ["/x{var}", "/x{/var}", "/x{.var}", "/x{;var}", "/x{?var}",
+    "/x?y=1{&var}"].each do |pattern|
+    context "with #{pattern}" do
+      subject { Addressable::Template.new(pattern) }
+
+      reserved.keys.each do |value|
+        it "gives #{value.inspect} back and keeps the URI over three cycles" do
+          uri = subject.expand("var" => value).to_s
+          expect(subject.extract(uri)).to eq("var" => value)
+          3.times do
+            uri_again = subject.expand(subject.extract(uri)).to_s
+            expect(uri_again).to eq(uri)
+            uri = uri_again
+          end
+        end
+      end
+    end
+  end
+
+  ["/x{+var}", "/x{#var}"].each do |pattern|
+    context "with #{pattern}" do
+      subject { Addressable::Template.new(pattern) }
+
+      reserved.each do |value, extracted|
+        it "gives #{extracted.inspect} for #{value.inspect}" do
+          uri = subject.expand("var" => value).to_s
+          expect(subject.extract(uri)).to eq("var" => extracted)
+        end
+      end
+    end
+  end
+
+  it "can give a different URI when a reserved expansion is expanded again" do
+    template = Addressable::Template.new("/files/{+path}")
+    extracted = template.extract("/files/a%2Fb")
+    expect(extracted).to eq("path" => "a/b")
+    expect(template.expand(extracted).to_s).to eq("/files/a/b")
+    expect(template.extract("/files/a%252Fb")).to eq("path" => "a%2Fb")
+    expect(template.expand("path" => "a%2Fb").to_s).to eq("/files/a%2Fb")
+  end
+
+  it "doesn't decode values when a processor only responds to match" do
+    processor = Class.new do
+      def self.match(_name)
+        ".*?"
+      end
+    end
+    template = Addressable::Template.new("/search/{q}")
+    uri = "/search/caf%C3%A9%20au%20lait"
+    expect(template.extract(uri)).to eq("q" => "caf\u00E9 au lait")
+    expect(template.extract(uri, processor)).to eq(
+      "q" => "caf%C3%A9%20au%20lait"
+    )
+  end
+
+  it "gives a processor each value as it appears in the URI" do
+    processor = Class.new do
+      def self.restore(_name, value)
+        value
+      end
+    end
+    template = Addressable::Template.new("/files/{+path}{?q}")
+    expect(template.extract("/files/a%2Fb%252F?q=c%20d", processor)).to eq(
+      "path" => "a%2Fb%252F", "q" => "c%20d"
+    )
   end
 end
