@@ -159,9 +159,9 @@
   `#match`, `#extract`, `#to_regexp` and `#freeze` raising `RegexpError` for
   a variable name that starts with a digit, such as `{42}`, which RFC 6570
   allows; `#to_regexp` names that variable's group with a leading `.`, or
-  `__42__` on Ruby 2.3 and earlier, which only allow word characters in a
-  group name, so a variable name with `.` or a pct-encoded triplet still
-  raises there
+  `__42__` on Ruby 2.3 and earlier, which only allow a letter or `_` as the
+  first character of a group name; there, a name that starts with a
+  pct-encoded triplet, such as `{%41}`, gets a group like `__%41__` too
 - `Addressable::Template#match` and `#extract` now accept non-ASCII text
   in a URI either as written or pct-encoded as UTF-8: e.g. `/{var}` extracts
   `café` from both `/caf%C3%A9` and `/café`, which didn't match before; a

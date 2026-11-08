@@ -2663,8 +2663,8 @@ end
 describe Addressable::Template, "with a name that starts with a digit" do
   # RFC 6570 section 2.3 allows a digit as the first character of a name,
   # which a Ruby regular expression group name can't start with. Ruby 2.3
-  # and earlier only allow word characters in a group name at all.
-  dot_allowed = Addressable::Template.const_get(:GROUP_NAME_ALLOWS_DOT)
+  # and earlier only allow a letter or "_" as its first character.
+  dot_allowed = Addressable::Template.const_get(:GROUP_NAME_CAN_START_WITH_DOT)
   group = lambda { |name| dot_allowed ? ".#{name}" : "__#{name}__" }
 
   {
@@ -2673,8 +2673,6 @@ describe Addressable::Template, "with a name that starts with a digit" do
     "/{1x.y}" => [{"1x.y" => "x"}, "/x"],
     "/{42}{?q}" => [{"42" => "x", "q" => "y"}, "/x?q=y"]
   }.each do |pattern, (mapping, uri)|
-    next if pattern.include?(".") && !dot_allowed
-
     context "in #{pattern}" do
       subject { Addressable::Template.new(pattern) }
 
@@ -2714,5 +2712,47 @@ describe Addressable::Template, "with a name that starts with a digit" do
     match = template.to_regexp.match("/a/b")
     expect(match[group.call("42")]).to eq("a")
     expect(match["_42"]).to eq("b")
+  end
+end
+
+describe Addressable::Template, "with a name that has a dot or a triplet" do
+  # RFC 6570 section 2.3 allows "." between characters of a variable name
+  # and pct-encoded triplets in it. Ruby 2.3 and earlier only allow a letter
+  # or "_" as the first character of a group name, so there a name that
+  # starts with a triplet has its group wrapped in "__".
+  dot_allowed = Addressable::Template.const_get(:GROUP_NAME_CAN_START_WITH_DOT)
+  group = lambda do |name|
+    dot_allowed || name =~ /\A[A-Za-z_]/ ? name : "__#{name}__"
+  end
+
+  {
+    "/{a.b}" => [{"a.b" => "x"}, "/x"],
+    "/{a%20b}" => [{"a%20b" => "x"}, "/x"],
+    "/{x.y}/{%41}{?q}" => [{"x.y" => "x", "%41" => "y", "q" => "z"}, "/x/y?q=z"]
+  }.each do |pattern, (mapping, uri)|
+    context "in #{pattern}" do
+      subject { Addressable::Template.new(pattern) }
+
+      it "lists its variables" do
+        expect(subject.variables).to eq(mapping.keys)
+        expect(subject.keys).to eq(mapping.keys)
+        expect(subject.variable_defaults).to eq({})
+      end
+
+      it "extracts and matches its expansion" do
+        expect(subject.expand(mapping).to_s).to eq(uri)
+        expect(subject.extract(uri)).to eq(mapping)
+        expect(subject.match(uri).mapping).to eq(mapping)
+      end
+
+      it "names its regular expression groups after the variables" do
+        expect(subject.to_regexp.names).to eq(mapping.keys.map(&group))
+        expect(subject.named_captures.keys).to eq(mapping.keys)
+      end
+
+      it "can be frozen" do
+        expect(subject.freeze).to be_frozen
+      end
+    end
   end
 end
