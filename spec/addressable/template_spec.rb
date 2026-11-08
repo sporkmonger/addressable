@@ -2903,6 +2903,14 @@ describe Addressable::Template, "extracting an exploded named list" do
     end
   end
 
+  it "compares each key with the variable's name as written" do
+    template = Addressable::Template.new("{?a*}")
+    expect(template.extract("?%61=x")).to eq("a" => {"a" => "x"})
+    expect(template.extract("?a=x&%61=y")).to eq("a" => {"a" => "y"})
+    template = Addressable::Template.new("{?a%20b*}")
+    expect(template.extract("?a%20b=x&a%20b=y")).to eq("a%20b" => ["x", "y"])
+  end
+
   it "keeps a value's \"=\" in an exploded list or associative array" do
     expect(Addressable::Template.new("{?a*}").extract("?a=x=y&a=z")).to eq(
       "a" => ["x=y", "z"]

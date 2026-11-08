@@ -166,7 +166,7 @@
 - `Addressable::Template#extract` and `#match` now give an exploded list in
   `;`, `?` or `&` expansion as a list: e.g. `{?a*}` on `?a=x&a=y` gives
   `["x", "y"]`, not `{"a" => "y"}`; pairs that all repeat the variable's
-  name are a list, even a single pair (`?a=x` gives `["x"]`, not
+  name, as written, are a list, even a single pair (`?a=x` gives `["x"]`, not
   `{"a" => "x"}`), and other pairs are still an associative array; each
   value also keeps everything after its first `=`, so `?a=x=y` gives
   `["x=y"]`, not `{"a" => "x"}`; a processor's `restore` method gets the

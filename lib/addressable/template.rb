@@ -420,6 +420,12 @@ module Addressable
     # <tt>match</tt>, values aren't decoded: each is given as it appears in
     # the URI, after <tt>restore</tt> if the processor has it.
     #
+    # An exploded <tt>;</tt>, <tt>?</tt> or <tt>&</tt> value whose pairs all
+    # have the variable's name as their key is a list; other pairs are an
+    # associative array. The key is compared with the name as written, so
+    # <tt>{?a*}</tt> reads <tt>?%61=x</tt> as the pair <tt>%61</tt>, decoded
+    # to <tt>a</tt>, not as a list.
+    #
     # @return [Hash, NilClass]
     #   The <tt>Hash</tt> mapping that was extracted from the URI, or
     #   <tt>nil</tt> if the URI didn't match the template.
@@ -491,6 +497,12 @@ module Addressable
     # encoded once. With any processor, even one that only responds to
     # <tt>match</tt>, values aren't decoded: each is given as it appears in
     # the URI, after <tt>restore</tt> if the processor has it.
+    #
+    # An exploded <tt>;</tt>, <tt>?</tt> or <tt>&</tt> value whose pairs all
+    # have the variable's name as their key is a list; other pairs are an
+    # associative array. The key is compared with the name as written, so
+    # <tt>{?a*}</tt> reads <tt>?%61=x</tt> as the pair <tt>%61</tt>, decoded
+    # to <tt>a</tt>, not as a list.
     #
     # @return [Hash, NilClass]
     #   The <tt>Hash</tt> mapping that was extracted from the URI, or
