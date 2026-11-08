@@ -579,12 +579,20 @@ module Addressable
             when ';', '?', '&'
               if modifier == '*'
                 if unparsed_values[index]
-                  value = unparsed_values[index].split(JOINERS[operator])
-                  value = value.inject({}) do |acc, v|
-                    key, val = v.split('=')
-                    val = "" if val.nil?
-                    acc[key] = val
-                    acc
+                  pairs = unparsed_values[index].split(JOINERS[operator])
+                  pairs = pairs.map do |pair|
+                    key, val = pair.split('=', 2)
+                    [key, val || ""]
+                  end
+                  # An exploded list repeats the variable's name, where an
+                  # associative array uses its own keys.
+                  if !pairs.empty? && pairs.all? { |key, _| key == name }
+                    value = pairs.map { |_, val| val }
+                  else
+                    value = pairs.inject({}) do |acc, (key, val)|
+                      acc[key] = val
+                      acc
+                    end
                   end
                 end
               else

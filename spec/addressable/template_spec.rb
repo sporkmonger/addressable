@@ -2872,3 +2872,46 @@ describe Addressable::Template, "with text that isn't valid UTF-8" do
     )
   end
 end
+
+describe Addressable::Template, "extracting an exploded named list" do
+  # An exploded list in ;, ? or & expansion repeats the variable's name,
+  # where an associative array uses its own keys (RFC 6570 section 3.2.1).
+  {
+    ["{?a*}", "?a=x&a=y"] => {"a" => ["x", "y"]},
+    ["{?a*}", "?a=x&a=y&a=z"] => {"a" => ["x", "y", "z"]},
+    ["{?a*}", "?a=x"] => {"a" => ["x"]},
+    ["{&a*}", "&a=x&a=y"] => {"a" => ["x", "y"]},
+    ["{;a*}", ";a=x;a=y"] => {"a" => ["x", "y"]},
+    ["{;a*}", ";a;a=y"] => {"a" => ["", "y"]},
+    ["{?a*}", "?a=x%20y&a=c%26d"] => {"a" => ["x y", "c&d"]},
+    ["/p{?q,a*}", "/p?q=1&a=x&a=y"] => {"q" => "1", "a" => ["x", "y"]}
+  }.each do |(pattern, uri), mapping|
+    it "extracts #{mapping.inspect} from #{uri} with #{pattern}" do
+      template = Addressable::Template.new(pattern)
+      expect(template.extract(uri)).to eq(mapping)
+      # {;a*} expands an empty member as ";a=", where RFC 6570 section 3.2.7
+      # gives ";a", so that URI isn't checked for expanding to the same URI.
+      next if uri.include?(";a;")
+      expect(template.expand(mapping).to_s).to eq(uri)
+    end
+  end
+
+  {
+    ["{?a*}", "?k=v&l=w"] => {"a" => {"k" => "v", "l" => "w"}},
+    ["{?a*}", "?a=1&b=2"] => {"a" => {"a" => "1", "b" => "2"}},
+    ["{;a*}", ";k=v;l=w"] => {"a" => {"k" => "v", "l" => "w"}}
+  }.each do |(pattern, uri), mapping|
+    it "still extracts an associative array #{mapping.inspect} from #{uri}" do
+      expect(Addressable::Template.new(pattern).extract(uri)).to eq(mapping)
+    end
+  end
+
+  it "keeps a value's \"=\" in an exploded list or associative array" do
+    expect(Addressable::Template.new("{?a*}").extract("?a=x=y&a=z")).to eq(
+      "a" => ["x=y", "z"]
+    )
+    expect(Addressable::Template.new("{?a*}").extract("?k=x=y")).to eq(
+      "a" => {"k" => "x=y"}
+    )
+  end
+end
