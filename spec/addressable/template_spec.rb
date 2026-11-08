@@ -2659,3 +2659,37 @@ describe Addressable::Template, "with values pct-encoded at several levels" do
     )
   end
 end
+
+describe Addressable::Template, "with a name that has a dot or a triplet" do
+  # RFC 6570 section 2.3 allows "." between characters of a variable name
+  # and pct-encoded triplets in it.
+  {
+    "/{a.b}" => [{"a.b" => "x"}, "/x"],
+    "/{a%20b}" => [{"a%20b" => "x"}, "/x"],
+    "/{x.y}/{%41}{?q}" => [{"x.y" => "x", "%41" => "y", "q" => "z"}, "/x/y?q=z"]
+  }.each do |pattern, (mapping, uri)|
+    context "in #{pattern}" do
+      subject { Addressable::Template.new(pattern) }
+
+      it "lists its variables" do
+        expect(subject.variables).to eq(mapping.keys)
+        expect(subject.keys).to eq(mapping.keys)
+        expect(subject.variable_defaults).to eq({})
+      end
+
+      it "extracts and matches its expansion" do
+        expect(subject.expand(mapping).to_s).to eq(uri)
+        expect(subject.extract(uri)).to eq(mapping)
+        expect(subject.match(uri).mapping).to eq(mapping)
+      end
+
+      it "names its regular expression groups after the variables" do
+        expect(subject.to_regexp.names).to eq(mapping.keys)
+      end
+
+      it "can be frozen" do
+        expect(subject.freeze).to be_frozen
+      end
+    end
+  end
+end
