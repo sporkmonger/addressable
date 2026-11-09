@@ -718,14 +718,14 @@ module Addressable
     #   #=> "http://example.com/1/{two}/"
     #
     #   Addressable::Template.new(
-    #     "http://example.com/{?one,two}/"
+    #     "http://example.com/{?one,two}"
     #   ).partial_expand({"one" => "1"}).pattern
-    #   #=> "http://example.com/?one=1{&two}/"
+    #   #=> "http://example.com/?one=1{&two}"
     #
     #   Addressable::Template.new(
-    #     "http://example.com/{?one,two,three}/"
+    #     "http://example.com/{?one,two,three}"
     #   ).partial_expand({"one" => "1", "three" => 3}).pattern
-    #   #=> "http://example.com/?one=1{&two}&three=3/"
+    #   #=> "http://example.com/?one=1{&two}&three=3"
     #
     #   values = {"one" => "1"}
     #   Addressable::Template.new(
