@@ -678,6 +678,28 @@ module Addressable
     # encoded automatically. Unicode normalization will be performed both
     # before and after sending the value to the transform method.
     #
+    # RFC 6570 doesn't define partial expansion, and it can't always give
+    # the same result as expanding every variable at once:
+    #
+    # * In an expression with several variables whose values are joined
+    #   with "," (<tt>{x,y}</tt>, <tt>{+x,y}</tt> and <tt>{#x,y}</tt>), there's
+    #   no way to write a "," that appears only if a missing variable is
+    #   later defined. The partial result assumes that missing variables
+    #   stay undefined: <tt>{x,y}</tt> with only <tt>x</tt> gives
+    #   <tt>1{y}</tt>, so expanding <tt>y</tt> later gives <tt>12</tt>, not
+    #   <tt>1,2</tt>.
+    # * In a form-style query (<tt>{?x,y}</tt>), the given variables come
+    #   first, so that the query still starts with "?" if a missing variable
+    #   is never given: <tt>{?x,y}</tt> with only <tt>y</tt> gives
+    #   <tt>?y=2{&x}</tt>. The query has the same pairs, in another order.
+    #
+    # The result is a template, not a URI, so <tt>#pattern</tt> can differ
+    # from <tt>#expand</tt> even when every variable is given: literals stay
+    # as written, rather than pct-encoded, and a "#" after the one that
+    # starts the fragment isn't encoded until the template is expanded. A
+    # missing variable's expression stays in the template, where
+    # <tt>#expand</tt> leaves it out.
+    #
     # @yield [name] Looks up a variable, when no mapping is given.
     # @yieldparam [String] name The variable's name.
     # @yieldreturn [Object] The variable's value, or <tt>nil</tt> if it's
@@ -696,12 +718,12 @@ module Addressable
     #   #=> "http://example.com/1/{two}/"
     #
     #   Addressable::Template.new(
-    #     "http://example.com/{?one,two}/"
+    #     "http://example.com/{?one,two}"
     #   ).partial_expand({"one" => "1"}).pattern
-    #   #=> "http://example.com/?one=1{&two}/"
+    #   #=> "http://example.com/?one=1{&two}"
     #
     #   Addressable::Template.new(
-    #     "http://example.com/{?one,two,three}/"
+    #     "http://example.com/{?one,two,three}"
     #   ).partial_expand({"one" => "1", "three" => 3}).pattern
     #   #=> "http://example.com/?one=1{&two}&three=3"
     #
@@ -976,11 +998,10 @@ module Addressable
         vars = [first_to_expand] + vars.reject {|varspec| varspec == first_to_expand}  if first_to_expand
       end
 
-      # An undefined variable adds nothing to a query, so it mustn't split the
-      # missing variables around it into expressions with "?" and "&".
-      if %w(? &).include?(operator)
-        vars = vars.select { |v| !given.call(v) || defined.call(v) }
-      end
+      # An undefined variable adds nothing, so it mustn't split the missing
+      # variables around it into separate expressions, which would lose the
+      # separator between them or repeat the operator's prefix.
+      vars = vars.select { |v| !given.call(v) || defined.call(v) }
 
       # Consecutive variables that are all given, or all missing, stay in one
       # expression, so that their separator is kept.
@@ -1027,8 +1048,13 @@ module Addressable
     def transform_partial_comma_runs(mapping, operator, runs, defined,
                                      processor, normalize_values)
       started = false
-      runs.inject("".dup) do |acc, (is_given, run)|
-        run_operator = started && operator == "#" ? "+" : operator
+      # Once a given variable is defined, a fragment expression's "#" is
+      # certain, so it comes first, and every run uses reserved expansion.
+      fragment = operator == "#" &&
+        runs.any? { |is_given, run| is_given && run.any?(&defined) }
+      result = fragment ? "#".dup : "".dup
+      runs.inject(result) do |acc, (is_given, run)|
+        run_operator = (started || fragment) && operator == "#" ? "+" : operator
         expression = "{#{run_operator}#{run.join(',')}}"
         if is_given
           # An empty string is defined, so it still takes a separator.
