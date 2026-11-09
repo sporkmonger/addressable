@@ -81,7 +81,9 @@
   `1,2`, not `12`, and `{#a,b}` becomes `#1,2`, not `#1#2`; variables that
   aren't given stay together in one expression, so `{?a,b,c}` with `b` set
   to `nil` becomes `{?a,c}`, not `{?a}{&c}`, which expanded to `&c=3` with
-  no `?`; for a `{a,b}`, `{+a,b}` or `{#a,b}` expression with only some of
+  no `?`, and `{a,b,c}` becomes `{a,c}`, not `{a}{c}`; a `{#a,b}`
+  expression with `b` given becomes `#{+a}2`, not `{#a}#2`, so the `#`
+  appears once; for a `{a,b}`, `{+a,b}` or `{#a,b}` expression with only some of
   its variables given, the result matches `#expand` if the missing
   variables end up undefined, but has one comma too few for each that's
   defined, since RFC 6570 has no expression for a comma that depends on a

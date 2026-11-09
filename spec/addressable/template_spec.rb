@@ -1661,7 +1661,7 @@ describe Addressable::Template do
         ["{one,two,three}", {two: "2", three: "3"}] => "{one}2,3",
         ["{+one,two,three}", {one: "1", three: "3"}] => "1{+two},3",
         ["{#one,two}", {one: "1"}] => "#1{+two}",
-        ["{#one,two}", {two: "2"}] => "{#one}#2"
+        ["{#one,two}", {two: "2"}] => '#{+one}2'
       }.each do |(pattern, mapping), expected|
         it "keeps the separator between given values in #{pattern}" do
           template = Addressable::Template.new(pattern)
@@ -2978,5 +2978,56 @@ describe Addressable::Template, "expanding a list with one empty member" do
   it "expands it the same way when partially expanding" do
     template = Addressable::Template.new("{;a}{?b}")
     expect(template.partial_expand("a" => [""]).pattern).to eq(";a={?b}")
+  end
+end
+
+describe Addressable::Template, "partially expanding a fragment expression" do
+  full = {"x" => "1", "hello" => "H", "y" => "2"}
+
+  # Once a given variable is defined, the expression's "#" is certain, so it
+  # comes first, once, and the missing variables continue with reserved
+  # expansion.
+  {
+    {"hello" => "H"} => '#{+x}H{+y}',
+    {"hello" => "H", "y" => "2"} => '#{+x}H,2',
+    {"y" => "2"} => '#{+x,hello}2',
+    {"x" => "1"} => '#1{+hello,y}',
+    {"hello" => ""} => '#{+x}{+y}'
+  }.each do |given, pattern|
+    it "gives #{pattern} for {#x,hello,y} with #{given.inspect}" do
+      template = Addressable::Template.new("{#x,hello,y}")
+      partial = template.partial_expand(given)
+      expect(partial.pattern).to eq(pattern)
+      expect(partial.expand({}).to_s).to eq(template.expand(given).to_s)
+      rest = full.reject { |name, _| given.key?(name) }
+      expect(partial.expand(rest).to_s.count("#")).to eq(1)
+      expect(partial.expand(rest).to_s).not_to include("%23")
+    end
+  end
+
+  it "keeps the missing variables around an undefined one together" do
+    template = Addressable::Template.new("{#x,hello,y}")
+    partial = template.partial_expand("hello" => nil)
+    expect(partial.pattern).to eq("{#x,y}")
+    expect(partial.expand("x" => "1", "y" => "2").to_s).to eq("#1,2")
+    expect(partial.expand({}).to_s).to eq("")
+  end
+end
+
+describe Addressable::Template, "partially expanding around an undefined variable" do
+  # An undefined variable adds nothing, so the missing variables on either
+  # side of it stay in one expression and keep their separator.
+  {
+    "{x,hello,y}" => ["{x,y}", "1,2"],
+    "{+x,hello,y}" => ["{+x,y}", "1,2"],
+    "{/x,hello,y}" => ["{/x,y}", "/1/2"],
+    "{.x,hello,y}" => ["{.x,y}", ".1.2"],
+    "{;x,hello,y}" => ["{;x,y}", ";x=1;y=2"]
+  }.each do |pattern, (partial_pattern, expanded)|
+    it "gives #{partial_pattern} for #{pattern} with hello undefined" do
+      partial = Addressable::Template.new(pattern).partial_expand("hello" => nil)
+      expect(partial.pattern).to eq(partial_pattern)
+      expect(partial.expand("x" => "1", "y" => "2").to_s).to eq(expanded)
+    end
   end
 end
