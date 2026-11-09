@@ -76,9 +76,26 @@ if defined?(Warning) && Warning.respond_to?(:warn)
   Warning.extend(StrictWarnings)
 end
 
+# Uses an IDNA backend for each example of a group, and restores the
+# previous one after it, so the other specs run with the default backend.
+module IDNABackendHelper
+  def use_idna_backend(backend)
+    around do |example|
+      previous = Addressable::IDNA.backend
+      begin
+        Addressable::IDNA.backend = backend
+        example.run
+      ensure
+        Addressable::IDNA.backend = previous
+      end
+    end
+  end
+end
+
 RSpec.configure do |config|
   config.warnings = true
   config.filter_run_when_matching :focus
+  config.extend IDNABackendHelper
 
   config.after(:suite) do
     unless StrictWarnings.warnings.empty?

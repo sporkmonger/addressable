@@ -16,9 +16,10 @@
 #    limitations under the License.
 #++
 
+require "addressable/idna/core"
 
-module Addressable
-  module IDNA
+module Addressable::IDNA
+  module Pure
     # This module is loosely based on idn_actionmailer by Mick Staugaard,
     # the unicode library by Yoshida Masato, and the punycode implementation
     # by Kazuhiro Nishiyama.  Most of the code was copied verbatim, but
@@ -85,14 +86,6 @@ module Addressable
       # U+200D, U+2060 and U+FEFF are in C.2.2)
       "\u00AD\u034F\u1806\u180B-\u180D\uFE00-\uFE0F"
     ].join + "]")
-
-    # Characters that change how a label displays without being visible
-    # themselves: controls, format characters such as bidi overrides and
-    # isolates, and default ignorable code points, including those added to
-    # Unicode after the version nameprep is based on. Format characters that
-    # are also default ignorable are left out of the second set, since Ruby
-    # warns about a duplicated range in a character class.
-    DISPLAY_CHANGING = /[\p{Cc}\p{Cf}[\p{Default_Ignorable_Code_Point}&&\P{Cf}]]/
 
     # :startdoc:
 
@@ -4460,13 +4453,6 @@ module Addressable
       "PQRSTUVWXYZ[\\]^_" +
       "`abcdefghijklmno" +
       "pqrstuvwxyz{|}~\n"
-
-    # Input is invalid.
-    class PunycodeBadInput < StandardError; end
-    # Output would exceed the space provided.
-    class PunycodeBigOutput < StandardError; end
-    # Input needs wider integers to process.
-    class PunycodeOverflow < StandardError; end
 
     def self.punycode_encode(unicode)
       unicode = unicode.to_s unless unicode.is_a?(String)

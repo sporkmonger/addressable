@@ -94,13 +94,54 @@ template.extract(uri)
 $ gem install addressable
 ```
 
-You may optionally turn on native IDN support by installing libidn and the
-idn gem:
+## IDNA support (unicode hostnames)
+
+Addressable converts internationalized hostnames (e.g. `bücher.example`) to
+ASCII (`xn--bcher-kva.example`) and back, using one of these backends:
+
+| Backend | Standard | Requires | Used |
+|---|---|---|---|
+| `Addressable::IDNA::Libidn1` | IDNA2003 | `libidn` and the `idn-ruby` gem | by default, when available |
+| `Addressable::IDNA::Pure` | IDNA2003, with some IDNA2008 behavior ([#491](https://github.com/sporkmonger/addressable/issues/491)) | nothing | by default, otherwise |
+| `Addressable::IDNA::Libidn2` | IDNA2008 + UTS#46 | `libidn2` (through `ffi`) | only when selected |
+
+`libidn2` is planned to become the default in the next major version.
+
+To install `libidn2` (usually already installed on Linux and macOS):
+
+```console
+$ sudo apt-get install libidn2-0 # Debian/Ubuntu
+$ brew install libidn2 # macOS
+```
+
+To install `libidn` and the `idn-ruby` gem (also add it to your Gemfile):
 
 ```console
 $ sudo apt-get install libidn11-dev # Debian/Ubuntu
-$ brew install libidn # OS X
+$ brew install libidn # macOS
 $ gem install idn-ruby
+```
+
+To select a backend, require it and assign it, after requiring Addressable:
+
+```ruby
+require "addressable/idna/libidn2"
+Addressable::IDNA.backend = Addressable::IDNA::Libidn2
+
+Addressable::IDNA.backend # => Addressable::IDNA::Libidn2
+```
+
+By default, a hostname label that can't be converted is kept unchanged. You
+can turn on the strict mode to raise an error instead: `Addressable::IDNA`
+methods raise `Addressable::IDNA::Error`, and `Addressable::URI` methods raise
+`Addressable::URI::InvalidURIError`, with the IDNA error as its `cause`. How
+strict this is depends on the backend: `libidn2` rejects more hostnames than
+`libidn1`, and the pure Ruby backend rejects only the longest labels.
+
+```ruby
+Addressable::IDNA.strict_mode = true # default: false
+Addressable::URI.parse("http://xn--zckp1cyg1.sblo.jp/").display_uri
+# => Addressable::URI::InvalidURIError (with libidn2)
 ```
 
 ## Semantic Versioning

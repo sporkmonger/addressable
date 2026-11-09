@@ -16,11 +16,14 @@
 #    limitations under the License.
 #++
 
+require "addressable/idna/core"
 
 begin
-  require "addressable/idna/native"
+  require "addressable/idna/libidn1"
+  Addressable::IDNA.backend = Addressable::IDNA::Libidn1
 rescue LoadError
   # libidn or the idn gem was not available, fall back on a pure-Ruby
   # implementation...
   require "addressable/idna/pure"
+  Addressable::IDNA.backend = Addressable::IDNA::Pure
 end

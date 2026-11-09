@@ -219,6 +219,39 @@
   `#partial_expand` raise `InvalidTemplateError` where `{var:10000}` used to
   expand to the whole value, and `#match` reads them as literal text; a
   length too large for a machine integer no longer raises `RangeError` (#618)
+- adds an IDNA backend using libidn2 through `ffi`, which follows IDNA2008
+  and UTS #46: e.g. `faß.de` converts to `xn--fa-hia.de` rather than
+  `fass.de`; it isn't used by default, and can be selected with
+  `require "addressable/idna/libidn2"` and
+  `Addressable::IDNA.backend = Addressable::IDNA::Libidn2`; `ffi` is now a
+  dependency (#496)
+- IDNA backends are now the modules `Addressable::IDNA::Libidn1`,
+  `Addressable::IDNA::Pure` and `Addressable::IDNA::Libidn2`, and
+  `Addressable::IDNA.backend` selects which one `Addressable::IDNA.to_ascii`
+  and `.to_unicode` use; their other methods and constants, such as
+  `punycode_encode`, are no longer on `Addressable::IDNA`; requiring
+  `addressable/idna/native` still selects libidn1, with a deprecation
+  warning (#496)
+- adds `Addressable::IDNA.strict_mode`, `false` by default: when `true`, a
+  hostname label that can't be converted raises `Addressable::IDNA::Error`
+  from `Addressable::IDNA`, and `Addressable::URI::InvalidURIError` with the
+  IDNA error as its `cause` from `Addressable::URI`, rather than being kept
+  unchanged; which labels are rejected depends on the backend: libidn2
+  rejects the most (#496)
+- `Addressable::IDNA::PunycodeBadInput`, `PunycodeBigOutput` and
+  `PunycodeOverflow` now inherit from the new `Addressable::IDNA::Error`
+  rather than `StandardError` (#496)
+- the pure-Ruby `Addressable::IDNA.to_ascii` no longer raises
+  `PunycodeBigOutput` for a label too long to encode, nor
+  `Addressable::URI#normalized_host` for such a host; the label is kept
+  unchanged, as with libidn, unless `Addressable::IDNA.strict_mode` is on
+  (#496)
+- the libidn1 `Addressable::IDNA.to_ascii` no longer raises
+  `IDN::Idna::IdnaError` for a label libidn can't convert, nor
+  `Addressable::URI#normalized_host` for such a host: e.g. `bücher.\u{E000}.de`
+  gives `xn--bcher-kva.\u{E000}.de`; the label is kept unchanged and the
+  others are still converted, unless `Addressable::IDNA.strict_mode` is on
+  (#496)
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 - fixes `Addressable::URI` returning stale values after a component was
