@@ -4451,16 +4451,6 @@ module Addressable
 
     PUNYCODE_MAXINT = 1 << 64
 
-    PUNYCODE_PRINT_ASCII =
-      "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" +
-      "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" +
-      " !\"\#$%&'()*+,-./" +
-      "0123456789:;<=>?" +
-      "@ABCDEFGHIJKLMNO" +
-      "PQRSTUVWXYZ[\\]^_" +
-      "`abcdefghijklmno" +
-      "pqrstuvwxyz{|}~\n"
-
     # Input is invalid.
     class PunycodeBadInput < StandardError; end
     # Output would exceed the space provided.
