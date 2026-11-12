@@ -665,11 +665,14 @@ describe "Modifiers" do
       expect(Addressable::Template.new("/x{var:9999}").variables).to eq(["var"])
     end
 
-    it "matches the expression as literal text" do
-      template = Addressable::Template.new("/x{var:0}/{semi}")
-      expect(template.extract("/x{var:0}/a")).to eq("semi" => "a")
-      expect(template.extract("/x%7Bvar:0%7D/a")).to eq(nil)
-      expect(template.extract("/x/a")).to eq(nil)
+    it "raises when matching" do
+      ["/x{var:0}/{semi}", "/x{var:10000}/{semi}"].each do |pattern|
+        template = Addressable::Template.new(pattern)
+        expect { template.extract("/x/a") }.to raise_error(
+          Addressable::Template::InvalidTemplateError,
+          /Invalid template expression "\{var:\d+\}" at position 2/
+        )
+      end
     end
   end
   context "explode" do
@@ -859,13 +862,20 @@ describe "Expansion" do
       expect(template.extract("/50%25off/value")).to eq(nil)
     end
 
-    it "matches braces that don't start an expression as they are" do
-      template = Addressable::Template.new("x{a.*}/{var}")
-      expect(template.extract("x{a.*}/value")).to eq("var" => "value")
-      expect(template.extract("x%7Ba.*%7D/value")).to eq(nil)
-      expect(template.extract("x{aZZZ}/value")).to eq(nil)
-      template = Addressable::Template.new("x{a(}/{var}")
-      expect(template.extract("x{a(}/value")).to eq("var" => "value")
+    it "raises when matching braces that don't start an expression" do
+      ["x{a.*}/{var}", "x{a(}/{var}"].each do |pattern|
+        template = Addressable::Template.new(pattern)
+        expect { template.extract("x{a.*}/value") }.to raise_error(
+          Addressable::Template::InvalidTemplateError,
+          /Invalid template expression "\{a[.(]\*?\}" at position 1/
+        )
+      end
+    end
+
+    it "matches encoded braces as literal text" do
+      template = Addressable::Template.new("x%7Ba%7D/{var}")
+      expect(template.extract("x%7Ba%7D/value")).to eq("var" => "value")
+      expect(template.extract("x{a}/value")).to eq(nil)
     end
 
     it "extracts the values from an expansion" do
@@ -983,6 +993,24 @@ describe "Expansion" do
         expect { template.partial_expand(subject) }.to raise_error(*expectation)
         expect { template.partial_expand({}) }.to raise_error(*expectation)
       end
+
+      it "raises #{error_class} when matching #{pattern.inspect}" do
+        template = Addressable::Template.new(pattern)
+        expectation = [error_class, message].compact
+        expect { template.match(pattern) }.to raise_error(*expectation)
+        expect { template.match("/x") }.to raise_error(*expectation)
+        expect { template.extract(pattern) }.to raise_error(*expectation)
+      end
+    end
+
+    it "raises when matching before looking at the URI" do
+      template = Addressable::Template.new("/{id")
+      error = Addressable::Template::InvalidTemplateError
+      expect { template.match("http://[") }.to raise_error(error)
+      expect { template.match("/\xA4".b) }.to raise_error(error)
+      expect { template.match(Addressable::URI.parse("/1")) }.to raise_error(error)
+      processor = Class.new { def self.match(name) ".*" end }
+      expect { template.extract("/1", processor) }.to raise_error(error)
     end
 
     it "raises errors that are InvalidTemplateErrors" do
@@ -994,10 +1022,10 @@ describe "Expansion" do
       )
     end
 
-    it "still creates and matches the template" do
+    it "still creates the template" do
       template = Addressable::Template.new("x{a.*}/{var}")
+      expect(template.pattern).to eq("x{a.*}/{var}")
       expect(template.variables).to eq(["var"])
-      expect(template.extract("x{a.*}/value")).to eq("var" => "value")
     end
 
     it "expands variable names the grammar allows" do
