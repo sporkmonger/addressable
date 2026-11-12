@@ -3056,3 +3056,71 @@ describe Addressable::Template, "partially expanding around an undefined variabl
     end
   end
 end
+
+describe Addressable::Template, "extracting a label value that contains a dot" do
+  # Label expansion leaves a "." in a value as it is, which adds labels
+  # (RFC 6570 section 3.2.5), so where a value ends is only known where the
+  # expression is delimited by the start or end of the URI or by characters
+  # that can't be part of its expansion (section 1.4). A lone label variable
+  # delimited that way can take the dots.
+  {
+    ["/f{.ext}", "/f.tar.gz"] => {"ext" => "tar.gz"},
+    ["{.a}", ".A.B"] => {"a" => "A.B"},
+    ["X{.var}", "X.a.b"] => {"var" => "a.b"},
+    ["/f{.ext}", "/f.t%C3%A9.gz"] => {"ext" => "té.gz"},
+    ["/f{.ext}/raw", "/f.tar.gz/raw"] => {"ext" => "tar.gz"},
+    ["/f{.ext};v", "/f.tar.gz;v"] => {"ext" => "tar.gz"},
+    ["/f{.ext}#top", "/f.tar.gz#top"] => {"ext" => "tar.gz"},
+    ["/f{.ext}{?q}", "/f.tar.gz?q=1"] => {"ext" => "tar.gz", "q" => "1"},
+    ["/f{.ext}{&q}", "/f.tar.gz&q=1"] => {"ext" => "tar.gz", "q" => "1"},
+    ["/f{.ext}{;q}", "/f.tar.gz;q=1"] => {"ext" => "tar.gz", "q" => "1"},
+    ["/f{.ext}{#s}", "/f.tar.gz#x"] => {"ext" => "tar.gz", "s" => "x"},
+    ["/f{.ext}{/y}", "/f.tar.gz/z"] => {"ext" => "tar.gz", "y" => "z"},
+    ["/f{.ext}{/y}{?q}", "/f.tar.gz"] =>
+      {"ext" => "tar.gz", "y" => nil, "q" => nil},
+    ["{+base}/f{.ext}", "x/f.a/f.b.c"] => {"base" => "x/f.a", "ext" => "b.c"}
+  }.each do |(pattern, uri), mapping|
+    it "extracts #{mapping.inspect} from #{uri} with #{pattern}" do
+      template = Addressable::Template.new(pattern)
+      expect(template.extract(uri)).to eq(mapping)
+      expect(template.expand(mapping).to_s).to eq(uri)
+    end
+  end
+
+  # Elsewhere, a "." could end the value or start the next label, so each
+  # "." is still read as starting a label. These results aren't the only
+  # reading of the URI, and for some of them none is found.
+  {
+    ["/{name}{.ext}", "/archive.tar.gz"] =>
+      {"name" => "archive.tar", "ext" => "gz"},
+    ["/f{.ext}{/y}.bak", "/f.gz.bak"] => {"ext" => "gz", "y" => nil},
+    ["/f{.ext}{/y}.bak", "/f.tar.gz.bak"] => nil,
+    ["/f{.ext}.bak", "/f.tar.gz.bak"] => nil,
+    ["/f{.ext}{+r}", "/f.tar.gz/x"] => {"ext" => nil, "r" => ".tar.gz/x"},
+    ["{.a}{.b}", ".x.y.z"] => nil,
+    ["{.a,b}", ".A.B.C"] => nil,
+    ["{.a*}", ".A.B.C"] => {"a" => ["A", "B", "C"]},
+    # Once a fragment may have started, a later "#" can be "%23", which a
+    # label value could contain.
+    ["#a{.ext}#b", "#a.gz%23b"] => {"ext" => "gz"},
+    ["#a{.ext}#b", "#a.tar.gz%23b"] => nil,
+    ["#a{.ext}{#s}", "#a.gz%23x"] => {"ext" => "gz", "s" => "x"},
+    ["#a{.ext}{#s}", "#a.tar.gz%23x"] => nil
+  }.each do |(pattern, uri), mapping|
+    it "extracts #{mapping.inspect} from #{uri} with #{pattern}" do
+      expect(Addressable::Template.new(pattern).extract(uri)).to eq(mapping)
+    end
+  end
+
+  it "matches a long run of labels in linear time" do
+    template = Addressable::Template.new("/f{.ext}")
+    expect do
+      Timeout.timeout(10) do
+        expect(template.match("/f" + (".a" * 50_000) + "!")).to be_nil
+        expect(template.extract("/f" + (".a" * 50_000))).to eq(
+          "ext" => ("a." * 50_000).chop
+        )
+      end
+    end.not_to raise_error
+  end
+end

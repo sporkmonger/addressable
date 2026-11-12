@@ -93,9 +93,12 @@ module Addressable
     # character the literals grammar leaves out stays as it is, as most other
     # implementations do.
     LITERAL_ENCODE = /[^\x00-\x7F]/
+    # Characters that label expansion encodes, so a value can't contain them
+    # as they are: the reserved set (RFC 3986 section 2.2).
+    LABEL_DELIMITER = /[:\/?#\[\]@!$&'()*+,;=]/
     private_constant :RESERVED_OPERATORS, :VALID_EXPRESSION, :TEMPLATE_TOKEN,
       :LITERAL_ENCODE, :NUMBER_SIGN_EITHER_FORM, :LITERAL_TOKEN,
-      :GROUP_NAME_CAN_START_WITH_DOT, :HEX_DIGITS
+      :GROUP_NAME_CAN_START_WITH_DOT, :HEX_DIGITS, :LABEL_DELIMITER
 
     NO_MAPPING = Object.new.freeze
     private_constant :NO_MAPPING
@@ -426,6 +429,15 @@ module Addressable
     # <tt>{?a*}</tt> reads <tt>?%61=x</tt> as the pair <tt>%61</tt>, decoded
     # to <tt>a</tt>, not as a list.
     #
+    # Label expansion (<tt>{.var}</tt>) leaves a <tt>.</tt> in a value as it
+    # is, so a value can only contain <tt>.</tt> where it's clear where it
+    # ends: a label expression with one variable that isn't exploded, set off
+    # on both sides by the start or end of the URI or by characters that
+    # label expansion encodes, such as <tt>/</tt>, <tt>?</tt> or <tt>;</tt>.
+    # <tt>/f{.ext}</tt> extracts <tt>tar.gz</tt> from <tt>/f.tar.gz</tt>.
+    # Elsewhere, each <tt>.</tt> starts a label: <tt>/{name}{.ext}</tt> reads
+    # <tt>/archive.tar.gz</tt> as <tt>archive.tar</tt> and <tt>gz</tt>.
+    #
     # @return [Hash, NilClass]
     #   The <tt>Hash</tt> mapping that was extracted from the URI, or
     #   <tt>nil</tt> if the URI didn't match the template.
@@ -503,6 +515,15 @@ module Addressable
     # associative array. The key is compared with the name as written, so
     # <tt>{?a*}</tt> reads <tt>?%61=x</tt> as the pair <tt>%61</tt>, decoded
     # to <tt>a</tt>, not as a list.
+    #
+    # Label expansion (<tt>{.var}</tt>) leaves a <tt>.</tt> in a value as it
+    # is, so a value can only contain <tt>.</tt> where it's clear where it
+    # ends: a label expression with one variable that isn't exploded, set off
+    # on both sides by the start or end of the URI or by characters that
+    # label expansion encodes, such as <tt>/</tt>, <tt>?</tt> or <tt>;</tt>.
+    # <tt>/f{.ext}</tt> extracts <tt>tar.gz</tt> from <tt>/f.tar.gz</tt>.
+    # Elsewhere, each <tt>.</tt> starts a label: <tt>/{name}{.ext}</tt> reads
+    # <tt>/archive.tar.gz</tt> as <tt>archive.tar</tt> and <tt>gz</tt>.
     #
     # @return [Hash, NilClass]
     #   The <tt>Hash</tt> mapping that was extracted from the URI, or
@@ -1579,6 +1600,45 @@ module Addressable
     end
 
     ##
+    # Whether a label expression's value can contain ".". Label expansion
+    # leaves a "." in a value as it is (RFC 6570 section 3.2.5), so where the
+    # value ends is only known where the expression is delimited by the start
+    # or end of the URI or by characters that can't be part of its expansion
+    # (section 1.4): a lone, unexploded variable, with a reserved character
+    # in the literal text since the previous expression, and a reserved
+    # character next, after any expressions that start with one when they
+    # aren't empty. A "#" counts only if a fragment can't have started
+    # before it, since expansion encodes a later one as "%23".
+    #
+    # @param [Integer] index The expression's index.
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    # @param [Array<TrueClass, FalseClass>] either_leader
+    #   Whether a fragment may have started before each expression.
+    # @param [Array<TrueClass, FalseClass>] either_literal
+    #   Whether a fragment may have started before each literal.
+    #
+    # @return [TrueClass, FalseClass]
+    def label_takes_dots?(index, expressions, literals, either_leader,
+                          either_literal)
+      _, operator, varlist = *expressions[index].match(EXPRESSION)
+      return false unless operator == '.' && varlist =~ VARSPEC && $2 != '*'
+      return false unless index == 0 || literals[index] =~ LABEL_DELIMITER
+      position = index + 1
+      while position < expressions.size && literals[position].empty?
+        operator = expressions[position][1]
+        return false unless "/?&;".include?(operator) ||
+          (operator == '#' && !either_leader[position])
+        position += 1
+      end
+      literal = literals[position]
+      return true if literal.empty?
+      literal[0] =~ LABEL_DELIMITER &&
+        !(literal[0] == '#' && either_literal[position]) ? true : false
+    end
+
+    ##
     # Whether an expression could match a string that starts with a comma.
     #
     # @param [String, nil] operator The expression's operator.
@@ -1638,14 +1698,25 @@ module Addressable
       # way. Reserved and fragment expansion may start a fragment.
       fragment = false
       either_leader = []
+      literals = []
+      either_literal = []
+      raw_expressions = []
       escaped_pattern = map_literals(pattern) do |literal, expression|
+        literals << literal
+        either_literal << fragment
         source = literal_regexp(literal, fragment)
         fragment ||= literal.include?('#')
         if expression
+          raw_expressions << expression
           either_leader << fragment
           fragment ||= expression =~ /\A\{[+#]/ ? true : false
         end
         source
+      end
+      dotted_labels = raw_expressions.each_index.map do |index|
+        label_takes_dots?(
+          index, raw_expressions, literals, either_leader, either_literal
+        )
       end
 
       expansions = []
@@ -1695,7 +1766,13 @@ module Addressable
             when '/'
               "#{ UNRESERVED }*?"
             when '.'
-              "#{ UNRESERVED.gsub('\.', '') }*?"
+              if dotted_labels[index]
+                # Nothing after the value can continue it, so it takes every
+                # character up to the delimiter.
+                "#{ UNRESERVED }*+"
+              else
+                "#{ UNRESERVED.gsub('\.', '') }*?"
+              end
             when ';'
               # The same strings, tried in the same order, as 2.9.0's
               # "U*=?U*?", but a name without "=" can only match one way.

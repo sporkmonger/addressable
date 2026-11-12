@@ -282,6 +282,9 @@ describe Addressable::Template, "#match" do
 
     TemplateMatchSpec::OPERATORS.product(["", "*"]).each do |operator, modifier|
       pattern = "{#{operator}a#{modifier}}"
+      # A lone label variable at the end of a template takes every character
+      # up to the end, so it's compared where it doesn't end the template.
+      pattern += "a" if operator == "." && modifier == ""
       it "tries the reference's end positions in its order for #{pattern}" do
         reference = TemplateMatchSpec.unanchored(
           TemplateMatchSpec.reference_regexp(pattern)
