@@ -438,6 +438,10 @@ module Addressable
     # Elsewhere, each <tt>.</tt> starts a label: <tt>/{name}{.ext}</tt> reads
     # <tt>/archive.tar.gz</tt> as <tt>archive.tar</tt> and <tt>gz</tt>.
     #
+    # @raise [Addressable::Template::InvalidTemplateError]
+    #   If the template doesn't match the RFC 6570 grammar, e.g. an unclosed
+    #   expression or a stray <tt>}</tt>.
+    #
     # @return [Hash, NilClass]
     #   The <tt>Hash</tt> mapping that was extracted from the URI, or
     #   <tt>nil</tt> if the URI didn't match the template.
@@ -525,6 +529,10 @@ module Addressable
     # Elsewhere, each <tt>.</tt> starts a label: <tt>/{name}{.ext}</tt> reads
     # <tt>/archive.tar.gz</tt> as <tt>archive.tar</tt> and <tt>gz</tt>.
     #
+    # @raise [Addressable::Template::InvalidTemplateError]
+    #   If the template doesn't match the RFC 6570 grammar, e.g. an unclosed
+    #   expression or a stray <tt>}</tt>.
+    #
     # @return [Hash, NilClass]
     #   The <tt>Hash</tt> mapping that was extracted from the URI, or
     #   <tt>nil</tt> if the URI didn't match the template.
@@ -571,6 +579,7 @@ module Addressable
     #   match.captures
     #   #=> ["a", ["b", "c"]]
     def match(uri, processor=nil)
+      check_expressions
       # Text that isn't valid UTF-8 isn't a valid URI or IRI, so it doesn't
       # match, as below.
       return nil unless valid_utf8?(uri)
@@ -729,6 +738,9 @@ module Addressable
     # @raise [TypeError] If the mapping isn't one of the types above.
     # @raise [ArgumentError] If both a mapping and a block are given, or
     #   neither.
+    # @raise [Addressable::Template::InvalidTemplateError]
+    #   If the template doesn't match the RFC 6570 grammar, e.g. an unclosed
+    #   expression or a stray <tt>}</tt>.
     #
     # @return [Addressable::Template] The partially expanded URI template.
     #
@@ -805,6 +817,9 @@ module Addressable
     # @raise [TypeError] If the mapping isn't one of the types above.
     # @raise [ArgumentError] If both a mapping and a block are given, or
     #   neither.
+    # @raise [Addressable::Template::InvalidTemplateError]
+    #   If the template doesn't match the RFC 6570 grammar, e.g. an unclosed
+    #   expression or a stray <tt>}</tt>.
     #
     # @return [Addressable::URI] The expanded URI template.
     #

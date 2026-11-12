@@ -151,15 +151,18 @@
   encoded as `%25`, and a prefix modifier counts a triplet as one character;
   `#extract` still decodes each value once, so it gives `admin/` for that
   expansion, and expanding `admin/` gives `admin/`, a different URI
-- `Addressable::Template#expand` and `#partial_expand` now raise
-  `Addressable::Template::InvalidTemplateError`, naming the expression and
-  its position, for a template that doesn't match the RFC 6570 grammar, as
-  RFC 6570 says the error should be indicated: e.g. an unclosed `{/id*`, a
-  stray `}`, `{with space}`, `{x..y}` or `{var:0}`, which were kept in the
-  result as text; an operator RFC 6570 reserves (`=`, `,`, `!`, `@`, `|`)
-  raises `InvalidTemplateOperatorError`, now a subclass of
-  `InvalidTemplateError`, where before `{!var}` expanded like `{var}`;
-  `.new`, `#match` and `#extract` still accept such templates
+- `Addressable::Template#expand`, `#partial_expand`, `#match` and
+  `#extract` now raise `Addressable::Template::InvalidTemplateError`, naming
+  the expression and its position, for a template that doesn't match the
+  RFC 6570 grammar, as RFC 6570 says the error should be indicated: e.g. an
+  unclosed `{/id*`, a stray `}`, `{with space}`, `{x..y}` or `{var:0}`, which
+  expansion kept in the result as text, and matching read as literal text or,
+  like `{var:0}`, as a variable; an operator RFC 6570 reserves (`=`, `,`,
+  `!`, `@`, `|`) raises `InvalidTemplateOperatorError`, now a subclass of
+  `InvalidTemplateError`, where before `{!var}` expanded like `{var}`; code
+  that tries a URI against several templates, such as WebMock's stubs, now
+  gets the error when it reaches a malformed one, instead of a match or a
+  miss; `.new` still accepts such templates
 - `Addressable::Template#expand` and `#partial_expand` now raise
   `InvalidTemplateValueError` for a prefix modifier on a list or associative
   array, which RFC 6570 says doesn't apply to them: before, `{list:2}` with
@@ -230,8 +233,8 @@
   with no leading zero, as RFC 6570 says; other lengths, such as `{var:0}`,
   `{var:05}` and `{var:10000}`, are malformed expressions, so `#expand` and
   `#partial_expand` raise `InvalidTemplateError` where `{var:10000}` used to
-  expand to the whole value, and `#match` reads them as literal text; a
-  length too large for a machine integer no longer raises `RangeError` (#618)
+  expand to the whole value, and so do `#match` and `#extract`; a length too
+  large for a machine integer no longer raises `RangeError` (#618)
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 - fixes `Addressable::URI` returning stale values after a component was
