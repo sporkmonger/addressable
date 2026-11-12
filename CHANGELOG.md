@@ -2,6 +2,18 @@
 
 ## Addressable 2.10.0 (unreleased) <a name="v2.10.0">
 
+### Breaking changes
+
+- `Addressable::URI::RULE_2A`, `RULE_2B_2C`, `RULE_2D` and `RULE_PREFIXED_PARENT`, deprecated in 2.9.1, are removed ([#669])
+- `Addressable::URI` setters, `.new` and `#merge` raise for `false` instead of treating it as `nil` ([#667])
+- `Addressable::URI#port=` and `.new` raise `InvalidURIError` for a port with a line break, such as `"8080\nx"` ([#663])
+- `Addressable::URI#origin=` raises `InvalidURIError` for a string with a path, query or fragment, which it dropped ([#616])
+- The strings a frozen `Addressable::URI` holds are frozen, so changing one, as in `uri.host << "x"`, raises `FrozenError` ([#668])
+- `Addressable::Template#expand`, `#partial_expand`, `#match` and `#extract` raise `InvalidTemplateError` for a template that doesn't match the RFC 6570 grammar, which expansion kept as text and matching read as literal text ([#660], [#693])
+- `Addressable::Template` reads a prefix modifier outside 1 to 9999 or with a leading zero, such as `{var:0}`, `{var:05}` or `{var:10000}`, as malformed: `#expand`, `#partial_expand`, `#match` and `#extract` raise `InvalidTemplateError` where they used to expand or match it ([#618], [#693])
+- `Addressable::Template#expand` and `#partial_expand` raise `InvalidTemplateValueError` for a prefix modifier on a list or associative array ([#660])
+- `Addressable::Template#extract` and `#match` give an exploded list in `;`, `?` or `&` expansion as an array, not a hash ([#687])
+
 ### `Addressable::URI`
 
 - Read `localhost:3000` as host and port in `.heuristic_parse` ([#691])
@@ -14,11 +26,7 @@
 - Fix `#normalize` decoding a triplet in a query twice, such as `%252B` to `%2B` ([#589])
 - Encode a colon in a relative path's first segment as `%3A` instead of `%2F` ([#675])
 - Fix `#normalize` raising `InvalidURIError` for a colon left in a relative path's first segment ([#550], [#589])
-- Keep an IPv6 host in brackets whole in `#origin=`, and raise for a string that isn't an origin ([#616])
-- Raise `InvalidURIError` for a port with a line break in `#port=` and `.new` ([#663])
-- Remove `RULE_2A`, `RULE_2B_2C`, `RULE_2D` and `RULE_PREFIXED_PARENT`, deprecated in 2.9.1 ([#669])
-- Freeze the strings a frozen URI holds ([#668])
-- Reject `false` in setters, `.new` and `#merge`, as they reject `true` ([#667])
+- Keep an IPv6 host in brackets whole in `#origin=` ([#616])
 - Leave a URI unchanged when a setter or `#defer_validation` raises ([#666])
 
 ### `Addressable::Template`
@@ -28,12 +36,9 @@
 - Take values from any object with `each_pair` or `[]`, or from a block, in `#expand` and `#partial_expand` ([#512], [#133])
 - Treat an empty list or associative array as undefined, and leave out `nil` members ([#611])
 - Keep pct-encoded triplets in reserved and fragment expansion ([#656])
-- Raise `InvalidTemplateError` in `#expand`, `#partial_expand`, `#match` and `#extract` for a template that doesn't match the RFC 6570 grammar ([#660], [#693])
-- Raise `InvalidTemplateValueError` for a prefix modifier on a list or associative array ([#660])
 - Encode a `#` after the one that starts the fragment as `%23` ([#679])
 - Append `=` for a list with one empty member in `;` expansion ([#689])
 - Leave out `=` for an empty exploded member in `;` expansion ([#688])
-- Extract an exploded named list as a list ([#687])
 - Transcode values to UTF-8, and handle text that isn't valid UTF-8 instead of raising `ArgumentError` ([#686])
 - Allow variable names that start with a digit, such as `{42}` ([#684])
 - Match non-ASCII text in a URI either as written or pct-encoded ([#680])
@@ -41,7 +46,6 @@
 - Match text in braces that isn't an expression as written ([#657])
 - Return copies from `#variables`, `#variable_defaults` and `MatchData#values` ([#619])
 - Read a label value that contains `.` in `#match` and `#extract` when the expression is set off by delimiters: `/f{.ext}` matches `/f.tar.gz` ([#692])
-- Only read a prefix modifier from 1 to 9999 with no leading zero, as RFC 6570 says ([#618])
 
 ### `Addressable::IDNA`
 
