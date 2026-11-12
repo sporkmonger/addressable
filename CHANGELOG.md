@@ -14,13 +14,24 @@
 - `Addressable::Template#expand` and `#partial_expand` raise `InvalidTemplateValueError` for a prefix modifier on a list or associative array ([#660])
 - `Addressable::Template#extract` and `#match` give an exploded list in `;`, `?` or `&` expansion as an array, not a hash ([#687])
 
+### Changed output
+
+- `Addressable::URI.heuristic_parse("localhost:3000")` gives `http://localhost:3000`, not `localhost:3000` with a `localhost` scheme ([#691])
+- `Addressable::URI#route_from` and `#route_to` give `./`, not `../`, for a route that would climb above the root ([#648])
+- `Addressable::URI#query_values` reads `+` as a space in query names too, and for uppercase `HTTP` and `HTTPS`: `?a+b=c` gives `{"a b" => "c"}`, not `{"a+b" => "c"}` ([#607])
+- `Addressable::Template#expand` treats an empty list or associative array as undefined and leaves out `nil` members: `{?list}` with `[]` gives nothing, not `?list=` ([#611])
+- `Addressable::Template#expand` keeps pct-encoded triplets in reserved and fragment expansion: `{+id}` with `admin%2F` gives `admin%2F`, not `admin%252F` ([#656])
+- `Addressable::Template#expand` gives `;a=`, not `;a`, for `{;a}` with `[""]` ([#689])
+- `Addressable::Template#expand` gives `;a;a=y`, not `;a=;a=y`, for `{;a*}` with `["", "y"]` ([#688])
+- `Addressable::Template#expand` pct-encodes non-ASCII literals: `café/{var}` gives `caf%C3%A9/value`, not `café/value` ([#676])
+- `Addressable::Template#match` and `#extract` match text in braces that isn't an expression as written: `x{a.*}/{var}` no longer matches `x{aZZZ}/value` ([#657])
+- `Addressable::Template#match` and `#extract` read a label value that contains `.` when the expression is set off by delimiters: `/f{.ext}` on `/f.tar.gz` gives `{"ext" => "tar.gz"}`, not `nil`, so code that tries several templates may pick a different one ([#692])
+- The pure-Ruby `Addressable::IDNA.to_ascii` and `.to_unicode` keep trailing empty labels, as `idn-ruby` does: `bücher.example.` gives `xn--bcher-kva.example.`, not `xn--bcher-kva.example` ([#609])
+
 ### `Addressable::URI`
 
-- Read `localhost:3000` as host and port in `.heuristic_parse` ([#691])
 - Fix `#route_from` and `#route_to` giving routes that don't resolve to the target ([#623], [#648])
-- Don't climb above the root with `../` in `#route_from` and `#route_to` ([#648])
 - Fix `#userinfo=` splitting the user from the password at the last colon instead of the first ([#606])
-- Read `+` as a space in query names too, and for uppercase `HTTP` and `HTTPS`, in `#query_values` ([#607])
 - Fix `.normalized_encode` decoding pct-encoded delimiters, such as `%2F` in the path and `%26` in the query ([#589])
 - Fix `#normalize` decoding `%3D` in a query name ([#589])
 - Fix `#normalize` decoding a triplet in a query twice, such as `%252B` to `%2B` ([#589])
@@ -34,22 +45,11 @@
 - Give equal templates the same `#hash` ([#604])
 - Keep the separators of an expression with several variables in `#partial_expand` ([#670], [#690])
 - Take values from any object with `each_pair` or `[]`, or from a block, in `#expand` and `#partial_expand` ([#512], [#133])
-- Treat an empty list or associative array as undefined, and leave out `nil` members ([#611])
-- Keep pct-encoded triplets in reserved and fragment expansion ([#656])
 - Encode a `#` after the one that starts the fragment as `%23` ([#679])
-- Append `=` for a list with one empty member in `;` expansion ([#689])
-- Leave out `=` for an empty exploded member in `;` expansion ([#688])
 - Transcode values to UTF-8, and handle text that isn't valid UTF-8 instead of raising `ArgumentError` ([#686])
 - Allow variable names that start with a digit, such as `{42}` ([#684])
 - Match non-ASCII text in a URI either as written or pct-encoded ([#680])
-- Pct-encode non-ASCII literals in `#expand` ([#676])
-- Match text in braces that isn't an expression as written ([#657])
 - Return copies from `#variables`, `#variable_defaults` and `MatchData#values` ([#619])
-- Read a label value that contains `.` in `#match` and `#extract` when the expression is set off by delimiters: `/f{.ext}` matches `/f.tar.gz` ([#692])
-
-### `Addressable::IDNA`
-
-- Keep trailing empty labels in the pure-Ruby `.to_ascii` and `.to_unicode`, as `idn-ruby` does ([#609])
 
 [#133]: https://github.com/sporkmonger/addressable/pull/133
 [#512]: https://github.com/sporkmonger/addressable/pull/512
