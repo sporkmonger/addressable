@@ -7253,7 +7253,10 @@ describe Addressable::URI, "when heuristically parsing 'localhost:3000'" do
     expect(uri.port).to eq(3000)
     expect(uri.path).to eq("")
   end
+end
 
+describe Addressable::URI, "when heuristically parsing a scheme that " +
+    "looks like a host" do
   it "should leave localhost as a scheme when the rest isn't a port" do
     uri = Addressable::URI.heuristic_parse("localhost:foo")
     expect(uri.to_s).to eq("localhost:foo")
