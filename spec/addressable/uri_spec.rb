@@ -7238,6 +7238,38 @@ describe Addressable::URI, "when encoding a bogus object" do
   end
 end
 
+describe Addressable::URI, "when heuristically parsing 'localhost:3000'" do
+  it "should read localhost as the host and 3000 as the port" do
+    uri = Addressable::URI.heuristic_parse("localhost:3000/foo")
+    expect(uri.to_s).to eq("http://localhost:3000/foo")
+    expect(uri.host).to eq("localhost")
+    expect(uri.port).to eq(3000)
+  end
+
+  it "should read localhost as the host and 3000 as the port without a path" do
+    uri = Addressable::URI.heuristic_parse("localhost:3000")
+    expect(uri.to_s).to eq("http://localhost:3000")
+    expect(uri.host).to eq("localhost")
+    expect(uri.port).to eq(3000)
+    expect(uri.path).to eq("")
+  end
+end
+
+describe Addressable::URI, "when heuristically parsing a scheme that " +
+    "looks like a host" do
+  it "should leave localhost as a scheme when the rest isn't a port" do
+    uri = Addressable::URI.heuristic_parse("localhost:foo")
+    expect(uri.to_s).to eq("localhost:foo")
+    expect(uri.scheme).to eq("localhost")
+    expect(uri.host).to eq(nil)
+    expect(uri.path).to eq("foo")
+  end
+
+  it "should leave other schemes alone" do
+    expect(Addressable::URI.heuristic_parse("tel:3000").scheme).to eq("tel")
+  end
+end
+
 describe Addressable::URI, "when given the input " +
     "'http://example.com/'" do
   before do

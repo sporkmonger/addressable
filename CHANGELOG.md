@@ -1,6 +1,8 @@
 # Changelog
 
 ## Addressable 2.10.0 (unreleased) <a name="v2.10.0">
+- `Addressable::URI.heuristic_parse` reads `localhost:3000` as host and port
+  instead of as a `localhost` scheme, as it already did for `example.com:8080`
 - release tags are only created and published from `main`: `rake git:tag:create`
   refuses any other branch, uncommitted changes, a `main` that doesn't match
   `origin/main` and an existing tag, and the Release workflow refuses a tag on

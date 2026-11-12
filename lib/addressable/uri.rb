@@ -294,7 +294,8 @@ module Addressable
         uri[offset[0]...offset[1]] = new_authority
       end
       parsed = self.parse(uri)
-      if parsed.scheme =~ /^[^\/?#\.]+\.[^\/?#]+$/
+      if parsed.scheme =~ /^[^\/?#\.]+\.[^\/?#]+$/ ||
+          (parsed.scheme =~ /\Alocalhost\z/i && parsed.path =~ /\A\d+(?:\/|\z)/)
         parsed = self.parse(hints[:scheme] + "://" + uri)
       end
       if parsed.path.include?(".")
