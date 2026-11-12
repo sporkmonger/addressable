@@ -7246,6 +7246,22 @@ describe Addressable::URI, "when heuristically parsing 'localhost:3000'" do
     expect(uri.port).to eq(3000)
   end
 
+  it "should read localhost as the host and 3000 as the port without a path" do
+    uri = Addressable::URI.heuristic_parse("localhost:3000")
+    expect(uri.to_s).to eq("http://localhost:3000")
+    expect(uri.host).to eq("localhost")
+    expect(uri.port).to eq(3000)
+    expect(uri.path).to eq("")
+  end
+
+  it "should leave localhost as a scheme when the rest isn't a port" do
+    uri = Addressable::URI.heuristic_parse("localhost:foo")
+    expect(uri.to_s).to eq("localhost:foo")
+    expect(uri.scheme).to eq("localhost")
+    expect(uri.host).to eq(nil)
+    expect(uri.path).to eq("foo")
+  end
+
   it "should leave other schemes alone" do
     expect(Addressable::URI.heuristic_parse("tel:3000").scheme).to eq("tel")
   end
