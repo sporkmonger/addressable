@@ -1,6 +1,13 @@
 # Changelog
 
 ## Addressable 2.10.0 (unreleased) <a name="v2.10.0">
+- `Addressable::Template#match` and `#extract` now read a label value that
+  contains `.` when the label expression has one variable and is set off on
+  both sides by the start or end of the URI or by characters that label
+  expansion encodes, such as `/`, `?` or `;`: e.g. `/f{.ext}` extracts
+  `{"ext" => "tar.gz"}` from `/f.tar.gz`, where before it gave `nil`;
+  elsewhere, as in `/{name}{.ext}`, each `.` is still read as starting a
+  label, since the value could end at any of them
 - `Addressable::URI.heuristic_parse` reads `localhost:3000` as host and port
   instead of as a `localhost` scheme, as it already did for `example.com:8080`
 - release tags are only created and published from `main`: `rake git:tag:create`
