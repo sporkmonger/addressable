@@ -1036,12 +1036,23 @@ describe "Expansion" do
     end
 
     it "expands long templates with non-ASCII literals in linear time" do
-      template = Addressable::Template.new("é{a}" * 100_000)
-      expect do
-        Timeout.timeout(10) do
-          expect(template.expand("a" => "x").to_str).to eq("%C3%A9x" * 100_000)
-        end
-      end.not_to raise_error
+      # Compared with ASCII literals on the same runner, so that a slow or
+      # busy runner doesn't fail the spec. Scanning literals by character
+      # offset, which is quadratic, took over ten times as long at this size.
+      size = 50_000
+      ascii = Addressable::Template.new("a{a}" * size)
+      non_ascii = Addressable::Template.new("é{a}" * size)
+      fastest = lambda do |template|
+        3.times.map do
+          started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          template.expand("a" => "x")
+          Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+        end.min
+      end
+      expect(non_ascii.expand("a" => "x").to_str).to eq("%C3%A9x" * size)
+      ascii_time = fastest.call(ascii)
+      non_ascii_time = fastest.call(non_ascii)
+      expect(non_ascii_time).to be < (ascii_time * 4) + 0.05
     end
 
     it "checks long templates in linear time" do
