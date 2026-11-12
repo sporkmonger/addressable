@@ -7,7 +7,11 @@
   expansion encodes, such as `/`, `?` or `;`: e.g. `/f{.ext}` extracts
   `{"ext" => "tar.gz"}` from `/f.tar.gz`, where before it gave `nil`;
   elsewhere, as in `/{name}{.ext}`, each `.` is still read as starting a
-  label, since the value could end at any of them
+  label, since the value could end at any of them; no value extracted before
+  changes, but a URI that didn't match such a template now can, so code that
+  tries several templates and uses the first or best match, such as WebMock
+  stubs or MCP resource templates, may now pick a template that it skipped
+  before
 - `Addressable::URI.heuristic_parse` reads `localhost:3000` as host and port
   instead of as a `localhost` scheme, as it already did for `example.com:8080`
 - release tags are only created and published from `main`: `rake git:tag:create`
