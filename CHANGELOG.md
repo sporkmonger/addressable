@@ -24,7 +24,6 @@
 - `Addressable::Template#expand` gives `;a=`, not `;a`, for `{;a}` with `[""]` ([#689])
 - `Addressable::Template#expand` gives `;a;a=y`, not `;a=;a=y`, for `{;a*}` with `["", "y"]` ([#688])
 - `Addressable::Template#expand` pct-encodes non-ASCII literals: `café/{var}` gives `caf%C3%A9/value`, not `café/value` ([#676])
-- `Addressable::Template#match` and `#extract` match text in braces that isn't an expression as written: `x{a.*}/{var}` no longer matches `x{aZZZ}/value` ([#657])
 - `Addressable::Template#match` and `#extract` read a label value that contains `.` when the expression is set off by delimiters: `/f{.ext}` on `/f.tar.gz` gives `{"ext" => "tar.gz"}`, not `nil`, so code that tries several templates may pick a different one ([#692])
 - The pure-Ruby `Addressable::IDNA.to_ascii` and `.to_unicode` keep trailing empty labels, as `idn-ruby` does: `bücher.example.` gives `xn--bcher-kva.example.`, not `xn--bcher-kva.example` ([#609])
 
@@ -66,7 +65,6 @@
 [#623]: https://github.com/sporkmonger/addressable/pull/623
 [#648]: https://github.com/sporkmonger/addressable/pull/648
 [#656]: https://github.com/sporkmonger/addressable/pull/656
-[#657]: https://github.com/sporkmonger/addressable/pull/657
 [#660]: https://github.com/sporkmonger/addressable/pull/660
 [#663]: https://github.com/sporkmonger/addressable/pull/663
 [#666]: https://github.com/sporkmonger/addressable/pull/666
