@@ -1036,6 +1036,15 @@ describe "Expansion" do
       expect(template.variables).to eq(["var"])
     end
 
+    it "lists only the variables of valid expressions" do
+      template = Addressable::Template.new(
+        "/{=a}/{b}{,c}{!d}{@e}{|f*}{g:0}{?h}"
+      )
+      expect(template.variables).to eq(["b", "h"])
+      expect(Addressable::Template.new("/{var}{!var}").variables).to eq(["var"])
+      expect(Addressable::Template.new("/{!var}{var}").variables).to eq(["var"])
+    end
+
     it "can be frozen, and still raises when matching" do
       template = Addressable::Template.new("x{a.*}/{var}").freeze
       expect(template).to be_frozen
