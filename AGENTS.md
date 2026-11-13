@@ -75,8 +75,8 @@ Writing entries:
   names that start with a digit, such as `{42}`".
 - Say what changed, not how. Give one short example when it makes the
   change clear; leave out edge cases and history.
-- "Before", "not" and "where it used to" mean the last release, not
-  `main`. Check them by running the example on the last release.
+- References to earlier behaviour in `CHANGELOG.md` describe a previous
+  release, not `main`. Check them by running the example on that release.
 - End with the PRs or advisories, as reference links: `([#660], [#693])`
   or `([GHSA-qq38-m9mg-xjj5])`. Define each one once, after the version's
   last section, numbers first in ascending order, then advisories:
