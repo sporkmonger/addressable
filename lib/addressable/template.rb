@@ -349,7 +349,7 @@ module Addressable
     def freeze
       self.variables
       self.variable_defaults
-      self.named_captures
+      parse_template_pattern(pattern)
       super
     end
 
@@ -881,7 +881,9 @@ module Addressable
     # Returns an Array of variables used within the template pattern.
     # The variables are listed in the Array in the order they appear within
     # the pattern.  Multiple occurrences of a variable within a pattern are
-    # not represented in this Array.
+    # not represented in this Array. An expression that doesn't match the
+    # RFC 6570 grammar, such as <tt>{!var}</tt> or <tt>{var:0}</tt>, has no
+    # variables to list.
     #
     # @return [Array] The variables present in the template's pattern.
     def variables
@@ -914,7 +916,12 @@ module Addressable
     # and after it: `{42}` has `__42__`, and `{%41}` has `__%41__`.
     #
     # @return [Regexp] A regular expression which should match the template.
+    #
+    # @raise [Addressable::Template::InvalidTemplateError]
+    #   If the template doesn't match the RFC 6570 grammar, e.g. an unclosed
+    #   expression or a stray <tt>}</tt>.
     def to_regexp
+      check_expressions
       _, source = parse_template_pattern(pattern)
       Regexp.new(source)
     end
@@ -923,6 +930,10 @@ module Addressable
     # Returns the source of the coerced `Regexp`.
     #
     # @return [String] The source of the `Regexp` given by {#to_regexp}.
+    #
+    # @raise [Addressable::Template::InvalidTemplateError]
+    #   If the template doesn't match the RFC 6570 grammar, e.g. an unclosed
+    #   expression or a stray <tt>}</tt>.
     #
     # @api private
     def source
@@ -933,6 +944,10 @@ module Addressable
     # Returns the named captures of the coerced `Regexp`.
     #
     # @return [Hash] The named captures of the `Regexp` given by {#to_regexp}.
+    #
+    # @raise [Addressable::Template::InvalidTemplateError]
+    #   If the template doesn't match the RFC 6570 grammar, e.g. an unclosed
+    #   expression or a stray <tt>}</tt>.
     #
     # @api private
     def named_captures
@@ -974,7 +989,8 @@ module Addressable
     def ordered_variable_defaults
       @ordered_variable_defaults ||= begin
         expansions, _ = parse_template_pattern(pattern)
-        expansions.flat_map do |capture|
+        # An expression with a reserved operator has no variables to list.
+        expansions.grep(VALID_EXPRESSION).flat_map do |capture|
           _, _, varlist = *capture.match(EXPRESSION)
           varlist.split(',').map do |varspec|
             varspec[VARSPEC, 1]
