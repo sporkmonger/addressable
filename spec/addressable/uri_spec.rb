@@ -1374,6 +1374,57 @@ describe Addressable::URI, "when parsed from a standard library URI object" do
   end
 end
 
+describe Addressable::URI, "when parsed from 'http://example.com%3A8080/'" do
+  before do
+    @uri = Addressable::URI.parse("http://example.com%3A8080/")
+  end
+
+  it "should keep the encoded colon in the normalized host" do
+    expect(@uri.normalized_host).to eq("example.com%3A8080")
+  end
+
+  it "should not gain a port when normalized" do
+    normalized = Addressable::URI.parse(@uri.normalize.to_s)
+    expect(normalized.host).to eq("example.com%3A8080")
+    expect(normalized.port).to eq(nil)
+  end
+end
+
+describe Addressable::URI, "when parsed from 'http://a%3Ab.example/'" do
+  it "should normalize without raising" do
+    uri = Addressable::URI.parse("http://a%3Ab.example/")
+    expect(uri.normalize.to_s).to eq("http://a%3Ab.example/")
+  end
+end
+
+describe Addressable::URI, "when parsed from 'http://example.com%5B1%5D/'" do
+  it "should keep the encoded brackets in the normalized host" do
+    uri = Addressable::URI.parse("http://example.com%5B1%5D/")
+    expect(uri.normalized_host).to eq("example.com%5B1%5D")
+  end
+end
+
+describe Addressable::URI, "when parsed from 'http://%5Ba%5D/'" do
+  it "should not turn the encoded brackets into an IP literal" do
+    uri = Addressable::URI.parse("http://%5Ba%5D/")
+    expect(uri.normalize.to_s).to eq("http://%5Ba%5D/")
+  end
+end
+
+describe Addressable::URI, "when parsed from 'http://%5B::1%5D:8080/'" do
+  it "should not turn the encoded brackets into an IP literal" do
+    uri = Addressable::URI.parse("http://%5B::1%5D:8080/")
+    expect(uri.normalize.to_s).to eq("http://%5B%3A%3A1%5D:8080/")
+  end
+end
+
+describe Addressable::URI, "when parsed from a host with a fullwidth colon" do
+  it "should not turn the colon into a port delimiter when normalized" do
+    uri = Addressable::URI.parse("http://example.com\uFF1A8080/")
+    expect(uri.normalize.to_s).to eq("http://example.com%3A8080/")
+  end
+end
+
 describe Addressable::URI, "when parsed from ''" do
   before do
     @uri = Addressable::URI.parse("")

@@ -41,6 +41,7 @@
 - Keep an IPv6 host in brackets whole in `#origin=` ([#616])
 - Leave a URI unchanged when a setter or `#defer_validation` raises ([#666])
 - Fix `#normalized_host`, `#normalize`, `#display_uri` and `#freeze` raising `ArgumentError` for a host whose pct-encoded bytes aren't valid UTF-8; they stay pct-encoded: `http://a%a9b/` normalizes to `http://a%A9b/` ([#701])
+- Fix `#normalize` and `#normalized_host` decoding `%3A`, `%5B` and `%5D` in a host name, which turned `http://example.com%3A8080/` into a URI with the port 8080 ([#702])
 
 ### `Addressable::Template`
 
@@ -92,6 +93,7 @@
 [#697]: https://github.com/sporkmonger/addressable/pull/697
 [#700]: https://github.com/sporkmonger/addressable/pull/700
 [#701]: https://github.com/sporkmonger/addressable/pull/701
+[#702]: https://github.com/sporkmonger/addressable/pull/702
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 
