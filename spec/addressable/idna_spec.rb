@@ -153,6 +153,16 @@ shared_examples_for "converting from unicode to ASCII" do
     )).to eq("example..host")
   end
 
+  it "should drop a soft hyphen (mapped to nothing by nameprep)" do
+    expect(Addressable::IDNA.to_ascii(
+      "m\u00FCn\u00ADchen.de"
+    )).to eq("xn--mnchen-3ya.de")
+  end
+
+  it "should drop a zero width joiner (mapped to nothing by nameprep)" do
+    expect(Addressable::IDNA.to_ascii("a\u200Db.com")).to eq("ab.com")
+  end
+
   {
     "bücher.example." => "xn--bcher-kva.example.",
     "bücher.example.." => "xn--bcher-kva.example..",
