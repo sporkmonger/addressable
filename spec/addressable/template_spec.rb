@@ -1001,6 +1001,14 @@ describe "Expansion" do
         expect { template.match("/x") }.to raise_error(*expectation)
         expect { template.extract(pattern) }.to raise_error(*expectation)
       end
+
+      it "raises #{error_class} when building a regexp for #{pattern.inspect}" do
+        template = Addressable::Template.new(pattern)
+        expectation = [error_class, message].compact
+        expect { template.to_regexp }.to raise_error(*expectation)
+        expect { template.source }.to raise_error(*expectation)
+        expect { template.named_captures }.to raise_error(*expectation)
+      end
     end
 
     it "raises when matching before looking at the URI" do
@@ -1026,6 +1034,17 @@ describe "Expansion" do
       template = Addressable::Template.new("x{a.*}/{var}")
       expect(template.pattern).to eq("x{a.*}/{var}")
       expect(template.variables).to eq(["var"])
+    end
+
+    it "can be frozen, and still raises when matching" do
+      template = Addressable::Template.new("x{a.*}/{var}").freeze
+      expect(template).to be_frozen
+      expect { template.extract("x{a.*}/value") }.to raise_error(
+        Addressable::Template::InvalidTemplateError
+      )
+      expect { template.to_regexp }.to raise_error(
+        Addressable::Template::InvalidTemplateError
+      )
     end
 
     it "expands variable names the grammar allows" do

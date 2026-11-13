@@ -9,8 +9,8 @@
 - `Addressable::URI#port=` and `.new` raise `InvalidURIError` for a port with a line break, such as `"8080\nx"` ([#663])
 - `Addressable::URI#origin=` raises `InvalidURIError` for a string with a path, query or fragment, which it dropped ([#616])
 - The strings a frozen `Addressable::URI` holds are frozen, so changing one, as in `uri.host << "x"`, raises `FrozenError` ([#668])
-- `Addressable::Template#expand`, `#partial_expand`, `#match` and `#extract` raise `InvalidTemplateError` for a template that doesn't match the RFC 6570 grammar, which expansion kept as text and matching read as literal text ([#660], [#693])
-- `Addressable::Template` reads a prefix modifier outside 1 to 9999 or with a leading zero, such as `{var:0}`, `{var:05}` or `{var:10000}`, as malformed: `#expand`, `#partial_expand`, `#match` and `#extract` raise `InvalidTemplateError` where they used to expand or match it ([#618], [#693])
+- `Addressable::Template#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateError` for a template that doesn't match the RFC 6570 grammar, which expansion kept as text and matching read as literal text ([#660], [#693], [#697])
+- `Addressable::Template` reads a prefix modifier outside 1 to 9999 or with a leading zero, such as `{var:0}`, `{var:05}` or `{var:10000}`, as malformed: `#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateError` where they used to expand or match it ([#618], [#693], [#697])
 - `Addressable::Template#expand` and `#partial_expand` raise `InvalidTemplateValueError` for a prefix modifier on a list or associative array ([#660])
 - `Addressable::Template#extract` and `#match` give an exploded list in `;`, `?` or `&` expansion as an array, not a hash ([#687])
 
@@ -85,6 +85,7 @@
 [#691]: https://github.com/sporkmonger/addressable/pull/691
 [#692]: https://github.com/sporkmonger/addressable/pull/692
 [#693]: https://github.com/sporkmonger/addressable/pull/693
+[#697]: https://github.com/sporkmonger/addressable/pull/697
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 
