@@ -2544,7 +2544,7 @@ describe Addressable::URI, "when assigned an origin" do
   end
 end
 
-# Section 5.1.2 of RFC 2616
+# Section 3.2.1 of RFC 9112
 describe Addressable::URI, "when parsed from " +
     "'HTTP://www.w3.org/pub/WWW/TheProject.html'" do
   before do
@@ -5120,8 +5120,8 @@ describe Addressable::URI, "when routing between URIs" do
 end
 
 # The user name ends at the first colon, and the rest is the password
-# (Section 3.2.1 of RFC 3986). An empty user name differs from no user name
-# (Section 3.1 of RFC 1738).
+# (Section 3.2.1 of RFC 3986). An empty user name differs from no user name,
+# so its delimiter is kept (Section 6.2.3 of RFC 3986).
 describe Addressable::URI, "when assigning userinfo" do
   {
     "alice:one:two" => ["alice", "one:two", "http://alice:one:two@example.com"],

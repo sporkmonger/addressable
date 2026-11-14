@@ -55,9 +55,10 @@ module Addressable
       | \xF4[\x80-\x8F][\x80-\xBF]{2}       # plane 16
       )/mnx
 
-    # Characters that nameprep doesn't allow in a label (Section 5 of
-    # RFC 3491), or that it maps to nothing, so they can't be in a label that
-    # toASCII produces. Some code points are in more than one table; they're
+    # Characters that nameprep, the IDNA2003 profile of stringprep, doesn't
+    # allow in a label (Section 5 of RFC 3491, since obsoleted by RFC 5891),
+    # or that it maps to nothing, so they can't be in a label that toASCII
+    # produces. Some code points are in more than one table; they're
     # listed only under the first, since Ruby warns about a duplicated range
     # in a character class.
     NAMEPREP_PROHIBITED = Regexp.new("[" + [
@@ -97,7 +98,8 @@ module Addressable
     # :startdoc:
 
     # Converts from a Unicode internationalized domain name to an ASCII
-    # domain name as described in RFC 3490.
+    # domain name as described in IDNA2003 (RFC 3490, since obsoleted by
+    # RFC 5890 and RFC 5891).
     def self.to_ascii(input)
       input = input.to_s unless input.is_a?(String)
       input = input.dup.force_encoding(Encoding::UTF_8).unicode_normalize(:nfkc)
@@ -123,7 +125,8 @@ module Addressable
     end
 
     # Converts from an ASCII domain name to a Unicode internationalized
-    # domain name as described in RFC 3490.
+    # domain name as described in IDNA2003 (RFC 3490, since obsoleted by
+    # RFC 5890 and RFC 5891).
     def self.to_unicode(input)
       input = input.to_s unless input.is_a?(String)
       parts = input.split('.', -1)
@@ -132,10 +135,9 @@ module Addressable
           begin
             decoded = punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
             # A label that doesn't convert back to itself isn't a valid
-            # A-label (Section 4.2 of RFC 3490, steps 6 and 7). That includes
-            # a label that decodes to only ASCII characters. A label with a
-            # character that would change how it displays is returned
-            # unchanged too.
+            # A-label (Section 5.3 of RFC 5891). That includes a label that
+            # decodes to only ASCII characters. A label with a character that
+            # would change how it displays is returned unchanged too.
             if to_ascii(decoded).downcase != part.downcase ||
                 decoded =~ NAMEPREP_PROHIBITED || decoded =~ DISPLAY_CHANGING
               part
