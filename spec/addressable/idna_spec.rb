@@ -289,8 +289,8 @@ shared_examples_for "converting from ASCII to unicode" do
     )).to eq("example..host")
   end
 
-  # toUnicode doesn't fail: a label that can't be decoded is returned
-  # unchanged, as in UTS #46 (Section 4).
+  # toUnicode never fails (Section 4.2 of RFC 3490), so a label that can't be
+  # decoded is returned unchanged.
   {
     "a label too long to decode" => "xn--" + ("a" * 600),
     "a label that overflows the decoder" => "xn--" + ("9" * 20),
@@ -326,7 +326,8 @@ shared_examples_for "converting from ASCII to unicode" do
   end
 
   # A label that doesn't convert back to itself with toASCII isn't a valid
-  # A-label either (Section 5.3 of RFC 5891), so it's returned unchanged.
+  # A-label either (Section 4.2 of RFC 3490, steps 6 and 7), so it's returned
+  # unchanged.
   {
     "a label that decodes to ASCII after its basic code points" =>
       "xn--mnchen-3ya-",

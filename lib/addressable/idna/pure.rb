@@ -135,9 +135,10 @@ module Addressable
           begin
             decoded = punycode_decode(part[/^#{ACE_PREFIX}(.+)/, 1])
             # A label that doesn't convert back to itself isn't a valid
-            # A-label (Section 5.3 of RFC 5891). That includes a label that
-            # decodes to only ASCII characters. A label with a character that
-            # would change how it displays is returned unchanged too.
+            # A-label (Section 4.2 of RFC 3490, steps 6 and 7). That includes
+            # a label that decodes to only ASCII characters. A label with a
+            # character that would change how it displays is returned
+            # unchanged too.
             if to_ascii(decoded).downcase != part.downcase ||
                 decoded =~ NAMEPREP_PROHIBITED || decoded =~ DISPLAY_CHANGING
               part
