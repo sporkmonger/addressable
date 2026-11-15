@@ -624,6 +624,10 @@ module Addressable
                 # the value can be the ones before the later variables with
                 # a value, when those start right where it ends.
                 value = value.split(JOINERS.fetch(operator, ','), -1)
+                # Right after the leader, an empty value is one empty member.
+                if value.empty? && position == 0 && LEADERS.key?(operator)
+                  value = ['']
+                end
                 reached = matched.end(index + 1)
                 (1...(varspecs.size - position)).each do |ahead|
                   later = unparsed_values[index + ahead]
