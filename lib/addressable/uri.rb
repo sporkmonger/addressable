@@ -1199,9 +1199,15 @@ module Addressable
 
       @normalized_host ||= begin
         if !self.host.strip.empty?
-          result = ::Addressable::IDNA.to_ascii(
-            URI.unencode_component(self.host.strip.downcase)
-          )
+          host = self.host.strip.downcase
+          unencoded = URI.unencode_component(host)
+          # Bytes that aren't valid UTF-8 can't be converted to a domain
+          # name, so they stay pct-encoded.
+          result = if unencoded.valid_encoding?
+            ::Addressable::IDNA.to_ascii(unencoded)
+          else
+            host
+          end
           if result =~ /[^\.]\.$/
             # Single trailing dots are unnecessary.
             result = result[0...-1]

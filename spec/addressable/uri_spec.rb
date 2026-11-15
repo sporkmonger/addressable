@@ -1207,6 +1207,38 @@ describe Addressable::URI, "when parsed with an internationalized host " +
   end
 end
 
+describe Addressable::URI, "when parsed with a host whose pct-encoded " +
+    "bytes aren't valid UTF-8" do
+  [
+    ["http://%c3.%a9/", "%C3.%A9", "http://%C3.%A9/"],
+    ["http://a%A9b/x", "a%A9b", "http://a%A9b/x"],
+    ["//%FF%FE", "%FF%FE", "//%FF%FE"]
+  ].each do |input, host, normalized|
+    it "keeps the bytes pct-encoded in #normalized_host for #{input}" do
+      expect(Addressable::URI.parse(input).normalized_host).to eq(host)
+    end
+
+    it "keeps the bytes pct-encoded in #normalize for #{input}" do
+      expect(Addressable::URI.parse(input).normalize.to_s).to eq(normalized)
+    end
+
+    it "keeps the bytes pct-encoded in #display_uri for #{input}" do
+      expect(Addressable::URI.parse(input).display_uri.to_s).to eq(normalized)
+    end
+
+    it "can be frozen for #{input}" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.freeze).to be_frozen
+      expect(uri.normalized_host).to eq(host)
+    end
+  end
+
+  it "still converts a host that is valid UTF-8" do
+    uri = Addressable::URI.parse("http://%C3%A9.example/")
+    expect(uri.normalized_host).to eq("xn--9ca.example")
+  end
+end
+
 describe Addressable::URI, "when created with a host with a backslash" do
   it "should raise an error" do
     expect do
