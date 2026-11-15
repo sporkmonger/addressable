@@ -26,6 +26,7 @@
 - `Addressable::Template#expand` gives `;a;a=y`, not `;a=;a=y`, for `{;a*}` with `["", "y"]` ([#688])
 - `Addressable::Template#expand` pct-encodes non-ASCII literals: `café/{var}` gives `caf%C3%A9/value`, not `café/value` ([#676])
 - `Addressable::Template#match` and `#extract` read a label value that contains `.` when the expression is set off by delimiters: `/f{.ext}` on `/f.tar.gz` gives `{"ext" => "tar.gz"}`, not `nil`, so code that tries several templates may pick a different one ([#692])
+- `Addressable::Template#match` and `#extract` keep an empty member of an exploded value: `{/segments*}` on `/a/b/` gives `{"segments" => ["a", "b", ""]}`, not `{"segments" => ["a", "b"]}` ([#700])
 - The pure-Ruby `Addressable::IDNA.to_ascii` and `.to_unicode` keep trailing empty labels, as `idn-ruby` does: `bücher.example.` gives `xn--bcher-kva.example.`, not `xn--bcher-kva.example` ([#609])
 
 ### `Addressable::URI`
@@ -50,6 +51,7 @@
 - Allow variable names that start with a digit, such as `{42}` ([#684])
 - Match non-ASCII text in a URI either as written or pct-encoded ([#680])
 - Return copies from `#variables`, `#variable_defaults` and `MatchData#values` ([#619])
+- Split an exploded value of the default, `+` and `#` operators into its members in `#match` and `#extract`: `{a*,b}` on `x,y,z` gives `{"a" => ["x", "y"], "b" => "z"}`, not `{"a" => ["x,y,"], "b" => "z"}` ([#700])
 
 [#133]: https://github.com/sporkmonger/addressable/pull/133
 [#512]: https://github.com/sporkmonger/addressable/pull/512
@@ -87,6 +89,7 @@
 [#692]: https://github.com/sporkmonger/addressable/pull/692
 [#693]: https://github.com/sporkmonger/addressable/pull/693
 [#697]: https://github.com/sporkmonger/addressable/pull/697
+[#700]: https://github.com/sporkmonger/addressable/pull/700
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 

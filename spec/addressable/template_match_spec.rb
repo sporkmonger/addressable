@@ -174,7 +174,16 @@ describe Addressable::Template, "#match" do
       ["{;a*}", ";a;;b"] => {"a" => {"a" => "", nil => "", "b" => ""}},
       ["{/a*}{/b}", "/x/y/z"] => {"a" => ["x", "y", "z"], "b" => nil},
       ["{.a*}{.b}", ".x.y.z"] => {"a" => ["x", "y", "z"], "b" => nil},
-      ["{a*}{b}", "x,y,z"] => {"a" => ["x,y,"], "b" => "z"},
+      # A member can be empty, but a joiner before a later variable in the
+      # same expression isn't one.
+      ["{a*}{b}", "x,y,z"] => {"a" => ["x", "y", ""], "b" => "z"},
+      ["{a*,b}", "x,y,z"] => {"a" => ["x", "y"], "b" => "z"},
+      ["{a*}", "x,,y,"] => {"a" => ["x", "", "y", ""]},
+      ["{/a*}", "/x/"] => {"a" => ["x", ""]},
+      ["{/segments*}", "/a/b/"] => {"segments" => ["a", "b", ""]},
+      ["{+d*,a}?", ";,,x?"] => {"d" => [";", ""], "a" => "x"},
+      ["{\#a*,d*,b}=", "\#,,="] => {"a" => ["", ""], "d" => nil, "b" => ""},
+      ["{a*,b,c}", "x,y,z"] => {"a" => ["x"], "b" => "y", "c" => "z"},
       # With several variables, a value without a joiner goes to the last
       # variable for /, . and the default operator...
       ["{/a,b,c}", "/x"] => {"a" => "", "b" => "", "c" => "x"},
@@ -188,12 +197,12 @@ describe Addressable::Template, "#match" do
       ["{;a,b*}x", ";ax"] => {"a" => "", "b" => {}},
       # With several exploded variables, the first one takes the values for
       # +, # and ;...
-      ["{+a*,b*}", "x,y"] => {"a" => ["x,y"], "b" => []},
-      ["{+a*,b*,c}", "x,y,z"] => {"a" => ["x,y,z"], "b" => [], "c" => ""},
-      ["{+a*,b,c*}", "x,y"] => {"a" => ["x,y"], "b" => "", "c" => []},
+      ["{+a*,b*}", "x,y"] => {"a" => ["x", "y"], "b" => []},
+      ["{+a*,b*,c}", "x,y,z"] => {"a" => ["x", "y", "z"], "b" => [], "c" => ""},
+      ["{+a*,b,c*}", "x,y"] => {"a" => ["x", "y"], "b" => "", "c" => []},
       ["{+a*,b}z", "x,yz"] => {"a" => ["x"], "b" => "y"},
       ["{#a*,c*,b,b}/-", "#k=a;b,n=a,a=b,a=b/-"] => {
-        "a" => ["k=a;b,n=a,a=b"], "c" => nil, "b" => ""
+        "a" => ["k=a;b", "n=a", "a=b"], "c" => nil, "b" => ""
       },
       ["{;a*,b*}", ";a=1;b=2"] => {"a" => {"a" => "1", "b" => "2"}, "b" => {}},
       # ...and for ? and &, unless an empty member comes first...
@@ -203,11 +212,11 @@ describe Addressable::Template, "#match" do
       },
       # ...and the last one for /, . and the default operator.
       ["{/a*,b*}", "/x/y"] => {"a" => [], "b" => ["x", "y"]},
-      ["{/a*,b*}", "//x/y"] => {"a" => [], "b" => ["x", "y"]},
+      ["{/a*,b*}", "//x/y"] => {"a" => [""], "b" => ["x", "y"]},
       ["{/a*,b,c*}", "/x/y/z"] => {
         "a" => [], "b" => "", "c" => ["x", "y", "z"]
       },
-      ["{a*,b*}", ",x,y"] => {"a" => [","], "b" => ["x,y"]},
+      ["{a*,b*}", ",x,y"] => {"a" => [""], "b" => ["x", "y"]},
       # An expression directly followed by one that can match anything it
       # could is empty.
       ["{+a}{+b}{+c}", "xyz"] => {"a" => nil, "b" => nil, "c" => "xyz"},
@@ -225,9 +234,11 @@ describe Addressable::Template, "#match" do
       ["{#a,b}{+c,d}", "#x,y"] => {
         "a" => nil, "b" => nil, "c" => "#x", "d" => "y"
       },
-      ["{a,b}{c*}", "x,y,z"] => {"a" => nil, "b" => nil, "c" => ["x,y,z"]},
-      ["{.a}{c*}", ".x,y"] => {"a" => nil, "c" => [".x,y"]},
-      ["{a*}{c,d*}", "x,y"] => {"a" => nil, "c" => "", "d" => ["x,y"]},
+      ["{a,b}{c*}", "x,y,z"] => {
+        "a" => nil, "b" => nil, "c" => ["x", "y", "z"]
+      },
+      ["{.a}{c*}", ".x,y"] => {"a" => nil, "c" => [".x", "y"]},
+      ["{a*}{c,d*}", "x,y"] => {"a" => nil, "c" => "", "d" => ["x", "y"]},
       # An exploded {+b*} only ends where a run of characters ends.
       ["{+a}{+b*}x", "p,qx"] => {"a" => "p,q", "b" => nil},
       # {b} can't match "/", so {+a} isn't always empty.

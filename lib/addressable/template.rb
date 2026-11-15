@@ -609,7 +609,8 @@ module Addressable
         index = 0
         expansions.each do |expansion|
           _, operator, varlist = *expansion.match(EXPRESSION)
-          varlist.split(',').each do |varspec|
+          varspecs = varlist.split(',')
+          varspecs.each_with_index do |varspec, position|
             _, name, modifier = *varspec.match(VARSPEC)
             mapping[name] ||= nil
             case operator
@@ -617,7 +618,25 @@ module Addressable
               unparsed_value = unparsed_values[index]
               name = varspec[VARSPEC, 1]
               value = unparsed_value
-              value = value.split(JOINERS[operator]) if value && modifier == '*'
+              if value && modifier == '*'
+                # Members of the default, + and # operators are joined with
+                # a comma. A member can be empty, but joiners at the end of
+                # the value can be the ones before the later variables with
+                # a value, when those start right where it ends.
+                value = value.split(JOINERS.fetch(operator, ','), -1)
+                reached = matched.end(index + 1)
+                (1...(varspecs.size - position)).each do |ahead|
+                  later = unparsed_values[index + ahead]
+                  exploded = varspecs[position + ahead][VARSPEC, 2] == '*'
+                  # An empty list is undefined, and has no joiner.
+                  next if later.nil? || (exploded && later.empty?)
+                  group = index + ahead + 1
+                  break unless matched.begin(group) == reached &&
+                    value.last == ''
+                  value.pop
+                  reached = matched.end(group)
+                end
+              end
             when ';', '?', '&'
               if modifier == '*'
                 if unparsed_values[index]
