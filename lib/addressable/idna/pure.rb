@@ -95,6 +95,11 @@ module Addressable
     # warns about a duplicated range in a character class.
     DISPLAY_CHANGING = /[\p{Cc}\p{Cf}[\p{Default_Ignorable_Code_Point}&&\P{Cf}]]/
 
+    # Characters that nameprep maps to nothing (Section 3 of RFC 3491, since
+    # obsoleted by RFC 5891), such as SOFT HYPHEN and ZERO WIDTH JOINER.
+    MAPPED_TO_NOTHING =
+      /[\u00AD\u034F\u1806\u180B-\u180D\u200B-\u200D\u2060\uFE00-\uFE0F\uFEFF]/
+
     # :startdoc:
 
     # Converts from a Unicode internationalized domain name to an ASCII
@@ -102,7 +107,9 @@ module Addressable
     # RFC 5890 and RFC 5891).
     def self.to_ascii(input)
       input = input.to_s unless input.is_a?(String)
-      input = input.dup.force_encoding(Encoding::UTF_8).unicode_normalize(:nfkc)
+      input = input.dup.force_encoding(Encoding::UTF_8)
+      input = input.gsub(MAPPED_TO_NOTHING, '')
+      input = input.unicode_normalize(:nfkc)
       if input.respond_to?(:force_encoding)
         input.force_encoding(Encoding::ASCII_8BIT)
       end

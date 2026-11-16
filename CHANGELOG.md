@@ -54,6 +54,10 @@
 - Return copies from `#variables`, `#variable_defaults` and `MatchData#values` ([#619])
 - Split an exploded value of the default, `+` and `#` operators into its members in `#match` and `#extract`: `{a*,b}` on `x,y,z` gives `{"a" => ["x", "y"], "b" => "z"}`, not `{"a" => ["x,y,"], "b" => "z"}` ([#700])
 
+### `Addressable::IDNA`
+
+- Remove the characters nameprep maps to nothing, such as a zero width joiner, in the pure-Ruby `.to_ascii`, as `idn-ruby` does ([#703])
+
 [#133]: https://github.com/sporkmonger/addressable/pull/133
 [#512]: https://github.com/sporkmonger/addressable/pull/512
 [#550]: https://github.com/sporkmonger/addressable/pull/550
@@ -92,6 +96,7 @@
 [#697]: https://github.com/sporkmonger/addressable/pull/697
 [#700]: https://github.com/sporkmonger/addressable/pull/700
 [#701]: https://github.com/sporkmonger/addressable/pull/701
+[#703]: https://github.com/sporkmonger/addressable/pull/703
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 
