@@ -1216,6 +1216,11 @@ module Addressable
             result,
             NormalizeCharacterClasses::HOST
           )
+          if self.host.strip !~ /\A\[.*\]\z/
+            # ':', '[' and ']' delimit the port and IP literals, so a
+            # registered name must keep them percent-encoded.
+            result = result.gsub(/[:\[\]]/) { |c| "%%%02X" % c.ord }
+          end
           result
         else
           EMPTY_STR.dup
