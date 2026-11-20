@@ -34,6 +34,9 @@ module Addressable
 
     ACE_PREFIX = "xn--"
 
+    # The dots other than U+002E that separate labels (RFC 3490, section 3.1).
+    LABEL_SEPARATORS = "\u3002\uFF0E\uFF61"
+
     UTF8_REGEX = /\A(?:
       [\x09\x0A\x0D\x20-\x7E]               # ASCII
       | [\xC2-\xDF][\x80-\xBF]              # non-overlong 2-byte
@@ -103,6 +106,7 @@ module Addressable
     def self.to_ascii(input)
       input = input.to_s unless input.is_a?(String)
       input = input.dup.force_encoding(Encoding::UTF_8).unicode_normalize(:nfkc)
+      input = input.tr(LABEL_SEPARATORS, ".")
       if input.respond_to?(:force_encoding)
         input.force_encoding(Encoding::ASCII_8BIT)
       end
@@ -129,6 +133,8 @@ module Addressable
     # RFC 5890 and RFC 5891).
     def self.to_unicode(input)
       input = input.to_s unless input.is_a?(String)
+      utf8 = input.dup.force_encoding(Encoding::UTF_8)
+      input = utf8.tr(LABEL_SEPARATORS, ".") if utf8.valid_encoding?
       parts = input.split('.', -1)
       parts.map! do |part|
         if part =~ /^#{ACE_PREFIX}(.+)/

@@ -167,6 +167,25 @@ shared_examples_for "converting from unicode to ASCII" do
       expect(Addressable::IDNA.to_ascii(unicode)).to eq(ascii)
     end
   end
+
+  # RFC 3490, section 3.1: U+3002, U+FF0E and U+FF61 separate labels too.
+  {
+    "an ideographic full stop (U+3002)" => "\u3002",
+    "a fullwidth full stop (U+FF0E)" => "\uFF0E",
+    "a halfwidth ideographic full stop (U+FF61)" => "\uFF61"
+  }.each do |name, dot|
+    it "should read #{name} as a label separator" do
+      expect(Addressable::IDNA.to_ascii("日本語#{dot}jp")).to eq(
+        "xn--wgv71a119e.jp"
+      )
+      expect(Addressable::IDNA.to_ascii("www#{dot}詹姆斯#{dot}com")).to eq(
+        "www.xn--8ws00zhy3a.com"
+      )
+      expect(Addressable::IDNA.to_ascii("bücher#{dot}")).to eq(
+        "xn--bcher-kva."
+      )
+    end
+  end
 end
 
 shared_examples_for "converting from ASCII to unicode" do
@@ -205,6 +224,18 @@ shared_examples_for "converting from ASCII to unicode" do
   it "should convert 'www.google.com' correctly" do
     expect(Addressable::IDNA.to_unicode("www.google.com")).to eq(
       "www.google.com")
+  end
+
+  {
+    "an ideographic full stop (U+3002)" => "\u3002",
+    "a fullwidth full stop (U+FF0E)" => "\uFF0E",
+    "a halfwidth ideographic full stop (U+FF61)" => "\uFF61"
+  }.each do |name, dot|
+    it "should read #{name} as a label separator" do
+      expect(Addressable::IDNA.to_unicode("xn--wgv71a119e#{dot}jp")).to eq(
+        "日本語.jp"
+      )
+    end
   end
 
   it "should convert 'www.詹姆斯.com' correctly" do
@@ -634,6 +665,12 @@ describe Addressable::IDNA, "when using the pure-Ruby implementation" do
       failures << [label, result] if result != label
     end
     expect(failures.first(5)).to eq([])
+  end
+
+  it "should keep the dots in a name that isn't valid UTF-8" do
+    expect(Addressable::IDNA.to_unicode("www.\xFF.com".b)).to eq(
+      "www.\xFF.com".dup.force_encoding(Encoding::UTF_8)
+    )
   end
 
   begin
