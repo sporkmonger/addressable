@@ -52,7 +52,7 @@ describe Addressable, ".warn_if_unsupported_ruby" do
           Addressable.warn_if_unsupported_ruby(version, "ruby", version)
         end.to output(
           "Addressable no longer supports Ruby #{version}. " \
-          "Addressable 3.0 will require Ruby 3.3 or later.\n"
+          "A future version of Addressable will require Ruby 3.3 or later.\n"
         ).to_stderr
       end
     end
@@ -70,7 +70,7 @@ describe Addressable, ".warn_if_unsupported_ruby" do
         Addressable.warn_if_unsupported_ruby("3.1.4", "jruby", "9.4.15.0")
       end.to output(
         "Addressable no longer supports JRuby 9.4.15.0 (Ruby 3.1.4). " \
-        "Addressable 3.0 will require Ruby 3.3 or later.\n"
+        "A future version of Addressable will require Ruby 3.3 or later.\n"
       ).to_stderr
     end
 
@@ -79,7 +79,7 @@ describe Addressable, ".warn_if_unsupported_ruby" do
         Addressable.warn_if_unsupported_ruby("3.2.4", "truffleruby", "24.1.0")
       end.to output(
         "Addressable no longer supports TruffleRuby 24.1.0 (Ruby 3.2.4). " \
-        "Addressable 3.0 will require Ruby 3.3 or later.\n"
+        "A future version of Addressable will require Ruby 3.3 or later.\n"
       ).to_stderr
     end
 
@@ -88,7 +88,7 @@ describe Addressable, ".warn_if_unsupported_ruby" do
         Addressable.warn_if_unsupported_ruby("3.2.0", "otheruby", "1.0")
       end.to output(
         "Addressable no longer supports otheruby 1.0 (Ruby 3.2.0). " \
-        "Addressable 3.0 will require Ruby 3.3 or later.\n"
+        "A future version of Addressable will require Ruby 3.3 or later.\n"
       ).to_stderr
     end
 

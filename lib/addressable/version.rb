@@ -30,9 +30,9 @@ if !defined?(Addressable::VERSION)
 
     ##
     # Warns that Ruby 3.2 and earlier are no longer supported. Addressable
-    # still loads on them, but Addressable 3.0 will require Ruby 3.3 or
-    # later. Like Ruby's own deprecation warnings, it's only shown when
-    # deprecation warnings are turned on: with <code>-w</code>,
+    # still loads on them, but a future version of Addressable will require
+    # Ruby 3.3 or later. Like Ruby's own deprecation warnings, it's only
+    # shown when deprecation warnings are turned on: with <code>-w</code>,
     # <code>-W:deprecated</code> or <code>Warning[:deprecated] = true</code>
     # (only <code>-w</code> on Ruby 2.6 and earlier).
     #
@@ -62,7 +62,7 @@ if !defined?(Addressable::VERSION)
         end
       message =
         "Addressable no longer supports #{runtime}. " \
-        "Addressable 3.0 will require Ruby 3.3 or later."
+        "A future version of Addressable will require Ruby 3.3 or later."
       if RUBY_VERSION >= '3.0'
         warn(message, category: :deprecated)
       elsif defined?(Warning) && Warning.respond_to?(:[])

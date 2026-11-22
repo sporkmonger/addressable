@@ -108,11 +108,11 @@ $ gem install idn-ruby
 Addressable supports Ruby 3.3 or later, JRuby 10 or later, and TruffleRuby
 releases compatible with Ruby 3.3 or later. Ruby 3.2 and earlier, and
 JRuby 9.4, are no longer supported. Addressable still installs on them for
-now, and Addressable 3.0 will require Ruby 3.3. On these environments,
-Addressable gives a deprecation warning when it's loaded. Like Ruby's own
-deprecation warnings, it's only shown when they're turned on, with `-w`,
-`-W:deprecated` or `Warning[:deprecated] = true` (only `-w` on Ruby 2.6 and
-earlier).
+now, and a future version of Addressable will require Ruby 3.3. On these
+environments, Addressable gives a deprecation warning when it's loaded. Like
+Ruby's own deprecation warnings, it's only shown when they're turned on,
+with `-w`, `-W:deprecated` or `Warning[:deprecated] = true` (only `-w` on
+Ruby 2.6 and earlier).
 
 ### Untrusted input on Ruby 3.3, JRuby and TruffleRuby
 
