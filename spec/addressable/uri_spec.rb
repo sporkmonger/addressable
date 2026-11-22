@@ -2782,7 +2782,6 @@ describe Addressable::URI, "when assigning IPv6 address" do
 
   it "should not allow to set bare IPv6 address as host" do
     uri = Addressable::URI.parse("http://[::1]/")
-    skip "not checked"
     expect do
       uri.host = '3ffe:1900:4545:3:200:f8ff:fe21:67cf'
     end.to raise_error(Addressable::URI::InvalidURIError)
@@ -8380,6 +8379,273 @@ describe Addressable::URI, "YAML safe loading" do
   it "doesn't serialize anonymous objects" do
     url = Addressable::URI.parse("http://example.com/")
     expect(YAML.dump(url)).to_not include("!ruby/object {}")
+  end
+end
+
+describe Addressable::URI, "when a host has a pct-encoded percent sign" do
+  # A host is decoded once. A "%" that decoding gives is a percent sign in
+  # the name, so it stays pct-encoded, as "%25".
+  {
+    "http://127%252E0%252E0%252E1/" => "127%252e0%252e0%252e1",
+    "http://example.com%253A8080/" => "example.com%253a8080",
+    "http://%255B%253A%253A1%255D/" => "%255b%253a%253a1%255d",
+    "http://ex%25252561mple.test/" => "ex%25252561mple.test",
+    "http://100%25.example/" => "100%25.example",
+    "http://a%25b.example/" => "a%25b.example"
+  }.each do |input, host|
+    context "in #{input}" do
+      subject { Addressable::URI.parse(input) }
+
+      it "keeps the percent sign pct-encoded in the normalized host" do
+        expect(subject.normalized_host).to eq(host)
+      end
+
+      it "normalizes to a URI that normalizes to itself" do
+        normalized = subject.normalize
+        expect(normalized.normalize.to_s).to eq(normalized.to_s)
+      end
+
+      it "normalizes to a URI that parses to the same host and no port" do
+        reparsed = Addressable::URI.parse(subject.normalize.to_s)
+        expect(reparsed.host).to eq(host)
+        expect(reparsed.port).to be_nil
+      end
+    end
+  end
+
+  it "isn't equal to the host it would give if decoded twice" do
+    uri = Addressable::URI.parse("http://127%252E0%252E0%252E1/")
+    expect(uri).not_to eq(Addressable::URI.parse("http://127.0.0.1/"))
+    expect(uri.normalize.host).not_to eq("127.0.0.1")
+  end
+
+  it "still decodes a host that is pct-encoded once" do
+    uri = Addressable::URI.parse("http://127%2E0%2E0%2E1/")
+    expect(uri.normalized_host).to eq("127.0.0.1")
+  end
+
+  it "lowercases the letters that decoding gives" do
+    uri = Addressable::URI.parse("http://%49NTERNAL.example/")
+    expect(uri.normalized_host).to eq("internal.example")
+    expect(uri).to eq(Addressable::URI.parse("http://internal.example/"))
+    expect(uri.origin).to eq("http://internal.example")
+  end
+
+  it "normalizes any host to one that normalizes to itself" do
+    random = Random.new(3)
+    pieces = %w[a 1 . - %25 %2E %2e %41 %3A %5B %5D %C3%A9 %0A %0D 25 2E 3A 41]
+    500.times do
+      host = Array.new(random.rand(1..8)) { pieces.sample(random: random) }.join
+      uri = begin
+        Addressable::URI.parse("http://#{host}/")
+      rescue Addressable::URI::InvalidURIError
+        next
+      end
+      normalized = uri.normalize
+      expect(normalized.normalize.to_s).to eq(normalized.to_s), "for #{host}"
+      reparsed = Addressable::URI.parse(normalized.to_s)
+      expect(reparsed.host).to eq(uri.normalized_host), "for #{host}"
+      expect(reparsed.port).to be_nil, "for #{host}"
+    end
+  end
+end
+
+describe Addressable::URI, "when a host has a pct-encoded line break" do
+  # Only a dot at the very end of the host is a trailing dot.
+  {
+    "http://localhost.%0A/" => "localhost.%0A",
+    "http://127.0.0.1.%0A/" => "127.0.0.1.%0A",
+    "http://foo.%0Abar/" => "foo.%0Abar",
+    "http://a.example.%0Ab.example/" => "a.example.%0Ab.example",
+    "http://example.com.%0D%0A/" => "example.com.%0D%0A",
+    "http://example.com.%0A./" => "example.com.%0A"
+  }.each do |input, host|
+    context "in #{input}" do
+      subject { Addressable::URI.parse(input) }
+
+      it "keeps every character of the host" do
+        expect(subject.normalized_host).to eq(host)
+      end
+
+      it "normalizes to a URI that normalizes to itself" do
+        normalized = subject.normalize
+        expect(normalized.normalize.to_s).to eq(normalized.to_s)
+      end
+    end
+  end
+
+  it "isn't equal to the host without the line break" do
+    uri = Addressable::URI.parse("http://localhost.%0A/")
+    expect(uri).not_to eq(Addressable::URI.parse("http://localhost./"))
+    expect(uri.normalize.host).not_to eq("localhost.")
+    expect(uri.origin).to eq("http://localhost.%0A")
+  end
+end
+
+describe Addressable::URI, "when a host has a colon that isn't the port's" do
+  {
+    "pct-encoded" => "http://example.com%3A8080/",
+    "pct-encoded in lowercase" => "http://example.com%3a8080/",
+    "a fullwidth colon" => "http://example.com：8080/",
+    "a small colon" => "http://example.com﹕8080/",
+    "a pct-encoded fullwidth colon" => "http://example.com%EF%BC%9A8080/"
+  }.each do |description, input|
+    context "that is #{description}" do
+      subject { Addressable::URI.parse(input) }
+
+      it "has no port" do
+        expect(subject.port).to be_nil
+        expect(subject.inferred_port).to eq(80)
+      end
+
+      it "keeps the colon pct-encoded in the normalized host" do
+        expect(subject.normalized_host).to eq("example.com%3A8080")
+      end
+
+      it "normalizes to a URI with the same host and no port" do
+        normalized = subject.normalize
+        expect(normalized.to_s).to eq("http://example.com%3A8080/")
+        expect(normalized.host).to eq("example.com%3A8080")
+        expect(normalized.port).to be_nil
+      end
+
+      it "normalizes to a URI that parses to the same host and port" do
+        reparsed = Addressable::URI.parse(subject.normalize.to_s)
+        expect(reparsed.host).to eq("example.com%3A8080")
+        expect(reparsed.port).to be_nil
+      end
+
+      it "has an origin without that port" do
+        expect(subject.origin).to eq("http://example.com%3A8080")
+      end
+
+      it "isn't equal to the URI with that port" do
+        expect(subject).not_to eq(
+          Addressable::URI.parse("http://example.com:8080/")
+        )
+        expect(subject === "http://example.com:8080/").to be(false)
+      end
+    end
+  end
+
+  it "keeps the colon pct-encoded next to a port" do
+    uri = Addressable::URI.parse("http://example.com%3A8080:9090/")
+    expect(uri.normalize.to_s).to eq("http://example.com%3A8080:9090/")
+    expect(uri.normalize.port).to eq(9090)
+  end
+
+  it "keeps pct-encoded brackets encoded in a registered name" do
+    uri = Addressable::URI.parse("http://a%5Bb%5D.example.com/")
+    expect(uri.normalized_host).to eq("a%5Bb%5D.example.com")
+  end
+
+  it "still keeps the colons and brackets of an IP literal" do
+    uri = Addressable::URI.parse("http://[2001:DB8::1]:8080/")
+    expect(uri.normalized_host).to eq("[2001:db8::1]")
+    expect(uri.normalize.to_s).to eq("http://[2001:db8::1]:8080/")
+  end
+
+  context "when the whole IP literal and port are pct-encoded" do
+    subject { Addressable::URI.parse("http://%5B%3A%3A1%5D%3A8080/") }
+
+    it "keeps them pct-encoded in the normalized host" do
+      expect(subject.normalized_host).to eq("%5B%3A%3A1%5D%3A8080")
+    end
+
+    it "normalizes to a URI with the same host and no port" do
+      normalized = subject.normalize
+      expect(normalized.to_s).to eq("http://%5B%3A%3A1%5D%3A8080/")
+      expect(normalized.port).to be_nil
+    end
+
+    it "has an origin without that IP literal or port" do
+      expect(subject.origin).to eq("http://%5B%3A%3A1%5D%3A8080")
+    end
+
+    it "isn't equal to the URI with that IP literal and port" do
+      expect(subject).not_to eq(Addressable::URI.parse("http://[::1]:8080/"))
+    end
+  end
+end
+
+describe Addressable::URI, "when a host IDNA rejects has a colon" do
+  # A host IDNA rejects stays pct-encoded as it was written, so its
+  # pct-encoded colons and brackets stay encoded too.
+  {
+    "http://%E2%80%8B.example%3A6379/" => "%E2%80%8B.example%3A6379",
+    "http://%E2%80%8B.example%253A6379/" => "%E2%80%8B.example%253a6379",
+    "http://%E2%80%8B.example%5B%3A%3A1%5D/" =>
+      "%E2%80%8B.example%5B%3A%3A1%5D",
+    "http://%E2%80%8B.example%EF%BC%9A6379/" =>
+      "%E2%80%8B.example%EF%BC%9A6379"
+  }.each do |input, host|
+    context "in #{input}" do
+      subject { Addressable::URI.parse(input) }
+
+      it "keeps the colon pct-encoded in the normalized host" do
+        expect(subject.normalized_host).to eq(host)
+      end
+
+      it "normalizes to a URI that parses to the same host and no port" do
+        reparsed = Addressable::URI.parse(subject.normalize.to_s)
+        expect(reparsed.host).to eq(host)
+        expect(reparsed.port).to be_nil
+        expect(reparsed.normalize.to_s).to eq(subject.normalize.to_s)
+      end
+    end
+  end
+end
+
+describe Addressable::URI, "when a host has a colon outside brackets" do
+  it "raises when setting the host" do
+    uri = Addressable::URI.parse("http://example.com/")
+    expect do
+      uri.host = "evil.example:9"
+    end.to raise_error(Addressable::URI::InvalidURIError, /evil\.example:9/)
+    expect(uri.to_s).to eq("http://example.com/")
+  end
+
+  it "raises when creating a URI" do
+    expect do
+      Addressable::URI.new(scheme: "http", host: "evil.example:9")
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "raises for an IPv6 address without brackets" do
+    expect do
+      Addressable::URI.new(scheme: "http", host: "3ffe::1")
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "raises when setting the authority" do
+    uri = Addressable::URI.parse("http://example.com/")
+    expect do
+      uri.authority = "a:b:80"
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "raises when parsing a URI with two colons in its authority" do
+    expect do
+      Addressable::URI.parse("http://a:b:80/")
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "raises when parsing an IPv6 address without brackets" do
+    expect do
+      Addressable::URI.parse("http://::1/")
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "still adds brackets when setting the hostname to an IPv6 address" do
+    uri = Addressable::URI.parse("http://example.com/")
+    uri.hostname = "::1"
+    expect(uri.to_s).to eq("http://[::1]/")
+  end
+
+  it "still accepts a pct-encoded colon" do
+    uri = Addressable::URI.new(scheme: "http", host: "example.com%3A9")
+    expect(uri.to_s).to eq("http://example.com%3A9")
+    expect(uri.port).to be_nil
   end
 end
 

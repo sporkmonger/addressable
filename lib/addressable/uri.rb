@@ -62,9 +62,9 @@ module Addressable
 
     module NormalizeCharacterClasses
       HOST = /[^#{CharacterClasses::HOST}]/
-      # Brackets only enclose an IP literal.
-      HOST_WITHOUT_BRACKETS =
-        /[^#{CharacterClasses::UNRESERVED + CharacterClasses::SUB_DELIMS}\:]/
+      # A registered name has no ":", "[" or "]": those only delimit an IP
+      # literal and the port.
+      REG_NAME = /[^#{CharacterClasses::UNRESERVED + CharacterClasses::SUB_DELIMS}]/
       UNRESERVED = /[^#{CharacterClasses::UNRESERVED}]/
       PCHAR = /[^#{CharacterClasses::PCHAR}]/
       SCHEME = /[^#{CharacterClasses::SCHEME}]/
@@ -142,6 +142,8 @@ module Addressable
     end
 
     SLASH = '/'
+    IP_LITERAL = /\A\[.*\]\z/m
+    private_constant :IP_LITERAL
     EMPTY_STR = ''
 
     URIREGEX = /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/
@@ -1228,26 +1230,31 @@ module Addressable
           # can't be resolved as a domain name, but it's still a valid host
           # (RFC 3987, section 3.1). Only its ASCII letters are lowercased.
           result = if unencoded.valid_encoding?
+            # The host is decoded once. A "%" that decoding gives is a
+            # percent sign in the name, so it's written as "%25" again,
+            # where normalizing below would read it as part of a triplet.
+            # Decoded letters are lowercased too, as "%41" gives "A".
             begin
-              ::Addressable::IDNA.to_ascii(unencoded)
+              ::Addressable::IDNA.to_ascii(unencoded.downcase).gsub('%', '%25')
             rescue *::Addressable::IDNA::CONVERSION_ERRORS
               self.host.strip.tr("A-Z", "a-z")
             end
           else
             host
           end
-          if result =~ /[^\.]\.$/
+          if result =~ /[^\.]\.\z/
             # Single trailing dots are unnecessary.
             result = result[0...-1]
           end
-          # A registered name keeps a pct-encoded bracket encoded, or the
-          # normalized host would be read as a malformed IP literal.
+          # Only an IP literal keeps its ":", "[" and "]". In a registered
+          # name they stay pct-encoded, or they would be read as a port or
+          # an IP literal when the normalized URI is parsed again.
           result = Addressable::URI.normalize_component(
             result,
-            if ip_literal?(self.host)
+            if IP_LITERAL =~ self.host
               NormalizeCharacterClasses::HOST
             else
-              NormalizeCharacterClasses::HOST_WITHOUT_BRACKETS
+              NormalizeCharacterClasses::REG_NAME
             end
           )
           result
@@ -2672,6 +2679,13 @@ module Addressable
         raise InvalidURIError,
           "Brackets in a host must enclose an IPv6 address or an IPvFuture " +
           "literal: '#{self.host.to_s}'"
+      end
+      # Outside an IP literal, a colon would be read as the port delimiter
+      # when the URI is serialized and parsed again.
+      if !self.host.nil? && self.host.include?(":") && self.host[0] != "["
+        raise InvalidURIError,
+          "A colon in a host must be inside the brackets of an IP literal: " +
+          "'#{self.host.to_s}'"
       end
       return nil
     end

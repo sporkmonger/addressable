@@ -11,6 +11,7 @@
 - `Addressable::URI` setters, `.new` and `.parse` raise `InvalidURIError` for a port above 65535 in a URI whose scheme has a default port, such as `http://example.com:70000/`, and for a port above the largest integer Ruby stores without a bignum, 2**62 - 1 on 64-bit platforms, in any URI ([#711])
 - `Addressable::URI#origin=` raises `InvalidURIError` for a string with a path, query or fragment, which it dropped ([#616])
 - `Addressable::URI.parse`, `.new` and the host setters raise `InvalidURIError` for brackets in a host that don't enclose an IPv6 address or IPvFuture literal, such as `http://[127.0.0.1]/` or `http://example[.]com/`, which they accepted ([GHSA-c7j3-jq7p-v3pr])
+- `Addressable::URI#host=`, `#authority=`, `.new` and `.parse` raise `InvalidURIError` for a colon in a host outside the brackets of an IP literal, such as `example.com:8080` or `http://a:b:80/`, which they accepted ([GHSA-w5p3-7836-69vh])
 - The strings a frozen `Addressable::URI` holds are frozen, so changing one, as in `uri.host << "x"`, raises `FrozenError` ([#668])
 - `Addressable::Template#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateError` for a template that doesn't match the RFC 6570 grammar, which expansion kept as text and matching read as literal text ([#660], [#693], [#697])
 - `Addressable::Template` reads a prefix modifier outside 1 to 9999 or with a leading zero, such as `{var:0}`, `{var:05}` or `{var:10000}`, as malformed: `#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateError` where they used to expand or match it, and `#variables` ignores the expression ([#618], [#693], [#697])
@@ -38,6 +39,10 @@
 
 ### `Addressable::URI`
 
+- Fix `#normalize`, `#normalized_host`, `#origin` and `#==` turning a pct-encoded or fullwidth colon in the host into the port delimiter: `http://example.com%3A8080/` normalizes to itself, not `http://example.com:8080/` ([GHSA-w5p3-7836-69vh])
+- Fix `#normalize` and `#normalized_host` decoding a host twice: `http://127%252E0%252E0%252E1/` normalizes to `http://127%252e0%252e0%252e1/`, not `http://127.0.0.1/` ([GHSA-w5p3-7836-69vh])
+- Lowercase the letters that decoding a host gives in `#normalize`, `#normalized_host`, `#origin` and `#==`: `http://%49NTERNAL.example/` normalizes to `http://internal.example/`, not `http://Internal.example/` ([GHSA-w5p3-7836-69vh])
+- Fix `#normalize`, `#normalized_host` and `#origin` treating a dot before a pct-encoded line break in the host as a trailing dot: `http://localhost.%0A/` normalizes to itself, not `http://localhost./` ([GHSA-w5p3-7836-69vh])
 - Fix `#route_from` and `#route_to` giving routes that don't resolve to the target ([#623], [#648])
 - Fix `#userinfo=` splitting the user from the password at the last colon instead of the first ([#606])
 - Fix `.normalized_encode` decoding pct-encoded delimiters, such as `%2F` in the path and `%26` in the query ([#589])
@@ -117,6 +122,7 @@
 [#715]: https://github.com/sporkmonger/addressable/pull/715
 [#716]: https://github.com/sporkmonger/addressable/pull/716
 [GHSA-c7j3-jq7p-v3pr]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-c7j3-jq7p-v3pr
+[GHSA-w5p3-7836-69vh]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-w5p3-7836-69vh
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 
