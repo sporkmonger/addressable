@@ -36,6 +36,7 @@
 - `Addressable::Template#match` and `#extract` keep the empty members of an exploded value: `{/segments*}` on `/a/b/` gives `{"segments" => ["a", "b", ""]}`, not `{"segments" => ["a", "b"]}`, and on `/` gives `{"segments" => [""]}`, not `{"segments" => []}` ([#700])
 - `Addressable::Template#match` and `#extract` give a value that more than one variable of a `/`, `.`, `+`, `#` or default expression could take to the first of them, leaving a later variable undefined when nothing is left for it: `{/a,b*}` on `/x/y/z` gives `{"a" => "x", "b" => ["y", "z"]}`, not `{"a" => "", "b" => ["x", "y", "z"]}` ([#715])
 - The pure-Ruby `Addressable::IDNA.to_ascii` and `.to_unicode` keep trailing empty labels, as `idn-ruby` does: `bücher.example.` gives `xn--bcher-kva.example.`, not `xn--bcher-kva.example` ([#609])
+- The pure-Ruby `Addressable::IDNA.to_ascii` treats U+3002 and U+FF61 as label separators, as `idn-ruby` does: `bücher。example` gives `xn--bcher-kva.example`, not `xn--bcherexample-dlb0569n` ([GHSA-x378-rg7m-2c49])
 - `Addressable::IDNA.to_unicode` and `Addressable::URI#display_uri` leave an A-label as it is when it decodes to ASCII other than letters, digits and hyphens, or starts or ends with a hyphen: `xn--mn,chen-n2a` gives `xn--mn,chen-n2a`, not `mün,chen` ([#716])
 
 ### `Addressable::URI`
@@ -74,6 +75,7 @@
 ### `Addressable::IDNA`
 
 - Fix `.to_ascii` and `.to_unicode` in the native backend dropping the rest of a label after a NUL, so `http://internal.example%00x/` no longer normalizes to `http://internal.example/` ([GHSA-mrrj-5mhw-rcf2])
+- Fix `.to_unicode` decoding a label to one with a label separator, such as `xn--victimexample-882l` to `victim。example` ([GHSA-x378-rg7m-2c49])
 - Remove the characters nameprep maps to nothing, such as a zero width joiner, in the pure-Ruby `.to_ascii`, as `idn-ruby` does ([#703])
 - Fix the native `.to_ascii` and `.to_unicode` crashing the process for a string that isn't tagged as UTF-8 and has bytes that aren't valid UTF-8, such as `"caf\xE9.example".b`; they raise `ArgumentError`, as they do for a UTF-8 string ([#710])
 
@@ -126,6 +128,7 @@
 [GHSA-c7j3-jq7p-v3pr]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-c7j3-jq7p-v3pr
 [GHSA-mrrj-5mhw-rcf2]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-mrrj-5mhw-rcf2
 [GHSA-w5p3-7836-69vh]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-w5p3-7836-69vh
+[GHSA-x378-rg7m-2c49]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-x378-rg7m-2c49
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 

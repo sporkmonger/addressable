@@ -88,6 +88,11 @@ module Addressable
     # a duplicated range in a character class.
     DISPLAY_CHANGING = /[\p{Cc}\p{Cf}[\p{Default_Ignorable_Code_Point}&&\P{Cf}]]/
 
+    # The label separators of IDNA2003 (Section 3.1 of RFC 3490, since
+    # obsoleted by RFC 5890 and RFC 5891). A label that decodes to one of
+    # them would display as two labels.
+    LABEL_SEPARATORS = /[.\u3002\uFF0E\uFF61]/
+
     # A host name has only ASCII letters, digits and hyphens, and doesn't
     # start or end with a hyphen. RFC 3987 says to check an IRI's host names
     # with these rules (STD3, section 4.1 of RFC 3490), so a label that
@@ -101,7 +106,8 @@ module Addressable
           segment
         elsif segment.size > 0 && segment.size < 64
           decoded = IDN::Idna.toUnicode(segment, IDN::Idna::ALLOW_UNASSIGNED)
-          if decoded =~ DISPLAY_CHANGING || decoded =~ NOT_STD3
+          if decoded =~ DISPLAY_CHANGING || decoded =~ LABEL_SEPARATORS ||
+              decoded =~ NOT_STD3
             segment
           else
             decoded

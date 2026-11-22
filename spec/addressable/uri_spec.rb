@@ -6547,6 +6547,22 @@ describe Addressable::URI, "when displaying a host with a label that " +
 end
 
 describe Addressable::URI, "when displaying a host with a label that " +
+    "decodes to a label separator" do
+  [
+    "https://xn--paypalcom-bk3h.attacker.example/",
+    "https://xn--paypalcom-b854c.attacker.example/",
+    "https://xn--paypalcom-0w64c.attacker.example/",
+    "https://www.xn--r6j.example/"
+  ].each do |input|
+    it "should display '#{input}' with its normalized host" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.display_uri.host).to eq(uri.normalized_host)
+      expect(uri.display_uri.to_s).to eq(input)
+    end
+  end
+end
+
+describe Addressable::URI, "when displaying a host with a label that " +
     "decodes to ASCII other than letters, digits and hyphens" do
   # Each label is "mün<character>chen". A label with a pct-encoded
   # character was displayed as a different label, such as "mn%ã3Fchen" for

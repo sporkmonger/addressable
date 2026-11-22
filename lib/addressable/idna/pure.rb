@@ -95,6 +95,11 @@ module Addressable
     # warns about a duplicated range in a character class.
     DISPLAY_CHANGING = /[\p{Cc}\p{Cf}[\p{Default_Ignorable_Code_Point}&&\P{Cf}]]/
 
+    # The label separators of IDNA2003 (Section 3.1 of RFC 3490, since
+    # obsoleted by RFC 5890 and RFC 5891). A label that decodes to one of
+    # them would display as two labels.
+    LABEL_SEPARATORS = /[.\u3002\uFF0E\uFF61]/
+
     # A host name has only ASCII letters, digits and hyphens, and doesn't
     # start or end with a hyphen. RFC 3987 says to check an IRI's host names
     # with these rules (STD3, section 4.1 of RFC 3490), so a label that
@@ -105,9 +110,6 @@ module Addressable
     # as SOFT HYPHEN and ZERO WIDTH JOINER.
     MAPPED_TO_NOTHING =
       /[\u00AD\u034F\u1806\u180B-\u180D\u200B-\u200D\u2060\uFE00-\uFE0F\uFEFF]/
-
-    # The label separators of IDNA2003 (Section 3.1 of RFC 3490).
-    LABEL_SEPARATORS = /[.\u3002\uFF0E\uFF61]/
 
     # A label is empty after nameprep, as libidn reports with
     # IDN::Idna::IdnaError.
@@ -134,6 +136,10 @@ module Addressable
       end
       input = input.gsub(MAPPED_TO_NOTHING, '')
       input = input.unicode_normalize(:nfkc)
+      # NFKC maps U+FF0E to a dot and U+FF61 to U+3002. Map U+3002 to a dot
+      # too, so that each label separator of IDNA2003 (Section 3.1 of
+      # RFC 3490) separates labels.
+      input = input.tr("\u3002", ".")
       if input.respond_to?(:force_encoding)
         input.force_encoding(Encoding::ASCII_8BIT)
       end
@@ -169,10 +175,10 @@ module Addressable
             # A-label (Section 5.3 of RFC 5891). That includes a label that
             # decodes to only ASCII characters. A label with a character that
             # would change how it displays, or that a host name can't have, is
-            # returned unchanged too.
+            # returned unchanged too, as is a label with a label separator.
             if to_ascii(decoded).downcase != part.downcase ||
                 decoded =~ NAMEPREP_PROHIBITED || decoded =~ DISPLAY_CHANGING ||
-                decoded =~ NOT_STD3
+                decoded =~ LABEL_SEPARATORS || decoded =~ NOT_STD3
               part
             else
               decoded

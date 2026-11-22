@@ -244,6 +244,19 @@ shared_examples_for "converting from unicode to ASCII" do
     )
   end
 
+  # Section 3.1 of RFC 3490
+  {
+    "paypal\u3002com" => "paypal.com",
+    "paypal\uFF0Ecom" => "paypal.com",
+    "paypal\uFF61com" => "paypal.com",
+    "b\u00FCcher\u3002example" => "xn--bcher-kva.example",
+    "b\u00FCcher\uFF61example\u3002" => "xn--bcher-kva.example."
+  }.each do |unicode, ascii|
+    it "should treat each label separator in #{unicode.inspect} as a dot" do
+      expect(Addressable::IDNA.to_ascii(unicode)).to eq(ascii)
+    end
+  end
+
   it "should read the bytes of a binary string as UTF-8" do
     expect(Addressable::IDNA.to_ascii("b\xC3\xBCcher.example".b)).to eq(
       "xn--bcher-kva.example"
@@ -527,6 +540,24 @@ shared_examples_for "converting from ASCII to unicode" do
     "a shorthand format control (U+1BCA0)" => "xn--mnchen-3ya19691g",
     "a reserved default ignorable code point (U+E0002)" =>
       "xn--mnchen-3ya741944e"
+  }.each do |description, label|
+    it "should return the identity conversion for a label with " +
+        description do
+      expect(Addressable::IDNA.to_unicode(label)).to eq(label)
+      expect(Addressable::IDNA.to_unicode("www.#{label}.com")).to eq(
+        "www.#{label}.com"
+      )
+    end
+  end
+
+  # A label that decodes to a label separator (Section 3.1 of RFC 3490) would
+  # display as two labels. Each label is "paypal<separator>com", or the
+  # separator alone.
+  {
+    "an ideographic full stop (U+3002)" => "xn--paypalcom-bk3h",
+    "a fullwidth full stop (U+FF0E)" => "xn--paypalcom-b854c",
+    "a halfwidth ideographic full stop (U+FF61)" => "xn--paypalcom-0w64c",
+    "only an ideographic full stop (U+3002)" => "xn--r6j"
   }.each do |description, label|
     it "should return the identity conversion for a label with " +
         description do
