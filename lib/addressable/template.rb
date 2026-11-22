@@ -1675,26 +1675,42 @@ module Addressable
     #
     # @param [String] escaped_pattern The escaped URI template pattern.
     #
-    # @return [Array<Array>] For each expression, the <tt>MatchData</tt> of
-    #   the expression directly after it (or <tt>nil</tt>), and whether the
-    #   text after it could start with a comma.
+    # @return [Array<Array>] For each expression, the expression directly
+    #   after it (or <tt>nil</tt>), as an array of the expression, its
+    #   operator and its variable list, and whether the text after it could
+    #   start with a comma.
     def expression_followers(escaped_pattern)
-      expressions = escaped_pattern.to_enum(:scan, EXPRESSION).map do
-        Regexp.last_match
+      # StringScanner works in byte offsets; character offsets would make
+      # this quadratic for a pattern with non-ASCII characters.
+      scanner = StringScanner.new(escaped_pattern)
+      expressions = []
+      while scanner.skip_until(EXPRESSION)
+        finish = scanner.pos
+        expressions << [
+          [scanner[0], scanner[1], scanner[2]],
+          finish - scanner.matched_size,
+          finish
+        ]
       end
-      expressions.each_with_index.map do |current, index|
-        following = expressions[index + 1]
-        following = nil unless following && following.begin(0) == current.end(0)
-        # Expressions can match nothing, so look past any that can't start
-        # with a comma.
-        position = current.end(0)
-        comma = expressions[(index + 1)..-1].any? do |later|
-          break false unless later.begin(0) == position
-          position = later.end(0)
-          may_start_with_comma?(later[1], later[2])
+      # Expressions can match nothing, so the text after an expression could
+      # start with a comma if the expression directly after it could, or if
+      # the text after that one could. Working backwards, each answer comes
+      # from the next one, which keeps this linear for a long run of
+      # expressions.
+      followers = Array.new(expressions.size)
+      comma = false
+      (expressions.size - 1).downto(0) do |index|
+        current_end = expressions[index][2]
+        following, following_start, _ = expressions[index + 1]
+        if following && following_start == current_end
+          comma ||= may_start_with_comma?(following[1], following[2])
+        else
+          following = nil
+          comma = escaped_pattern.byteslice(current_end, 1) == ','
         end
-        [following, comma || escaped_pattern[position] == ',']
+        followers[index] = [following, comma]
       end
+      followers
     end
 
     ##
@@ -1752,7 +1768,8 @@ module Addressable
     # Whether an expression, followed directly by another one, could only
     # match characters that the other one could also match, in any amount.
     #
-    # @param [MatchData] following The expression that follows.
+    # @param [Array] following
+    #   The expression that follows, its operator and its variable list.
     # @param [String, nil] operator The operator of the first expression.
     # @param [Array<String>] varspecs The varspecs of the first expression.
     #

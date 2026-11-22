@@ -74,6 +74,7 @@
 - Match non-ASCII text in a URI either as written or pct-encoded ([#680])
 - Return copies from `#variables`, `#variable_defaults` and `MatchData#values` ([#619])
 - Split an exploded value of the default, `+` and `#` operators into its members in `#match` and `#extract`: `{a*,b}` on `x,y,z` gives `{"a" => ["x", "y", "z"], "b" => nil}`, not `{"a" => ["x,y,"], "b" => "z"}` ([#700], [#715])
+- Build the regexp for a template in linear time when it has non-ASCII literal text or a long run of expressions with no literal text between them ([GHSA-h78h-gj97-g737])
 - Keep everything after the first `=` of each pair in an exploded `;`, `?` or `&` value in `#match` and `#extract`: `{?a*}` on `?k=x=y` gives `{"a" => {"k" => "x=y"}}`, not `{"a" => {"k" => "x"}}` ([#687])
 
 ### `Addressable::IDNA`
@@ -132,6 +133,7 @@
 [#716]: https://github.com/sporkmonger/addressable/pull/716
 [GHSA-c7j3-jq7p-v3pr]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-c7j3-jq7p-v3pr
 [GHSA-fccw-gx6q-mh6c]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-fccw-gx6q-mh6c
+[GHSA-h78h-gj97-g737]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-h78h-gj97-g737
 [GHSA-mrrj-5mhw-rcf2]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-mrrj-5mhw-rcf2
 [GHSA-qg8x-qm93-fw27]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-qg8x-qm93-fw27
 [GHSA-qrq6-rcpx-pmm6]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-qrq6-rcpx-pmm6

@@ -1085,6 +1085,49 @@ describe "Expansion" do
       expect(non_ascii_time).to be < (ascii_time * 4) + 0.05
     end
 
+    it "builds the regexp for long templates with non-ASCII literals in " +
+        "linear time" do
+      # Compared with ASCII literals on the same runner, so that a slow or
+      # busy runner doesn't fail the spec. Finding each expression by
+      # character offset, which is quadratic, took over five times as long at
+      # this size. Each run builds a new template, since the regexp is cached.
+      size = 20_000
+      fastest = lambda do |literal|
+        3.times.map do
+          template = Addressable::Template.new("#{literal}{a}" * size)
+          started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          template.to_regexp
+          Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+        end.min
+      end
+      non_ascii = Addressable::Template.new("é{a}é{b}")
+      expect(non_ascii.extract("%C3%A9x%C3%A9y")).to eq("a" => "x", "b" => "y")
+      ascii_time = fastest.call("a")
+      non_ascii_time = fastest.call("é")
+      expect(non_ascii_time).to be < (ascii_time * 4) + 0.05
+    end
+
+    it "builds the regexp for long templates of adjacent expressions in " +
+        "linear time" do
+      # Compared with expressions separated by literals on the same runner,
+      # so that a slow or busy runner doesn't fail the spec. Looking through
+      # every later expression for one that could start with a comma, which
+      # is quadratic, took over a hundred times as long at this size. Each
+      # run builds a new template, since the regexp is cached.
+      size = 5_000
+      fastest = lambda do |piece|
+        3.times.map do
+          template = Addressable::Template.new(piece * size)
+          started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          template.to_regexp
+          Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+        end.min
+      end
+      separated_time = fastest.call("a{a}")
+      adjacent_time = fastest.call("{a}")
+      expect(adjacent_time).to be < (separated_time * 4) + 0.05
+    end
+
     it "checks long templates in linear time" do
       [
         "{" * 100_000,
