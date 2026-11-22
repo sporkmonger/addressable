@@ -17,6 +17,7 @@
 #++
 
 
+require "set"
 require "strscan"
 require "addressable/version"
 require "addressable/uri"
@@ -438,6 +439,14 @@ module Addressable
     # Elsewhere, each <tt>.</tt> starts a label: <tt>/{name}{.ext}</tt> reads
     # <tt>/archive.tar.gz</tt> as <tt>archive.tar</tt> and <tt>gz</tt>.
     #
+    # Matching takes time linear in the URI's length, with two exceptions on
+    # MRI before 3.3, JRuby and TruffleRuby, where it can take time
+    # polynomial in the URI's length: matching with a processor that gives a
+    # variable its own pattern, which keeps every choice open so that the
+    # pattern decides the values, and matching some templates that combine an
+    # exploded variable, or several variables in one expression, with other
+    # expressions, such as <tt>{+c*,d}{&b}.{b}</tt>.
+    #
     # @raise [Addressable::Template::InvalidTemplateError]
     #   If the template doesn't match the RFC 6570 grammar, e.g. an unclosed
     #   expression or a stray <tt>}</tt>.
@@ -529,6 +538,14 @@ module Addressable
     # Elsewhere, each <tt>.</tt> starts a label: <tt>/{name}{.ext}</tt> reads
     # <tt>/archive.tar.gz</tt> as <tt>archive.tar</tt> and <tt>gz</tt>.
     #
+    # Matching takes time linear in the URI's length, with two exceptions on
+    # MRI before 3.3, JRuby and TruffleRuby, where it can take time
+    # polynomial in the URI's length: matching with a processor that gives a
+    # variable its own pattern, which keeps every choice open so that the
+    # pattern decides the values, and matching some templates that combine an
+    # exploded variable, or several variables in one expression, with other
+    # expressions, such as <tt>{+c*,d}{&b}.{b}</tt>.
+    #
     # @raise [Addressable::Template::InvalidTemplateError]
     #   If the template doesn't match the RFC 6570 grammar, e.g. an unclosed
     #   expression or a stray <tt>}</tt>.
@@ -614,6 +631,13 @@ module Addressable
           values = if split && varspecs.size > 1
             split_from_left(operator, varspecs, matched, index)
           end
+          if !values && [nil, '+', '#', '/', '.'].include?(operator) &&
+              varlist.include?('*')
+            members = exploded_members(
+              operator, varspecs, unparsed_values[index, varspecs.size],
+              index, matched, uri.to_str
+            )
+          end
           varspecs.each_with_index do |varspec, position|
             _, name, modifier = *varspec.match(VARSPEC)
             mapping[name] ||= nil
@@ -625,27 +649,7 @@ module Addressable
               if values
                 value = values[position]
               elsif value && modifier == '*'
-                # Members of the default, + and # operators are joined with
-                # a comma. A member can be empty, but joiners at the end of
-                # the value can be the ones before the later variables with
-                # a value, when those start right where it ends.
-                value = value.split(JOINERS.fetch(operator, ','), -1)
-                # Right after the leader, an empty value is one empty member.
-                if value.empty? && position == 0 && LEADERS.key?(operator)
-                  value = ['']
-                end
-                reached = matched.end(index + 1)
-                (1...(varspecs.size - position)).each do |ahead|
-                  later = unparsed_values[index + ahead]
-                  exploded = varspecs[position + ahead][VARSPEC, 2] == '*'
-                  # An empty list is undefined, and has no joiner.
-                  next if later.nil? || (exploded && later.empty?)
-                  group = index + ahead + 1
-                  break unless matched.begin(group) == reached &&
-                    value.last == ''
-                  value.pop
-                  reached = matched.end(group)
-                end
+                value = members[position]
               end
             when ';', '?', '&'
               if modifier == '*'
@@ -694,6 +698,89 @@ module Addressable
       else
         return nil
       end
+    end
+
+    ##
+    # The members of each exploded value of a default, +, #, / or .
+    # expression in a match. A member can be empty, so a joiner at the end of
+    # a value can be an empty member or the one before a later variable, and
+    # an empty value can be one empty member or none. Joined with the
+    # expression's joiner, the values must give the text the expression
+    # matched, so where the first choice doesn't, the others are tried.
+    #
+    # @param [String, nil] operator The expression's operator.
+    # @param [Array<String>] varspecs The expression's variables.
+    # @param [Array<String, nil>] values The variables' captures.
+    # @param [Integer] index The index of its first capture.
+    # @param [MatchData] matched The match.
+    # @param [String] text The URI.
+    #
+    # @return [Hash] The members, for each exploded variable's position.
+    def exploded_members(operator, varspecs, values, index, matched, text)
+      joiner = JOINERS.fetch(operator, ',')
+      exploded = varspecs.map { |varspec| varspec[VARSPEC, 2] == '*' }
+      # An empty list is undefined, and has no joiner before it.
+      valued = lambda do |at|
+        values[at] && !(exploded[at] && values[at].empty?)
+      end
+      members = {}
+      choices = {}
+      varspecs.each_index do |position|
+        next unless exploded[position] && values[position]
+        list = values[position].split(joiner, -1)
+        # Right after the leader, an empty value is one empty member.
+        if list.empty? && position == 0 && LEADERS.key?(operator)
+          list = ['']
+        end
+        # A later variable that starts right where this value ends has its
+        # joiner at the end of this one.
+        reached = matched.end(index + position + 1)
+        ((position + 1)...varspecs.size).each do |at|
+          next unless valued.call(at)
+          group = index + at + 1
+          list.pop if matched.begin(group) == reached && list.last == ''
+          break unless matched.end(group) == matched.begin(group)
+          reached = matched.end(group)
+        end
+        members[position] = list
+        # The other choices: up to one fewer empty member at the end for
+        # each later variable, or one empty member for an empty value.
+        whole = values[position].split(joiner, -1)
+        options = [list]
+        (0..[varspecs.size - position - 1, whole.size].min).each do |dropped|
+          next unless whole[(whole.size - dropped)..-1].all?(&:empty?)
+          options << whole[0, whole.size - dropped]
+        end
+        options << [''] if whole.empty?
+        choices[position] = options.uniq
+      end
+      present = values.each_index.select { |at| values[at] }
+      return members if present.empty? || choices.empty?
+      expected = text[
+        matched.begin(index + present.first + 1)...
+          matched.end(index + present.last + 1)
+      ]
+      joined = lambda do |chosen|
+        values.each_index.map do |at|
+          next nil unless values[at]
+          next values[at] unless exploded[at]
+          list = chosen[at]
+          list.empty? ? nil : list.join(joiner)
+        end.compact.join(joiner)
+      end
+      return members if joined.call(members) == expected
+      positions = choices.keys
+      count = positions.inject(1) { |product, at| product * choices[at].size }
+      # The choices are few for templates of the usual size; past that,
+      # the first one is kept rather than trying them all.
+      return members if count > 64
+      combos = positions.map { |at| choices[at] }
+      first, *rest = combos
+      first.product(*rest).each do |combo|
+        chosen = Hash[positions.zip(combo)]
+        return chosen if joined.call(chosen) == expected
+      end
+      members
     end
 
     ##
@@ -1753,6 +1840,65 @@ module Addressable
     end
 
     ##
+    # Whether the text after an expression could start with a character.
+    #
+    # @param [Integer] index The expression's index.
+    # @param [String] character The character.
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    #
+    # @return [TrueClass, FalseClass]
+    def may_follow_with?(index, character, expressions, literals)
+      position = index + 1
+      loop do
+        literal = literals[position]
+        return literal.start_with?(character) unless literal.empty?
+        return false if position == expressions.size
+        operator = expressions[position][EXPRESSION, 1]
+        leader = LEADERS.fetch(operator, '')
+        if leader.empty?
+          return true if may_contain?(expressions[position], character)
+        elsif leader == character || (operator == '#' && character == '%')
+          return true
+        end
+        # The expression can match nothing.
+        position += 1
+      end
+    end
+
+    ##
+    # Whether what follows an expression always starts with a character that
+    # a + or # member can contain, other than a comma: literal text that
+    # does, after expressions that are empty or start with a leader, or with
+    # characters other than a comma. The URI can't end there.
+    #
+    # @param [Integer] index The expression's index.
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    #
+    # @return [TrueClass, FalseClass]
+    def members_follow?(index, expressions, literals)
+      position = index + 1
+      loop do
+        literal = literals[position]
+        unless literal.empty?
+          return literal =~ /\A#{RESERVED}/ && literal[0] != ',' ? true : false
+        end
+        return false if position == expressions.size
+        expression = expressions[position]
+        # A leader is a member's character. Without one, the expression can
+        # start with any character it can contain.
+        if LEADERS.fetch(expression[EXPRESSION, 1], '').empty?
+          return false if may_contain?(expression, ',')
+        end
+        # The expression can also be empty.
+        position += 1
+      end
+    end
+
+    ##
     # Whether an expression could match a string that starts with a comma.
     #
     # @param [String, nil] operator The expression's operator.
@@ -1798,36 +1944,839 @@ module Addressable
     end
 
     ##
-    # Generates the <tt>Regexp</tt> that parses a template pattern.
+    # Whether an expression's expansion can contain a character.
+    #
+    # @param [String] expression The expression.
+    # @param [String] character The character.
+    #
+    # @return [TrueClass, FalseClass]
+    def may_contain?(expression, character)
+      # Any expansion can contain a pct-encoded triplet, and matching accepts
+      # a non-ASCII character as it is.
+      return true if character == '%' || character =~ LITERAL_ENCODE
+      contained_characters(expression).include?(character)
+    end
+
+    ##
+    # The characters of TEXT_CHARACTERS that an expression's expansion can
+    # contain.
+    #
+    # @param [String] expression The expression.
+    #
+    # @return [Array<String>]
+    def contained_characters(expression)
+      _, operator, varlist = *expression.match(EXPRESSION)
+      # A joiner only comes between values.
+      CONTAINED_CHARACTERS.fetch([operator, varlist =~ /[,*]/ ? true : false])
+    end
+
+    ##
+    # The characters of TEXT_CHARACTERS that any of some expressions'
+    # expansions can contain.
+    #
+    # @param [Array<String>] expressions The expressions.
+    #
+    # @return [Array<String>]
+    def characters_in(expressions)
+      # Expressions of the same kind share one set.
+      expressions.map { |expression| contained_characters(expression) }.
+        uniq(&:object_id).inject([], :|)
+    end
+
+    ##
+    # The characters of TEXT_CHARACTERS that match a regexp source for one
+    # character.
+    #
+    # @param [String] group The source.
+    #
+    # @return [Array<String>]
+    def group_characters(group)
+      GROUP_CHARACTERS.fetch(group) do
+        TEXT_CHARACTERS.select { |c| c =~ /\A#{group}\z/ }
+      end
+    end
+
+    ##
+    # Splits a template pattern into its expressions and the literal text
+    # around them, with the regular expression for each literal. Once a
+    # fragment may have started, expansion encodes a later "#" as "%23", so
+    # the literals and fragment expressions after that point match it either
+    # way. Reserved and fragment expansion may start a fragment.
     #
     # @param [String] pattern The URI template pattern.
-    # @param [#match] processor The template processor to use.
     #
-    # @return [Array, Regexp]
-    #   An array of expansion variables nad a regular expression which may be
-    #   used to parse a template pattern
-    def parse_new_template_pattern(pattern, processor = nil)
-      # Escape the literal text between the expressions. Once a fragment
-      # may have started, expansion encodes a later "#" as "%23", so the
-      # literals and fragment expressions after that point match it either
-      # way. Reserved and fragment expansion may start a fragment.
+    # @return [Array]
+    #   The pattern with its literals escaped, its expressions, its
+    #   literals (the text before each expression, and after the last one),
+    #   their regular expression sources, and whether a fragment may have
+    #   started before each expression and before each literal.
+    def template_parts(pattern)
       fragment = false
       either_leader = []
       literals = []
       either_literal = []
-      raw_expressions = []
+      expressions = []
+      literal_sources = []
       escaped_pattern = map_literals(pattern) do |literal, expression|
         literals << literal
         either_literal << fragment
         source = literal_regexp(literal, fragment)
+        literal_sources << source
         fragment ||= literal.include?('#')
         if expression
-          raw_expressions << expression
+          expressions << expression
           either_leader << fragment
           fragment ||= expression =~ /\A\{[+#]/ ? true : false
         end
         source
       end
+      [escaped_pattern, expressions, literals, literal_sources, either_leader,
+       either_literal]
+    end
+
+    ##
+    # The characters such that text made of one can be put in front of an
+    # expression's value, so that the expression matches it and everything
+    # after it the same way.
+    #
+    # @param [String] expression The expression.
+    # @param [Array<String>] characters The characters to check.
+    #
+    # @return [Array<String>] Those of the characters that can.
+    def absorbed(expression, characters)
+      _, operator, varlist = *expression.match(EXPRESSION)
+      return [] unless operator.nil? || operator == '+'
+      varspecs = varlist.split(',')
+      exploded = varspecs.first[VARSPEC, 2] == '*'
+      # Text in front of a lone exploded value becomes part of its first
+      # member, or, with a comma, members of their own. A + member takes
+      # every character it can, so it couldn't end where it did, unless
+      # only unexploded variables follow it: the text up to its last comma
+      # then becomes members, and the rest becomes part of the next value.
+      return [] if exploded && !(operator.nil? && varspecs.size == 1) &&
+        !(varspecs.size > 1 &&
+          varspecs.drop(1).none? { |varspec| varspec[VARSPEC, 2] == '*' })
+      # The first of several + variables takes every character it can, or
+      # is skipped, so text in front of it would be taken past where the
+      # value ended.
+      return [] if operator == '+' && !exploded && varspecs.size > 1
+      group = group_characters(operator ? RESERVED : UNRESERVED).join
+      characters.select do |character|
+        if character == ',' && (exploded || varspecs.size > 1)
+          # A comma would end the first of several variables.
+          exploded
+        else
+          group.include?(character) || character == '%' ||
+            character =~ LITERAL_ENCODE
+        end
+      end
+    end
+
+    ##
+    # Whether an expression tries the places where it can end in order,
+    # nearest first, as a lone variable of the default, +, #, / or .
+    # operator does. In a block of such expressions, the first choice that
+    # lets literal text match ends the block as early as any choice can.
+    #
+    # @param [String] expression The expression.
+    #
+    # @return [TrueClass, FalseClass]
+    def ends_in_order?(expression)
+      _, operator, varlist = *expression.match(EXPRESSION)
+      [nil, '+', '#', '/', '.'].include?(operator) &&
+        varlist =~ VARSPEC && $2 != '*' ? true : false
+    end
+
+    # Characters that a template's text can contain, other than those that
+    # every expression can.
+    TEXT_CHARACTERS = (("!".."~").to_a - ["%"]).freeze
+    # The thread-local key of the cache for one template build.
+    BUILD_CACHE = :__addressable_template_build
+    # For each operator, including those RFC 6570 reserves, and whether the
+    # expression can join several values, the characters of TEXT_CHARACTERS
+    # that its expansion can contain.
+    CONTAINED_CHARACTERS = [nil, *"+#./;?&=,!@|".chars].
+      product([false, true]).each_with_object({}) do |(operator, joins), table|
+        reserved = operator == '+' || operator == '#'
+        others = [LEADERS.fetch(operator, ''),
+          joins ? JOINERS.fetch(operator, ',') : '',
+          operator && ";?&".include?(operator) ? '=' : ''].join
+        table[[operator, joins]] = TEXT_CHARACTERS.select do |character|
+          (reserved &&
+            character =~ /[#{Addressable::URI::CharacterClasses::RESERVED}]/) ||
+            character =~ /[#{Addressable::URI::CharacterClasses::UNRESERVED}]/ ||
+            others.include?(character)
+        end.freeze
+      end.freeze
+    # The characters of TEXT_CHARACTERS that an operator's value can contain.
+    GROUP_CHARACTERS = [RESERVED, UNRESERVED].each_with_object({}) do |group, table|
+      table[group] =
+        TEXT_CHARACTERS.select { |c| c =~ /\A#{group}\z/ }.freeze
+    end.freeze
+    private_constant :TEXT_CHARACTERS, :CONTAINED_CHARACTERS, :GROUP_CHARACTERS,
+      :BUILD_CACHE
+
+    ##
+    # Whether a regexp source is valid for the regular expression engine.
+    #
+    # @param [String] source The source.
+    #
+    # @return [TrueClass, FalseClass]
+    def valid_regexp?(source)
+      Regexp.new(source)
+      true
+    rescue RegexpError
+      false
+    end
+
+    ##
+    # A lookahead that checks the end of the URI once: where literal text is
+    # one character that nothing after it can contain, it's the last one in
+    # the URI, so what follows it there must match the rest of the template.
+    # Otherwise, a URI whose end doesn't match would be tried with every
+    # choice before it. The last such literal text is used, so that the
+    # rest is as short as possible.
+    #
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    # @param [Array<String>] literal_sources The regexp source of each literal.
+    # @param [Array<String>] expression_sources The regexp source of each
+    #   expression.
+    #
+    # @return [String, nil] The lookahead's source, or nil if there's none.
+    def tail_check(expressions, literals, literal_sources, expression_sources)
+      (expressions.size - 2).downto(0) do |index|
+        literal = literals[index + 1]
+        next unless literal.size == 1 && TEXT_CHARACTERS.include?(literal) &&
+          literal_sources[index + 1] == Regexp.escape(literal)
+        outside, final =
+          characters_after(index, expressions, literals, index + 2)
+        next unless (outside - final_characters(final)).include?(literal)
+        rest = ((index + 1)...expressions.size).map do |later|
+          expression_sources[later] + literal_sources[later + 1]
+        end.join
+        # The rest is matched again in the template's own regexp, so its
+        # groups don't capture here. The empty group keeps a group around a
+        # single repetition from warning that it's redundant.
+        rest = rest.gsub(/\(\?<(?![=!])[^>]*>/, '(?:(?:)')
+        source = "(?=(?:#{character_set([literal], true)}*+" \
+          "#{Regexp.escape(literal)})*+#{rest}\\z)"
+        return source if valid_regexp?("\\A#{source}")
+      end
+      nil
+    end
+
+    ##
+    # A lookahead that checks the end of the URI once, where the template
+    # ends with literal text and then an expression that starts with a
+    # leader its values can't contain, and that can contain the literal
+    # text's characters: the literal text must be followed by
+    # a match of the expression that ends the URI, after the first place
+    # where the literal text before it is. Otherwise, a URI whose end doesn't
+    # match would be tried with every choice before it. Since each match of
+    # the expression ends before the next leader, the check takes linear
+    # time.
+    #
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    # @param [Array<String>] literal_sources The regexp source of each literal.
+    # @param [Array<String>] expression_sources The regexp source of each
+    #   expression.
+    #
+    # @return [String, nil] The lookahead's source, or nil if there's none.
+    def ending_check(expressions, literals, literal_sources,
+                     expression_sources)
+      return nil if expressions.size < 2 || !literals.last.empty? ||
+        literals[-2].empty?
+      _, operator, varlist = *expressions.last.match(EXPRESSION)
+      leader = LEADERS[operator]
+      return nil unless leader
+      # A value's character or a joiner that's the leader would let the
+      # expression's matches overlap.
+      values = group_characters(operator == '#' ? RESERVED : UNRESERVED)
+      joiner = varlist =~ /[,*]/ ? JOINERS.fetch(operator, ',') : nil
+      return nil if values.include?(leader) || joiner == leader
+      # Otherwise, the expression's matches can't run past a place where the
+      # literal text is, and nothing is gained.
+      return nil unless (literals[-2].chars & TEXT_CHARACTERS).all? do |c|
+        may_contain?(expressions.last, c)
+      end
+      rest = expression_sources.last.gsub(/\(\?<(?![=!])[^>]*>/, '(?:(?:)')
+      earlier = (expressions.size - 2).downto(0).find do |index|
+        !literals[index].empty?
+      end
+      # The first place where the earlier literal text is.
+      first = earlier ? "(?>[\\s\\S]*?(?=#{literal_sources[earlier]}))" : ""
+      # Its parts are all parts of the template's own regexp, so unlike a
+      # lookbehind, it's always valid.
+      "(?=#{first}[\\s\\S]*?#{literal_sources[-2]}#{rest}\\z)"
+    end
+
+    ##
+    # Lookaheads for a template with a block of expressions that doesn't
+    # commit at the literal text after it. Without them, a URI that doesn't
+    # match would be tried with every way of dividing the text before that
+    # literal text among the block's values, each time matching the rest of
+    # the template again. Both only check what every match has:
+    #
+    # * The literal text after the first expression, in order. Each is
+    #   found at its first place after the one before, which is no later
+    #   than where any match has it.
+    # * After the literal text that follows the first block that doesn't
+    #   commit, the rest of the template, up to the end of the URI, from
+    #   some place where that literal text is. Each place is tried once.
+    #
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    # @param [Array<String>] literal_sources The regexp source of each literal.
+    # @param [Array<String>] expression_sources The regexp source of each
+    #   expression.
+    # @param [Array<Integer>] ends The indexes of the expressions that end
+    #   blocks.
+    #
+    # @return [String] The lookaheads' source, empty if there are none.
+    def open_block_checks(expressions, literals, literal_sources,
+                          expression_sources, ends)
+      open = (0...(expressions.size - 1)).find do |index|
+        !ends.include?(index) && !literals[index + 1].empty?
+      end
+      return "" unless open
+      # Each literal's place is found, and then matching moves past its first
+      # character, so that the next is found after it.
+      order = (1...literals.size).reject { |index| literals[index].empty? }.
+        map { |index| "(?>[\\s\\S]*?(?=#{literal_sources[index]}))[\\s\\S]" }
+      source = "(?=#{order.join})"
+      # Only an exploded value in the block gives it more ways to divide the
+      # text than the block's other checks bound, so only the order is
+      # checked otherwise, and only where the literal text after the block
+      # can be written two ways, as a "#" can be "%23": the block's values can
+      # then end at either form, and divide the text before it in every way.
+      start = (ends.select { |index| index < open }.max || -1) + 1
+      unless expressions[start..open].any? { |e| e[EXPRESSION, 2].include?('*') }
+        either = literal_sources[open + 1] != Regexp.escape(literals[open + 1])
+        return either && valid_regexp?("\\A#{source}") ? source : ""
+      end
+      # The rest is matched from every place where the literal text is, so
+      # it's checked only where matching itself would reach each of them: a
+      # template that starts with a lone + value, which can take anything.
+      # Where nothing before the literal text can contain its first
+      # character, it's at the first place where that character is, so the
+      # rest is matched only from there.
+      rest = ((open + 1)...expressions.size).map do |later|
+        expression_sources[later] + literal_sources[later + 1]
+      end.join.gsub(/\(\?<(?![=!])[^>]*>/, '(?:(?:)')
+      literal = literals[open + 1]
+      _, operator, varlist = *expressions.first.match(EXPRESSION)
+      varspecs = varlist.split(',')
+      # Otherwise, the rest is matched from each place that matching itself
+      # reaches: where the template starts with the block, with no literal
+      # text in it, and its first expression can match any text of its
+      # characters, with the others empty. Every place the block can reach,
+      # it reaches that way only if that expression can contain everything
+      # the others can.
+      absorbing = start == 0 && literals[1..open].all?(&:empty?) &&
+        (operator.nil? || operator == '+') &&
+        (varspecs.size == 1 || varlist.include?('*')) &&
+        (characters_in(expressions[0..open]) -
+          contained_characters(expressions.first)).empty?
+      if literal_sources[open + 1].start_with?(Regexp.escape(literal[0])) &&
+          TEXT_CHARACTERS.include?(literal[0]) &&
+          literals[0..open].none? { |text| text.include?(literal[0]) } &&
+          expressions[0..open].none? { |e| may_contain?(e, literal[0]) }
+        source += "(?=#{character_set([literal[0]], true)}*+" \
+          "#{literal_sources[open + 1]}#{rest}\\z)"
+      elsif absorbing
+        within = value_class(contained_characters(expressions.first))
+        source += "(?=#{literal_sources.first}#{within}*?" \
+          "#{literal_sources[open + 1]}#{rest}\\z)"
+      end
+      valid_regexp?("\\A#{source}") ? source : ""
+    end
+
+    ##
+    # The expressions after whose literal text a block ends, so that
+    # matching commits to the block's choices. A block ends after literal
+    # text where every expression in it tries its ends in order and the next
+    # value can take anything the block could, so the first choice that lets
+    # the literal text match is the one every later choice would also lead
+    # to.
+    #
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    # @param [Array<TrueClass, FalseClass>] empties
+    #   Whether each expression only matches nothing.
+    #
+    # @return [Array<Integer>] The expressions' indexes.
+    def block_ends(expressions, literals, empties)
+      ends = Set.new
+      # The characters that the block could match.
+      characters = []
+      # Whether every expression in the block ends in order.
+      ordered = true
+      expressions.each_with_index do |expression, index|
+        ordered &&= empties[index] || ends_in_order?(expression)
+        characters |= contained_characters(expression)
+        literal = literals[index + 1]
+        characters |= literal.chars
+        next if !ordered || literal.empty? || index + 1 == expressions.size
+        following = (index + 1...expressions.size).find do |later|
+          !empties[later]
+        end
+        next unless following && (following == index + 1 ||
+          literals[(index + 2)..following].all?(&:empty?))
+        next unless
+          (characters - absorbed(expressions[following], characters)).empty?
+        ends << index
+        characters = []
+        ordered = true
+      end
+      ends
+    end
+
+    ##
+    # Puts together the regular expression for a template from the sources
+    # for its literal text and its expressions.
+    #
+    # Matching goes left to right in blocks. A block ends after literal text
+    # where whatever the block could match, and that text, could also be put
+    # in front of the next value: the first choice that lets that text match
+    # is then the one that 2.9.x would end up with, since any later choice
+    # only moves text from the block to the next value. Matching commits to
+    # it, so that a URI that doesn't match isn't tried with every way of
+    # dividing it among the variables, which takes polynomial time on
+    # engines that don't memoize (MRI < 3.3, JRuby and TruffleRuby).
+    #
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    # @param [Array<String>] literal_sources The regexp source of each literal.
+    # @param [Array<String>] expression_sources The regexp source of each
+    #   expression.
+    # @param [Array<TrueClass, FalseClass>] empties
+    #   Whether each expression only matches nothing, because the one after
+    #   it takes whatever it could.
+    # @param [TrueClass, FalseClass] commit
+    #   Whether to commit to choices. With processor patterns, which can
+    #   match anything, every choice is kept open.
+    # @param [Array<Integer>] ends
+    #   The indexes of the expressions that end blocks, if already found.
+    #
+    # @return [String] The regular expression's source.
+    def assemble_regexp(expressions, literals, literal_sources,
+                        expression_sources, empties = [], commit = true,
+                        ends = nil)
+      regexp = "\\A".dup
+      if commit
+        # A URI with a character that nothing in the template can match is
+        # rejected before anything is tried. Otherwise, a choice that fails
+        # only there would be tried with every choice before it.
+        allowed = literals.join.chars | characters_in(expressions)
+        allowed = allowed.reject { |character| character =~ LITERAL_ENCODE }
+        regexp << "(?=(?:[#{allowed.map { |c| Regexp.escape(c) }.join}]|" \
+          "%[0-9A-Fa-f]{2}|[^\\x00-\\x7F])*+\\z)"
+        # The same goes for literal text that ends the template, which the
+        # URI must end with. It's checked behind the end, since a literal
+        # before \z in a lookahead keeps some engines from anchoring the
+        # match at the start; literal text that can be written more than one
+        # way can't be checked there, and isn't checked.
+        unless expressions.empty? || literals.last.empty?
+          ending = "(?=[\\s\\S]*+\\z(?<=#{literal_sources.last}))"
+          regexp << ending if valid_regexp?(ending)
+        end
+        tail = tail_check(expressions, literals, literal_sources,
+                          expression_sources)
+        regexp << tail if tail
+        last_value = ending_check(expressions, literals, literal_sources,
+                                  expression_sources)
+        regexp << last_value if last_value
+        ends ||= block_ends(expressions, literals, empties)
+        regexp << open_block_checks(expressions, literals, literal_sources,
+                                    expression_sources, ends)
+      end
+      regexp << literal_sources.first
+      ends ||= commit ? block_ends(expressions, literals, empties) : []
+      block = "".dup
+      expressions.each_index do |index|
+        block << expression_sources[index] << literal_sources[index + 1]
+        next unless ends.include?(index)
+        regexp << "(?>#{block})"
+        block = "".dup
+      end
+      "#{regexp}#{block}\\z"
+    end
+
+    ##
+    # The regexp source for a character class with a set of ASCII
+    # characters, pct-encoded triplets and non-ASCII characters.
+    #
+    # @param [Array<String>] characters The ASCII characters.
+    #
+    # @return [String]
+    def value_class(characters)
+      others = "[^\\x00-\\x7F]|%[a-fA-F0-9][a-fA-F0-9]"
+      return "(?:#{others})" if characters.empty?
+      "(?:#{character_set(characters)}|#{others})"
+    end
+
+    ##
+    # The regexp source for a set of ASCII characters.
+    #
+    # @param [Array<String>] characters The characters.
+    # @param [TrueClass, FalseClass] negated Whether to match any other one.
+    #
+    # @return [String]
+    def character_set(characters, negated = false)
+      "[#{negated ? '^' : ''}#{characters.map { |c| Regexp.escape(c) }.join}]"
+    end
+
+    ##
+    # The characters that literal text can be matched with: its own, and
+    # those of a non-ASCII character pct-encoded, in either case. (A "#"
+    # that can be "%23" is handled where its value ends.)
+    #
+    # @param [String] literal The literal text.
+    #
+    # @return [Array<String>]
+    def literal_characters(literal)
+      literal.chars.flat_map do |character|
+        if character =~ LITERAL_ENCODE
+          hex = character.unpack('C*').map { |byte| '%02X' % byte }.join
+          [character, '%'] + hex.chars + hex.downcase.chars
+        else
+          [character]
+        end
+      end.uniq
+    end
+
+    ##
+    # The characters that nothing after an expression can contain, and the
+    # final literal text, if it's written only one way, which the URI ends
+    # with. Its characters are counted only where something else after the
+    # expression can contain them, since the URI's last characters are left
+    # for it.
+    #
+    # @param [Integer] index The expression's index.
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    # @param [Integer] first The index of the first literal text to count.
+    #
+    # @return [Array] The characters, and the final literal text or nil.
+    def characters_after(index, expressions, literals, first = index + 1)
+      later = literals[first..-1] || []
+      final = later.last
+      # A "#" can also be matched as "%23", so longer literal text with one
+      # isn't written only one way. A single character is left as the URI's
+      # last one either way.
+      final = nil unless final && !final.empty? &&
+        final.chars.all? { |c| TEXT_CHARACTERS.include?(c) } &&
+        (final.size == 1 || !final.include?('#'))
+      suffixes = character_suffixes(expressions, literals)
+      characters = suffixes[:literals][first] || []
+      characters |= literal_characters(later.last) if later.last && !final
+      outside = TEXT_CHARACTERS - characters -
+        (suffixes[:expressions][index + 1] || [])
+      final = nil if final && (final.chars & outside).empty?
+      [outside, final]
+    end
+
+    ##
+    # The characters of the final literal text, as #characters_after gives
+    # it.
+    #
+    # @param [String, nil] final The final literal text.
+    #
+    # @return [Array<String>]
+    def final_characters(final)
+      final ? final.chars.uniq : []
+    end
+
+    ##
+    # For each index, the characters that the expressions from there to the
+    # end can contain, and those of the literal text from there up to the
+    # last one. They're worked out once while a template is built, since
+    # each expression needs them.
+    #
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    #
+    # @return [Hash] The suffixes, as :expressions and :literals.
+    def character_suffixes(expressions, literals)
+      build_cached(:suffixes, expressions, literals) do
+        after = [[]]
+        expressions.reverse_each do |expression|
+          after.unshift(contained_characters(expression) | after.first)
+        end
+        texts = [[]]
+        literals[0...-1].reverse_each do |text|
+          texts.unshift(literal_characters(text) | texts.first)
+        end
+        { expressions: after, literals: texts }
+      end
+    end
+
+    ##
+    # The characters that the template's literal text or any of its
+    # expressions can contain, worked out once while it's built.
+    #
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    #
+    # @return [Array<String>]
+    def allowed_characters(expressions, literals)
+      build_cached(:allowed, expressions, literals) do
+        literals.join.chars | characters_in(expressions)
+      end
+    end
+
+    ##
+    # A value worked out once while a template is built, for the build's
+    # own expressions and literals; outside a build, it's worked out each
+    # time.
+    #
+    # @param [Symbol] kind What the value is.
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals The pattern's literal text.
+    #
+    # @return [Object] The value.
+    def build_cached(kind, expressions, literals)
+      cache = Thread.current[BUILD_CACHE]
+      return yield unless cache
+      key = [kind, expressions.object_id, literals.object_id]
+      cache.fetch(key) { cache[key] = yield }
+    end
+
+    ##
+    # The regexp source that takes every character of a set up to the last
+    # one, possessively, leaving the URI's last characters for the final
+    # literal text.
+    #
+    # @param [Array<String>] value The characters the value can contain.
+    # @param [Array<String>] eaten The characters to take.
+    # @param [String, nil] final The final literal text.
+    # @param [Array<String>] endings Other regexp sources to take.
+    #
+    # @return [String] The source, empty if there's nothing to take.
+    def take_through(value, eaten, final, endings = [])
+      endings = endings.dup
+      kept = eaten & final_characters(final)
+      set = eaten - kept
+      endings.unshift(character_set(set)) unless set.empty?
+      unless kept.empty?
+        taken = kept.size == 1 ? Regexp.escape(kept.first) : character_set(kept)
+        before_final = final.size == 1 ? "(?!\\z)" : "(?=[\\s\\S]{#{final.size}})"
+        endings << "#{taken}#{before_final}"
+      end
+      return "" if endings.empty?
+      "(?:#{value_class(value - eaten)}*+(?:#{endings.join('|')}))*+"
+    end
+
+    ##
+    # The sets of characters that decide how the last value of an expression
+    # that literal text follows can skip the places where it can't end: the
+    # characters it can contain, the final character, the literal text's
+    # characters and its one character that nothing after it can contain,
+    # the characters that reject the URI once the value has started, and
+    # those it takes up front.
+    #
+    # @param [Integer] index The expression's index.
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    # @param [String] group
+    #   The regexp source for a character of the value, if not the
+    #   operator's.
+    #
+    # @return [Hash, nil] The sets, or nil if the value doesn't skip any.
+    def value_sets(index, expressions, literals, group = nil)
+      _, operator, varlist = *expressions[index].match(EXPRESSION)
+      return nil unless [nil, '+', '#', '/'].include?(operator)
+      return nil if varlist.split(',').last[VARSPEC, 2] == '*'
+      literal = literals[index + 1]
+      return nil if literal.empty?
+      group ||= operator == '+' || operator == '#' ? RESERVED : UNRESERVED
+      value = group_characters(group)
+      outside, final =
+        characters_after(index, expressions, literals, index + 2)
+      # The final character can end the URI, so only taking characters up
+      # front may count it as one that nothing after can contain.
+      strict = outside - final_characters(final)
+      text = literal_characters(literal)
+      # A character of the literal text that nothing after it can contain.
+      last = text.size == 1 && literal.size == 1 && strict.include?(literal) ?
+        literal : nil
+      return nil if !last && !(text & strict).empty?
+      # Characters that nothing in the template can contain are rejected
+      # before matching.
+      allowed = allowed_characters(expressions, literals)
+      {
+        value: value, final: final, text: text, last: last,
+        guard: (strict - value - text) & allowed,
+        # Characters of longer final literal text are rejected only before
+        # the URI's last characters, which are left for it.
+        final_guard: final && final.size > 1 ?
+          ((outside & final_characters(final)) - value - text) & allowed : [],
+        eaten: (outside & value) - text
+      }
+    end
+
+    ##
+    # Whether each expression's last value can start in only a few places,
+    # so that looking ahead to the end of the URI from there costs linear
+    # time in all. The expression starts a block and no earlier variable in
+    # it is exploded, or literal text separates it from a lone variable that
+    # can, and takes up front each character that would make this value
+    # look ahead or take characters: this value then starts once where that
+    # one is empty, and otherwise only after the last such character.
+    #
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    # @param [Array<Integer>] ends The expressions that end blocks.
+    #
+    # @return [Array<TrueClass, FalseClass>]
+    def scanned_values(expressions, literals, ends)
+      scans = []
+      sets = Hash.new do |cache, index|
+        cache[index] = value_sets(index, expressions, literals)
+      end
+      expressions.each_with_index do |expression, index|
+        varspecs = expression[EXPRESSION, 2].split(',')
+        if varspecs[0...-1].any? { |varspec| varspec[VARSPEC, 2] == '*' }
+          scans << false
+        elsif index == 0 || ends.include?(index - 1)
+          scans << true
+        else
+          previous = expressions[index - 1][EXPRESSION, 2]
+          before = scans[index - 1] && !literals[index].empty? &&
+            previous =~ VARSPEC && $2 != '*' &&
+            sets[index - 1]
+          after = sets[index]
+          scans << (before && after ?
+            ((after[:guard] | after[:eaten]) - before[:eaten]).empty? : false)
+        end
+      end
+      scans
+    end
+
+    ##
+    # The regexp source for the last value of an expression that literal
+    # text follows, which tries the same values, in the same order, as the
+    # plain one, but skips those that can't let the rest of the URI match:
+    #
+    # * Nothing after the literal text can contain some characters, so the
+    #   value takes each of them that it can, up to the last one, and the
+    #   URI is rejected if it has one that the value can't take. When the
+    #   literal text is one such character, the value takes everything up to
+    #   the last place where it's written as it is.
+    # * After those, the next expression can take any characters that the
+    #   value could, and the literal text, up to a character that it can't.
+    #   Until then, the literal text's first place is the only one tried,
+    #   since if the rest doesn't match from there, it doesn't from a later
+    #   place either.
+    #
+    # Without this, a URI that doesn't match would be tried with the value
+    # ending at every place where the literal text is, matching the rest
+    # again each time, which takes polynomial time on engines that don't
+    # memoize (MRI < 3.3, JRuby and TruffleRuby).
+    #
+    # @param [Integer] index The expression's index.
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    # @param [Array<String>] literal_sources The regexp source of each literal.
+    # @param [Array<TrueClass, FalseClass>] empties
+    #   Whether each expression only matches nothing.
+    # @param [String] group
+    #   The regexp source for a character of the value, if not the
+    #   operator's.
+    # @param [TrueClass, FalseClass] scan
+    #   Whether the value can start in only a few places, so that looking
+    #   ahead to the end of the URI from there costs linear time in all.
+    #
+    # @return [String, nil] The source, or nil if the plain one is used.
+    def bounded_value(index, expressions, literals, literal_sources, empties,
+                      group = nil, scan = true)
+      sets = value_sets(index, expressions, literals, group)
+      return nil unless sets
+      value, final, text, last, guard, eaten, final_guard =
+        sets.values_at(:value, :final, :text, :last, :guard, :eaten,
+                       :final_guard)
+      unless scan
+        # Only the literal text's first place in each stretch is tried.
+        final = last = nil
+        guard = eaten = final_guard = []
+      end
+      source = "".dup
+      if !final_guard.empty?
+        source << "(?=#{character_set(guard | final_guard, true)}*+" \
+          "[\\s\\S]{0,#{final.size}}\\z)"
+      elsif !guard.empty?
+        source << "(?=#{character_set(guard, true)}*+\\z)"
+      end
+      repeated = last && value.include?(last)
+      rest = value - eaten - [last]
+      escaped = Regexp.escape(last) if last
+      endings = repeated ? ["#{escaped}(?=[^#{escaped}]*#{escaped})"] : []
+      source << take_through(value - [last], eaten, final, endings)
+      # Nothing after the literal text can contain its character, so the
+      # literal text is at or after the last place where it's written as it
+      # is.
+      source << "(?:#{value_class(rest)}*+(?=#{escaped}))?+" if last
+      tail = value - eaten - [last]
+      if repeated
+        # The value ends before the last one, or takes it, and the literal
+        # text is pct-encoded after it.
+        source << "(?:#{escaped}#{take_through(value - [last], eaten, final)})??"
+      end
+      following = (index + 1...expressions.size).find { |later| !empties[later] }
+      if following && literals[(index + 2)..following].all?(&:empty?) &&
+          !last && (text - absorbed(expressions[following], text)).empty?
+        stops = tail - absorbed(expressions[following], tail)
+        within = value_class(tail - stops)
+        first = "(?>#{within}*?(?=#{literal_sources[index + 1]}))"
+        source << (stops.empty? ? first :
+          "(?:(?>#{within}*+#{character_set(stops)}))*?#{first}")
+      else
+        source << "#{value_class(tail)}*?"
+      end
+      source
+    end
+
+    ##
+    # Generates the <tt>Regexp</tt> that parses a template pattern.
+    #
+    # Where it's known whether the regular expression engine matches a
+    # regexp in linear time (MRI 3.2 and later, TruffleRuby), the one that keeps
+    # every choice open is used when it does, since the engine then can't
+    # backtrack catastrophically, and its rewrites to commit to choices
+    # could keep the engine from matching in linear time. Both give the same
+    # values.
+    #
+    # @param [String] pattern The URI template pattern.
+    # @param [#match] processor The template processor to use.
+    # @param [Array<Array>] patterns
+    #   The processor's pattern for each variable, if already known.
+    # @param [TrueClass, FalseClass] commit
+    #   Whether to commit to choices, if not decided by the patterns.
+    #
+    # @return [Array, Regexp]
+    #   An array of expansion variables nad a regular expression which may be
+    #   used to parse a template pattern
+    def parse_new_template_pattern(pattern, processor = nil, patterns = nil,
+                                   commit = nil)
+      # Values that several steps need for each expression are worked
+      # out once per build, in a cache only this thread sees.
+      owner = Thread.current[BUILD_CACHE].nil?
+      Thread.current[BUILD_CACHE] = {} if owner
+      escaped_pattern, raw_expressions, literals, literal_sources,
+        either_leader, either_literal = template_parts(pattern)
       dotted_labels = raw_expressions.each_index.map do |index|
         label_takes_dots?(
           index, raw_expressions, literals, either_leader, either_literal
@@ -1835,14 +2784,46 @@ module Addressable
       end
 
       expansions = []
+      # How many expressions name each variable.
+      naming = Hash.new(0)
+      raw_expressions.each do |expression|
+        expression[EXPRESSION, 2].split(',').map do |varspec|
+          varspec[VARSPEC, 1]
+        end.uniq.each { |name| naming[name] += 1 }
+      end
       # Processor patterns can match anything, so they get 2.9.0's choices.
       plain_processor = !(processor && processor.respond_to?(:match))
       followers = expression_followers(escaped_pattern)
+      patterns ||= raw_expressions.map do |expansion|
+        expansion[EXPRESSION, 2].split(',').map do |varspec|
+          plain_processor ? nil : processor.match(varspec[VARSPEC, 1])
+        end
+      end
+      # Where a processor gives a variable its own pattern, the choices
+      # before it can't be judged from the operators, so every choice is
+      # kept open, as in 2.9.0.
+      commit = !patterns.flatten.any? if commit.nil?
+      # Where the engine matches the regexp that keeps every choice open in
+      # linear time, it's used, since committing can keep the engine from
+      # doing so.
+      if commit && LINEAR_TIME_CHECKED
+        open = parse_new_template_pattern(pattern, processor, patterns, false)
+        return open if linear_time?(open[1])
+      end
+      # Whether each expression only matches nothing, because the one after
+      # it takes whatever it could.
+      empties = raw_expressions.each_index.map do |index|
+        following = followers[index].first
+        _, operator, varlist = *raw_expressions[index].match(EXPRESSION)
+        plain_processor && following &&
+          absorbed_by?(following, operator, varlist.split(',')) ? true : false
+      end
+      ends = commit ? block_ends(raw_expressions, literals, empties) : []
+      scans = commit ? scanned_values(raw_expressions, literals, ends) : []
 
       # Create a regular expression that captures the values of the
       # variables in the URI.
-      regexp_string = escaped_pattern.gsub( EXPRESSION ) do |expansion|
-
+      expression_sources = raw_expressions.map do |expansion|
         index = expansions.size
         expansions << expansion
         _, operator, varlist = *expansion.match(EXPRESSION)
@@ -1852,19 +2833,26 @@ module Addressable
         end
         joiner = Regexp.escape(JOINERS.fetch(operator, ','))
         varspecs = varlist.split(',')
-        results = varspecs.map do |varspec|
-          name = varspec[VARSPEC, 1]
-          processor && processor.respond_to?(:match) ? processor.match(name) : nil
-        end
+        results = patterns[index]
         # Without processor patterns, any variable in the expression can take
         # the characters that an earlier variable leaves, which lets the
         # variables after the first one have fewer choices below.
         plain = results.compact.empty?
         explodes = varspecs.map { |varspec| varspec[VARSPEC, 2] == '*' }
         first_explode = explodes.index(true)
+        scan = scans[index]
+        # A name used in another expression too takes the first value it's
+        # given, so a choice skipped below might be the one that gives the
+        # value it gets.
+        shared = varspecs.any? do |varspec|
+          naming[varspec[VARSPEC, 1]] > 1
+        end
         not_after_value =
           "(?<![#{Addressable::URI::CharacterClasses::UNRESERVED}])" \
           "(?<![^\\x00-\\x7F])"
+        # A lookahead that skips the expression's empty choice where it
+        # can't lead to a match.
+        empty_guard = nil
         combined = varspecs.each_with_index.map do |varspec, position|
           _, name, modifier = *varspec.match(VARSPEC)
           name = capture_name(name)
@@ -1928,20 +2916,40 @@ module Addressable
               if operator == ';'
                 "(?<#{name}>)"
               elsif modifier != '*' && varspec == varspecs.last
-                "(?<#{name}>#{RESERVED_NO_COMMA}*?)?"
+                bounded = commit && position == varspecs.size - 1 &&
+                  bounded_value(index, raw_expressions, literals,
+                                literal_sources, empties, RESERVED_NO_COMMA,
+                                scan)
+                "(?<#{name}>#{bounded || "#{RESERVED_NO_COMMA}*?"})?"
               else
                 # 2.9.0 skipped the variable when it couldn't be empty.
                 "(?:(?<#{name}>)(?!#{RESERVED_NO_COMMA}))?"
               end
             elsif plain && modifier == '*' && explodes[(position + 1)..-1].any? &&
-                (operator.nil? || operator == '/' || operator == '.')
+                (operator.nil? || operator == '/' || operator == '.') &&
+                !may_follow_with?(index, JOINERS.fetch(operator, ','),
+                                  raw_expressions, literals)
               # Exploded values were tried shortest first, and a later
               # exploded variable can match whatever this one leaves, so once
               # a split fails, every split where this variable is longer
               # fails too. Of the values tried, only the leading joiners are
-              # shorter than every value tried before them.
-              "(?<#{name}>(?:#{joiner})*)"
-            elsif plain && position > 0 && explodes[position - 1] &&
+              # shorter than every value tried before them. It takes every
+              # leading joiner, so that they aren't divided with the later
+              # variables. That's only when what follows the expression can't
+              # start with a joiner, which would end it earlier. Giving one
+              # back never helps then, so where choices are kept open, the
+              # joiners are taken greedily instead, which an engine that
+              # matches in linear time can do without backtracking.
+              "(?<#{name}>(?:#{joiner})*#{commit ? '+' : ''})"
+            elsif plain && modifier == '*' && position < varspecs.size - 1 &&
+                explodes.count(true) == 1 &&
+                (operator.nil? || operator == '/' || operator == '.')
+              # The later variables can't contain a joiner, so this takes
+              # whole members that a joiner ends, fewest first, and the later
+              # variables divide what's after them. A run of characters
+              # without a joiner isn't divided two ways.
+              "(?<#{name}>(?:#{group}#{joiner})*?)"
+            elsif plain && explodes[0...position].any? && !shared &&
                 (operator == '?' || operator == '&')
               # Whatever this variable could match after an exploded one,
               # that one already tried matching itself, unless it couldn't:
@@ -1954,10 +2962,49 @@ module Addressable
               # variable's run of characters with this one never gave a
               # different result, so this one may only start after that run.
               "(?<#{name}>(?:#{not_after_value}#{value || group})?)"
+            elsif commit && modifier == '*' &&
+                position == varspecs.size - 1 &&
+                (operator == '+' || operator == '#') &&
+                members_follow?(index, raw_expressions, literals)
+              # Each member takes every character it can, so the value can
+              # only end before a comma, a character it can't contain or the
+              # end of the URI, and never before what follows it.
+              "(?<#{name}>(?!))?"
             elsif modifier == '*'
-              "(?<#{name}>#{value})?"
+              through = ""
+              if commit && plain && scan && varspecs.size == 1 &&
+                  literals[index + 1].empty? &&
+                  index < raw_expressions.size - 1 &&
+                  [nil, '/', '.', '+', '#'].include?(operator)
+                # Another expression follows the value directly, and nothing
+                # after it can contain some characters the value can, so it
+                # takes each of them up to the last one first. Without this,
+                # the later expressions would divide the text before the
+                # last one in every way first.
+                member = if operator == '+' || operator == '#'
+                  RESERVED_NO_COMMA
+                else
+                  group.sub(/\*[?+]\z/, '')
+                end
+                characters = group_characters(member) |
+                  [JOINERS.fetch(operator, ',')]
+                outside, final =
+                  characters_after(index, raw_expressions, literals)
+                through = take_through(
+                  characters, characters & outside, final
+                )
+                # Without the value, nothing could take them.
+                kept = final_characters(final)
+                taken = characters & outside
+                unless taken.empty?
+                  rest = final && !(taken & kept).empty? ?
+                    "[\\s\\S]{0,#{final.size}}" : ""
+                  empty_guard = "(?=#{character_set(taken, true)}*+#{rest}\\z)"
+                end
+              end
+              "(?<#{name}>#{through}#{value})?"
             elsif varspecs.size > 1 && (operator == '+' || operator == '#') &&
-                  varspec != varspecs.last
+                  position < varspecs.size - 1
               "(?<#{name}>#{RESERVED_NO_COMMA}*+)?"
             elsif plain && position < varspecs.size - 1 &&
                   (operator.nil? || operator == '/' || operator == '.')
@@ -1966,6 +3013,10 @@ module Addressable
               # value that could change the result is the whole run up to the
               # next joiner.
               "(?<#{name}>(?:#{group}(?=#{joiner}))??)"
+            elsif commit && position == varspecs.size - 1 &&
+                (bounded = bounded_value(index, raw_expressions, literals,
+                                         literal_sources, empties, nil, scan))
+              "(?<#{name}>#{bounded})?"
             else
               "(?<#{name}>#{group})?"
             end
@@ -1973,8 +3024,31 @@ module Addressable
         end
         following, comma_follows = followers[index]
         single = varspecs.size == 1 && varspecs.first[VARSPEC, 2] != '*'
-        if plain_processor && following &&
-            absorbed_by?(following, operator, varspecs)
+        last_group = case operator
+                     when '+', '#' then "#{RESERVED}*?"
+                     when nil, '/' then "#{UNRESERVED}*?"
+                     when '.'
+                       "#{UNRESERVED.gsub('\.', '')}*?" unless dotted_labels[index]
+                     end
+        if commit && plain && last_group && following &&
+            following[1].nil? && varspecs.last[VARSPEC, 2] != '*'
+          # Values were tried shortest first, and the next expression can
+          # take any run of unreserved characters at its start, and of
+          # commas too if it has an exploded variable, so the last value
+          # only needs to end after a character that the next expression
+          # couldn't take.
+          no_comma = following[2].include?('*') ? "(?<!,)" : ""
+          # Nothing after the value can contain some characters, so it
+          # takes each of them up to the last one first.
+          value_characters = group_characters(last_group.chomp('*?'))
+          outside, final = characters_after(index, raw_expressions, literals)
+          through = scan ? take_through(
+            value_characters, value_characters & outside, final
+          ) : ""
+          combined[-1] = "(?<#{capture_name(varspecs.last[VARSPEC, 1])}>" \
+            "|#{through}#{last_group}#{not_after_value}#{no_comma})?"
+        end
+        if empties[index]
           # Each expression tried its empty alternative first. When the next
           # one follows it directly and can match anything it could, followed
           # by anything the next one could match on its own, every other
@@ -1993,16 +3067,13 @@ module Addressable
         elsif plain && varspecs.size > 1 &&
             (operator == '+' || operator == '#') &&
             !comma_follows &&
-            varspecs.none? { |varspec| varspec[VARSPEC, 2] == '*' } &&
-            !varspecs[0...-1].include?(varspecs.last)
+            varspecs.none? { |varspec| varspec[VARSPEC, 2] == '*' }
           # 2.9.0 tried each value with the joiner after it first, then the
           # value on its own, then skipping the variable, and every other
           # choice gave a value to a later variable that an earlier one had
           # already been tried with. A variable after a skipped one is
-          # skipped too. Stopping before a joiner is left out, so this is
-          # only used when no joiner can follow the expression. As in 2.9.0,
-          # a variable is the last one if its varspec is the same as the
-          # last varspec.
+          # skipped too. Stopping before a joiner is left out, so this is only
+          # used when no joiner can follow the expression.
           nested = varspecs[0...-1].reverse.inject("") do |inner, varspec|
             "(?:(?<#{capture_name(varspec[VARSPEC, 1])}>" \
               "#{RESERVED_NO_COMMA}*+)" \
@@ -2012,12 +3083,41 @@ module Addressable
         else
           combined = combined.join("#{joiner}?")
         end
-        "(?:|#{leader}#{combined})"
+        "(?:#{empty_guard}|#{leader}#{combined})"
       end
 
-      # Ensure that the regular expression matches the whole URI.
-      regexp_string = "\\A#{regexp_string}\\z"
+      regexp_string = assemble_regexp(
+        raw_expressions, literals, literal_sources, expression_sources,
+        empties, commit, ends
+      )
       return expansions, Regexp.new(regexp_string)
+    ensure
+      Thread.current[BUILD_CACHE] = nil if owner
+    end
+
+    # MRI 3.2 memoizes a match, so that it takes linear time, unless the
+    # regexp has a lookaround, an atomic group, a possessive quantifier or a
+    # backreference, but can't say so. Later versions and TruffleRuby can.
+    MEMOIZES_WITHOUT_LOOKAROUNDS =
+      RUBY_ENGINE == 'ruby' && RUBY_VERSION.start_with?('3.2.')
+    UNMEMOIZED = /\(\?(?:[=!>]|<[=!])|[*+?}]\+|\\[1-9k]/
+    LINEAR_TIME_CHECKED =
+      Regexp.respond_to?(:linear_time?) || MEMOIZES_WITHOUT_LOOKAROUNDS
+    private_constant :MEMOIZES_WITHOUT_LOOKAROUNDS, :UNMEMOIZED,
+      :LINEAR_TIME_CHECKED
+
+    ##
+    # Whether the regular expression engine matches a regexp in linear time.
+    #
+    # @param [Regexp] regexp The regexp.
+    #
+    # @return [TrueClass, FalseClass]
+    def linear_time?(regexp)
+      if Regexp.respond_to?(:linear_time?)
+        Regexp.linear_time?(regexp)
+      else
+        regexp.source !~ UNMEMOIZED
+      end
     end
 
   end

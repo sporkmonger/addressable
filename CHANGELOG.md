@@ -38,6 +38,7 @@
 - `Addressable::Template#expand` pct-encodes non-ASCII literals: `café/{var}` gives `caf%C3%A9/value`, not `café/value` ([#676])
 - `Addressable::Template#match` and `#extract` read a label value that contains `.` when the expression is set off by delimiters: `/f{.ext}` on `/f.tar.gz` gives `{"ext" => "tar.gz"}`, not `nil`, so code that tries several templates may pick a different one ([#692])
 - `Addressable::Template#match` and `#extract` keep the empty members of an exploded value: `{/segments*}` on `/a/b/` gives `{"segments" => ["a", "b", ""]}`, not `{"segments" => ["a", "b"]}`, and on `/` gives `{"segments" => [""]}`, not `{"segments" => []}` ([#700])
+- `Addressable::Template#match` and `#extract` give a variable that's repeated in an expression its first value: `{+v1,v2,v1}` on `a,b,c` gives `{"v1" => "a", "v2" => "b"}`, not `{"v1" => "", "v2" => "a"}` ([GHSA-xj9m-f88p-5j38])
 - `Addressable::Template#match` and `#extract` give a value that more than one variable of a `/`, `.`, `+`, `#` or default expression could take to the first of them, leaving a later variable undefined when nothing is left for it: `{/a,b*}` on `/x/y/z` gives `{"a" => "x", "b" => ["y", "z"]}`, not `{"a" => "", "b" => ["x", "y", "z"]}` ([#715])
 - The pure-Ruby `Addressable::IDNA.to_ascii` and `.to_unicode` keep trailing empty labels, as `idn-ruby` does: `bücher.example.` gives `xn--bcher-kva.example.`, not `xn--bcher-kva.example` ([#609])
 - The pure-Ruby `Addressable::IDNA.to_ascii` treats U+3002 and U+FF61 as label separators, as `idn-ruby` does: `bücher。example` gives `xn--bcher-kva.example`, not `xn--bcherexample-dlb0569n` ([GHSA-x378-rg7m-2c49])
@@ -75,6 +76,8 @@
 - Return copies from `#variables`, `#variable_defaults` and `MatchData#values` ([#619])
 - Split an exploded value of the default, `+` and `#` operators into its members in `#match` and `#extract`: `{a*,b}` on `x,y,z` gives `{"a" => ["x", "y", "z"], "b" => nil}`, not `{"a" => ["x,y,"], "b" => "z"}` ([#700], [#715])
 - Build the regexp for a template in linear time when it has non-ASCII literal text or a long run of expressions with no literal text between them ([GHSA-h78h-gj97-g737])
+- Match a URI in linear time on Rubies that don't memoize regexps (MRI before 3.3, JRuby, TruffleRuby), except for some templates that combine an exploded variable, or several variables in one expression, with other expressions, and where a processor gives a variable its own pattern ([GHSA-grhv-8jgq-r74x], [GHSA-jrfq-gw62-2f3j], [GHSA-xfg6-27c4-wr4r], [GHSA-xj9m-f88p-5j38])
+- Fix `#match` and `#extract` giving a `nil` key for an empty member of an exploded `?` or `&` variable: `{?a*,b,c*}` on `?&==` gives `{"a" => nil, "b" => nil, "c" => {"" => "="}}`, not `{"a" => nil, "b" => nil, nil => "", "c" => {nil => ""}}` ([GHSA-xfg6-27c4-wr4r])
 - Keep everything after the first `=` of each pair in an exploded `;`, `?` or `&` value in `#match` and `#extract`: `{?a*}` on `?k=x=y` gives `{"a" => {"k" => "x=y"}}`, not `{"a" => {"k" => "x"}}` ([#687])
 
 ### `Addressable::IDNA`
@@ -133,13 +136,17 @@
 [#716]: https://github.com/sporkmonger/addressable/pull/716
 [GHSA-c7j3-jq7p-v3pr]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-c7j3-jq7p-v3pr
 [GHSA-fccw-gx6q-mh6c]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-fccw-gx6q-mh6c
+[GHSA-grhv-8jgq-r74x]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-grhv-8jgq-r74x
 [GHSA-h78h-gj97-g737]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-h78h-gj97-g737
+[GHSA-jrfq-gw62-2f3j]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-jrfq-gw62-2f3j
 [GHSA-mrrj-5mhw-rcf2]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-mrrj-5mhw-rcf2
 [GHSA-qg8x-qm93-fw27]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-qg8x-qm93-fw27
 [GHSA-qrq6-rcpx-pmm6]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-qrq6-rcpx-pmm6
 [GHSA-v6hg-69pc-4f3f]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-v6hg-69pc-4f3f
 [GHSA-w5p3-7836-69vh]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-w5p3-7836-69vh
 [GHSA-x378-rg7m-2c49]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-x378-rg7m-2c49
+[GHSA-xfg6-27c4-wr4r]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-xfg6-27c4-wr4r
+[GHSA-xj9m-f88p-5j38]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-xj9m-f88p-5j38
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 

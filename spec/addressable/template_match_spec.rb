@@ -108,17 +108,43 @@ module TemplateMatchSpec
     extend self
   end
 
+  # The reference's expressions, put together with the template's literal
+  # text and nothing else: every choice stays open, so a template that
+  # commits to a choice is compared with one that can change it.
   def self.reference_regexp(pattern)
-    Reference.parse_new_template_pattern(pattern)[1]
+    template = Addressable::Template.new(pattern)
+    _, expressions, literals, literal_sources =
+      template.send(:template_parts, pattern)
+    sources = expressions.map do |expression|
+      Reference.parse_new_template_pattern(expression)[1].source[
+        /\A\\A(.*)\\z\z/m, 1
+      ]
+    end
+    Regexp.new(template.send(
+      :assemble_regexp, expressions, literals, literal_sources, sources, [],
+      false
+    ))
   end
 
+  # The regexp that commits to choices, which engines that can't match the
+  # one that keeps every choice open in linear time use.
   def self.regexp(pattern)
-    Addressable::Template.new(pattern).send(:parse_template_pattern, pattern)[1]
+    committed(Addressable::Template.new(pattern)).send(
+      :parse_template_pattern, pattern
+    )[1]
   end
 
-  # The expression without the \A and \z anchors around the whole template.
+  # The template, using the regexp that commits to choices on every Ruby.
+  def self.committed(template)
+    template.define_singleton_method(:linear_time?) { |_| false }
+    template
+  end
+
+  # A template with one block, without the \A and \z anchors and any atomic
+  # group around it.
   def self.unanchored(regexp)
-    regexp.source[/\A\\A(.*)\\z\z/m, 1]
+    source = regexp.source
+    source[/\A\A\(\?>(.*)\z\)\z/m, 1] || source[/\A\A(.*)\z\z/m, 1]
   end
 
   def self.leader(operator)
@@ -165,6 +191,35 @@ module TemplateMatchSpec
   def self.alphabet(operator, *extra)
     ([leader(operator), joiner(operator), "a", "=", "%41"] + extra).
       reject(&:empty?).uniq
+  end
+
+  # Whether the template keeps a choice that the reference could change for
+  # this string. An expression's variables don't divide the same text in
+  # more than one way, so that a URI that doesn't match is rejected in
+  # linear time:
+  #
+  # * An exploded /, . or default variable before unexploded ones takes
+  #   whole members, so its empty members differ.
+  # * A ? or & variable after an exploded one starts after an empty member,
+  #   so a value after an empty first member differs.
+  # * The variables of a + or # expression take one value each, in order,
+  #   with a name that's repeated.
+  def self.committed?(pattern, operator, string)
+    leader = leader(operator)
+    joiner = joiner(operator)
+    shape = pattern.sub(operator.to_s, "")
+    case operator
+    when nil, "/", "."
+      ["{a*,b}", "{a*,b}x", "{a*,b,c}x"].include?(shape) &&
+        (string.start_with?(leader + joiner) || string.include?(joiner * 2))
+    when "?", "&"
+      ["{a*,b,c*}", "{a*,c*,b,b}", "{a*,b,c}x"].include?(shape) &&
+        string.start_with?(leader + joiner)
+    when "+", "#"
+      shape == "{a,b,a}"
+    else
+      false
+    end
   end
 end
 
@@ -266,7 +321,10 @@ describe Addressable::Template, "#match" do
       ["{+v1,v2,v3}x", "a,b,x"] => {"v1" => "a", "v2" => "b", "v3" => ""},
       ["{#v1,v2}", "#,b"] => {"v1" => "", "v2" => "b"},
       ["{+v1,v2},x", "a,b,x"] => {"v1" => "a", "v2" => "b"},
-      ["{+v1,v2,v1}", "a,b,c"] => {"v1" => "", "v2" => "a"},
+      # A repeated name keeps its first value.
+      ["{+v1,v2,v1}", "a,b,c"] => {"v1" => "a", "v2" => "b"},
+      ["{+a,b},x", "p,x"] => {"a" => "p", "b" => nil},
+      ["{+a,b},x", "p,q,x"] => {"a" => "p", "b" => "q"},
       # An exploded ;, ? or & value is an associative array, which keeps
       # everything after each value's first "=", and keeps a repeated key's
       # last value.
@@ -292,14 +350,85 @@ describe Addressable::Template, "#match" do
       # values gives them to the next one.
       ["{?a*,b*}", "?&b=2"] => {"a" => nil, "b" => {"b" => "2"}},
       ["{&a*,b*}", "&&b=2"] => {"a" => nil, "b" => {"b" => "2"}},
-      ["{?a*,b,c*}", "?&=="] => {
-        "a" => nil, "b" => nil, nil => "", "c" => {"" => ""}
+      ["{?a*,b,c*}", "?&=="] => {"a" => nil, "b" => nil, "c" => {"" => "="}},
+      # An exploded /, . or default variable before unexploded ones takes
+      # every member, and the later variables are undefined.
+      ["{/a*,b,c}x", "/p/q/rx"] => {"a" => ["p", "q", "r"], "b" => nil, "c" => nil},
+      # A plain expression can't contain "=", so the value before it isn't
+      # committed to.
+      ["{+a}={c}", "p=q=r"] => {"a" => "p=q", "c" => "r"},
+      ["{+a}{b,c}", "x/yz,w"] => {"a" => "x/", "b" => "yz", "c" => "w"},
+      # A value that can contain the literal text after it takes it where the
+      # rest of the URI can still match.
+      ["/{+path}.{format}", "/docs/v1.2/guide.html"] => {
+        "path" => "docs/v1.2/guide", "format" => "html"
+      },
+      ["/{+prefix}-{id}", "/a-b/c-9"] => {"prefix" => "a-b/c", "id" => "9"},
+      ["/files/{+name}_{rev}", "/files/x_y/z_3"] => {
+        "name" => "x_y/z", "rev" => "3"
+      },
+      ["{+base}{/owner,repo}", "example.com/git/foo/bar"] => {
+        "base" => "example.com/git", "owner" => "foo", "repo" => "bar"
+      },
+      ["/api{/version}{/resource}.{format}", "/api/users.json"] => {
+        "version" => nil, "resource" => "users", "format" => "json"
+      },
+      ["{+a}\#{b}", "#/%23"] => {"a" => "#/", "b" => nil},
+      ["{+a}\#{b}\#{c}", "%23x#y"] => {"a" => nil, "b" => "x", "c" => "y"},
+      ["{?a*}={+b,c}=", "?=="] => {"a" => nil, "b" => nil, "c" => nil},
+      ["{a*,b*},{#c}{;d}", ",,"] => {
+        "a" => ["", ""], "b" => nil, "c" => nil, "d" => nil
+      },
+      ["/{.a}{.b*}?{.c*,d*}.", "/?.."] => {
+        "a" => nil, "b" => nil, "c" => [""], "d" => nil
+      },
+      # An exploded + or # value can't end before literal text that its
+      # members could contain.
+      ["{+a}-{+d*}-", "x--"] => {"a" => "x", "d" => nil},
+      ["{#d*}/", "#/"] => {"d" => nil},
+      ["{+a}{+b*}{/c}.", "x,y/z."] => {"a" => "x,y", "b" => nil, "c" => "z"},
+      # An exploded + or # value before an unexploded one takes every
+      # member up to the literal text after the expression.
+      ["{+d}\#{+b*,c}&", "x#y,z#w&"] => {"d" => "x", "b" => ["y", "z#w"], "c" => nil},
+      ["{+d}\#{+b*,c}&", "x#y#z&"] => {"d" => "x", "b" => ["y#z"], "c" => nil},
+      # Literal text that nothing after it can contain is the last of its
+      # character in the URI.
+      ["/{+a,b,c}/{+c,a}{/a},{;c};", "/x,y/p,q/r,;c=1;"] => {
+        "a" => "x", "b" => "y/p", "c" => "q"
       }
     }.each do |(pattern, uri), mapping|
       it "matches #{uri.inspect} against #{pattern}" do
         expect(Addressable::Template.new(pattern).match(uri).mapping).to eq(
           mapping
         )
+      end
+    end
+
+    {
+      # Literal text with a non-ASCII character can also be pct-encoded, and
+      # the value before it can end in the same characters.
+      ["{a}é{&b}", "x%C3%A9%C3%A9&b=y"] => {"a" => "xé", "b" => "y"},
+      ["{d,a}é{&a,d}", "%2B,%C3%A9%C3%A9&a=%C3%A9&d=%2B"] => {
+        "d" => "+", "a" => "é"
+      },
+      # The first of several + variables can be skipped, so it can't take
+      # text in front of it.
+      ["-{+c}é{+d,a*}~", "-#%C3%A9;;%C3%A9~"] => {
+        "c" => "#é;;", "d" => nil, "a" => nil
+      },
+      # A name in two expressions must get the same value from both.
+      [".{#b,c*}{&c*,a,b}.", ".#&&c=%26&a=%3B."] => {
+        "b" => nil, "c" => "&", "a" => ";"
+      }
+    }.each do |(pattern, uri), mapping|
+      it "matches #{uri.inspect} against #{pattern} with either regexp" do
+        open = Addressable::Template.new(pattern)
+        open.define_singleton_method(:linear_time?) { |_| true }
+        committed = TemplateMatchSpec.committed(
+          Addressable::Template.new(pattern)
+        )
+        expect(open.match(uri).mapping).to eq(mapping)
+        expect(committed.match(uri).mapping).to eq(mapping)
       end
     end
 
@@ -344,6 +473,7 @@ describe Addressable::Template, "#match" do
           current = TemplateMatchSpec.regexp(pattern)
           alphabet = TemplateMatchSpec.alphabet(operator, "x")
           TemplateMatchSpec.strings(alphabet, 5).each do |string|
+            next if TemplateMatchSpec.committed?(pattern, operator, string)
             expected = reference.match(string)
             actual = current.match(string)
             expect(TemplateMatchSpec.named_captures(actual)).to eq(
@@ -352,6 +482,41 @@ describe Addressable::Template, "#match" do
           end
         end
       end
+    end
+
+    [
+      "/{+path}.{format}", "{+a}\#{b}\#{c}", "{+base}\#{a}", "{a,b}.{c}",
+      "{+a}/{b}{/c*}", "{+a}-{+d*}-", "{#b*,c},{#d,c,a*};", "{a*,b*},{#c}{;d}",
+      "/{.a}{.b*}?{.c*,d*}.", "{?a*}={+b,c}=", "/{year}-{month}-{day}",
+      "{+a}/{b}-{+c}", "{.a*,b*,c}", "{a*}{.a*,b*,c}", "{+v1,v2,v3},{+d}"
+    ].each do |pattern|
+      it "gives the same values whether or not it commits for #{pattern}" do
+        template = Addressable::Template.new(pattern)
+        open = template.send(
+          :parse_new_template_pattern, pattern, nil, nil, false
+        )[1]
+        allow(template).to receive(:linear_time?).and_return(false)
+        committed = template.send(
+          :parse_new_template_pattern, pattern, nil, nil, true
+        )[1]
+        expect(committed).not_to eq(open)
+        alphabet = ["a", "/", ".", "-", ",", "#", "%23", "?", "=", ";"]
+        TemplateMatchSpec.strings(alphabet, 4).each do |string|
+          expect(TemplateMatchSpec.named_captures(committed.match(string))).to eq(
+            TemplateMatchSpec.named_captures(open.match(string))
+          ), "for #{string.inspect}"
+        end
+      end
+    end
+
+    it "keeps every choice open where the engine matches in linear time" do
+      template = Addressable::Template.new("/{year}-{month}-{day}")
+      allow(template).to receive(:linear_time?).and_return(true)
+      stub_const("Addressable::Template::LINEAR_TIME_CHECKED", true)
+      regexp = template.send(:parse_new_template_pattern, template.pattern)[1]
+      expect(regexp).to eq(template.send(
+        :parse_new_template_pattern, template.pattern, nil, nil, false
+      )[1])
     end
 
     it "calls a processor's match method once per variable, in order" do
@@ -373,6 +538,36 @@ describe Addressable::Template, "#match" do
       template = Addressable::Template.new("{+a}{+b}")
       expect(template.match("xy", processor).mapping).to eq(
         "a" => nil, "b" => "xy"
+      )
+    end
+
+    it "keeps every choice open when a processor gives a pattern" do
+      processor = Object.new
+      def processor.match(name)
+        name == "id" || name == "c" ? "[0-9]+" : nil
+      end
+      expect(
+        Addressable::Template.new("/{slug}-{id}").
+          match("/my-post-title-123", processor).mapping
+      ).to eq("slug" => "my-post-title", "id" => "123")
+      expect(
+        Addressable::Template.new("{+a,b}{c}").match("x,yz12", processor).mapping
+      ).to eq("a" => "x", "b" => "yz", "c" => "12")
+    end
+
+    it "commits to choices with a processor that gives no patterns" do
+      processor = Object.new
+      def processor.match(name)
+        nil
+      end
+      template = Addressable::Template.new("/{year}-{month}-{day}")
+      expect do
+        Timeout.timeout(10) do
+          expect(template.match("/" + ("-" * 4000) + "!", processor)).to be_nil
+        end
+      end.not_to raise_error
+      expect(template.match("/2024-01-02", processor).mapping).to eq(
+        "year" => "2024", "month" => "01", "day" => "02"
       )
     end
 
@@ -501,15 +696,83 @@ describe Addressable::Template, "#match" do
       "{#v1,v2,v3,v4,v5,v6,v7,v8}" => "#" + ("," * 8000) + " ",
       "{+v1,v2,v3,v4,v5,v6,v7,v8}{+c,d}" => ("a," * 2000) + " ",
       "{a,b}{c*}" => ("a," * 2000) + "!",
-      "{.a,b}{c,d*}" => "." + ("a" * 4000) + "!"
+      "{.a,b}{c,d*}" => "." + ("a" * 4000) + "!",
+      "{+a,c,c,c}" => ("," * 4000) + " ",
+      "{+v1,v2,v3,v4,v5,v6,v7,v8}{c*}" => ("," * 8000) + " ",
+      "{+a,b,c},{+d}" => ("," * 16_000) + " ",
+      "{a*}{.a*,b*,c}" => ("." * 4000) + " ",
+      "{a*}{.a*,b*,c}." => ("." * 4000) + " ",
+      "{.a*,b*,c}" => ("." * 24_000) + " ",
+      "{?a*,b,c*}" => "?" + ("a=a&b=b&" * 8000) + " ",
+      "{?a,a*,a*}{a*}{.a*,b*,c}" => ("." * 4000) + " ",
+      "{d*,b,a}-" => (".--" * 12_000) + " ",
+      "/{year}-{month}-{day}" => "/" + ("-" * 4000) + "!",
+      "/v{major}.{minor}.{patch}" => "/v" + ("." * 4000) + "!",
+      "{+base}/{+path}/{+file}" => ("/" * 4000) + " ",
+      "/{year}-{month}-{day}/{a}{b}" => "/" + ("-" * 4000) + "!",
+      "/{year}-{month}-{day}{/a,b}" => "/" + ("-" * 4000) + "!",
+      "{+a}/{b}-{+c}" => ("/b-" * 32_000) + " ",
+      "{+a}/{b}{/c*}" => ("/b/" * 16_000) + " ",
+      "{+a}/{b,c}/{+d}" => ("/b," * 24_000) + " ",
+      "{+a}\#{b}\#{c}" => ("%23" * 20_000) + " ",
+      "{+a}\#{b}\#{c}/x/" => ("%23" * 4000) + " ",
+      "{+a}\#{b}/x/{c}" => ("%23" * 20_000) + " ",
+      "{+base}\#{a}" => ("%23" * 50_000) + " ",
+      "{a,b}{c}" => ("a" * 60_000) + "!",
+      "{a,b}{c,d}{e,f}" => ("a" * 2000) + "!",
+      "{+a}{b,c}" => ("a" * 60_000) + " ",
+      "/{+path}.{format}" => "/" + ("." * 8000) + "/-",
+      "{+base}{/owner,repo}" => ("/" * 8000) + " ",
+      "/files/{+name}_{rev}" => "/files/" + ("_/" * 8000) + " ",
+      "{a,b}.{c}" => ("." * 8000) + ",",
+      "{+a}\#{b}" => "#" + ("%23" * 8000) + "/",
+      "{+a}-{+d*}-" => ("-," * 8000) + "-",
+      "{#b*,c},{#d,c,a*};" => ("#,#" * 8000) + ";;",
+      "{?a*}={+b,c}=" => "?" + ("=" * 8000) + "&=",
+      "{+a}{+b*}{/c}." => ("=+." * 8000) + " ",
+      "/{+a,b,c}/{+c,a}{/a},{;c};" => "/" + ("/,?" * 8000) + " ",
+      "{+d}\#{+b*,c}&{?x*}" => ("?%23" * 8000) + " ",
+      "{+d}{/d,c*}\#{+b*,c,a*}&{?c*}" => ("/a%23" * 8000) + " ",
+      "{+d}{/d,c*}\#{+b*,c,a*}&{?c*} (no member ends)" =>
+        ("%23/" * 1000) + "&",
+      "{+b,c*,a},{/c,a*}{+c*,b};{\#b,d}" => ("," * 2000) + " ",
+      "{.b,a}{b*,c,d}{d*,a}/x/{/d*,b*,a*}/x/" => ("," * 2000) + "/x/a/x/",
+      ",{c*,d*,a*},{+a*,d,b*}.json" => ("," * 1000) + "?.json"
     }.each do |name, payload|
-      it "rejects a long payload for #{name} in linear time" do
-        template = Addressable::Template.new(name.split(" ").first)
+      template = Addressable::Template.new(name.split(" ").first)
+      suffix = template.pattern[/[^}]*\z/]
+      # The payload as it is, and ending in each character that the
+      # template could match instead, alone and before the literal text
+      # that ends the template, so that it can't be rejected just for that.
+      endings = ["", "/", "?", "#", ":", ",", ".", "=", "&", ";", "-", "%"]
+      variants = [payload] + endings.flat_map do |ending|
+        base = payload.sub(/[ !]\z/, "") + ending
+        suffix.empty? ? [base] : [base, base + suffix]
+      end
+      it "matches a long payload for #{name} in linear time" do
         expect do
           Timeout.timeout(10) do
-            expect(template.match(payload)).to be_nil
+            variants.each { |variant| template.match(variant) }
           end
         end.not_to raise_error
+      end
+
+      it "matches a long payload for #{name} in linear time when it " \
+          "commits to choices" do
+        committed = TemplateMatchSpec.committed(
+          Addressable::Template.new(template.pattern)
+        )
+        expect do
+          Timeout.timeout(10) do
+            variants.each { |variant| committed.match(variant) }
+          end
+        end.not_to raise_error
+      end
+
+      next unless payload =~ /[ !]\z/
+
+      it "rejects the long payload for #{name}" do
+        expect(template.match(payload)).to be_nil
       end
     end
   end
