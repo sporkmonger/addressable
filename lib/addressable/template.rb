@@ -2096,12 +2096,12 @@ module Addressable
     # expression can join several values, the characters of TEXT_CHARACTERS
     # that its expansion can contain.
     CONTAINED_CHARACTERS = [nil, *"+#./;?&=,!@|".chars].
-      product([false, true]).each_with_object({}) do |(operator, joins), table|
-        reserved = operator == '+' || operator == '#'
-        others = [LEADERS.fetch(operator, ''),
-          joins ? JOINERS.fetch(operator, ',') : '',
-          operator && ";?&".include?(operator) ? '=' : ''].join
-        table[[operator, joins]] = TEXT_CHARACTERS.select do |character|
+      product([false, true]).each_with_object({}) do |(op, joins), table|
+        reserved = op == '+' || op == '#'
+        others = [LEADERS.fetch(op, ''),
+          joins ? JOINERS.fetch(op, ',') : '',
+          op && ";?&".include?(op) ? '=' : ''].join
+        table[[op, joins]] = TEXT_CHARACTERS.select do |character|
           (reserved &&
             character =~ /[#{Addressable::URI::CharacterClasses::RESERVED}]/) ||
             character =~ /[#{Addressable::URI::CharacterClasses::UNRESERVED}]/ ||
