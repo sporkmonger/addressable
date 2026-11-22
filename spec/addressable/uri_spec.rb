@@ -2188,8 +2188,8 @@ describe Addressable::URI, "when parsed from " +
   end
 
   it "should have the correct password after assignment" do
-    @uri.password = "#secret@123!"
-    expect(@uri.password).to eq("#secret@123!")
+    @uri.password = "%23secret@123!"
+    expect(@uri.password).to eq("%23secret@123!")
     expect(@uri.normalized_password).to eq("%23secret%40123%21")
     expect(@uri.user).to eq("")
     expect(@uri.normalize.to_s).to eq("http://:%23secret%40123%21@example.com/")
@@ -8722,6 +8722,117 @@ describe Addressable::URI, "when a host has a colon outside brackets" do
     uri = Addressable::URI.new(scheme: "http", host: "example.com%3A9")
     expect(uri.to_s).to eq("http://example.com%3A9")
     expect(uri.port).to be_nil
+  end
+end
+
+describe Addressable::URI, "when the userinfo has a delimiter" do
+  %w(/ ? # [ ] \\ :).each do |delimiter|
+    it "raises when setting a user with #{delimiter.inspect}, and leaves " +
+        "the URI unchanged" do
+      uri = Addressable::URI.parse("https://api.example.com/v1")
+      expect do
+        uri.user = "alice#{delimiter}evil.example"
+      end.to raise_error(Addressable::URI::InvalidURIError)
+      expect(uri.to_s).to eq("https://api.example.com/v1")
+    end
+  end
+
+  %w(/ ? # [ ] \\).each do |delimiter|
+    it "raises when setting a password with #{delimiter.inspect}" do
+      uri = Addressable::URI.parse("https://u@api.example.com/")
+      expect do
+        uri.password = "x#{delimiter}evil.example"
+      end.to raise_error(Addressable::URI::InvalidURIError)
+      expect(uri.to_s).to eq("https://u@api.example.com/")
+    end
+  end
+
+  it "raises when setting userinfo whose password has a slash" do
+    uri = Addressable::URI.parse("https://api.example.com/")
+    expect do
+      uri.userinfo = "u:x@evil.example/"
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "raises when creating a URI with a slash in the user" do
+    expect do
+      Addressable::URI.new(
+        scheme: "https", host: "api.example.com", user: "alice@evil.example/"
+      )
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "raises when setting an authority with a backslash in the userinfo" do
+    uri = Addressable::URI.parse("https://api.example.com/")
+    expect do
+      uri.authority = "a\\b@api.example.com"
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "raises when parsing a URI with a backslash in the userinfo" do
+    # Browsers read a backslash as a slash in an http URI, so they would
+    # take the host from before it.
+    expect do
+      Addressable::URI.parse("http://a\\b@example.com/")
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "accepts a colon in the password" do
+    uri = Addressable::URI.parse("https://api.example.com/")
+    uri.userinfo = "u:p:w"
+    reparsed = Addressable::URI.parse(uri.to_s)
+    expect([reparsed.user, reparsed.password]).to eq(["u", "p:w"])
+  end
+
+  it "accepts an @ in the user, which reads the same once serialized" do
+    # RFC 3986 doesn't allow it, but the last @ ends the userinfo, as
+    # browsers also read it.
+    uri = Addressable::URI.parse("https://api.example.com/")
+    uri.user = "me@example.com"
+    reparsed = Addressable::URI.parse(uri.to_s)
+    expect([reparsed.user, reparsed.host]).to eq(
+      ["me@example.com", "api.example.com"]
+    )
+  end
+
+  it "still parses a URI with an unencoded email address as the user" do
+    uri = Addressable::URI.parse("http://me@example.com:pw@host.example/")
+    expect([uri.user, uri.password, uri.host]).to eq(
+      ["me@example.com", "pw", "host.example"]
+    )
+  end
+
+  it "accepts a space or a line break in the user" do
+    # RFC 3986 doesn't allow either. Neither changes the host, and
+    # #request_uri, not the userinfo, is what an HTTP request line uses.
+    uri = Addressable::URI.parse("https://api.example.com/")
+    uri.user = "a b\r\nc"
+    expect(uri.user).to eq("a b\r\nc")
+    expect(uri.host).to eq("api.example.com")
+  end
+
+  it "accepts pct-encoded delimiters" do
+    uri = Addressable::URI.parse("https://api.example.com/")
+    uri.user = "alice%40evil.example%2F"
+    expect(Addressable::URI.parse(uri.to_s).host).to eq("api.example.com")
+  end
+
+  {
+    "mailto:me@example.com" => "me@example.com",
+    "mailto:a\\b@example.com?subject=a/b" => "a\\b@example.com",
+    "acct:bob@example.com" => "bob@example.com"
+  }.each do |input, path|
+    it "doesn't check the address in #{input}, which is in the path" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.user).to be_nil
+      expect(uri.path).to eq(path)
+    end
+  end
+
+  it "still gives a mailto URI for an email address in heuristic_parse" do
+    expect(Addressable::URI.heuristic_parse("me@example.com").to_s).to eq(
+      "mailto:me@example.com"
+    )
   end
 end
 

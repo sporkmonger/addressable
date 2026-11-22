@@ -12,6 +12,7 @@
 - `Addressable::URI#origin=` raises `InvalidURIError` for a string with a path, query or fragment, which it dropped ([#616])
 - `Addressable::URI.parse`, `.new` and the host setters raise `InvalidURIError` for brackets in a host that don't enclose an IPv6 address or IPvFuture literal, such as `http://[127.0.0.1]/` or `http://example[.]com/`, which they accepted ([GHSA-c7j3-jq7p-v3pr])
 - `Addressable::URI#host=`, `#authority=`, `.new` and `.parse` raise `InvalidURIError` for a colon in a host outside the brackets of an IP literal, such as `example.com:8080` or `http://a:b:80/`, which they accepted ([GHSA-w5p3-7836-69vh])
+- `Addressable::URI#user=`, `#password=`, `#userinfo=`, `#authority=`, `.new` and `.parse` raise `InvalidURIError` for `/`, `?`, `#`, `[`, `]` or `\` in the user or password, or `:` in the user, which they accepted: `uri.password = "#secret"` raises, and a password with these characters has to be pct-encoded first ([GHSA-qrq6-rcpx-pmm6])
 - The strings a frozen `Addressable::URI` holds are frozen, so changing one, as in `uri.host << "x"`, raises `FrozenError` ([#668])
 - `Addressable::Template#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateError` for a template that doesn't match the RFC 6570 grammar, which expansion kept as text and matching read as literal text ([#660], [#693], [#697])
 - `Addressable::Template` reads a prefix modifier outside 1 to 9999 or with a leading zero, such as `{var:0}`, `{var:05}` or `{var:10000}`, as malformed: `#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateError` where they used to expand or match it, and `#variables` ignores the expression ([#618], [#693], [#697])
@@ -128,9 +129,10 @@
 [#715]: https://github.com/sporkmonger/addressable/pull/715
 [#716]: https://github.com/sporkmonger/addressable/pull/716
 [GHSA-c7j3-jq7p-v3pr]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-c7j3-jq7p-v3pr
-[GHSA-mrrj-5mhw-rcf2]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-mrrj-5mhw-rcf2
-[GHSA-w5p3-7836-69vh]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-w5p3-7836-69vh
 [GHSA-fccw-gx6q-mh6c]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-fccw-gx6q-mh6c
+[GHSA-mrrj-5mhw-rcf2]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-mrrj-5mhw-rcf2
+[GHSA-qrq6-rcpx-pmm6]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-qrq6-rcpx-pmm6
+[GHSA-w5p3-7836-69vh]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-w5p3-7836-69vh
 [GHSA-x378-rg7m-2c49]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-x378-rg7m-2c49
 
 ## Addressable 2.9.2 <a name="v2.9.2">

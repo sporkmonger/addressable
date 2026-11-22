@@ -2687,6 +2687,16 @@ module Addressable
           "A colon in a host must be inside the brackets of an IP literal: " +
           "'#{self.host.to_s}'"
       end
+      # These would end the userinfo early, or split it, when the URI is
+      # serialized and parsed again. A backslash ends it for browsers, which
+      # read it as a slash. An @ is left alone: the last @ ends the userinfo,
+      # so it reads the same once serialized.
+      if !self.user.nil? && self.user =~ /[\/?#\[\]\\:]/
+        raise InvalidURIError, "Invalid character in user: '#{self.user}'"
+      end
+      if !self.password.nil? && self.password =~ /[\/?#\[\]\\]/
+        raise InvalidURIError, "Invalid character in password"
+      end
       return nil
     end
 
