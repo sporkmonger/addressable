@@ -38,6 +38,7 @@
 - Fix `.normalized_encode` decoding pct-encoded delimiters, such as `%2F` in the path and `%26` in the query ([#589])
 - Fix `#normalize` decoding `%3D` in a query name ([#589])
 - Fix `#normalize` decoding a triplet in a query twice, such as `%252B` to `%2B` ([#589])
+- Fix `#normalize` and `.normalized_encode` turning U+037E GREEK QUESTION MARK into a `;` delimiter: `/a%CD%BEb` normalizes to `/a%3Bb`, not `/a;b` ([#712])
 - Encode a colon in a relative path's first segment as `%3A` instead of `%2F` ([#675])
 - Fix `#normalize` raising `InvalidURIError` for a colon left in a relative path's first segment ([#550], [#589])
 - Keep an IPv6 host in brackets whole in `#origin=` ([#616])
@@ -104,6 +105,7 @@
 [#706]: https://github.com/sporkmonger/addressable/pull/706
 [#710]: https://github.com/sporkmonger/addressable/pull/710
 [#711]: https://github.com/sporkmonger/addressable/pull/711
+[#712]: https://github.com/sporkmonger/addressable/pull/712
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 

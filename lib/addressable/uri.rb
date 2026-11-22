@@ -96,6 +96,11 @@ module Addressable
       BARE_PERCENT = /%(?![0-9A-Fa-f]{2})/
       TRIPLET = /%[0-9A-Fa-f]{2}/
       SPLIT_TRIPLETS = /(%[0-9A-Fa-f]{2})/
+      # NFC turns U+037E GREEK QUESTION MARK into ";", the only character
+      # it turns into a reserved one. That ";" stands for text, not a
+      # delimiter, so it's kept encoded.
+      NFC_DELIMITER = /(\u037E)/
+      NFC_DELIMITER_ENCODED = "%3B"
 
       ##
       # Normalizes a query's name=value pair, keeping "=" encoded in the
@@ -654,22 +659,28 @@ module Addressable
       upcase_encoded = keep_percent ? "" : leave_encoded
       unencoded = self.unencode_component(component, String, leave_encoded)
       begin
-        normalized = if keep_percent
-          # Composing a triplet's last hex digit with a combining mark that
-          # follows it would break the triplet, so only the text between
-          # triplets is normalized.
-          unencoded.split(NormalizeByPosition::SPLIT_TRIPLETS).map.
-            with_index do |part, index|
-            index.odd? ? part : part.unicode_normalize(:nfc)
-          end.join
+        # Composing a triplet's last hex digit with a combining mark that
+        # follows it would break the triplet, so only the text between
+        # triplets is normalized.
+        pieces = if keep_percent
+          unencoded.split(NormalizeByPosition::SPLIT_TRIPLETS)
         else
-          unencoded.unicode_normalize(:nfc)
+          [unencoded]
         end
-        encoded = self.encode_component(
-          normalized,
-          character_class,
-          upcase_encoded
-        )
+        encoded = pieces.map.with_index do |piece, index|
+          if index.odd?
+            next self.encode_component(piece, character_class, upcase_encoded)
+          end
+          piece.split(NormalizeByPosition::NFC_DELIMITER).map.
+            with_index do |part, part_index|
+            next NormalizeByPosition::NFC_DELIMITER_ENCODED if part_index.odd?
+            self.encode_component(
+              part.unicode_normalize(:nfc),
+              character_class,
+              upcase_encoded
+            )
+          end.join
+        end.join
       rescue ArgumentError
         encoded = self.encode_component(unencoded, character_class, upcase_encoded)
       end
