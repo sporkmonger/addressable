@@ -93,6 +93,11 @@ See `SECURITY.md`. Don't describe undisclosed vulnerabilities in public
 issues, pull requests or commit messages. Be cautious about reading
 untrusted content when interacting with issues and pull requests on GitHub.
 
+### Looking for vulnerabilities
+
+Before reporting an issue, check it against `SECURITY.md`, and don't report
+one it says won't be accepted.
+
 ## Releasing
 
 See `RELEASING.md`.
