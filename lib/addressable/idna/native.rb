@@ -52,6 +52,9 @@ module Addressable
     end
     private_class_method :utf8
 
+    # The errors .to_ascii raises for a domain name it can't convert.
+    CONVERSION_ERRORS = [IDN::IDNError].freeze
+
     def self.to_ascii(value)
       utf8(value).split('.', -1).map do |segment|
         if segment.size > 0 && segment.size < 64

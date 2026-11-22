@@ -4496,6 +4496,11 @@ module Addressable
     # Input needs wider integers to process.
     class PunycodeOverflow < StandardError; end
 
+    # The errors .to_ascii raises for a domain name it can't convert.
+    CONVERSION_ERRORS = [
+      InvalidLabel, PunycodeBadInput, PunycodeBigOutput, PunycodeOverflow
+    ].freeze
+
     def self.punycode_encode(unicode)
       unicode = unicode.to_s unless unicode.is_a?(String)
       input = unicode.unpack("U*")

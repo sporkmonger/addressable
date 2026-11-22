@@ -1226,15 +1226,65 @@ describe Addressable::URI, "when parsed with a host with characters " +
     "http://%C2%AD%E2%80%8D/x"
   ].each do |input|
     it "should not normalize #{input} to an empty label" do
-      # Each IDNA backend raises its own error for the empty label.
-      error = if Addressable::IDNA.const_defined?(:InvalidLabel)
-        Addressable::IDNA::InvalidLabel
-      else
-        IDN::Idna::IdnaError
+      expect(Addressable::URI.parse(input).normalize.to_s).to eq(input)
+    end
+  end
+end
+
+describe Addressable::URI, "when parsed with a host IDNA rejects" do
+  # Rejected by both backends: a label is empty after nameprep.
+  [
+    ["http://%E2%80%8B.example/", "%E2%80%8B.example"],
+    ["http://\u200B.example/", "%E2%80%8B.example"],
+    ["http://b%C3%BCcher.%E2%80%8B.example/", "b%C3%BCcher.%E2%80%8B.example"],
+    ["http://%E2%80%8B.EXAMPLE:8080/", "%E2%80%8B.example"],
+    ["http://%e2%80%8b.\u00C4/", "%E2%80%8B.%C3%84"]
+  ].each do |input, host|
+    it "keeps the host of #{input.inspect} pct-encoded" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.normalized_host).to eq(host)
+      expect(uri.normalize.host).to eq(host)
+    end
+
+    it "keeps the host of #{input.inspect} pct-encoded in #display_uri" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.display_uri.to_s).to eq(uri.normalize.to_s)
+    end
+
+    it "compares #{input.inspect} without raising" do
+      uri = Addressable::URI.parse(input)
+      expect(uri === input).to eq(true)
+      expect(uri === "http://example/").to eq(false)
+      expect(Addressable::URI.parse("http://example/") === input).to eq(false)
+      expect(uri).to eq(Addressable::URI.parse(uri.normalize.to_s))
+    end
+  end
+
+  # Each backend rejects some hosts the other accepts.
+  [
+    "http://a\uFFFD.example/",
+    "http://a\uE000.example/",
+    "http://xn--\u00E9.example/",
+    "http://%D7%90a%D7%91.example/",
+    "http://x" + ("\u4E00" * 300) + ".example/",
+    "foo://a\uFFFD.example/"
+  ].each do |input|
+    it "normalizes #{input[0, 40].inspect} without raising" do
+      uri = Addressable::URI.parse(input)
+      decoded = Addressable::URI.unencode_component(uri.host.downcase)
+      rejected = begin
+        Addressable::IDNA.to_ascii(decoded)
+        false
+      rescue *Addressable::IDNA::CONVERSION_ERRORS
+        true
       end
-      expect do
-        Addressable::URI.parse(input).normalize
-      end.to raise_error(error)
+      expect { uri.normalize }.not_to raise_error
+      if rejected
+        expect(uri.normalized_host).to eq(
+          Addressable::URI.encode_component(decoded, /[^a-z0-9\-.]/)
+        )
+        expect(uri.display_uri.to_s).to eq(uri.normalize.to_s)
+      end
     end
   end
 end
