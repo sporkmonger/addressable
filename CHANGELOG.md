@@ -8,6 +8,7 @@
 - `Addressable::URI::RULE_2A`, `RULE_2B_2C`, `RULE_2D` and `RULE_PREFIXED_PARENT`, deprecated in 2.9.1, are removed ([#669])
 - `Addressable::URI` setters, `.new` and `#merge` raise for `false` instead of treating it as `nil` ([#667])
 - `Addressable::URI#port=` and `.new` raise `InvalidURIError` for a port with a line break, such as `"8080\nx"` ([#663])
+- `Addressable::URI` setters, `.new` and `.parse` raise `InvalidURIError` for a port above 65535 in a URI whose scheme has a default port, such as `http://example.com:70000/`, and for a port above the largest integer Ruby stores without a bignum, 2**62 - 1 on 64-bit platforms, in any URI ([#711])
 - `Addressable::URI#origin=` raises `InvalidURIError` for a string with a path, query or fragment, which it dropped ([#616])
 - The strings a frozen `Addressable::URI` holds are frozen, so changing one, as in `uri.host << "x"`, raises `FrozenError` ([#668])
 - `Addressable::Template#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateError` for a template that doesn't match the RFC 6570 grammar, which expansion kept as text and matching read as literal text ([#660], [#693], [#697])
@@ -102,6 +103,7 @@
 [#703]: https://github.com/sporkmonger/addressable/pull/703
 [#706]: https://github.com/sporkmonger/addressable/pull/706
 [#710]: https://github.com/sporkmonger/addressable/pull/710
+[#711]: https://github.com/sporkmonger/addressable/pull/711
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 
