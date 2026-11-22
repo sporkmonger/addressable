@@ -59,6 +59,7 @@
 ### `Addressable::IDNA`
 
 - Remove the characters nameprep maps to nothing, such as a zero width joiner, in the pure-Ruby `.to_ascii`, as `idn-ruby` does ([#703])
+- Fix the native `.to_ascii` and `.to_unicode` crashing the process for a string that isn't tagged as UTF-8 and has bytes that aren't valid UTF-8, such as `"caf\xE9.example".b`; they raise `ArgumentError`, as they do for a UTF-8 string ([#710])
 
 [#133]: https://github.com/sporkmonger/addressable/pull/133
 [#512]: https://github.com/sporkmonger/addressable/pull/512
@@ -100,6 +101,7 @@
 [#701]: https://github.com/sporkmonger/addressable/pull/701
 [#703]: https://github.com/sporkmonger/addressable/pull/703
 [#706]: https://github.com/sporkmonger/addressable/pull/706
+[#710]: https://github.com/sporkmonger/addressable/pull/710
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 

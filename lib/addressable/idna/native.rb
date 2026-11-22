@@ -39,8 +39,21 @@ module Addressable
       deprecate :unicode_normalize_kc, "String#unicode_normalize(:nfkc)", 2023, 4
     end
 
+    # The value's bytes, read as UTF-8, as the pure-Ruby implementation
+    # reads them. libidn reads them that way too, but idn-ruby crashes when
+    # it rejects bytes from a string that isn't tagged as UTF-8, so those
+    # raise ArgumentError when the value is split, before it's called. A
+    # string in an encoding that isn't ASCII-compatible, such as UTF-16,
+    # is left as it is, and still raises when it's split.
+    def self.utf8(value)
+      value = value.to_s
+      return value unless value.encoding.ascii_compatible?
+      value.dup.force_encoding(Encoding::UTF_8)
+    end
+    private_class_method :utf8
+
     def self.to_ascii(value)
-      value.to_s.split('.', -1).map do |segment|
+      utf8(value).split('.', -1).map do |segment|
         if segment.size > 0 && segment.size < 64
           IDN::Idna.toASCII(segment, IDN::Idna::ALLOW_UNASSIGNED)
         elsif segment.size >= 64
@@ -61,7 +74,7 @@ module Addressable
     DISPLAY_CHANGING = /[\p{Cc}\p{Cf}[\p{Default_Ignorable_Code_Point}&&\P{Cf}]]/
 
     def self.to_unicode(value)
-      value.to_s.split('.', -1).map do |segment|
+      utf8(value).split('.', -1).map do |segment|
         if segment.size > 0 && segment.size < 64
           decoded = IDN::Idna.toUnicode(segment, IDN::Idna::ALLOW_UNASSIGNED)
           decoded =~ DISPLAY_CHANGING ? segment : decoded
