@@ -9,6 +9,18 @@ https://github.com/sporkmonger/addressable/security/advisories/new
 
 Don't open a public issue or pull request for a security problem.
 
+## Supported runtimes
+
+Reports are accepted for supported runtimes only: Ruby 3.3 or later, JRuby
+10 or later, and TruffleRuby releases compatible with Ruby 3.3 or later.
+Ruby 3.2 and earlier and JRuby 9.4 aren't supported, and reports that only
+affect them won't be accepted.
+
+Reports of vulnerabilities that only affect Ruby 3.3, JRuby, TruffleRuby, or
+some combination of them won't be accepted either. The README describes
+precautions for applications that run Addressable on these runtimes. A
+report is accepted if the issue also affects Ruby 3.4 or later.
+
 ## One issue per report
 
 Report each distinct security issue separately, even if you found the

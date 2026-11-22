@@ -7978,6 +7978,8 @@ describe Addressable::URI, "when cloned" do
     expect(uri.host).to eq("a.example")
   end
 
+  # Deprecated: Ruby 3.2 and earlier are no longer supported, so this check
+  # for Ruby 3.0 or later will be removed in a future update.
   if RUBY_VERSION >= "3.0"
     it "prepares a clone frozen from an unfrozen original" do
       copy = uri.clone(freeze: true)

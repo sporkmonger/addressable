@@ -4,6 +4,7 @@
 
 ### Breaking changes
 
+- Ruby 3.2 and earlier and JRuby 9.4 are no longer supported, and loading Addressable on them gives a deprecation warning when deprecation warnings are turned on, as with `-W:deprecated`
 - `Addressable::URI::RULE_2A`, `RULE_2B_2C`, `RULE_2D` and `RULE_PREFIXED_PARENT`, deprecated in 2.9.1, are removed ([#669])
 - `Addressable::URI` setters, `.new` and `#merge` raise for `false` instead of treating it as `nil` ([#667])
 - `Addressable::URI#port=` and `.new` raise `InvalidURIError` for a port with a line break, such as `"8080\nx"` ([#663])

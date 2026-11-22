@@ -172,6 +172,8 @@ describe "Type conversion" do
     '{hello}' => '1234',
     '{nothing}' => '',
     '{sym}' => 'symbolic',
+    # Deprecated: Ruby 3.2 and earlier are no longer supported, so this
+    # check for Ruby before 2.4 will be removed in a future update.
     '{decimal}' => RUBY_VERSION < '2.4.0' ? '0.1E1' : '0.1e1'
   }
 end
