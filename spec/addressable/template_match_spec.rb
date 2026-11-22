@@ -25,7 +25,9 @@ module TemplateMatchSpec
 
   # A direct version of Template#parse_new_template_pattern, without the
   # changes that keep matching from backtracking catastrophically. It's the
-  # reference for the order in which a match tries its choices.
+  # reference for the order in which a match tries its choices. The pairs
+  # of the ;, ? and & variables that aren't exploded are one run, in any
+  # order, of the names of those variables, in the first one's place.
   REFERENCE_PARSE_NEW_TEMPLATE_PATTERN = <<-'RUBY'
     def parse_new_template_pattern(pattern, processor = nil)
       # Escape the pattern. The two gsubs restore the escaped curly braces
@@ -48,8 +50,27 @@ module TemplateMatchSpec
         leader = Regexp.escape(LEADERS.fetch(operator, ''))
         joiner = Regexp.escape(JOINERS.fetch(operator, ','))
         varspecs = varlist.split(',')
-        combined = varspecs.map do |varspec|
+        named = varspecs.reject { |varspec| varspec[VARSPEC, 2] == '*' }
+        first_named = varspecs.index { |varspec| varspec[VARSPEC, 2] != '*' }
+        names = named.map { |varspec| varspec[VARSPEC, 1] }.uniq
+        names = names.sort_by { |name| -name.size }
+        names = "(?:#{names.map { |name| Regexp.escape(name) }.join('|')})"
+        pair = if operator == ';'
+          "#{names}(?:=#{UNRESERVED}*?)?"
+        else
+          "#{names}=#{UNRESERVED}*?"
+        end
+        combined = varspecs.each_with_index.map do |varspec, position|
           _, name, modifier = *varspec.match(VARSPEC)
+          if [';', '?', '&'].include?(operator) && modifier != '*'
+            next position == first_named ?
+              "(?<#{name}>#{pair}(?:#{joiner}#{pair})*)?" : "(?<#{name}>)"
+          end
+          # In ; expansion, a later variable starts where a pair starts, not
+          # in the middle of the name or value before it.
+          start = operator == ';' && position > 0 ?
+            "(?<![#{Addressable::URI::CharacterClasses::UNRESERVED}])" \
+            "(?<![^\\x00-\\x7F])" : ""
 
           result = processor && processor.respond_to?(:match) ? processor.match(name) : nil
           if result
@@ -79,7 +100,11 @@ module TemplateMatchSpec
                     else group
                     end
               joiner_pattern = operator.nil? ? joiner : "#{joiner}?"
-              "(?<#{name}>#{seg}(?:#{joiner_pattern}#{seg})*)?"
+              if start.empty?
+                "(?<#{name}>#{seg}(?:#{joiner_pattern}#{seg})*)?"
+              else
+                "(?<#{name}>(?:#{start}#{seg}(?:#{joiner_pattern}#{seg})*)?)"
+              end
             elsif varspecs.size > 1 && (operator == '+' || operator == '#') &&
                   varspec != varspecs.last
               "(?<#{name}>#{RESERVED_NO_COMMA}*+)?"
@@ -243,7 +268,7 @@ describe Addressable::Template, "#match" do
       # In an expression with several variables, each takes as much as it
       # can, from the first: an exploded variable every member left, and
       # another variable one member. A variable with nothing left is
-      # undefined. This is the same for /, ., the default operator, + and #...
+      # undefined. This is the same for /, ., the default operator, + and #.
       ["{a*,b,c}", "x,y,z"] => {"a" => ["x", "y", "z"], "b" => nil, "c" => nil},
       ["{/a,b,c}", "/x"] => {"a" => "x", "b" => nil, "c" => nil},
       ["{/a,b,c}", "/x/y"] => {"a" => "x", "b" => "y", "c" => nil},
@@ -254,8 +279,9 @@ describe Addressable::Template, "#match" do
       ["{/a,b*}", "/x/y/z"] => {"a" => "x", "b" => ["y", "z"]},
       ["{/a*,b}", "/x/y"] => {"a" => ["x", "y"], "b" => nil},
       ["{.a,b*}", ".x.y.z"] => {"a" => "x", "b" => ["y", "z"]},
-      # ...and a value goes to the first variable for ; too.
-      ["{;a,b}", ";a=1"] => {"a" => "", "b" => nil, "1" => ""},
+      # A ;, ? or & variable that isn't exploded takes the pair with its
+      # own name.
+      ["{;a,b}", ";a=1"] => {"a" => "1", "b" => nil},
       ["{;a,b}", ";a=1;b=2"] => {"a" => "1", "b" => "2"},
       ["{;a,b*}x", ";ax"] => {"a" => "", "b" => {}},
       # With several exploded variables, the first one takes the values...
@@ -270,8 +296,9 @@ describe Addressable::Template, "#match" do
       ["{;a*,b*}", ";a=1;b=2"] => {"a" => {"a" => "1", "b" => "2"}, "b" => {}},
       # ...for ? and &, unless an empty member comes first...
       ["{?a*,b*}", "?a=1&b=2"] => {"a" => {"a" => "1", "b" => "2"}, "b" => nil},
+      # A variable that isn't exploded takes its own pair from them.
       ["{?a*,b*,c}", "?a=1&b=2&c=3"] => {
-        "a" => {"a" => "1", "b" => "2", "c" => "3"}, "b" => nil, "c" => nil
+        "a" => {"a" => "1", "b" => "2"}, "b" => nil, "c" => "3"
       },
       # ...and for /, . and the default operator.
       ["{/a*,b*}", "/x/y"] => {"a" => ["x", "y"], "b" => nil},
@@ -417,8 +444,8 @@ describe Addressable::Template, "#match" do
         "c" => "#é;;", "d" => nil, "a" => nil
       },
       # A name in two expressions must get the same value from both.
-      [".{#b,c*}{&c*,a,b}.", ".#&&c=%26&a=%3B."] => {
-        "b" => nil, "c" => "&", "a" => ";"
+      [".{#b,c}{&c,a,b}.", ".#x,y&c=y&a=%3B."] => {
+        "b" => "x", "c" => "y", "a" => ";"
       }
     }.each do |(pattern, uri), mapping|
       it "matches #{uri.inspect} against #{pattern} with either regexp" do

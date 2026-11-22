@@ -1593,11 +1593,11 @@ describe Addressable::Template do
       }
       its(:variables){ should == ["hash", "first"] }
       its(:captures){ should == [
-        {"a" => "1", "b" => "2", "c" => "3", "first" => "foo"}, nil] }
+        {"a" => "1", "b" => "2", "c" => "3"}, "foo"] }
     end
-    # Note that this expansion is impossible to revert deterministically - the
-    # * operator means first could have been a key of hash or a separate key.
-    # Semantically, a separate key is more likely, but both are possible.
+    # The * operator means first could have been a key of hash or a separate
+    # key. A pair with the name of a variable that isn't exploded is that
+    # variable's, so it's read as a separate key.
     context "fourth uri" do
       subject {
         Addressable::Template.new(
@@ -1606,7 +1606,7 @@ describe Addressable::Template do
       }
       its(:variables){ should == ["hash", "first"] }
       its(:captures){ should == [
-        {"a" => "1", "b" => "2", "c" => "3", "first"=> "foo"}, nil] }
+        {"a" => "1", "b" => "2", "c" => "3"}, "foo"] }
     end
     context "fifth uri" do
       subject {

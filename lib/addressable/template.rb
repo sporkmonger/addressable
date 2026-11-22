@@ -174,6 +174,10 @@ module Addressable
       '/' => '/'
     }
 
+    # The operators that write each variable's name before its value.
+    NAMED_OPERATORS = [';', '?', '&'].freeze
+    private_constant :NAMED_OPERATORS
+
     ##
     # Raised if an invalid template value is supplied.
     class InvalidTemplateValueError < StandardError
@@ -411,8 +415,9 @@ module Addressable
     #   parameter: `[String] name`.  The <tt>match</tt> method should return
     #   a <tt>String</tt> containing a regular expression capture group for
     #   matching on that particular variable. The default value is `".*?"`.
-    #   The <tt>match</tt> method has no effect on multivariate operator
-    #   expansions.
+    #   In a <tt>;</tt>, <tt>?</tt> or <tt>&</tt> expression, the pattern
+    #   matches the value after the variable's name and <tt>=</tt>, and
+    #   <tt>restore</tt> is called with the template's variable names.
     #
     # Without a processor, each value is pct-decoded once. Reserved
     # (<tt>{+var}</tt>) and fragment (<tt>{#var}</tt>) expansion keep a
@@ -510,8 +515,9 @@ module Addressable
     #   parameter: `[String] name`. The <tt>match</tt> method should return
     #   a <tt>String</tt> containing a regular expression capture group for
     #   matching on that particular variable. The default value is `".*?"`.
-    #   The <tt>match</tt> method has no effect on multivariate operator
-    #   expansions.
+    #   In a <tt>;</tt>, <tt>?</tt> or <tt>&</tt> expression, the pattern
+    #   matches the value after the variable's name and <tt>=</tt>, and
+    #   <tt>restore</tt> is called with the template's variable names.
     #
     # Without a processor, each value is pct-decoded once. Reserved
     # (<tt>{+var}</tt>) and fragment (<tt>{#var}</tt>) expansion keep a
@@ -613,7 +619,7 @@ module Addressable
       mapping = {}
 
       # First, we need to process the pattern, and extract the values.
-      expansions, expansion_regexp =
+      expansions, expansion_regexp, patterns =
         parse_template_pattern(pattern, processor)
 
       matched = uri.to_str.match(expansion_regexp)
@@ -625,9 +631,16 @@ module Addressable
       elsif expansions.size > 0
         index = 0
         split = !(processor && processor.respond_to?(:match))
-        expansions.each do |expansion|
+        expansions.each_with_index do |expansion, expansion_index|
           _, operator, varlist = *expansion.match(EXPRESSION)
           varspecs = varlist.split(',')
+          if NAMED_OPERATORS.include?(operator)
+            named = named_values(
+              operator, varspecs, unparsed_values[index, varspecs.size],
+              patterns[expansion_index]
+            )
+            return nil unless named
+          end
           values = if split && varspecs.size > 1
             split_from_left(operator, varspecs, matched, index)
           end
@@ -652,24 +665,10 @@ module Addressable
                 value = members[position]
               end
             when ';', '?', '&'
-              if modifier == '*'
-                if unparsed_values[index]
-                  pairs = unparsed_values[index].split(JOINERS[operator])
-                  # The value is read as an associative array, even when its
-                  # pairs repeat the variable's name, as an exploded list's
-                  # do. A repeated key keeps its last value.
-                  value = pairs.inject({}) do |acc, pair|
-                    key, val = pair.split('=', 2)
-                    acc[key] = val || ""
-                    acc
-                  end
-                end
-              else
-                if (unparsed_values[index])
-                  name, value = unparsed_values[index].split('=')
-                  value = "" if value.nil?
-                end
-              end
+              # An exploded value is an associative array, even when its
+              # pairs repeat the variable's name, as an exploded list's do.
+              # A repeated key keeps its last value.
+              value = named[position]
             end
             if processor != nil && processor.respond_to?(:restore)
               value = processor.restore(name, value)
@@ -1702,6 +1701,148 @@ module Addressable
         accu[name] = value
         accu
       end
+    end
+
+    ##
+    # The pair that a ;, ? or & variable that isn't exploded can match: one
+    # of the names of the expression's variables that aren't exploded, then
+    # "=" and the value. A ; variable's empty value is written as the name
+    # alone. With processor patterns, each name's value is matched with its
+    # own variable's pattern.
+    #
+    # @param [String] operator The expression's operator.
+    # @param [Array<String>] varspecs The expression's varspecs.
+    # @param [Array<String, nil>] results The processor patterns, by varspec.
+    #
+    # @return [String, nil] The regular expression source, or nil if every
+    #   variable is exploded.
+    def named_pair_source(operator, varspecs, results)
+      choices = {}
+      varspecs.each_with_index do |varspec, position|
+        next if varspec[VARSPEC, 2] == '*'
+        name = varspec[VARSPEC, 1]
+        choices[name] = results[position] unless choices.key?(name)
+      end
+      return nil if choices.empty?
+      value = "#{UNRESERVED}*?"
+      # A longer name is tried first, so a name isn't taken for the start of
+      # a longer one.
+      choices = choices.sort_by { |name, _| -name.size }
+      if results.compact.empty?
+        names = choices.map { |name, _| named_variable_source(name) }
+        names = "(?:#{names.join('|')})"
+        if operator == ';'
+          "#{names}(?:=#{value})?"
+        else
+          "#{names}=#{value}"
+        end
+      else
+        pairs = choices.map do |name, result|
+          source = named_variable_source(name)
+          pair = "#{source}=(?:#{result || value})"
+          if operator == ';' &&
+              (result.nil? || Regexp.new("\\A(?:#{result})\\z") =~ "")
+            pair += "|#{source}"
+          end
+          pair
+        end
+        "(?:#{pairs.join('|')})"
+      end
+    end
+
+    ##
+    # A variable's name as ;, ? and & expansion writes it, as a regular
+    # expression source. Its pct-encoded triplets match in either case.
+    #
+    # @param [String] name The variable name.
+    #
+    # @return [String] The regular expression source.
+    def named_variable_source(name)
+      name.scan(/%[0-9A-Fa-f]{2}|[^%]+/).map do |part|
+        part.start_with?('%') ? "(?i:#{Regexp.escape(part)})" : Regexp.escape(part)
+      end.join
+    end
+
+    ##
+    # A variable's name with its pct-encoded triplets in upper case, so that
+    # names written with either case compare equal.
+    #
+    # @param [String] name The variable name.
+    #
+    # @return [String] The name.
+    def canonical_name(name)
+      name.gsub(/%[0-9A-Fa-f]{2}/) { |triplet| triplet.upcase }
+    end
+
+    ##
+    # The values of a ;, ? or & expression's variables. A pair with the name
+    # of one of the expression's variables that aren't exploded is that
+    # variable's, wherever it is, and an exploded variable gets the others.
+    # Each name is only given as many times as the expression has it.
+    #
+    # @param [String] operator The expression's operator.
+    # @param [Array<String>] varspecs The expression's varspecs.
+    # @param [Array<String, nil>] captures The text each variable matched.
+    # @param [Array<String, nil>] results The processor patterns, by varspec.
+    #
+    # @return [Array, nil] The value for each varspec, or nil if a name is
+    #   given too many times or a value doesn't match its pattern.
+    def named_values(operator, varspecs, captures, results)
+      places = {}
+      varspecs.each_with_index do |varspec, position|
+        next if varspec[VARSPEC, 2] == '*'
+        (places[canonical_name(varspec[VARSPEC, 1])] ||= []) << position
+      end
+      values = Array.new(varspecs.size)
+      taken = Hash.new(0)
+      give = lambda do |name, value|
+        key = canonical_name(name)
+        positions = places[key]
+        return false unless positions && taken[key] < positions.size
+        values[positions[taken[key]]] = value
+        taken[key] += 1
+        true
+      end
+      joiner = Regexp.escape(JOINERS[operator])
+      names = varspecs.reject { |varspec| varspec[VARSPEC, 2] == '*' }.map do |varspec|
+        named_variable_source(varspec[VARSPEC, 1])
+      end.uniq
+      # A pair starts after a joiner that one of the names follows.
+      pair_start = /#{joiner}(?=(?:#{names.join('|')})(?:=|#{joiner}|\z))/
+      varspecs.each_with_index do |varspec, position|
+        capture = captures[position]
+        # The run of pairs is in the first such variable's place, and the
+        # others match nothing.
+        next if capture.nil? || capture.empty? || varspec[VARSPEC, 2] == '*'
+        capture.split(pair_start).each do |pair|
+          name, value = pair.split('=', 2)
+          return nil unless give.call(name, value || "")
+        end
+      end
+      varspecs.each_with_index do |varspec, position|
+        capture = captures[position]
+        next if capture.nil? || varspec[VARSPEC, 2] != '*'
+        pairs = {}
+        claimed = false
+        capture.split(JOINERS[operator]).each do |pair|
+          key, value = pair.split('=', 2)
+          value ||= ""
+          # An empty member has no name, so it stays the exploded variable's.
+          positions = key && places[canonical_name(key)]
+          if positions
+            # A value in an exploded variable's place is checked against
+            # its own variable's pattern, as it is in its own place.
+            pattern = results[positions.first]
+            return nil if pattern && value !~ /\A(?:#{pattern})\z/
+            return nil unless give.call(key, value)
+            claimed = true
+          else
+            pairs[key] = value
+          end
+        end
+        values[position] = claimed && pairs.empty? ? nil : pairs
+      end
+      values
     end
 
     ##
@@ -2834,6 +2975,12 @@ module Addressable
         joiner = Regexp.escape(JOINERS.fetch(operator, ','))
         varspecs = varlist.split(',')
         results = patterns[index]
+        # A ;, ? or & variable that isn't exploded is written as its own
+        # name, so a pair in its place can only have the name of one of the
+        # expression's variables that aren't exploded. Matching gives each
+        # pair to its variable afterwards.
+        named = NAMED_OPERATORS.include?(operator) &&
+          named_pair_source(operator, varspecs, results)
         # Without processor patterns, any variable in the expression can take
         # the characters that an earlier variable leaves, which lets the
         # variables after the first one have fewer choices below.
@@ -2847,6 +2994,7 @@ module Addressable
         shared = varspecs.any? do |varspec|
           naming[varspec[VARSPEC, 1]] > 1
         end
+        first_named = explodes.index(false)
         not_after_value =
           "(?<![#{Addressable::URI::CharacterClasses::UNRESERVED}])" \
           "(?<![^\\x00-\\x7F])"
@@ -2856,6 +3004,19 @@ module Addressable
         combined = varspecs.each_with_index.map do |varspec, position|
           _, name, modifier = *varspec.match(VARSPEC)
           name = capture_name(name)
+
+          if named && modifier != '*'
+            # The pairs of the variables that aren't exploded are matched
+            # as one run, in any order, by the first of them, so each name
+            # is written once however many variables the expression has.
+            # The others match nothing, and matching gives each pair to its
+            # variable afterwards.
+            if position == first_named
+              next "(?<#{name}>#{named}(?:#{joiner}#{named})*)?"
+            else
+              next "(?<#{name}>)"
+            end
+          end
 
           result = results[position]
           if result
@@ -3090,7 +3251,7 @@ module Addressable
         raw_expressions, literals, literal_sources, expression_sources,
         empties, commit, ends
       )
-      return expansions, Regexp.new(regexp_string)
+      return expansions, Regexp.new(regexp_string), patterns
     ensure
       Thread.current[BUILD_CACHE] = nil if owner
     end

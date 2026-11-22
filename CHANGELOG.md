@@ -20,6 +20,8 @@
 - `Addressable::Template#expand` and `#partial_expand` raise `InvalidTemplateValueError` for a prefix modifier on a list or associative array ([#660])
 - With the native backend, `Addressable::IDNA.punycode_encode` and `.punycode_decode` raise `IDN::Punycode::PunycodeError` for a string with a NUL, where they converted only the text before it: `punycode_encode("a\u0000b")` gave `"a-"` ([GHSA-mrrj-5mhw-rcf2])
 - The pure-Ruby `Addressable::IDNA.to_ascii` raises `Addressable::IDNA::InvalidLabel` for a label that breaks the bidi rule of RFC 3454, such as `exampleא`, where it returned an A-label, as `idn-ruby` raises `IDN::Idna::IdnaError`; `Addressable::URI#normalize` keeps such a host pct-encoded: `http://example%D7%90.test/` gives itself, not `http://xn--example-c5i.test/` ([GHSA-fccw-gx6q-mh6c])
+- `Addressable::Template#match` and `#extract` only read a pair in a `;`, `?` or `&` expression as the pair of a variable that isn't exploded when the name is one of the expression's variables, and only as many times as the expression has the name, and otherwise don't match: `{?q}` on `?admin=true` gives `nil`, not `{"q" => nil, "admin" => "true"}` ([GHSA-q5vw-6v74-fg2g])
+- A processor's `match` pattern for a `;`, `?` or `&` variable that isn't exploded matches only the variable's value, as documented, so `Addressable::Template#match` and `#extract` no longer match a pattern that includes the name, such as `page=\d+` ([GHSA-q5vw-6v74-fg2g])
 - The pure-Ruby `Addressable::IDNA.to_ascii` raises `Addressable::IDNA::InvalidLabel` for a label made only of characters nameprep maps to nothing, such as U+200B ZERO WIDTH SPACE in `"\u200B.example"`, where it returned an A-label, as `idn-ruby` raises `IDN::Idna::IdnaError` ([#703], [#714])
 
 ### Changed output
@@ -79,6 +81,7 @@
 - Match a URI in linear time on Rubies that don't memoize regexps (MRI before 3.3, JRuby, TruffleRuby), except for some templates that combine an exploded variable, or several variables in one expression, with other expressions, and where a processor gives a variable its own pattern ([GHSA-grhv-8jgq-r74x], [GHSA-jrfq-gw62-2f3j], [GHSA-xfg6-27c4-wr4r], [GHSA-xj9m-f88p-5j38])
 - Fix `#match` and `#extract` giving a `nil` key for an empty member of an exploded `?` or `&` variable: `{?a*,b,c*}` on `?&==` gives `{"a" => nil, "b" => nil, "c" => {"" => "="}}`, not `{"a" => nil, "b" => nil, nil => "", "c" => {nil => ""}}` ([GHSA-xfg6-27c4-wr4r])
 - Keep everything after the first `=` of each pair in an exploded `;`, `?` or `&` value in `#match` and `#extract`: `{?a*}` on `?k=x=y` gives `{"a" => {"k" => "x=y"}}`, not `{"a" => {"k" => "x"}}` ([#687])
+- Give a pair with the name of a variable that isn't exploded to that variable in `#match` and `#extract`, wherever it is in a `;`, `?` or `&` expression: `{?q,list*}` on `?page=1&q=cat` gives `{"q" => "cat", "list" => {"page" => "1"}}`, not `{"q" => nil, "page" => "1", "list" => {"q" => "cat"}}` ([GHSA-q5vw-6v74-fg2g])
 
 ### `Addressable::IDNA`
 
@@ -140,6 +143,7 @@
 [GHSA-h78h-gj97-g737]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-h78h-gj97-g737
 [GHSA-jrfq-gw62-2f3j]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-jrfq-gw62-2f3j
 [GHSA-mrrj-5mhw-rcf2]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-mrrj-5mhw-rcf2
+[GHSA-q5vw-6v74-fg2g]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-q5vw-6v74-fg2g
 [GHSA-qg8x-qm93-fw27]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-qg8x-qm93-fw27
 [GHSA-qrq6-rcpx-pmm6]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-qrq6-rcpx-pmm6
 [GHSA-v6hg-69pc-4f3f]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-v6hg-69pc-4f3f
