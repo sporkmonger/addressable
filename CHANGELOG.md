@@ -14,6 +14,7 @@
 - `Addressable::Template` reads the operators RFC 6570 reserves, `=`, `,`, `!`, `@` and `|`, as malformed: `#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateOperatorError` where expansion used to treat `{!var}` like `{var}`, and `#variables` ignores the expression ([#660], [#693], [#697])
 - `Addressable::Template#expand` and `#partial_expand` raise `InvalidTemplateValueError` for a prefix modifier on a list or associative array ([#660])
 - `Addressable::Template#extract` and `#match` give an exploded list in `;`, `?` or `&` expansion as an array, not a hash ([#687])
+- The pure-Ruby `Addressable::IDNA.to_ascii` raises `Addressable::IDNA::InvalidLabel` for a label made only of characters nameprep maps to nothing, such as `​` in `​.example`, where it returned an A-label, as `idn-ruby` raises `IDN::Idna::IdnaError`; `Addressable::URI#normalize` and `#normalized_host` raise it too ([#703])
 
 ### Changed output
 

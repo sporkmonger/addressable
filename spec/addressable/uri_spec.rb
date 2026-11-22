@@ -1207,6 +1207,33 @@ describe Addressable::URI, "when parsed with an internationalized host " +
   end
 end
 
+describe Addressable::URI, "when parsed with a host with characters " +
+    "nameprep maps to nothing" do
+  it "should drop them when normalized" do
+    uri = Addressable::URI.parse("http://in%C2%ADter%E2%80%8Bnal.example/")
+    expect(uri.normalized_host).to eq("internal.example")
+    expect(uri).to eq(Addressable::URI.parse("http://internal.example/"))
+  end
+
+  [
+    "http://%E2%80%8B/",
+    "http://%E2%80%8B.internal.example/",
+    "http://%C2%AD%E2%80%8D/x"
+  ].each do |input|
+    it "should not normalize #{input} to an empty label" do
+      # Each IDNA backend raises its own error for the empty label.
+      error = if Addressable::IDNA.const_defined?(:InvalidLabel)
+        Addressable::IDNA::InvalidLabel
+      else
+        IDN::Idna::IdnaError
+      end
+      expect do
+        Addressable::URI.parse(input).normalize
+      end.to raise_error(error)
+    end
+  end
+end
+
 describe Addressable::URI, "when parsed with a host whose pct-encoded " +
     "bytes aren't valid UTF-8" do
   [
