@@ -158,7 +158,8 @@ module Addressable
     # The largest port, the largest integer the platform stores without a
     # bignum. A port is an Integer, and on a Ruby built without GMP,
     # converting a long run of digits takes time quadratic in its length, so
-    # a longer one is rejected before it's converted.
+    # a longer one is rejected before it's converted. Rubies before 2.5
+    # don't have RbConfig::LIMITS, so it's worked out from the word size.
     LARGEST_PORT = begin
       require "rbconfig/sizeof"
       RbConfig::LIMITS["FIXNUM_MAX"]

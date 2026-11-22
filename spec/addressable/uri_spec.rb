@@ -8130,10 +8130,16 @@ describe Addressable::URI, "YAML safe loading" do
 end
 
 describe Addressable::URI, "when given a port" do
-  # The largest integer the platform stores without a bignum.
-  let(:largest) do
+  let(:largest) { Addressable::URI.send(:const_get, :LARGEST_PORT) }
+
+  it "takes the largest port from the largest integer without a bignum" do
     require "rbconfig/sizeof"
-    RbConfig::LIMITS["FIXNUM_MAX"]
+    if defined?(RbConfig::LIMITS)
+      expect(largest).to eq(RbConfig::LIMITS["FIXNUM_MAX"])
+    else
+      # Rubies before 2.5 don't have RbConfig::LIMITS.
+      expect(largest).to eq((1 << (0.size * 8 - 2)) - 1)
+    end
   end
 
   it "keeps a port up to the largest integer without a bignum" do
