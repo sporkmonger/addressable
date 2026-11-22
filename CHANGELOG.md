@@ -24,6 +24,7 @@
 
 ### Changed output
 
+- `Addressable::URI#normalize`, `#==`, `#===`, `.normalized_encode`, the pure-Ruby `Addressable::IDNA.to_ascii` and `Addressable::Template#expand`, `#match` and `#extract` leave a run of more than 30 combining marks as it is instead of normalizing it, so they take linear time on any Ruby: `e` followed by 31 U+0301 keeps the `e` and all 31 marks, not `é` and 30 ([GHSA-v6hg-69pc-4f3f])
 - `Addressable::URI.heuristic_parse("localhost:3000")` gives `http://localhost:3000`, not `localhost:3000` with a `localhost` scheme ([#691])
 - `Addressable::URI#route_from` and `#route_to` give `./`, not `../`, for a route that would climb above the root ([#648])
 - `Addressable::URI#query_values` reads `+` as a space in query names too, and for uppercase `HTTP` and `HTTPS`: `?a+b=c` gives `{"a b" => "c"}`, not `{"a+b" => "c"}` ([#607])
@@ -134,6 +135,7 @@
 [GHSA-mrrj-5mhw-rcf2]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-mrrj-5mhw-rcf2
 [GHSA-qg8x-qm93-fw27]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-qg8x-qm93-fw27
 [GHSA-qrq6-rcpx-pmm6]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-qrq6-rcpx-pmm6
+[GHSA-v6hg-69pc-4f3f]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-v6hg-69pc-4f3f
 [GHSA-w5p3-7836-69vh]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-w5p3-7836-69vh
 [GHSA-x378-rg7m-2c49]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-x378-rg7m-2c49
 

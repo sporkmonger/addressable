@@ -19,6 +19,7 @@
 
 require "addressable/version"
 require "addressable/idna"
+require "addressable/unicode_normalization"
 require "public_suffix"
 
 ##
@@ -672,7 +673,7 @@ module Addressable
           NormalizeByPosition::NFC_DELIMITER
         end
         normalized = unencoded.split(split).map.with_index do |part, index|
-          index.odd? ? part : part.unicode_normalize(:nfc)
+          index.odd? ? part : UnicodeNormalization.normalize(part, :nfc)
         end.join
         encoded = self.encode_component(
           normalized,
@@ -783,7 +784,8 @@ module Addressable
       components.each do |key, value|
         if value != nil
           begin
-            components[key] = value.to_str.unicode_normalize(:nfc)
+            components[key] =
+              UnicodeNormalization.normalize(value.to_str, :nfc)
           rescue ArgumentError
             # Likely a malformed UTF-8 character, skip unicode normalization
             components[key] = value.to_str

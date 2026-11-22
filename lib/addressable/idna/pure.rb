@@ -17,6 +17,8 @@
 #++
 
 
+require "addressable/unicode_normalization"
+
 module Addressable
   module IDNA
     # This module is loosely based on idn_actionmailer by Mick Staugaard,
@@ -220,7 +222,7 @@ module Addressable
           "to nothing."
       end
       input = input.gsub(MAPPED_TO_NOTHING, '')
-      input = input.unicode_normalize(:nfkc)
+      input = UnicodeNormalization.normalize(input, :nfkc)
       # NFKC maps U+FF0E to a dot and U+FF61 to U+3002. Map U+3002 to a dot
       # too, so that each label separator of IDNA2003 (Section 3.1 of
       # RFC 3490) separates labels.

@@ -1460,7 +1460,8 @@ module Addressable
     # operator.
     #
     # @param [Hash, Array, String] value
-    #   Normalizes unicode keys and values with String#unicode_normalize (NFC)
+    #   Normalizes unicode keys and values to NFC, leaving a run of more than
+    #   30 combining marks as it is
     #
     # @return [Hash, Array, String] The normalized values
     def normalize_value(value)
@@ -1477,7 +1478,9 @@ module Addressable
         value = utf8_value(value)
         # Text that isn't valid UTF-8 can't be normalized; its bytes are
         # pct-encoded as they are.
-        value = value.unicode_normalize(:nfc) if value.valid_encoding?
+        if value.valid_encoding?
+          value = UnicodeNormalization.normalize(value, :nfc)
+        end
       end
       value
     end
