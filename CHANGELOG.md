@@ -15,6 +15,7 @@
 - `Addressable::Template` reads the operators RFC 6570 reserves, `=`, `,`, `!`, `@` and `|`, as malformed: `#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateOperatorError` where expansion used to treat `{!var}` like `{var}`, and `#variables` ignores the expression ([#660], [#693], [#697])
 - `Addressable::Template#expand` and `#partial_expand` raise `InvalidTemplateValueError` for a prefix modifier on a list or associative array ([#660])
 - `Addressable::Template#extract` and `#match` give an exploded list in `;`, `?` or `&` expansion as an array, not a hash ([#687])
+- The pure-Ruby `Addressable::IDNA.to_ascii` raises `Addressable::IDNA::InvalidLabel` for a label made only of characters nameprep maps to nothing, such as `​` in `​.example`, where it returned an A-label, as `idn-ruby` raises `IDN::Idna::IdnaError`; `Addressable::URI#normalize` and `#normalized_host` raise it too ([#703])
 
 ### Changed output
 
@@ -55,6 +56,10 @@
 - Return copies from `#variables`, `#variable_defaults` and `MatchData#values` ([#619])
 - Split an exploded value of the default, `+` and `#` operators into its members in `#match` and `#extract`: `{a*,b}` on `x,y,z` gives `{"a" => ["x", "y"], "b" => "z"}`, not `{"a" => ["x,y,"], "b" => "z"}` ([#700])
 
+### `Addressable::IDNA`
+
+- Remove the characters nameprep maps to nothing, such as a zero width joiner, in the pure-Ruby `.to_ascii`, as `idn-ruby` does ([#703])
+
 [#133]: https://github.com/sporkmonger/addressable/pull/133
 [#512]: https://github.com/sporkmonger/addressable/pull/512
 [#550]: https://github.com/sporkmonger/addressable/pull/550
@@ -93,6 +98,7 @@
 [#697]: https://github.com/sporkmonger/addressable/pull/697
 [#700]: https://github.com/sporkmonger/addressable/pull/700
 [#701]: https://github.com/sporkmonger/addressable/pull/701
+[#703]: https://github.com/sporkmonger/addressable/pull/703
 [#706]: https://github.com/sporkmonger/addressable/pull/706
 
 ## Addressable 2.9.2 <a name="v2.9.2">

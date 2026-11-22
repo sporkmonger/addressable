@@ -95,6 +95,18 @@ module Addressable
     # warns about a duplicated range in a character class.
     DISPLAY_CHANGING = /[\p{Cc}\p{Cf}[\p{Default_Ignorable_Code_Point}&&\P{Cf}]]/
 
+    # Characters that nameprep maps to nothing (table B.1 of RFC 3454), such
+    # as SOFT HYPHEN and ZERO WIDTH JOINER.
+    MAPPED_TO_NOTHING =
+      /[\u00AD\u034F\u1806\u180B-\u180D\u200B-\u200D\u2060\uFE00-\uFE0F\uFEFF]/
+
+    # The label separators of IDNA2003 (Section 3.1 of RFC 3490).
+    LABEL_SEPARATORS = /[.\u3002\uFF0E\uFF61]/
+
+    # A label is empty after nameprep, as libidn reports with
+    # IDN::Idna::IdnaError.
+    class InvalidLabel < StandardError; end
+
     # :startdoc:
 
     # Converts from a Unicode internationalized domain name to an ASCII
@@ -102,7 +114,20 @@ module Addressable
     # RFC 5890 and RFC 5891).
     def self.to_ascii(input)
       input = input.to_s unless input.is_a?(String)
-      input = input.dup.force_encoding(Encoding::UTF_8).unicode_normalize(:nfkc)
+      input = input.dup.force_encoding(Encoding::UTF_8)
+      # A label made only of characters that nameprep maps to nothing would
+      # be left empty, so it's invalid, as it is for libidn. A label that's
+      # already empty, as in "a..b", is kept.
+      empty = input.split(LABEL_SEPARATORS, -1).any? do |label|
+        !label.empty? && label.gsub(MAPPED_TO_NOTHING, '').empty?
+      end
+      if empty
+        raise InvalidLabel,
+          "A label is empty after removing the characters nameprep maps " \
+          "to nothing."
+      end
+      input = input.gsub(MAPPED_TO_NOTHING, '')
+      input = input.unicode_normalize(:nfkc)
       if input.respond_to?(:force_encoding)
         input.force_encoding(Encoding::ASCII_8BIT)
       end

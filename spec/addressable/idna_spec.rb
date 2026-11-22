@@ -153,6 +153,46 @@ shared_examples_for "converting from unicode to ASCII" do
     )).to eq("example..host")
   end
 
+  # Table B.1 of RFC 3454: the characters nameprep maps to nothing.
+  [
+    0x00AD, 0x034F, 0x1806, 0x180B, 0x180C, 0x180D, 0x200B, 0x200C, 0x200D,
+    0x2060, *(0xFE00..0xFE0F), 0xFEFF
+  ].each do |code_point|
+    character = [code_point].pack("U")
+    name = format("U+%04X", code_point)
+
+    it "should drop #{name}, which nameprep maps to nothing" do
+      expect(Addressable::IDNA.to_ascii("a#{character}b.example")).to eq(
+        "ab.example"
+      )
+      expect(Addressable::IDNA.to_ascii(
+        "m\u00FCn#{character}chen.example"
+      )).to eq("xn--mnchen-3ya.example")
+    end
+
+    it "should reject a label of only #{name}" do
+      expect do
+        Addressable::IDNA.to_ascii("#{character}.example")
+      end.to raise_error(invalid_label_error)
+    end
+  end
+
+  [
+    "\u200B",
+    "a.\u00AD\u200D.example",
+    "example.\uFEFF",
+    "\u200B\u3002example",
+    "\u200B\uFF0Eexample",
+    "\u200B\uFF61example"
+  ].each do |input|
+    it "should reject #{input.inspect}, which has a label of only characters " \
+       "nameprep maps to nothing" do
+      expect do
+        Addressable::IDNA.to_ascii(input)
+      end.to raise_error(invalid_label_error)
+    end
+  end
+
   {
     "bücher.example." => "xn--bcher-kva.example.",
     "bücher.example.." => "xn--bcher-kva.example..",
@@ -482,6 +522,8 @@ describe Addressable::IDNA, "when using the pure-Ruby implementation" do
     load "addressable/idna/pure.rb"
   end
 
+  let(:invalid_label_error) { Addressable::IDNA::InvalidLabel }
+
   it_should_behave_like "converting from unicode to ASCII"
   it_should_behave_like "converting from ASCII to unicode"
   it_should_behave_like "matching display-changing characters"
@@ -660,6 +702,8 @@ begin
       Addressable.send(:remove_const, :IDNA)
       load "addressable/idna/native.rb"
     end
+
+    let(:invalid_label_error) { IDN::Idna::IdnaError }
 
     it_should_behave_like "converting from unicode to ASCII"
     it_should_behave_like "converting from ASCII to unicode"
