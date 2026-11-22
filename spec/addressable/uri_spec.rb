@@ -21,7 +21,6 @@ require "addressable/uri"
 require "uri"
 require "ipaddr"
 require "yaml"
-require "timeout"
 
 if !"".respond_to?("force_encoding")
   class String
@@ -8202,9 +8201,14 @@ describe Addressable::URI, "when given a port" do
   end
 
   it "raises for a long port without converting it" do
+    allow_any_instance_of(String).to receive(:to_i).and_wrap_original do |to_i, *args|
+      digits = to_i.receiver
+      raise "converted a port of #{digits.size} digits" if digits.size > 100
+      to_i.call(*args)
+    end
     input = "x://h.example:" + ("9" * 1_000_000) + "/"
     expect do
-      Timeout.timeout(1) { Addressable::URI.parse(input) }
+      Addressable::URI.parse(input)
     end.to raise_error(Addressable::URI::InvalidURIError)
   end
 
