@@ -18,6 +18,7 @@
 - `Addressable::Template` reads the operators RFC 6570 reserves, `=`, `,`, `!`, `@` and `|`, as malformed: `#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateOperatorError` where expansion used to treat `{!var}` like `{var}`, and `#variables` ignores the expression ([#660], [#693], [#697])
 - `Addressable::Template#expand` and `#partial_expand` raise `InvalidTemplateValueError` for a prefix modifier on a list or associative array ([#660])
 - With the native backend, `Addressable::IDNA.punycode_encode` and `.punycode_decode` raise `IDN::Punycode::PunycodeError` for a string with a NUL, where they converted only the text before it: `punycode_encode("a\u0000b")` gave `"a-"` ([GHSA-mrrj-5mhw-rcf2])
+- The pure-Ruby `Addressable::IDNA.to_ascii` raises `Addressable::IDNA::InvalidLabel` for a label that breaks the bidi rule of RFC 3454, such as `exampleא`, where it returned an A-label, as `idn-ruby` raises `IDN::Idna::IdnaError`; `Addressable::URI#normalize` keeps such a host pct-encoded: `http://example%D7%90.test/` gives itself, not `http://xn--example-c5i.test/` ([GHSA-fccw-gx6q-mh6c])
 - The pure-Ruby `Addressable::IDNA.to_ascii` raises `Addressable::IDNA::InvalidLabel` for a label made only of characters nameprep maps to nothing, such as U+200B ZERO WIDTH SPACE in `"\u200B.example"`, where it returned an A-label, as `idn-ruby` raises `IDN::Idna::IdnaError` ([#703], [#714])
 
 ### Changed output
@@ -76,6 +77,7 @@
 
 - Fix `.to_ascii` and `.to_unicode` in the native backend dropping the rest of a label after a NUL, so `http://internal.example%00x/` no longer normalizes to `http://internal.example/` ([GHSA-mrrj-5mhw-rcf2])
 - Fix `.to_unicode` decoding a label to one with a label separator, such as `xn--victimexample-882l` to `victim。example` ([GHSA-x378-rg7m-2c49])
+- Fix the pure-Ruby `.to_unicode` decoding a label that breaks the bidi rule of RFC 3454, such as `xn--example-c5i` to `exampleא`, which `idn-ruby` leaves unchanged ([GHSA-fccw-gx6q-mh6c])
 - Remove the characters nameprep maps to nothing, such as a zero width joiner, in the pure-Ruby `.to_ascii`, as `idn-ruby` does ([#703])
 - Fix the native `.to_ascii` and `.to_unicode` crashing the process for a string that isn't tagged as UTF-8 and has bytes that aren't valid UTF-8, such as `"caf\xE9.example".b`; they raise `ArgumentError`, as they do for a UTF-8 string ([#710])
 
@@ -128,6 +130,7 @@
 [GHSA-c7j3-jq7p-v3pr]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-c7j3-jq7p-v3pr
 [GHSA-mrrj-5mhw-rcf2]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-mrrj-5mhw-rcf2
 [GHSA-w5p3-7836-69vh]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-w5p3-7836-69vh
+[GHSA-fccw-gx6q-mh6c]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-fccw-gx6q-mh6c
 [GHSA-x378-rg7m-2c49]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-x378-rg7m-2c49
 
 ## Addressable 2.9.2 <a name="v2.9.2">

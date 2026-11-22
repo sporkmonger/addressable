@@ -193,6 +193,38 @@ shared_examples_for "converting from unicode to ASCII" do
     end
   end
 
+  # The bidi rule (Section 6 of RFC 3454): a label with a right-to-left
+  # character has no left-to-right one, and starts and ends with a
+  # right-to-left one.
+  [
+    "example\u05D0.test",
+    "EXAMPLE\u05D0.test",
+    "\u05D0a.test",
+    "a\u05D0.test",
+    "\u05D01.test",
+    "1\u0634\u0631\u0643\u0629.23.test",
+    "\u0627\u0628.a\u05D0"
+  ].each do |input|
+    it "should reject #{input.inspect}, which has a label that breaks the " \
+       "bidi rule" do
+      expect do
+        Addressable::IDNA.to_ascii(input)
+      end.to raise_error(invalid_label_error)
+    end
+  end
+
+  {
+    "\u05D0\u05D1.test" => "xn--4dbc.test",
+    "\u0627\u0628.test" => "xn--mgbc.test",
+    "\u05E9\u05DC\u05D5\u05DD.example" => "xn--9dbne9b.example",
+    "\u05D01\u05D1.test" => "xn--1-zhce.test",
+    "\u05D0\u200D.test" => "xn--4db.test"
+  }.each do |input, ascii|
+    it "should convert #{input.inspect}, which keeps the bidi rule" do
+      expect(Addressable::IDNA.to_ascii(input)).to eq(ascii)
+    end
+  end
+
   it "should list each error it raises for a name it can't convert" do
     inputs = [
       "\u200B.example", "a\uFFFD.example", "a\uE000.example",
@@ -550,6 +582,38 @@ shared_examples_for "converting from ASCII to unicode" do
     end
   end
 
+  # A label with a right-to-left character must not have a left-to-right
+  # one, and must start and end with a right-to-left one (Section 6 of
+  # RFC 3454), or it can display in a different order than it's written.
+  {
+    "a Latin label with a Syriac sublinear full stop (U+0702)" =>
+      "xn--paypalcom-gvn",
+    "a Latin label that ends with a Hebrew letter" => "xn--paypal-g1h",
+    "a Latin label that starts with a Hebrew letter" => "xn--paypal-90h",
+    "a Hebrew label with a Latin letter" => "xn--a-zhce",
+    "an Arabic label that ends with a digit" => "xn--1-ymc",
+    "an Arabic label that starts with a digit" => "xn--1-zmc"
+  }.each do |description, label|
+    it "should return the identity conversion for #{description}" do
+      expect(Addressable::IDNA.to_unicode(label)).to eq(label)
+      expect(Addressable::IDNA.to_unicode("www.#{label}.com")).to eq(
+        "www.#{label}.com"
+      )
+    end
+  end
+
+  {
+    "xn--1-ymce" => "\u0627\u0031\u0628",
+    "xn--mgbc4o" => "\u0627\u0661\u0628",
+    "xn--9dbne9b" => "\u05E9\u05DC\u05D5\u05DD"
+  }.each do |label, decoded|
+    it "should convert the right-to-left label '#{label}' correctly" do
+      expect(Addressable::IDNA.to_unicode("#{label}.example")).to eq(
+        "#{decoded}.example"
+      )
+    end
+  end
+
   # A label that decodes to a label separator (Section 3.1 of RFC 3490) would
   # display as two labels. Each label is "paypal<separator>com", or the
   # separator alone.
@@ -737,6 +801,39 @@ describe Addressable::IDNA, "when using the pure-Ruby implementation" do
       Addressable::IDNA::NAMEPREP_PROHIBITED
     ).map(&:ord)
     expect(prohibited).to eq(expected)
+  end
+
+  it "should match exactly the code points in bidi table D.1" do
+    # Table D.1 of RFC 3454, characters with the bidirectional category R or
+    # AL
+    expected = [
+      0x05BE, 0x05C0, 0x05C3, 0x05D0..0x05EA, 0x05F0..0x05F4, 0x061B, 0x061F,
+      0x0621..0x063A, 0x0640..0x064A, 0x066D..0x066F, 0x0671..0x06D5, 0x06DD,
+      0x06E5..0x06E6, 0x06FA..0x06FE, 0x0700..0x070D, 0x0710, 0x0712..0x072C,
+      0x0780..0x07A5, 0x07B1, 0x200F, 0xFB1D, 0xFB1F..0xFB28, 0xFB2A..0xFB36,
+      0xFB38..0xFB3C, 0xFB3E, 0xFB40..0xFB41, 0xFB43..0xFB44, 0xFB46..0xFBB1,
+      0xFBD3..0xFD3D, 0xFD50..0xFD8F, 0xFD92..0xFDC7, 0xFDF0..0xFDFC,
+      0xFE70..0xFE74, 0xFE76..0xFEFC
+    ].flat_map { |entry| Array(entry) }
+    matched = ALL_CODE_POINTS.scan(Addressable::IDNA::RAND_AL_CAT).map(&:ord)
+    expect(matched).to eq(expected)
+  end
+
+  it "should match the code points in bidi table D.2" do
+    # Table D.2 of RFC 3454, characters with the bidirectional category L,
+    # has 360 ranges. Check its size, its first and last ranges, and that it
+    # doesn't overlap table D.1.
+    matched = ALL_CODE_POINTS.scan(Addressable::IDNA::L_CAT).map(&:ord)
+    expect(matched.size).to eq(227_925)
+    expect(matched.first(53)).to eq(
+      (0x0041..0x005A).to_a + (0x0061..0x007A).to_a + [0x00AA]
+    )
+    expect(matched.last(2 * 65_534)).to eq(
+      (0xF0000..0xFFFFD).to_a + (0x100000..0x10FFFD).to_a
+    )
+    expect(
+      ALL_CODE_POINTS.scan(Addressable::IDNA::RAND_AL_CAT).join
+    ).not_to match(Addressable::IDNA::L_CAT)
   end
 
   it "should decode only letters and digits as Punycode digits" do

@@ -100,6 +100,91 @@ module Addressable
     # them would display as two labels.
     LABEL_SEPARATORS = /[.\u3002\uFF0E\uFF61]/
 
+    # Characters with the bidirectional category R or AL (Table D.1 of
+    # RFC 3454, since obsoleted by PRECIS, RFC 8264).
+    RAND_AL_CAT = Regexp.new("[" + [
+      "\u05BE\u05C0\u05C3\u05D0-\u05EA\u05F0-\u05F4\u061B\u061F\u0621-\u063A",
+      "\u0640-\u064A\u066D-\u066F\u0671-\u06D5\u06DD\u06E5\u06E6\u06FA-\u06FE",
+      "\u0700-\u070D\u0710\u0712-\u072C\u0780-\u07A5\u07B1\u200F\uFB1D",
+      "\uFB1F-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44",
+      "\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFC",
+      "\uFE70-\uFE74\uFE76-\uFEFC"
+    ].join + "]")
+
+    # Characters with the bidirectional category L (Table D.2 of RFC 3454,
+    # leaving out the surrogates, which can't be in a UTF-8 string).
+    L_CAT = Regexp.new("[" + [
+      "\u0041-\u005A\u0061-\u007A\u00AA\u00B5\u00BA\u00C0-\u00D6\u00D8-\u00F6",
+      "\u00F8-\u0220\u0222-\u0233\u0250-\u02AD\u02B0-\u02B8\u02BB-\u02C1",
+      "\u02D0\u02D1\u02E0-\u02E4\u02EE\u037A\u0386\u0388-\u038A\u038C",
+      "\u038E-\u03A1\u03A3-\u03CE\u03D0-\u03F5\u0400-\u0482\u048A-\u04CE",
+      "\u04D0-\u04F5\u04F8\u04F9\u0500-\u050F\u0531-\u0556\u0559-\u055F",
+      "\u0561-\u0587\u0589\u0903\u0905-\u0939\u093D-\u0940\u0949-\u094C\u0950",
+      "\u0958-\u0961\u0964-\u0970\u0982\u0983\u0985-\u098C\u098F\u0990",
+      "\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BE-\u09C0\u09C7\u09C8",
+      "\u09CB\u09CC\u09D7\u09DC\u09DD\u09DF-\u09E1\u09E6-\u09F1\u09F4-\u09FA",
+      "\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33",
+      "\u0A35\u0A36\u0A38\u0A39\u0A3E-\u0A40\u0A59-\u0A5C\u0A5E\u0A66-\u0A6F",
+      "\u0A72-\u0A74\u0A83\u0A85-\u0A8B\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8",
+      "\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABD-\u0AC0\u0AC9\u0ACB\u0ACC",
+      "\u0AD0\u0AE0\u0AE6-\u0AEF\u0B02\u0B03\u0B05-\u0B0C\u0B0F\u0B10",
+      "\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B36-\u0B39\u0B3D\u0B3E\u0B40",
+      "\u0B47\u0B48\u0B4B\u0B4C\u0B57\u0B5C\u0B5D\u0B5F-\u0B61\u0B66-\u0B70",
+      "\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C",
+      "\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB5\u0BB7-\u0BB9",
+      "\u0BBE\u0BBF\u0BC1\u0BC2\u0BC6-\u0BC8\u0BCA-\u0BCC\u0BD7\u0BE7-\u0BF2",
+      "\u0C01-\u0C03\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C33",
+      "\u0C35-\u0C39\u0C41-\u0C44\u0C60\u0C61\u0C66-\u0C6F\u0C82\u0C83",
+      "\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9",
+      "\u0CBE\u0CC0-\u0CC4\u0CC7\u0CC8\u0CCA\u0CCB\u0CD5\u0CD6\u0CDE",
+      "\u0CE0\u0CE1\u0CE6-\u0CEF\u0D02\u0D03\u0D05-\u0D0C\u0D0E-\u0D10",
+      "\u0D12-\u0D28\u0D2A-\u0D39\u0D3E-\u0D40\u0D46-\u0D48\u0D4A-\u0D4C",
+      "\u0D57\u0D60\u0D61\u0D66-\u0D6F\u0D82\u0D83\u0D85-\u0D96\u0D9A-\u0DB1",
+      "\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0DCF-\u0DD1\u0DD8-\u0DDF",
+      "\u0DF2-\u0DF4\u0E01-\u0E30\u0E32\u0E33\u0E40-\u0E46\u0E4F-\u0E5B",
+      "\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F",
+      "\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB0\u0EB2\u0EB3\u0EBD",
+      "\u0EC0-\u0EC4\u0EC6\u0ED0-\u0ED9\u0EDC\u0EDD\u0F00-\u0F17\u0F1A-\u0F34",
+      "\u0F36\u0F38\u0F3E-\u0F47\u0F49-\u0F6A\u0F7F\u0F85\u0F88-\u0F8B",
+      "\u0FBE-\u0FC5\u0FC7-\u0FCC\u0FCF\u1000-\u1021\u1023-\u1027\u1029\u102A",
+      "\u102C\u1031\u1038\u1040-\u1057\u10A0-\u10C5\u10D0-\u10F8\u10FB",
+      "\u1100-\u1159\u115F-\u11A2\u11A8-\u11F9\u1200-\u1206\u1208-\u1246",
+      "\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1286\u1288",
+      "\u128A-\u128D\u1290-\u12AE\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0",
+      "\u12C2-\u12C5\u12C8-\u12CE\u12D0-\u12D6\u12D8-\u12EE\u12F0-\u130E",
+      "\u1310\u1312-\u1315\u1318-\u131E\u1320-\u1346\u1348-\u135A",
+      "\u1361-\u137C\u13A0-\u13F4\u1401-\u1676\u1681-\u169A\u16A0-\u16F0",
+      "\u1700-\u170C\u170E-\u1711\u1720-\u1731\u1735\u1736\u1740-\u1751",
+      "\u1760-\u176C\u176E-\u1770\u1780-\u17B6\u17BE-\u17C5\u17C7\u17C8",
+      "\u17D4-\u17DA\u17DC\u17E0-\u17E9\u1810-\u1819\u1820-\u1877",
+      "\u1880-\u18A8\u1E00-\u1E9B\u1EA0-\u1EF9\u1F00-\u1F15\u1F18-\u1F1D",
+      "\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D",
+      "\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC",
+      "\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC",
+      "\u200E\u2071\u207F\u2102\u2107\u210A-\u2113\u2115\u2119-\u211D\u2124",
+      "\u2126\u2128\u212A-\u212D\u212F-\u2131\u2133-\u2139\u213D-\u213F",
+      "\u2145-\u2149\u2160-\u2183\u2336-\u237A\u2395\u249C-\u24E9",
+      "\u3005-\u3007\u3021-\u3029\u3031-\u3035\u3038-\u303C\u3041-\u3096",
+      "\u309D-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312C\u3131-\u318E",
+      "\u3190-\u31B7\u31F0-\u321C\u3220-\u3243\u3260-\u327B\u327F-\u32B0",
+      "\u32C0-\u32CB\u32D0-\u32FE\u3300-\u3376\u337B-\u33DD\u33E0-\u33FE",
+      "\u3400-\u4DB5\u4E00-\u9FA5\uA000-\uA48C\uAC00-\uD7A3\uE000-\uFA2D",
+      "\uFA30-\uFA6A\uFB00-\uFB06\uFB13-\uFB17\uFF21-\uFF3A\uFF41-\uFF5A",
+      "\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC",
+      "\u{10300}-\u{1031E}\u{10320}-\u{10323}\u{10330}-\u{1034A}",
+      "\u{10400}-\u{10425}\u{10428}-\u{1044D}\u{1D000}-\u{1D0F5}",
+      "\u{1D100}-\u{1D126}\u{1D12A}-\u{1D166}\u{1D16A}-\u{1D172}",
+      "\u{1D183}\u{1D184}\u{1D18C}-\u{1D1A9}\u{1D1AE}-\u{1D1DD}",
+      "\u{1D400}-\u{1D454}\u{1D456}-\u{1D49C}\u{1D49E}\u{1D49F}\u{1D4A2}",
+      "\u{1D4A5}\u{1D4A6}\u{1D4A9}-\u{1D4AC}\u{1D4AE}-\u{1D4B9}\u{1D4BB}",
+      "\u{1D4BD}-\u{1D4C0}\u{1D4C2}\u{1D4C3}\u{1D4C5}-\u{1D505}",
+      "\u{1D507}-\u{1D50A}\u{1D50D}-\u{1D514}\u{1D516}-\u{1D51C}",
+      "\u{1D51E}-\u{1D539}\u{1D53B}-\u{1D53E}\u{1D540}-\u{1D544}\u{1D546}",
+      "\u{1D54A}-\u{1D550}\u{1D552}-\u{1D6A3}\u{1D6A8}-\u{1D7C9}",
+      "\u{20000}-\u{2A6D6}\u{2F800}-\u{2FA1D}\u{F0000}-\u{FFFFD}",
+      "\u{100000}-\u{10FFFD}"
+    ].join + "]")
+
     # A host name has only ASCII letters, digits and hyphens, and doesn't
     # start or end with a hyphen. RFC 3987 says to check an IRI's host names
     # with these rules (STD3, section 4.1 of RFC 3490), so a label that
@@ -111,8 +196,8 @@ module Addressable
     MAPPED_TO_NOTHING =
       /[\u00AD\u034F\u1806\u180B-\u180D\u200B-\u200D\u2060\uFE00-\uFE0F\uFEFF]/
 
-    # A label is empty after nameprep, as libidn reports with
-    # IDN::Idna::IdnaError.
+    # A label is empty after nameprep or breaks the bidi rule, as libidn
+    # reports with IDN::Idna::IdnaError.
     class InvalidLabel < StandardError; end
 
     # :startdoc:
@@ -150,6 +235,12 @@ module Addressable
             part.force_encoding(Encoding::ASCII_8BIT)
           end
           if part =~ UTF8_REGEX && part =~ UTF8_REGEX_MULTIBYTE
+            # A label that breaks the bidi rule is invalid, as it is for
+            # libidn.
+            if bidi_rule_broken?(part.dup.force_encoding(Encoding::UTF_8))
+              raise InvalidLabel,
+                "A label breaks the bidi rule of Section 6 of RFC 3454."
+            end
             ACE_PREFIX + punycode_encode(part)
           else
             part
@@ -175,10 +266,12 @@ module Addressable
             # A-label (Section 5.3 of RFC 5891). That includes a label that
             # decodes to only ASCII characters. A label with a character that
             # would change how it displays, or that a host name can't have, is
-            # returned unchanged too, as is a label with a label separator.
+            # returned unchanged too, as is a label with a label separator or
+            # one that breaks the bidi rule.
             if to_ascii(decoded).downcase != part.downcase ||
                 decoded =~ NAMEPREP_PROHIBITED || decoded =~ DISPLAY_CHANGING ||
-                decoded =~ LABEL_SEPARATORS || decoded =~ NOT_STD3
+                decoded =~ LABEL_SEPARATORS || decoded =~ NOT_STD3 ||
+                bidi_rule_broken?(decoded)
               part
             else
               decoded
@@ -211,6 +304,16 @@ module Addressable
       extend Gem::Deprecate
       deprecate :unicode_normalize_kc, "String#unicode_normalize(:nfkc)", 2023, 4
     end
+
+    # A label with a right-to-left character must not have a left-to-right
+    # one, and must start and end with a right-to-left one (Section 6 of
+    # RFC 3454). Otherwise it can display in a different order than it's
+    # written.
+    def self.bidi_rule_broken?(label)
+      return false unless label =~ RAND_AL_CAT
+      label =~ L_CAT || label[0] !~ RAND_AL_CAT || label[-1] !~ RAND_AL_CAT
+    end
+    private_class_method :bidi_rule_broken?
 
     ##
     # Unicode aware downcase method.

@@ -1289,6 +1289,27 @@ describe Addressable::URI, "when parsed with a host IDNA rejects" do
   end
 end
 
+describe Addressable::URI, "when parsed with a host with a label that " +
+    "breaks the bidi rule" do
+  it "should keep it pct-encoded when normalized" do
+    [
+      "http://example%D7%90.test/",
+      "http://example%d7%90.TEST/",
+      "http://example" + [0x5D0].pack("U") + ".test/"
+    ].each do |input|
+      uri = Addressable::URI.parse(input)
+      expect(uri.normalized_host).to eq("example%D7%90.test")
+      expect(uri.normalize.to_s).to eq("http://example%D7%90.test/")
+      expect(uri.display_uri.to_s).to eq("http://example%D7%90.test/")
+    end
+  end
+
+  it "should display its A-label as it is" do
+    uri = Addressable::URI.parse("http://xn--example-c5i.test/")
+    expect(uri.display_uri.to_s).to eq("http://xn--example-c5i.test/")
+  end
+end
+
 describe Addressable::URI, "when parsed with a host whose pct-encoded " +
     "bytes aren't valid UTF-8" do
   [
@@ -6553,6 +6574,20 @@ describe Addressable::URI, "when displaying a host with a label that " +
     "https://xn--paypalcom-b854c.attacker.example/",
     "https://xn--paypalcom-0w64c.attacker.example/",
     "https://www.xn--r6j.example/"
+  ].each do |input|
+    it "should display '#{input}' with its normalized host" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.display_uri.host).to eq(uri.normalized_host)
+      expect(uri.display_uri.to_s).to eq(input)
+    end
+  end
+end
+
+describe Addressable::URI, "when displaying a host with a label that " +
+    "mixes left-to-right and right-to-left characters" do
+  [
+    "https://xn--paypalcom-gvn.attacker.example/",
+    "https://xn--paypal-g1h.attacker.example/"
   ].each do |input|
     it "should display '#{input}' with its normalized host" do
       uri = Addressable::URI.parse(input)
