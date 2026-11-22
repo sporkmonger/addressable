@@ -635,6 +635,14 @@ describe Addressable::Template, "#match" do
   end
 
   context "with adversarial input" do
+    # A shorter payload for these where the template commits to choices, as
+    # it does where the regular expression engine can't match in linear
+    # time, to keep slow runners within the time limit. It is still long
+    # enough for backtracking that grows exponentially to time out.
+    committed_payloads = {
+      "{+d}{/d,c*}\#{+b*,c,a*}&{?c*}" => ("/a%23" * 2000) + " ",
+      ",{c*,d*,a*},{+a*,d,b*}.json" => ("," * 250) + "?.json"
+    }
     {
       "{/foo*}" => "/" + ("%41/" * 1000) + "!",
       "{/foo*}{?q*}" => "/" + ("a/" * 500) + "?" + ("a=" * 500) + "!",
@@ -738,33 +746,47 @@ describe Addressable::Template, "#match" do
       "{+b,c*,a},{/c,a*}{+c*,b};{\#b,d}" => ("," * 2000) + " ",
       "{.b,a}{b*,c,d}{d*,a}/x/{/d*,b*,a*}/x/" => ("," * 2000) + "/x/a/x/",
       ",{c*,d*,a*},{+a*,d,b*}.json" => ("," * 1000) + "?.json"
-    }.each do |name, payload|
+    }.each do |name, long_payload|
       template = Addressable::Template.new(name.split(" ").first)
       suffix = template.pattern[/[^}]*\z/]
       # The payload as it is, and ending in each character that the
       # template could match instead, alone and before the literal text
       # that ends the template, so that it can't be rejected just for that.
       endings = ["", "/", "?", "#", ":", ",", ".", "=", "&", ";", "-", "%"]
-      variants = [payload] + endings.flat_map do |ending|
-        base = payload.sub(/[ !]\z/, "") + ending
-        suffix.empty? ? [base] : [base, base + suffix]
+      variants = lambda do |payload|
+        [payload] + endings.flat_map do |ending|
+          base = payload.sub(/[ !]\z/, "") + ending
+          suffix.empty? ? [base] : [base, base + suffix]
+        end
       end
-      it "matches a long payload for #{name} in linear time" do
+      committed_payload = committed_payloads.fetch(name, long_payload)
+      long = "a long payload for #{name} in linear time"
+      committed_description =
+        committed_payloads.key?(name) ? "a shorter payload for #{name}" : long
+      payload, description =
+        if Addressable::Template.const_get(:LINEAR_TIME_CHECKED)
+          [long_payload, long]
+        else
+          [committed_payload, committed_description]
+        end
+
+      it "matches #{description}" do
         expect do
           Timeout.timeout(10) do
-            variants.each { |variant| template.match(variant) }
+            variants.call(payload).each { |variant| template.match(variant) }
           end
         end.not_to raise_error
       end
 
-      it "matches a long payload for #{name} in linear time when it " \
-          "commits to choices" do
+      it "matches #{committed_description} when it commits to choices" do
         committed = TemplateMatchSpec.committed(
           Addressable::Template.new(template.pattern)
         )
         expect do
           Timeout.timeout(10) do
-            variants.each { |variant| committed.match(variant) }
+            variants.call(committed_payload).each do |variant|
+              committed.match(variant)
+            end
           end
         end.not_to raise_error
       end
