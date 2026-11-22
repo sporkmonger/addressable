@@ -2679,6 +2679,45 @@ describe Addressable::URI, "when assigned an origin" do
   end
 end
 
+describe Addressable::URI, "#request_uri" do
+  it "percent-encodes line breaks and spaces" do
+    uri = Addressable::URI.parse("http://example.com/a b?q=x\r\nX-Injected: 1")
+    expect(uri.request_uri).to eq("/a%20b?q=x%0D%0AX-Injected:%201")
+  end
+
+  it "percent-encodes other control characters" do
+    uri = Addressable::URI.parse("http://example.com/a\x00\tb?c\x1Fd\x7F")
+    expect(uri.request_uri).to eq("/a%00%09b?c%1Fd%7F")
+  end
+
+  it "percent-encodes control characters set through the setters" do
+    uri = Addressable::URI.parse("http://example.com/")
+    uri.path = "/a\nb"
+    uri.query = "x y"
+    expect(uri.request_uri).to eq("/a%0Ab?x%20y")
+  end
+
+  it "leaves the path and query unchanged" do
+    uri = Addressable::URI.parse("http://example.com/a b?q=x\r\ny")
+    uri.request_uri
+    expect(uri.path).to eq("/a b")
+    expect(uri.query).to eq("q=x\r\ny")
+  end
+
+  it "leaves every other character as written" do
+    target = "/~user/%7euser/a/../b/./caf%C3%A9/caf\u00E9/cafe\u0301/a|b{c}^d" \
+      "?ids[]=1&t=01%3A00&a=%2C+b&q=%zz&r=\"x\""
+    uri = Addressable::URI.parse("http://example.com#{target}")
+    expect(uri.request_uri).to eq(target)
+  end
+
+  it "keeps bytes that aren't valid UTF-8" do
+    uri = Addressable::URI.parse("http://example.com/a b?\xFF x".b)
+    expect(uri.request_uri).to eq("/a%20b?\xFF%20x".b)
+    expect(uri.request_uri.encoding).to eq(Encoding::BINARY)
+  end
+end
+
 # Section 3.2.1 of RFC 9112
 describe Addressable::URI, "when parsed from " +
     "'HTTP://www.w3.org/pub/WWW/TheProject.html'" do

@@ -1905,17 +1905,40 @@ module Addressable
       self.query = buffer.chop
     end
 
+    # Characters that can end or split an HTTP request line: control
+    # characters and space.
+    #
+    # RFC 3986 leaves other characters out of a URI too, such as
+    # non-ASCII text, '"', '{', '|', '^', and the brackets in a query like
+    # "ids[]=1". Those are left as written. They can't end the request
+    # line, servers commonly accept them, and encoding them would change
+    # request targets that work today: a server that maps paths to keys
+    # without decoding them, such as S3, would get a different key, and a
+    # signature over the path and query as written (an HTTP message
+    # signature, for example) would no longer match the request line.
+    # For the same reason, the path and query aren't normalized here;
+    # callers who want that can use normalize.request_uri.
+    REQUEST_TARGET_UNSAFE = /[\x00-\x20\x7F]/n
+    private_constant :REQUEST_TARGET_UNSAFE
+
     ##
     # The HTTP request URI for this URI.  This is the path and the
-    # query string.
+    # query string, with control characters and spaces percent-encoded so
+    # that it can't end or split the request line. Every other character is
+    # left as written.
     #
     # @return [String] The request URI required for an HTTP request.
     def request_uri
       return nil if self.absolute? && self.scheme !~ /^https?$/i
-      return (
+      target = (
         (!self.path.empty? ? self.path : SLASH) +
         (self.query ? "?#{self.query}" : EMPTY_STR)
       )
+      bytes = target.b
+      return target if bytes !~ REQUEST_TARGET_UNSAFE
+      bytes.gsub(REQUEST_TARGET_UNSAFE) do |character|
+        format("%%%02X", character.ord)
+      end.force_encoding(target.encoding)
     end
 
     ##

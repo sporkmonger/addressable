@@ -27,6 +27,7 @@
 - `Addressable::URI.heuristic_parse("localhost:3000")` gives `http://localhost:3000`, not `localhost:3000` with a `localhost` scheme ([#691])
 - `Addressable::URI#route_from` and `#route_to` give `./`, not `../`, for a route that would climb above the root ([#648])
 - `Addressable::URI#query_values` reads `+` as a space in query names too, and for uppercase `HTTP` and `HTTPS`: `?a+b=c` gives `{"a b" => "c"}`, not `{"a+b" => "c"}` ([#607])
+- `Addressable::URI#request_uri` percent-encodes control characters and spaces: `/a b?q=1` gives `/a%20b?q=1`, not `/a b?q=1` ([GHSA-qg8x-qm93-fw27])
 - `Addressable::URI#normalize` and `.normalized_encode` keep U+037E GREEK QUESTION MARK pct-encoded instead of turning it into a `;` delimiter: `/a%CD%BEb` gives `/a%CD%BEb`, not `/a;b` ([#712])
 - `Addressable::URI#normalize` keeps U+037E GREEK QUESTION MARK in a query: `?a=%CD%BE` gives `?a=%CD%BE`, not `?a=%3B` ([#712])
 - `Addressable::Template#expand` treats an empty list or associative array as undefined and leaves out `nil` members: `{?list}` with `[]` gives nothing, not `?list=` ([#611])
@@ -131,6 +132,7 @@
 [GHSA-c7j3-jq7p-v3pr]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-c7j3-jq7p-v3pr
 [GHSA-fccw-gx6q-mh6c]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-fccw-gx6q-mh6c
 [GHSA-mrrj-5mhw-rcf2]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-mrrj-5mhw-rcf2
+[GHSA-qg8x-qm93-fw27]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-qg8x-qm93-fw27
 [GHSA-qrq6-rcpx-pmm6]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-qrq6-rcpx-pmm6
 [GHSA-w5p3-7836-69vh]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-w5p3-7836-69vh
 [GHSA-x378-rg7m-2c49]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-x378-rg7m-2c49
