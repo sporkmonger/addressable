@@ -33,6 +33,7 @@
 - `Addressable::Template#match` and `#extract` keep the empty members of an exploded value: `{/segments*}` on `/a/b/` gives `{"segments" => ["a", "b", ""]}`, not `{"segments" => ["a", "b"]}`, and on `/` gives `{"segments" => [""]}`, not `{"segments" => []}` ([#700])
 - `Addressable::Template#match` and `#extract` give a value that more than one variable of a `/`, `.`, `+`, `#` or default expression could take to the first of them, leaving a later variable undefined when nothing is left for it: `{/a,b*}` on `/x/y/z` gives `{"a" => "x", "b" => ["y", "z"]}`, not `{"a" => "", "b" => ["x", "y", "z"]}` ([#715])
 - The pure-Ruby `Addressable::IDNA.to_ascii` and `.to_unicode` keep trailing empty labels, as `idn-ruby` does: `bücher.example.` gives `xn--bcher-kva.example.`, not `xn--bcher-kva.example` ([#609])
+- `Addressable::IDNA.to_unicode` and `Addressable::URI#display_uri` leave an A-label as it is when it decodes to ASCII other than letters, digits and hyphens, or starts or ends with a hyphen: `xn--mn,chen-n2a` gives `xn--mn,chen-n2a`, not `mün,chen` ([#716])
 
 ### `Addressable::URI`
 
@@ -47,6 +48,7 @@
 - Leave a URI unchanged when a setter or `#defer_validation` raises ([#666])
 - Fix `#normalized_host`, `#normalize`, `#display_uri` and `#freeze` raising `ArgumentError` for a host whose pct-encoded bytes aren't valid UTF-8; they stay pct-encoded: `http://a%a9b/` normalizes to `http://a%A9b/` ([#701])
 - Fix `#normalized_host`, `#normalize`, `#display_uri` and `#===` raising the IDNA backend's error for a host it can't convert to a domain name; the host stays pct-encoded: with `idn-ruby`, `http://a%EF%BF%BD.example/` normalizes to itself instead of raising `IDN::Idna::IdnaError` ([#714])
+- Fix `#display_uri` showing a different name for a host whose A-label has a pct-encoded character: `http://xn--mn%3Fchen-n2a.example/` displays as itself, not as `http://mn%ã3Fchen.example/` ([#716])
 
 ### `Addressable::Template`
 
@@ -111,6 +113,7 @@
 [#712]: https://github.com/sporkmonger/addressable/pull/712
 [#714]: https://github.com/sporkmonger/addressable/pull/714
 [#715]: https://github.com/sporkmonger/addressable/pull/715
+[#716]: https://github.com/sporkmonger/addressable/pull/716
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 

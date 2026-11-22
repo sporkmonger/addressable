@@ -522,6 +522,55 @@ shared_examples_for "converting from ASCII to unicode" do
     end
   end
 
+  # A host name has only ASCII letters, digits and hyphens, and doesn't start
+  # or end with a hyphen (the STD3 rules, which RFC 3987 says to use for
+  # IRIs), so a label that decodes to other ASCII characters is returned
+  # unchanged. Each label is "mün<character>chen", except for the last two,
+  # "-mün" and "mün-".
+  {
+    "a space (U+0020)" => "xn--mn chen-n2a",
+    "an exclamation mark (U+0021)" => "xn--mn!chen-n2a",
+    "a quotation mark (U+0022)" => "xn--mn\"chen-n2a",
+    "a number sign (U+0023)" => "xn--mn#chen-n2a",
+    "a dollar sign (U+0024)" => "xn--mn$chen-n2a",
+    "a percent sign (U+0025)" => "xn--mn%chen-n2a",
+    "an ampersand (U+0026)" => "xn--mn&chen-n2a",
+    "an apostrophe (U+0027)" => "xn--mn'chen-n2a",
+    "a left parenthesis (U+0028)" => "xn--mn(chen-n2a",
+    "a right parenthesis (U+0029)" => "xn--mn)chen-n2a",
+    "an asterisk (U+002A)" => "xn--mn*chen-n2a",
+    "a plus sign (U+002B)" => "xn--mn+chen-n2a",
+    "a comma (U+002C)" => "xn--mn,chen-n2a",
+    "a slash (U+002F)" => "xn--mn/chen-n2a",
+    "a colon (U+003A)" => "xn--mn:chen-n2a",
+    "a semicolon (U+003B)" => "xn--mn;chen-n2a",
+    "a less-than sign (U+003C)" => "xn--mn<chen-n2a",
+    "an equals sign (U+003D)" => "xn--mn=chen-n2a",
+    "a greater-than sign (U+003E)" => "xn--mn>chen-n2a",
+    "a question mark (U+003F)" => "xn--mn?chen-n2a",
+    "an at sign (U+0040)" => "xn--mn@chen-n2a",
+    "a left square bracket (U+005B)" => "xn--mn[chen-n2a",
+    "a backslash (U+005C)" => "xn--mn\\chen-n2a",
+    "a right square bracket (U+005D)" => "xn--mn]chen-n2a",
+    "a circumflex accent (U+005E)" => "xn--mn^chen-n2a",
+    "an underscore (U+005F)" => "xn--mn_chen-n2a",
+    "a grave accent (U+0060)" => "xn--mn`chen-n2a",
+    "a left curly bracket (U+007B)" => "xn--mn{chen-n2a",
+    "a vertical line (U+007C)" => "xn--mn|chen-n2a",
+    "a right curly bracket (U+007D)" => "xn--mn}chen-n2a",
+    "a tilde (U+007E)" => "xn--mn~chen-n2a",
+    "a leading hyphen" => "xn---mn-ioa",
+    "a trailing hyphen" => "xn--mn--hoa"
+  }.each do |description, label|
+    it "should return the identity conversion for a label with " +
+        description do
+      expect(Addressable::IDNA.to_unicode(label)).to eq(label)
+      expect(Addressable::IDNA.to_unicode("www.#{label}.com")).to eq(
+        "www.#{label}.com"
+      )
+    end
+  end
+
   {
     "xn--mgbh0fb" => "\331\205\330\253\330\247\331\204",
     "xn--4dbrk0ce" => "\327\231\327\251\327\250\327\220\327\234",
@@ -567,6 +616,23 @@ shared_examples_for "matching display-changing characters" do
   end
 end
 
+shared_examples_for "matching what a host name can't have" do
+  it "should match exactly the ASCII characters other than letters, " +
+      "digits and hyphens" do
+    expected = ALL_CODE_POINTS.scan(/[\x00-\x7F]/).grep(/[^A-Za-z0-9\-]/)
+    matched = ALL_CODE_POINTS.scan(/./m).select do |character|
+      "a#{character}a" =~ Addressable::IDNA::NOT_STD3
+    end
+    expect(matched).to eq(expected)
+  end
+
+  it "should match a hyphen only at the start or end" do
+    expect("-a").to match(Addressable::IDNA::NOT_STD3)
+    expect("a-").to match(Addressable::IDNA::NOT_STD3)
+    expect("a-b").not_to match(Addressable::IDNA::NOT_STD3)
+  end
+end
+
 describe Addressable::IDNA, "when using the pure-Ruby implementation" do
   before do
     Addressable.send(:remove_const, :IDNA)
@@ -578,6 +644,7 @@ describe Addressable::IDNA, "when using the pure-Ruby implementation" do
   it_should_behave_like "converting from unicode to ASCII"
   it_should_behave_like "converting from ASCII to unicode"
   it_should_behave_like "matching display-changing characters"
+  it_should_behave_like "matching what a host name can't have"
 
   it "should prohibit exactly the code points in the nameprep tables" do
     tables = [
@@ -759,6 +826,7 @@ begin
     it_should_behave_like "converting from unicode to ASCII"
     it_should_behave_like "converting from ASCII to unicode"
     it_should_behave_like "matching display-changing characters"
+    it_should_behave_like "matching what a host name can't have"
 
     {
       "binary" => Encoding::BINARY,
