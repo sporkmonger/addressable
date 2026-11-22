@@ -229,6 +229,21 @@ shared_examples_for "converting from unicode to ASCII" do
     end
   end
 
+  # A C library would read a NUL as the end of the label and drop the rest.
+  [
+    "internal.example\0x", "example\0", "\0example", "\0", "a.\0.b"
+  ].each do |host|
+    it "should keep the label with a NUL in #{host.inspect}" do
+      expect(Addressable::IDNA.to_ascii(host)).to eq(host)
+    end
+  end
+
+  it "should keep a non-ASCII label with a NUL" do
+    expect(Addressable::IDNA.to_ascii("caf\u00E9\0x.example").b).to eq(
+      "caf\u00E9\0x.example".b
+    )
+  end
+
   it "should read the bytes of a binary string as UTF-8" do
     expect(Addressable::IDNA.to_ascii("b\xC3\xBCcher.example".b)).to eq(
       "xn--bcher-kva.example"
@@ -598,6 +613,20 @@ shared_examples_for "converting from ASCII to unicode" do
       expect(Addressable::IDNA.to_unicode(ascii)).to eq(unicode)
     end
   end
+
+  [
+    "xn--a\0b.example", "xn--caf-dma\0x.example", "a.xn--\0", "\0"
+  ].each do |host|
+    it "should keep the label with a NUL in #{host.inspect}" do
+      expect(Addressable::IDNA.to_unicode(host)).to eq(host)
+    end
+  end
+
+  it "should convert the other labels of a host with a NUL" do
+    expect(Addressable::IDNA.to_unicode("xn--bcher-kva.a\0b")).to eq(
+      "b\u00FCcher.a\0b"
+    )
+  end
 end
 
 # Every Unicode scalar value, U+0000 to U+10FFFF without the surrogates.
@@ -827,6 +856,32 @@ begin
     it_should_behave_like "converting from ASCII to unicode"
     it_should_behave_like "matching display-changing characters"
     it_should_behave_like "matching what a host name can't have"
+
+    # libidn would read the NUL as the end of the string and drop the rest.
+    ["a\0b\u00E9", "\0", "\u00E9\0"].each do |value|
+      it "should raise when Punycode encoding #{value.inspect}" do
+        expect do
+          Addressable::IDNA.punycode_encode(value)
+        end.to raise_error(IDN::Punycode::PunycodeError)
+      end
+    end
+
+    ["a\0b-dma", "\0", "-\0"].each do |value|
+      it "should raise when Punycode decoding #{value.inspect}" do
+        expect do
+          Addressable::IDNA.punycode_decode(value)
+        end.to raise_error(IDN::Punycode::PunycodeError)
+      end
+    end
+
+    it "should still Punycode encode and decode a value without a NUL" do
+      expect(Addressable::IDNA.punycode_encode("b\u00FCcher")).to eq(
+        "bcher-kva"
+      )
+      expect(Addressable::IDNA.punycode_decode("bcher-kva")).to eq(
+        "b\u00FCcher"
+      )
+    end
 
     {
       "binary" => Encoding::BINARY,

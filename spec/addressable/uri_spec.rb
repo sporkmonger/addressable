@@ -6630,6 +6630,31 @@ describe Addressable::URI, "when parsed with a host label that can't be " +
   end
 end
 
+describe Addressable::URI, "when parsed with a host with an encoded NUL" do
+  {
+    "http://internal.example%00x/" => "http://internal.example%00x/",
+    "http://internal.example%00/" => "http://internal.example%00/",
+    "http://%00internal.example/" => "http://%00internal.example/",
+    "http://café%00x.example/" => "http://caf%C3%A9%00x.example/",
+    "http://xn--caf-dma%00x.example/" => "http://xn--caf-dma%00x.example/"
+  }.each do |input, normalized|
+    it "should keep the NUL and what follows it in '#{input}'" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.normalize.to_s).to eq(normalized)
+      expect(uri.display_uri.host).to eq(uri.normalized_host)
+    end
+  end
+
+  it "should not equal the URI with the host before the NUL" do
+    expect(Addressable::URI.parse("http://internal.example%00x/")).not_to eq(
+      Addressable::URI.parse("http://internal.example/")
+    )
+    expect(Addressable::URI.parse("http://internal.example%00x/")).not_to eql(
+      Addressable::URI.parse("http://internal.example/")
+    )
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://www.詹姆斯.com/atomtests/iri/詹.html'" do
   before do

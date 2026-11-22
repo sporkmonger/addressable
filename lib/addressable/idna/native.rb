@@ -22,12 +22,21 @@ require "idn"
 module Addressable
   module IDNA
     def self.punycode_encode(value)
-      IDN::Punycode.encode(value.to_s)
+      IDN::Punycode.encode(without_nul(value.to_s))
     end
 
-     def self.punycode_decode(value)
-       IDN::Punycode.decode(value.to_s)
-     end
+    def self.punycode_decode(value)
+      IDN::Punycode.decode(without_nul(value.to_s))
+    end
+
+    # libidn reads a NUL as the end of the string and would drop the rest.
+    def self.without_nul(value)
+      if value.include?("\0")
+        raise IDN::Punycode::PunycodeError, "Invalid input: NUL"
+      end
+      value
+    end
+    private_class_method :without_nul
 
     class << self
       # @deprecated Use {String#unicode_normalize(:nfkc)} instead
@@ -57,7 +66,10 @@ module Addressable
 
     def self.to_ascii(value)
       utf8(value).split('.', -1).map do |segment|
-        if segment.size > 0 && segment.size < 64
+        if segment.include?("\0")
+          # libidn would read the NUL as the end of the label.
+          segment
+        elsif segment.size > 0 && segment.size < 64
           IDN::Idna.toASCII(segment, IDN::Idna::ALLOW_UNASSIGNED)
         elsif segment.size >= 64
           segment
@@ -84,7 +96,10 @@ module Addressable
 
     def self.to_unicode(value)
       utf8(value).split('.', -1).map do |segment|
-        if segment.size > 0 && segment.size < 64
+        if segment.include?("\0")
+          # libidn would read the NUL as the end of the label.
+          segment
+        elsif segment.size > 0 && segment.size < 64
           decoded = IDN::Idna.toUnicode(segment, IDN::Idna::ALLOW_UNASSIGNED)
           if decoded =~ DISPLAY_CHANGING || decoded =~ NOT_STD3
             segment
