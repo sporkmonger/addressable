@@ -1221,9 +1221,15 @@ module Addressable
           host = self.host.strip.downcase
           unencoded = URI.unencode_component(host)
           # Bytes that aren't valid UTF-8 can't be converted to a domain
-          # name, so they stay pct-encoded.
+          # name, so they stay pct-encoded. So does a host IDNA rejects: it
+          # can't be resolved as a domain name, but it's still a valid host
+          # (RFC 3987, section 3.1). Only its ASCII letters are lowercased.
           result = if unencoded.valid_encoding?
-            ::Addressable::IDNA.to_ascii(unencoded)
+            begin
+              ::Addressable::IDNA.to_ascii(unencoded)
+            rescue *::Addressable::IDNA::CONVERSION_ERRORS
+              self.host.strip.tr("A-Z", "a-z")
+            end
           else
             host
           end

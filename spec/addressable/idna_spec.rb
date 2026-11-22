@@ -193,6 +193,27 @@ shared_examples_for "converting from unicode to ASCII" do
     end
   end
 
+  it "should list each error it raises for a name it can't convert" do
+    inputs = [
+      "\u200B.example", "a\uFFFD.example", "a\uE000.example",
+      "xn--\u00E9.example", ("\u4E00" * 300) + ".example"
+    ]
+    errors = inputs.map do |input|
+      begin
+        Addressable::IDNA.to_ascii(input)
+        nil
+      rescue StandardError => error
+        error
+      end
+    end.compact
+    expect(errors).not_to be_empty
+    errors.each do |error|
+      expect(Addressable::IDNA::CONVERSION_ERRORS.any? { |c| error.is_a?(c) }).to(
+        eq(true), "#{error.class} isn't in CONVERSION_ERRORS"
+      )
+    end
+  end
+
   {
     "bücher.example." => "xn--bcher-kva.example.",
     "bücher.example.." => "xn--bcher-kva.example..",

@@ -15,7 +15,7 @@
 - `Addressable::Template` reads a prefix modifier outside 1 to 9999 or with a leading zero, such as `{var:0}`, `{var:05}` or `{var:10000}`, as malformed: `#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateError` where they used to expand or match it, and `#variables` ignores the expression ([#618], [#693], [#697])
 - `Addressable::Template` reads the operators RFC 6570 reserves, `=`, `,`, `!`, `@` and `|`, as malformed: `#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateOperatorError` where expansion used to treat `{!var}` like `{var}`, and `#variables` ignores the expression ([#660], [#693], [#697])
 - `Addressable::Template#expand` and `#partial_expand` raise `InvalidTemplateValueError` for a prefix modifier on a list or associative array ([#660])
-- The pure-Ruby `Addressable::IDNA.to_ascii` raises `Addressable::IDNA::InvalidLabel` for a label made only of characters nameprep maps to nothing, such as U+200B ZERO WIDTH SPACE in `"\u200B.example"`, where it returned an A-label, as `idn-ruby` raises `IDN::Idna::IdnaError`; `Addressable::URI#normalize` and `#normalized_host` raise it too ([#703])
+- The pure-Ruby `Addressable::IDNA.to_ascii` raises `Addressable::IDNA::InvalidLabel` for a label made only of characters nameprep maps to nothing, such as U+200B ZERO WIDTH SPACE in `"\u200B.example"`, where it returned an A-label, as `idn-ruby` raises `IDN::Idna::IdnaError` ([#703], [#714])
 
 ### Changed output
 
@@ -45,6 +45,7 @@
 - Keep an IPv6 host in brackets whole in `#origin=` ([#616])
 - Leave a URI unchanged when a setter or `#defer_validation` raises ([#666])
 - Fix `#normalized_host`, `#normalize`, `#display_uri` and `#freeze` raising `ArgumentError` for a host whose pct-encoded bytes aren't valid UTF-8; they stay pct-encoded: `http://a%a9b/` normalizes to `http://a%A9b/` ([#701])
+- Fix `#normalized_host`, `#normalize`, `#display_uri` and `#===` raising the IDNA backend's error for a host it can't convert to a domain name; the host stays pct-encoded: with `idn-ruby`, `http://a%EF%BF%BD.example/` normalizes to itself instead of raising `IDN::Idna::IdnaError` ([#714])
 
 ### `Addressable::Template`
 
@@ -107,6 +108,7 @@
 [#710]: https://github.com/sporkmonger/addressable/pull/710
 [#711]: https://github.com/sporkmonger/addressable/pull/711
 [#712]: https://github.com/sporkmonger/addressable/pull/712
+[#714]: https://github.com/sporkmonger/addressable/pull/714
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 
