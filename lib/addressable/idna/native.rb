@@ -76,11 +76,21 @@ module Addressable
     # a duplicated range in a character class.
     DISPLAY_CHANGING = /[\p{Cc}\p{Cf}[\p{Default_Ignorable_Code_Point}&&\P{Cf}]]/
 
+    # A host name has only ASCII letters, digits and hyphens, and doesn't
+    # start or end with a hyphen. RFC 3987 says to check an IRI's host names
+    # with these rules (STD3, section 4.1 of RFC 3490), so a label that
+    # decodes to anything else isn't displayed.
+    NOT_STD3 = /[\x00-\x2C\x2E\x2F\x3A-\x40\x5B-\x60\x7B-\x7F]|\A-|-\z/
+
     def self.to_unicode(value)
       utf8(value).split('.', -1).map do |segment|
         if segment.size > 0 && segment.size < 64
           decoded = IDN::Idna.toUnicode(segment, IDN::Idna::ALLOW_UNASSIGNED)
-          decoded =~ DISPLAY_CHANGING ? segment : decoded
+          if decoded =~ DISPLAY_CHANGING || decoded =~ NOT_STD3
+            segment
+          else
+            decoded
+          end
         elsif segment.size >= 64
           segment
         else

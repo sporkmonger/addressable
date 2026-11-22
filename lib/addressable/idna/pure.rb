@@ -95,6 +95,12 @@ module Addressable
     # warns about a duplicated range in a character class.
     DISPLAY_CHANGING = /[\p{Cc}\p{Cf}[\p{Default_Ignorable_Code_Point}&&\P{Cf}]]/
 
+    # A host name has only ASCII letters, digits and hyphens, and doesn't
+    # start or end with a hyphen. RFC 3987 says to check an IRI's host names
+    # with these rules (STD3, section 4.1 of RFC 3490), so a label that
+    # decodes to anything else isn't displayed.
+    NOT_STD3 = /[\x00-\x2C\x2E\x2F\x3A-\x40\x5B-\x60\x7B-\x7F]|\A-|-\z/
+
     # Characters that nameprep maps to nothing (table B.1 of RFC 3454), such
     # as SOFT HYPHEN and ZERO WIDTH JOINER.
     MAPPED_TO_NOTHING =
@@ -162,9 +168,11 @@ module Addressable
             # A label that doesn't convert back to itself isn't a valid
             # A-label (Section 5.3 of RFC 5891). That includes a label that
             # decodes to only ASCII characters. A label with a character that
-            # would change how it displays is returned unchanged too.
+            # would change how it displays, or that a host name can't have, is
+            # returned unchanged too.
             if to_ascii(decoded).downcase != part.downcase ||
-                decoded =~ NAMEPREP_PROHIBITED || decoded =~ DISPLAY_CHANGING
+                decoded =~ NAMEPREP_PROHIBITED || decoded =~ DISPLAY_CHANGING ||
+                decoded =~ NOT_STD3
               part
             else
               decoded

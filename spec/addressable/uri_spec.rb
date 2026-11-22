@@ -6414,6 +6414,29 @@ describe Addressable::URI, "when displaying a host with a label that " +
   end
 end
 
+describe Addressable::URI, "when displaying a host with a label that " +
+    "decodes to ASCII other than letters, digits and hyphens" do
+  # Each label is "mün<character>chen". A label with a pct-encoded
+  # character was displayed as a different label, such as "mn%ã3Fchen" for
+  # "mün?chen", since the pct-encoded form was decoded from Punycode.
+  {
+    "http://xn--mn,chen-n2a.example/" => "http://xn--mn,chen-n2a.example/",
+    "http://xn--mn_chen-n2a.example/" => "http://xn--mn_chen-n2a.example/",
+    "http://xn--mn%5Dchen-n2a.example/" => "http://xn--mn]chen-n2a.example/",
+    "http://xn--mn%3Fchen-n2a.example/" =>
+      "http://xn--mn%3Fchen-n2a.example/",
+    "http://xn--mn%40chen-n2a.example/" =>
+      "http://xn--mn%40chen-n2a.example/",
+    "http://mün%3Fchen.example/" => "http://xn--mn%3Fchen-n2a.example/"
+  }.each do |input, displayed|
+    it "should display '#{input}' with its normalized host" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.display_uri.host).to eq(uri.normalized_host)
+      expect(uri.display_uri.to_s).to eq(displayed)
+    end
+  end
+end
+
 describe Addressable::URI, "when displaying a URI without a host" do
   # Each of these raised InvalidURIError, because display_uri gave the URI
   # an empty host.
