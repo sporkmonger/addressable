@@ -258,17 +258,18 @@ describe Addressable::Template, "#match" do
       ["{#v1,v2}", "#,b"] => {"v1" => "", "v2" => "b"},
       ["{+v1,v2},x", "a,b,x"] => {"v1" => "a", "v2" => "b"},
       ["{+v1,v2,v1}", "a,b,c"] => {"v1" => "", "v2" => "a"},
-      # An exploded ;, ? or & value keeps everything after its first "=",
-      # and pairs that all repeat the variable's name are a list.
-      ["{;b*}", ";b==a"] => {"b" => ["=a"]},
+      # An exploded ;, ? or & value is an associative array, which keeps
+      # everything after each value's first "=", and keeps a repeated key's
+      # last value.
+      ["{;b*}", ";b==a"] => {"b" => {"b" => "=a"}},
       ["{;a*}", ";a=b=c;d"] => {"a" => {"a" => "b=c", "d" => ""}},
       ["{&b*}", "&k=ab%3Bb="] => {"b" => {"k" => "ab;b="}},
       ["{?a*}", "?a=b=c&d=e"] => {"a" => {"a" => "b=c", "d" => "e"}},
-      ["{?a*}", "?a=bc=d"] => {"a" => ["bc=d"]},
+      ["{?a*}", "?a=bc=d"] => {"a" => {"a" => "bc=d"}},
       ["{;b*,c*}", ";n=ak=ab;c=a2Cb"] => {
         "b" => {"n" => "ak=ab", "c" => "a2Cb"}, "c" => {}
       },
-      ["{?a*,a*,a*}", "?a=aba=ab&a=ab"] => {"a" => ["aba=ab", "ab"]},
+      ["{?a*,a*,a*}", "?a=aba=ab&a=ab"] => {"a" => {"a" => "ab"}},
       ["{?a*,c*}", "?a=b=c&d=e"] => {
         "a" => {"a" => "b=c", "d" => "e"}, "c" => nil
       },
@@ -280,8 +281,8 @@ describe Addressable::Template, "#match" do
       },
       # For ? and &, an empty member before the first exploded variable's
       # values gives them to the next one.
-      ["{?a*,b*}", "?&b=2"] => {"a" => nil, "b" => ["2"]},
-      ["{&a*,b*}", "&&b=2"] => {"a" => nil, "b" => ["2"]},
+      ["{?a*,b*}", "?&b=2"] => {"a" => nil, "b" => {"b" => "2"}},
+      ["{&a*,b*}", "&&b=2"] => {"a" => nil, "b" => {"b" => "2"}},
       ["{?a*,b,c*}", "?&=="] => {
         "a" => nil, "b" => nil, nil => "", "c" => {"" => ""}
       }

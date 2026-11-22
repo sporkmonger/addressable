@@ -14,7 +14,6 @@
 - `Addressable::Template` reads a prefix modifier outside 1 to 9999 or with a leading zero, such as `{var:0}`, `{var:05}` or `{var:10000}`, as malformed: `#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateError` where they used to expand or match it, and `#variables` ignores the expression ([#618], [#693], [#697])
 - `Addressable::Template` reads the operators RFC 6570 reserves, `=`, `,`, `!`, `@` and `|`, as malformed: `#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateOperatorError` where expansion used to treat `{!var}` like `{var}`, and `#variables` ignores the expression ([#660], [#693], [#697])
 - `Addressable::Template#expand` and `#partial_expand` raise `InvalidTemplateValueError` for a prefix modifier on a list or associative array ([#660])
-- `Addressable::Template#extract` and `#match` give an exploded list in `;`, `?` or `&` expansion as an array, not a hash ([#687])
 - The pure-Ruby `Addressable::IDNA.to_ascii` raises `Addressable::IDNA::InvalidLabel` for a label made only of characters nameprep maps to nothing, such as U+200B ZERO WIDTH SPACE in `"\u200B.example"`, where it returned an A-label, as `idn-ruby` raises `IDN::Idna::IdnaError`; `Addressable::URI#normalize` and `#normalized_host` raise it too ([#703])
 
 ### Changed output
@@ -55,6 +54,7 @@
 - Match non-ASCII text in a URI either as written or pct-encoded ([#680])
 - Return copies from `#variables`, `#variable_defaults` and `MatchData#values` ([#619])
 - Split an exploded value of the default, `+` and `#` operators into its members in `#match` and `#extract`: `{a*,b}` on `x,y,z` gives `{"a" => ["x", "y"], "b" => "z"}`, not `{"a" => ["x,y,"], "b" => "z"}` ([#700])
+- Keep everything after the first `=` of each pair in an exploded `;`, `?` or `&` value in `#match` and `#extract`: `{?a*}` on `?k=x=y` gives `{"a" => {"k" => "x=y"}}`, not `{"a" => {"k" => "x"}}` ([#687])
 
 ### `Addressable::IDNA`
 

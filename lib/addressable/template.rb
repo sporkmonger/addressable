@@ -645,19 +645,13 @@ module Addressable
               if modifier == '*'
                 if unparsed_values[index]
                   pairs = unparsed_values[index].split(JOINERS[operator])
-                  pairs = pairs.map do |pair|
+                  # The value is read as an associative array, even when its
+                  # pairs repeat the variable's name, as an exploded list's
+                  # do. A repeated key keeps its last value.
+                  value = pairs.inject({}) do |acc, pair|
                     key, val = pair.split('=', 2)
-                    [key, val || ""]
-                  end
-                  # An exploded list repeats the variable's name, where an
-                  # associative array uses its own keys.
-                  if !pairs.empty? && pairs.all? { |key, _| key == name }
-                    value = pairs.map { |_, val| val }
-                  else
-                    value = pairs.inject({}) do |acc, (key, val)|
-                      acc[key] = val
-                      acc
-                    end
+                    acc[key] = val || ""
+                    acc
                   end
                 end
               else

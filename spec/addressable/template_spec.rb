@@ -2955,20 +2955,32 @@ describe Addressable::Template, "with text that isn't valid UTF-8" do
   end
 end
 
-describe Addressable::Template, "extracting an exploded named list" do
-  # An exploded list in ;, ? or & expansion repeats the variable's name,
-  # where an associative array uses its own keys (RFC 6570 section 3.2.1).
+describe Addressable::Template, "extracting an exploded named value" do
+  # An exploded ;, ? or & value is read as an associative array, keyed by
+  # the names in the URI. An exploded list repeats the variable's name, so
+  # it's read as an associative array with that one key, which keeps the
+  # last member.
   {
-    ["{?a*}", "?a=x&a=y"] => {"a" => ["x", "y"]},
-    ["{?a*}", "?a=x&a=y&a=z"] => {"a" => ["x", "y", "z"]},
-    ["{?a*}", "?a=x"] => {"a" => ["x"]},
-    ["{&a*}", "&a=x&a=y"] => {"a" => ["x", "y"]},
-    ["{;a*}", ";a=x;a=y"] => {"a" => ["x", "y"]},
-    ["{;a*}", ";a;a=y"] => {"a" => ["", "y"]},
-    ["{?a*}", "?a=x%20y&a=c%26d"] => {"a" => ["x y", "c&d"]},
-    ["/p{?q,a*}", "/p?q=1&a=x&a=y"] => {"q" => "1", "a" => ["x", "y"]}
+    ["{?a*}", "?a=x"] => {"a" => {"a" => "x"}},
+    ["{?a*}", "?a=x&a=y"] => {"a" => {"a" => "y"}},
+    ["{?a*}", "?a=x&a=y&a=z"] => {"a" => {"a" => "z"}},
+    ["{&a*}", "&a=x&a=y"] => {"a" => {"a" => "y"}},
+    ["{;a*}", ";a=x;a=y"] => {"a" => {"a" => "y"}},
+    ["{;a*}", ";a=y;a"] => {"a" => {"a" => ""}},
+    ["{?a*}", "?a=c%26d&a=x%20y"] => {"a" => {"a" => "x y"}},
+    ["/p{?q,a*}", "/p?q=1&a=x&a=y"] => {"q" => "1", "a" => {"a" => "y"}}
   }.each do |(pattern, uri), mapping|
     it "extracts #{mapping.inspect} from #{uri} with #{pattern}" do
+      expect(Addressable::Template.new(pattern).extract(uri)).to eq(mapping)
+    end
+  end
+
+  {
+    ["{?a*}", "?a=x"] => {"a" => {"a" => "x"}},
+    ["{?a*}", "?k=v&l=w"] => {"a" => {"k" => "v", "l" => "w"}},
+    ["{;a*}", ";k;l=v"] => {"a" => {"k" => "", "l" => "v"}}
+  }.each do |(pattern, uri), mapping|
+    it "expands #{mapping.inspect} back to #{uri} with #{pattern}" do
       template = Addressable::Template.new(pattern)
       expect(template.extract(uri)).to eq(mapping)
       expect(template.expand(mapping).to_s).to eq(uri)
@@ -2985,20 +2997,20 @@ describe Addressable::Template, "extracting an exploded named list" do
     end
   end
 
-  it "compares each key with the variable's name as written" do
+  it "decodes each key" do
     template = Addressable::Template.new("{?a*}")
     expect(template.extract("?%61=x")).to eq("a" => {"a" => "x"})
-    expect(template.extract("?a=x&%61=y")).to eq("a" => {"a" => "y"})
+    expect(template.extract("?a=x&%62=y")).to eq("a" => {"a" => "x", "b" => "y"})
     template = Addressable::Template.new("{?a%20b*}")
-    expect(template.extract("?a%20b=x&a%20b=y")).to eq("a%20b" => ["x", "y"])
+    expect(template.extract("?a%20b=x")).to eq("a%20b" => {"a b" => "x"})
   end
 
-  it "keeps a value's \"=\" in an exploded list or associative array" do
-    expect(Addressable::Template.new("{?a*}").extract("?a=x=y&a=z")).to eq(
-      "a" => ["x=y", "z"]
-    )
+  it "keeps everything after a value's first \"=\"" do
     expect(Addressable::Template.new("{?a*}").extract("?k=x=y")).to eq(
       "a" => {"k" => "x=y"}
+    )
+    expect(Addressable::Template.new("{;a*}").extract(";k==")).to eq(
+      "a" => {"k" => "="}
     )
   end
 end
@@ -3029,10 +3041,10 @@ describe Addressable::Template, "expanding empty members with ;" do
     expect(partial.pattern).to eq(";a;a=y{?b}")
   end
 
-  it "extracts the members again" do
+  it "extracts the pairs again" do
     template = Addressable::Template.new("{;a*}")
-    expect(template.extract(";a;a=y")).to eq("a" => ["", "y"])
     expect(template.extract(";k;l=v")).to eq("a" => {"k" => "", "l" => "v"})
+    expect(template.extract(";k=v;l")).to eq("a" => {"k" => "v", "l" => ""})
   end
 end
 
