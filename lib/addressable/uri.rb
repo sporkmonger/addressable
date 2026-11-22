@@ -95,7 +95,11 @@ module Addressable
       FIRST_SEGMENT = /\A[^\/]*/
       BARE_PERCENT = /%(?![0-9A-Fa-f]{2})/
       TRIPLET = /%[0-9A-Fa-f]{2}/
-      SPLIT_TRIPLETS = /(%[0-9A-Fa-f]{2})/
+      # NFC turns U+037E GREEK QUESTION MARK into ";", the only character
+      # it turns into a reserved one. A delimiter isn't equivalent to the
+      # text it came from, so U+037E is left out of NFC.
+      NFC_DELIMITER = /(\u037E)/
+      SPLIT_TRIPLETS_AND_DELIMITER = /(%[0-9A-Fa-f]{2}|\u037E)/
 
       ##
       # Normalizes a query's name=value pair, keeping "=" encoded in the
@@ -654,17 +658,17 @@ module Addressable
       upcase_encoded = keep_percent ? "" : leave_encoded
       unencoded = self.unencode_component(component, String, leave_encoded)
       begin
-        normalized = if keep_percent
-          # Composing a triplet's last hex digit with a combining mark that
-          # follows it would break the triplet, so only the text between
-          # triplets is normalized.
-          unencoded.split(NormalizeByPosition::SPLIT_TRIPLETS).map.
-            with_index do |part, index|
-            index.odd? ? part : part.unicode_normalize(:nfc)
-          end.join
+        # Composing a triplet's last hex digit with a combining mark that
+        # follows it would break the triplet, so only the text between
+        # triplets is normalized, and U+037E is left as it is.
+        split = if keep_percent
+          NormalizeByPosition::SPLIT_TRIPLETS_AND_DELIMITER
         else
-          unencoded.unicode_normalize(:nfc)
+          NormalizeByPosition::NFC_DELIMITER
         end
+        normalized = unencoded.split(split).map.with_index do |part, index|
+          index.odd? ? part : part.unicode_normalize(:nfc)
+        end.join
         encoded = self.encode_component(
           normalized,
           character_class,

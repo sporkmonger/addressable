@@ -3412,6 +3412,50 @@ describe Addressable::URI, "when normalizing pct-encoded reserved characters" do
   it_normalizes("http://example.com/?q%3D\u0338", "http://example.com/?q%3D%CC%B8")
   it_normalizes("http://example.com/e%CC%81%2F\u00E9", "http://example.com/%C3%A9%2F%C3%A9")
 
+  # NFC would turn U+037E GREEK QUESTION MARK into ";", a delimiter, so
+  # U+037E is left as it is.
+  it_normalizes(
+    "http://example.com/a%CD%BEb?c=1%CD%BEd=2#e%CD%BEf",
+    "http://example.com/a%CD%BEb?c=1%CD%BEd=2#e%CD%BEf"
+  )
+  it_normalizes(
+    "http://example.com/a\u037Eb?c=1\u037Ed=2#e\u037Ef",
+    "http://example.com/a%CD%BEb?c=1%CD%BEd=2#e%CD%BEf"
+  )
+  it_normalizes("http://example.com/?a=%CD%BE;", "http://example.com/?a=%CD%BE%3B",
+    "http://example.com/?a=%CD%BE;")
+  it_normalizes("http://example.com/%CD%BE\u0301", "http://example.com/%CD%BE%CC%81")
+  it_normalizes("http://example.com/a%CD%BE%FF", "http://example.com/a%CD%BE%FF")
+  it_normalizes("http://example.com/\u1FEF\u212A", "http://example.com/%60K")
+
+  it "leaves U+037E out of NFC with any character class" do
+    expect(Addressable::URI.normalize_component("a%CD%BEb", "a-z;")).to eq(
+      "a%CD%BEb"
+    )
+    expect(Addressable::URI.normalize_component("a%CD%BEb", "a-z;", "/")).to eq(
+      "a%CD%BEb"
+    )
+    expect(Addressable::URI.normalize_component("a\u037E%41", /[^a-zA-Z;%]/, "%")).to eq(
+      "a%CD%BEA"
+    )
+  end
+
+  it "makes no reserved character with NFC" do
+    reserved = ":/?#[]@!$&'()*+,;="
+    made = (0x80..0x10FFFF).reject { |c| (0xD800..0xDFFF).cover?(c) }.
+      map { |c| c.chr(Encoding::UTF_8) }.
+      reject { |c| c.unicode_normalized?(:nfc) }.
+      select { |c| reserved.include?(c.unicode_normalize(:nfc)) }
+    expect(made).not_to be_empty
+    made.each do |c|
+      encoded = c.bytes.map { |byte| "%%%02X" % byte }.join
+      uri = Addressable::URI.parse("http://example.com/a#{c}?b#{c}#c#{c}")
+      expect(uri.normalize.to_s).to eq(
+        "http://example.com/a#{encoded}?b#{encoded}#c#{encoded}"
+      )
+    end
+  end
+
   # Decodes a triplet unless its character is in kept or is "%", encodes a
   # character that isn't allowed, and applies NFC to the text between the
   # triplets it keeps.
@@ -3438,7 +3482,11 @@ describe Addressable::URI, "when normalizing pct-encoded reserved characters" do
     runs.map do |kind, text|
       next text if kind == :kept
       characters = if valid
-        text.force_encoding(Encoding::UTF_8).unicode_normalize(:nfc).chars
+        # NFC would make ";" of U+037E, so it's left as it is.
+        text.force_encoding(Encoding::UTF_8).split(/(\u037E)/).
+          each_with_index.flat_map do |part, index|
+          index.odd? ? [part] : part.unicode_normalize(:nfc).chars
+        end
       else
         text.bytes.map { |byte| byte.chr.b }
       end
@@ -3468,7 +3516,7 @@ describe Addressable::URI, "when normalizing pct-encoded reserved characters" do
       reserved.map { |c| "%%%02x" % c.ord } +
       %w(%41 %7a %30 %2D %5F %7E %25 2F 3a 41 26 % %G1 %FF %C3%A9) +
       %w(%32 %46 %33 %42 %36 %61 %65 %CC%81) +
-      ["é", "\"", "<", "|", "́", "̧", "̸", "̇"]
+      ["é", "\"", "<", "|", "́", "̧", "̸", "̇", "%CD%BE", "\u037E"]
     sub_delims = Regexp.escape("!$&'()*+,;=")
     path_chars = sub_delims + ":@/"
     query_chars = sub_delims + ":@/?"

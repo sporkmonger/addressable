@@ -22,6 +22,8 @@
 - `Addressable::URI.heuristic_parse("localhost:3000")` gives `http://localhost:3000`, not `localhost:3000` with a `localhost` scheme ([#691])
 - `Addressable::URI#route_from` and `#route_to` give `./`, not `../`, for a route that would climb above the root ([#648])
 - `Addressable::URI#query_values` reads `+` as a space in query names too, and for uppercase `HTTP` and `HTTPS`: `?a+b=c` gives `{"a b" => "c"}`, not `{"a+b" => "c"}` ([#607])
+- `Addressable::URI#normalize` and `.normalized_encode` keep U+037E GREEK QUESTION MARK pct-encoded instead of turning it into a `;` delimiter: `/a%CD%BEb` gives `/a%CD%BEb`, not `/a;b` ([#712])
+- `Addressable::URI#normalize` keeps U+037E GREEK QUESTION MARK in a query: `?a=%CD%BE` gives `?a=%CD%BE`, not `?a=%3B` ([#712])
 - `Addressable::Template#expand` treats an empty list or associative array as undefined and leaves out `nil` members: `{?list}` with `[]` gives nothing, not `?list=` ([#611])
 - `Addressable::Template#expand` keeps pct-encoded triplets in reserved and fragment expansion: `{+id}` with `admin%2F` gives `admin%2F`, not `admin%252F` ([#656])
 - `Addressable::Template#expand` gives `;a=`, not `;a`, for `{;a}` with `[""]` ([#689])
@@ -104,6 +106,7 @@
 [#706]: https://github.com/sporkmonger/addressable/pull/706
 [#710]: https://github.com/sporkmonger/addressable/pull/710
 [#711]: https://github.com/sporkmonger/addressable/pull/711
+[#712]: https://github.com/sporkmonger/addressable/pull/712
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 
