@@ -2823,6 +2823,139 @@ describe Addressable::URI, "when parsing IPvFuture addresses" do
   end
 end
 
+describe Addressable::URI, "when parsing a host in brackets" do
+  [
+    "::", "::1", "1::", "1:2:3:4:5:6:7:8", "1:2:3:4:5:6:7::",
+    "::2:3:4:5:6:7:8", "1::8", "FE80::A", "fe80::200:f8ff:fe21:67cf",
+    "::ffff:127.0.0.1", "::1.2.3.4", "1:2:3:4:5:6:1.2.3.4",
+    "64:ff9b::192.0.2.33", "::255.255.255.255",
+    "v1.x", "V1.x", "vF.fe80::a", "v1.a-._~!$&'()*+,;=:"
+  ].each do |literal|
+    it "accepts the IP literal [#{literal}] and strips the brackets in " +
+        "#hostname" do
+      uri = Addressable::URI.parse("http://[#{literal}]:8080/")
+      expect(uri.host).to eq("[#{literal}]")
+      expect(uri.hostname).to eq(literal)
+      expect(uri.port).to eq(8080)
+    end
+  end
+
+  [
+    # Names and IPv4 addresses, which RFC 3986 doesn't allow in brackets
+    "127.0.0.1", "localhost", "example.com", "127.1", "2130706433",
+    "0x7f.1", "",
+    # Malformed IPv6 addresses
+    "1:2:3:4:5:6:7", "1:2:3:4:5:6:7:8:9", "1:2:3:4:5:6:7:8::",
+    "::1:2:3:4:5:6:7:8", "1::2::3", ":::", ":1", "1:", "1:::2",
+    "12345::", "::g", "::1.2.3", "::1.2.3.256", "::01.2.3.4",
+    "1.2.3.4::", "1:2:3:4:5:6:7:1.2.3.4", "::1.2.3.4:1",
+    # Malformed IPvFuture literals
+    "v.x", "v1.", "v1x", "vg.x", "v1.x/y", "v1.%41",
+    # Zone identifiers, from RFC 6874, which isn't supported
+    "fe80::1%25en0"
+  ].each do |literal|
+    it "raises for [#{literal}], which isn't an IP literal" do
+      expect do
+        Addressable::URI.parse("http://[#{literal}]/")
+      end.to raise_error(Addressable::URI::InvalidURIError)
+    end
+  end
+
+  [
+    "example[.]com", "[::1]x", "x[::1]", "[::1", "::1]", "[[::1]]",
+    "[::1][::2]"
+  ].each do |host|
+    it "raises for brackets that don't enclose the whole host, " +
+        "as in #{host}" do
+      expect do
+        Addressable::URI.new(scheme: "http", host: host)
+      end.to raise_error(Addressable::URI::InvalidURIError)
+    end
+  end
+
+  it "raises when parsing a URI whose host is a name in brackets" do
+    expect do
+      Addressable::URI.parse("http://[localhost]:8080/path")
+    end.to raise_error(Addressable::URI::InvalidURIError, /\[localhost\]/)
+  end
+
+  it "raises when setting the host to a name in brackets, and leaves the " +
+      "URI unchanged" do
+    uri = Addressable::URI.parse("http://example.com/")
+    expect do
+      uri.host = "[127.0.0.1]"
+    end.to raise_error(Addressable::URI::InvalidURIError)
+    expect(uri.to_s).to eq("http://example.com/")
+  end
+
+  it "raises when setting the hostname to a name in brackets" do
+    uri = Addressable::URI.parse("http://example.com/")
+    expect do
+      uri.hostname = "[localhost]"
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "raises when setting the hostname to a value with a colon that " +
+      "isn't an IPv6 address" do
+    uri = Addressable::URI.parse("http://example.com/")
+    expect do
+      uri.hostname = "example.com:8080"
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "raises when setting the authority to one with a name in brackets" do
+    uri = Addressable::URI.parse("http://example.com/")
+    expect do
+      uri.authority = "user@[127.0.0.1]:8080"
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "raises when joining a reference whose host is a name in brackets" do
+    expect do
+      Addressable::URI.join("http://example.com/", "//[localhost]/")
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "still normalizes an IPv6 host" do
+    uri = Addressable::URI.parse("HTTP://[FE80::A]:80/")
+    expect(uri.normalize.to_s).to eq("http://[fe80::a]/")
+  end
+
+  # A pct-encoded bracket in a registered name is part of the name, so it
+  # stays pct-encoded: decoded, it would make the normalized host a
+  # malformed IP literal.
+  {
+    "http://a%5Db.example/" => "http://a%5Db.example/",
+    "http://a%5Bb%5D.example/" => "http://a%5Bb%5D.example/",
+    "http://A%5bB%5d.example/" => "http://a%5Bb%5D.example/",
+    "http://xn--mn%5Dchen-n2a.example/" => "http://xn--mn%5Dchen-n2a.example/"
+  }.each do |input, normalized|
+    it "keeps the brackets in #{input} pct-encoded when normalizing" do
+      uri = Addressable::URI.parse(input)
+      expect(uri.normalize.to_s).to eq(normalized)
+      expect(uri.display_uri.to_s).to eq(normalized)
+      expect(Addressable::URI.parse(normalized).normalize.to_s).to eq(
+        normalized
+      )
+    end
+  end
+
+  it "checks a long host in brackets in linear time" do
+    [
+      "[" + "1:" * 50_000 + "1]", "[" + "a" * 100_000 + "]",
+      "[v1." + "a" * 100_000 + "/]", "[" + "::" * 50_000 + "]",
+      "[::" + "1." * 50_000 + "]"
+    ].each do |host|
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      expect do
+        Addressable::URI.new(scheme: "http", host: host)
+      end.to raise_error(Addressable::URI::InvalidURIError)
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+      expect(elapsed).to be < 1
+    end
+  end
+end
+
 describe Addressable::URI, "when parsed from " +
     "'http://example.com/'" do
   before do
@@ -6422,7 +6555,8 @@ describe Addressable::URI, "when displaying a host with a label that " +
   {
     "http://xn--mn,chen-n2a.example/" => "http://xn--mn,chen-n2a.example/",
     "http://xn--mn_chen-n2a.example/" => "http://xn--mn_chen-n2a.example/",
-    "http://xn--mn%5Dchen-n2a.example/" => "http://xn--mn]chen-n2a.example/",
+    "http://xn--mn%5Dchen-n2a.example/" =>
+      "http://xn--mn%5Dchen-n2a.example/",
     "http://xn--mn%3Fchen-n2a.example/" =>
       "http://xn--mn%3Fchen-n2a.example/",
     "http://xn--mn%40chen-n2a.example/" =>

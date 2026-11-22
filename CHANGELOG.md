@@ -10,6 +10,7 @@
 - `Addressable::URI#port=` and `.new` raise `InvalidURIError` for a port with a line break, such as `"8080\nx"` ([#663])
 - `Addressable::URI` setters, `.new` and `.parse` raise `InvalidURIError` for a port above 65535 in a URI whose scheme has a default port, such as `http://example.com:70000/`, and for a port above the largest integer Ruby stores without a bignum, 2**62 - 1 on 64-bit platforms, in any URI ([#711])
 - `Addressable::URI#origin=` raises `InvalidURIError` for a string with a path, query or fragment, which it dropped ([#616])
+- `Addressable::URI.parse`, `.new` and the host setters raise `InvalidURIError` for brackets in a host that don't enclose an IPv6 address or IPvFuture literal, such as `http://[127.0.0.1]/` or `http://example[.]com/`, which they accepted ([GHSA-c7j3-jq7p-v3pr])
 - The strings a frozen `Addressable::URI` holds are frozen, so changing one, as in `uri.host << "x"`, raises `FrozenError` ([#668])
 - `Addressable::Template#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateError` for a template that doesn't match the RFC 6570 grammar, which expansion kept as text and matching read as literal text ([#660], [#693], [#697])
 - `Addressable::Template` reads a prefix modifier outside 1 to 9999 or with a leading zero, such as `{var:0}`, `{var:05}` or `{var:10000}`, as malformed: `#expand`, `#partial_expand`, `#match`, `#extract` and `#to_regexp` raise `InvalidTemplateError` where they used to expand or match it, and `#variables` ignores the expression ([#618], [#693], [#697])
@@ -49,6 +50,7 @@
 - Fix `#normalized_host`, `#normalize`, `#display_uri` and `#freeze` raising `ArgumentError` for a host whose pct-encoded bytes aren't valid UTF-8; they stay pct-encoded: `http://a%a9b/` normalizes to `http://a%A9b/` ([#701])
 - Fix `#normalized_host`, `#normalize`, `#display_uri` and `#===` raising the IDNA backend's error for a host it can't convert to a domain name; the host stays pct-encoded: with `idn-ruby`, `http://a%EF%BF%BD.example/` normalizes to itself instead of raising `IDN::Idna::IdnaError` ([#714])
 - Fix `#display_uri` showing a different name for a host whose A-label has a pct-encoded character: `http://xn--mn%3Fchen-n2a.example/` displays as itself, not as `http://mn%ã3Fchen.example/` ([#716])
+- Fix `#normalize` decoding a pct-encoded bracket in a registered name: `http://a%5Db.example/` gives `http://a%5Db.example/`, not `http://a]b.example/` ([GHSA-c7j3-jq7p-v3pr])
 
 ### `Addressable::Template`
 
@@ -114,6 +116,7 @@
 [#714]: https://github.com/sporkmonger/addressable/pull/714
 [#715]: https://github.com/sporkmonger/addressable/pull/715
 [#716]: https://github.com/sporkmonger/addressable/pull/716
+[GHSA-c7j3-jq7p-v3pr]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-c7j3-jq7p-v3pr
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 

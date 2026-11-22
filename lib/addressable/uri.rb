@@ -62,6 +62,9 @@ module Addressable
 
     module NormalizeCharacterClasses
       HOST = /[^#{CharacterClasses::HOST}]/
+      # Brackets only enclose an IP literal.
+      HOST_WITHOUT_BRACKETS =
+        /[^#{CharacterClasses::UNRESERVED + CharacterClasses::SUB_DELIMS}\:]/
       UNRESERVED = /[^#{CharacterClasses::UNRESERVED}]/
       PCHAR = /[^#{CharacterClasses::PCHAR}]/
       SCHEME = /[^#{CharacterClasses::SCHEME}]/
@@ -1237,9 +1240,15 @@ module Addressable
             # Single trailing dots are unnecessary.
             result = result[0...-1]
           end
+          # A registered name keeps a pct-encoded bracket encoded, or the
+          # normalized host would be read as a malformed IP literal.
           result = Addressable::URI.normalize_component(
             result,
-            NormalizeCharacterClasses::HOST
+            if ip_literal?(self.host)
+              NormalizeCharacterClasses::HOST
+            else
+              NormalizeCharacterClasses::HOST_WITHOUT_BRACKETS
+            end
           )
           result
         else
@@ -2656,14 +2665,60 @@ module Addressable
           "Cannot have a path with two leading slashes " +
           "without an authority set: '#{self.to_s}'"
       end
-      unreserved = CharacterClasses::UNRESERVED
-      sub_delims = CharacterClasses::SUB_DELIMS
-      if !self.host.nil? && (self.host =~ /[<>{}\/\\\?\#\@"[[:space:]]]/ ||
-          (self.host[/^\[(.*)\]$/, 1] != nil && self.host[/^\[(.*)\]$/, 1] !~
-          Regexp.new("^[#{unreserved}#{sub_delims}:]*$")))
+      if !self.host.nil? && self.host =~ /[<>{}\/\\\?\#\@"[[:space:]]]/
         raise InvalidURIError, "Invalid character in host: '#{self.host.to_s}'"
       end
+      if !self.host.nil? && self.host =~ /[\[\]]/ && !ip_literal?(self.host)
+        raise InvalidURIError,
+          "Brackets in a host must enclose an IPv6 address or an IPvFuture " +
+          "literal: '#{self.host.to_s}'"
+      end
       return nil
+    end
+
+    # Parts of an IP-literal, from RFC 3986, section 3.2.2.
+    IPV6_PIECE = /\A[0-9A-Fa-f]{1,4}\z/
+    DEC_OCTET = "(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])"
+    IPV4_ADDRESS = /\A#{DEC_OCTET}(?:\.#{DEC_OCTET}){3}\z/
+    IPV_FUTURE = /\A[vV][0-9A-Fa-f]+\.[A-Za-z0-9\-._~!$&'()*+,;=:]+\z/
+    private_constant :IPV6_PIECE, :DEC_OCTET, :IPV4_ADDRESS, :IPV_FUTURE
+
+    ##
+    # Whether a host is an IP-literal from RFC 3986, section 3.2.2: an IPv6
+    # address or an IPvFuture literal, in brackets.
+    #
+    # @param [String] host The host to check.
+    #
+    # @return [TrueClass, FalseClass]
+    def ip_literal?(host)
+      inner = host[/\A\[([^\[\]]*)\]\z/, 1]
+      return false if inner.nil?
+      inner =~ IPV_FUTURE ? true : ipv6_address?(inner)
+    end
+
+    ##
+    # Whether a string is an IPv6address from RFC 3986, section 3.2.2: eight
+    # groups of up to four hex digits, where "::" stands for one or more
+    # groups of zeros and an IPv4 address can stand for the last two groups.
+    #
+    # @param [String] address The string to check.
+    #
+    # @return [TrueClass, FalseClass]
+    def ipv6_address?(address)
+      halves = address.split("::", -1)
+      return false if halves.empty? || halves.size > 2
+      halves = halves.map { |half| half.empty? ? [] : half.split(":", -1) }
+      groups = 0
+      last = halves.last
+      if last.last && last.last.include?(".")
+        return false unless last.last =~ IPV4_ADDRESS
+        halves[-1] = last[0...-1]
+        groups = 2
+      end
+      pieces = halves.flatten
+      return false unless pieces.all? { |piece| piece =~ IPV6_PIECE }
+      groups += pieces.size
+      halves.size == 2 ? groups <= 7 : groups == 8
     end
 
     ##
