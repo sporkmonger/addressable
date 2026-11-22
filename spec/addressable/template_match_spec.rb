@@ -177,48 +177,54 @@ describe Addressable::Template, "#match" do
       # A member can be empty, but a joiner before a later variable in the
       # same expression isn't one.
       ["{a*}{b}", "x,y,z"] => {"a" => ["x", "y", ""], "b" => "z"},
-      ["{a*,b}", "x,y,z"] => {"a" => ["x", "y"], "b" => "z"},
+      ["{a*,b}", "x,y,z"] => {"a" => ["x", "y", "z"], "b" => nil},
       ["{a*}", "x,,y,"] => {"a" => ["x", "", "y", ""]},
       ["{/a*}", "/x/"] => {"a" => ["x", ""]},
       ["{/segments*}", "/a/b/"] => {"segments" => ["a", "b", ""]},
       ["{/segments*}", "/"] => {"segments" => [""]},
       ["{/segments*}", ""] => {"segments" => nil},
-      ["{+d*,a}?", ";,,x?"] => {"d" => [";", ""], "a" => "x"},
-      ["{\#a*,d*,b}=", "\#,,="] => {"a" => ["", ""], "d" => nil, "b" => ""},
-      ["{a*,b,c}", "x,y,z"] => {"a" => ["x"], "b" => "y", "c" => "z"},
-      # With several variables, a value without a joiner goes to the last
-      # variable for /, . and the default operator...
-      ["{/a,b,c}", "/x"] => {"a" => "", "b" => "", "c" => "x"},
-      ["{/a,b,c}", "/x/y"] => {"a" => "", "b" => "x", "c" => "y"},
-      ["{.a,b}.json", ".x.json"] => {"a" => "", "b" => "x"},
-      ["{a,b,c}", "x,y"] => {"a" => "", "b" => "x", "c" => "y"},
-      ["{/a,b*}", "/x/y"] => {"a" => "", "b" => ["x", "y"]},
-      # ...and to the first variable for ;.
+      ["{+d*,a}?", ";,,x?"] => {"d" => [";", "", "x"], "a" => nil},
+      ["{\#a*,d*,b}=", "\#,,="] => {"a" => ["", "", ""], "d" => nil, "b" => nil},
+      # In an expression with several variables, each takes as much as it
+      # can, from the first: an exploded variable every member left, and
+      # another variable one member. A variable with nothing left is
+      # undefined. This is the same for /, ., the default operator, + and #...
+      ["{a*,b,c}", "x,y,z"] => {"a" => ["x", "y", "z"], "b" => nil, "c" => nil},
+      ["{/a,b,c}", "/x"] => {"a" => "x", "b" => nil, "c" => nil},
+      ["{/a,b,c}", "/x/y"] => {"a" => "x", "b" => "y", "c" => nil},
+      ["{/a,b}", "/x/"] => {"a" => "x", "b" => ""},
+      ["{.a,b}.json", ".x.json"] => {"a" => "x", "b" => nil},
+      ["{a,b,c}", "x,y"] => {"a" => "x", "b" => "y", "c" => nil},
+      ["{/a,b*}", "/x/y"] => {"a" => "x", "b" => ["y"]},
+      ["{/a,b*}", "/x/y/z"] => {"a" => "x", "b" => ["y", "z"]},
+      ["{/a*,b}", "/x/y"] => {"a" => ["x", "y"], "b" => nil},
+      ["{.a,b*}", ".x.y.z"] => {"a" => "x", "b" => ["y", "z"]},
+      # ...and a value goes to the first variable for ; too.
       ["{;a,b}", ";a=1"] => {"a" => "", "b" => nil, "1" => ""},
       ["{;a,b}", ";a=1;b=2"] => {"a" => "1", "b" => "2"},
       ["{;a,b*}x", ";ax"] => {"a" => "", "b" => {}},
-      # With several exploded variables, the first one takes the values for
-      # +, # and ;...
-      ["{+a*,b*}", "x,y"] => {"a" => ["x", "y"], "b" => []},
-      ["{+a*,b*,c}", "x,y,z"] => {"a" => ["x", "y", "z"], "b" => [], "c" => ""},
-      ["{+a*,b,c*}", "x,y"] => {"a" => ["x", "y"], "b" => "", "c" => []},
-      ["{+a*,b}z", "x,yz"] => {"a" => ["x"], "b" => "y"},
+      # With several exploded variables, the first one takes the values...
+      ["{+a*,b*}", "x,y"] => {"a" => ["x", "y"], "b" => nil},
+      ["{+a*,b*,c}", "x,y,z"] => {"a" => ["x", "y", "z"], "b" => nil, "c" => nil},
+      ["{+a*,b,c*}", "x,y"] => {"a" => ["x", "y"], "b" => nil, "c" => nil},
+      ["{+a*,b}z", "x,yz"] => {"a" => ["x", "y"], "b" => nil},
+      # (A name used twice isn't split this way.)
       ["{#a*,c*,b,b}/-", "#k=a;b,n=a,a=b,a=b/-"] => {
         "a" => ["k=a;b", "n=a", "a=b"], "c" => nil, "b" => ""
       },
       ["{;a*,b*}", ";a=1;b=2"] => {"a" => {"a" => "1", "b" => "2"}, "b" => {}},
-      # ...and for ? and &, unless an empty member comes first...
+      # ...for ? and &, unless an empty member comes first...
       ["{?a*,b*}", "?a=1&b=2"] => {"a" => {"a" => "1", "b" => "2"}, "b" => nil},
       ["{?a*,b*,c}", "?a=1&b=2&c=3"] => {
         "a" => {"a" => "1", "b" => "2", "c" => "3"}, "b" => nil, "c" => nil
       },
-      # ...and the last one for /, . and the default operator.
-      ["{/a*,b*}", "/x/y"] => {"a" => [], "b" => ["x", "y"]},
-      ["{/a*,b*}", "//x/y"] => {"a" => [""], "b" => ["x", "y"]},
+      # ...and for /, . and the default operator.
+      ["{/a*,b*}", "/x/y"] => {"a" => ["x", "y"], "b" => nil},
+      ["{/a*,b*}", "//x/y"] => {"a" => ["", "x", "y"], "b" => nil},
       ["{/a*,b,c*}", "/x/y/z"] => {
-        "a" => [], "b" => "", "c" => ["x", "y", "z"]
+        "a" => ["x", "y", "z"], "b" => nil, "c" => nil
       },
-      ["{a*,b*}", ",x,y"] => {"a" => [""], "b" => ["x", "y"]},
+      ["{a*,b*}", ",x,y"] => {"a" => ["", "x", "y"], "b" => nil},
       # An expression directly followed by one that can match anything it
       # could is empty.
       ["{+a}{+b}{+c}", "xyz"] => {"a" => nil, "b" => nil, "c" => "xyz"},
@@ -240,20 +246,23 @@ describe Addressable::Template, "#match" do
         "a" => nil, "b" => nil, "c" => ["x", "y", "z"]
       },
       ["{.a}{c*}", ".x,y"] => {"a" => nil, "c" => [".x", "y"]},
-      ["{a*}{c,d*}", "x,y"] => {"a" => nil, "c" => "", "d" => ["x", "y"]},
+      ["{a*}{c,d*}", "x,y"] => {"a" => nil, "c" => "x", "d" => ["y"]},
       # An exploded {+b*} only ends where a run of characters ends.
       ["{+a}{+b*}x", "p,qx"] => {"a" => "p,q", "b" => nil},
       # {b} can't match "/", so {+a} isn't always empty.
       ["{+a}{b}", "p/q"] => {"a" => "p/", "b" => "q"},
       ["{+a}{b}", "p/qr"] => {"a" => "p/", "b" => "qr"},
       ["{#a}{b}", "#p/q"] => {"a" => "p/", "b" => "q"},
-      # In + and # expressions, the earlier variables take one value each.
-      ["{+v1,v2,v3}", "a"] => {"v1" => "a", "v2" => "", "v3" => ""},
-      ["{+v1,v2,v3}", "a,b"] => {"v1" => "a", "v2" => "b", "v3" => ""},
+      # In + and # expressions, the earlier variables take one value each,
+      # and the last one takes the rest, commas and all.
+      ["{+v1,v2,v3}", "a"] => {"v1" => "a", "v2" => nil, "v3" => nil},
+      ["{+v1,v2,v3}", "a,b"] => {"v1" => "a", "v2" => "b", "v3" => nil},
       ["{+v1,v2,v3}", "a,b,c,d"] => {
         "v1" => "a", "v2" => "b", "v3" => "c,d"
       },
-      ["{+v1,v2,v3}x", "a,bx"] => {"v1" => "a", "v2" => nil, "v3" => "b"},
+      ["{+v1,v2,v3}x", "a,bx"] => {"v1" => "a", "v2" => "b", "v3" => nil},
+      ["{+a,b}", "x,y"] => {"a" => "x", "b" => "y"},
+      ["{\#a,b}", "\#x,y,z"] => {"a" => "x", "b" => "y,z"},
       ["{+v1,v2,v3}x", "a,b,x"] => {"v1" => "a", "v2" => "b", "v3" => ""},
       ["{#v1,v2}", "#,b"] => {"v1" => "", "v2" => "b"},
       ["{+v1,v2},x", "a,b,x"] => {"v1" => "a", "v2" => "b"},
@@ -379,6 +388,54 @@ describe Addressable::Template, "#match" do
       expect(template.match("/x1", processor).mapping).to eq(
         "a" => "x", "b" => "1", "c" => ""
       )
+    end
+  end
+
+  context "when an expression has several variables" do
+    # Expanding a match gives the matched text back, and each variable,
+    # from the first, takes as much as it can: an exploded variable every
+    # member left, and another variable one member, except the last
+    # variable of a + or # expression, which takes the rest.
+    it "reads the values back from the first variable" do
+      rng = Random.new(6570)
+      wrong = []
+      400.times do
+        operator = [nil, "+", "#", "/", "."].sample(random: rng)
+        names = %w(a b c).first(rng.rand(2..3))
+        varspecs = names.map { |name| rng.rand(2) == 0 ? "#{name}*" : name }
+        template = Addressable::Template.new("{#{operator}#{varspecs.join(',')}}")
+        mapping = {}
+        varspecs.each do |varspec|
+          next if rng.rand(4) == 0
+          members = Array.new(rng.rand(1..3)) { ["x", "y", "", "z1"].sample(random: rng) }
+          mapping[varspec.delete("*")] = varspec.end_with?("*") ? members : members.first
+        end
+        uri = template.expand(mapping).to_s
+        extracted = template.extract(uri)
+        if extracted.nil? || template.expand(extracted).to_s != uri
+          wrong << [template.pattern, uri, extracted]
+          next
+        end
+        joiner = {"/" => "/", "." => "."}.fetch(operator, ",")
+        text = uri.sub(/\A[#\/.]/, "")
+        members = uri.empty? ? [] : text.split(joiner, -1)
+        members = [""] if !uri.empty? && members.empty?
+        expected = varspecs.each_with_index.map do |varspec, position|
+          name = varspec.delete("*")
+          value = if members.empty?
+            nil
+          elsif varspec.end_with?("*")
+            members.slice!(0..-1)
+          elsif position == varspecs.size - 1 && ["+", "#"].include?(operator)
+            members.slice!(0..-1).join(joiner)
+          else
+            members.shift
+          end
+          [name, value]
+        end.to_h
+        wrong << [template.pattern, uri, extracted, expected] if extracted != expected
+      end
+      expect(wrong.first(5)).to eq([])
     end
   end
 
