@@ -1215,6 +1215,11 @@ describe Addressable::URI, "when parsed with a host with characters " +
     expect(uri).to eq(Addressable::URI.parse("http://internal.example/"))
   end
 
+  it "should display an A-label of only such characters as it is" do
+    uri = Addressable::URI.parse("http://xn--zug.example/")
+    expect(uri.display_uri.to_s).to eq("http://xn--zug.example/")
+  end
+
   [
     "http://%E2%80%8B/",
     "http://%E2%80%8B.internal.example/",

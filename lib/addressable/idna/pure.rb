@@ -172,6 +172,7 @@ module Addressable
           rescue Addressable::IDNA::PunycodeBadInput,
                  Addressable::IDNA::PunycodeBigOutput,
                  Addressable::IDNA::PunycodeOverflow,
+                 Addressable::IDNA::InvalidLabel,
                  RangeError, ArgumentError
             # toUnicode is explicitly defined as never-fails by the spec
             part

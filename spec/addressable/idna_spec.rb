@@ -220,6 +220,17 @@ shared_examples_for "converting from ASCII to unicode" do
       "xn--zckp1cyg1.sblo.jp")
   end
 
+  # Each decodes to only characters that nameprep maps to nothing, such as
+  # U+200B (xn--zug) or two of them (xn--zuga), so it isn't a valid A-label.
+  %w[xn--kba xn--zug xn--1ug xn--v86c xn--qg7c xn--zuga].each do |label|
+    it "should leave '#{label}' unchanged" do
+      expect(Addressable::IDNA.to_unicode(label)).to eq(label)
+      expect(Addressable::IDNA.to_unicode("a.#{label}.example")).to eq(
+        "a.#{label}.example"
+      )
+    end
+  end
+
   it "should return the identity conversion when the ACE prefix has no suffix" do
     expect(Addressable::IDNA.to_unicode("xn--...-")).to eq("xn--...-")
   end
