@@ -54,7 +54,7 @@
 - Match non-ASCII text in a URI either as written or pct-encoded ([#680])
 - Return copies from `#variables`, `#variable_defaults` and `MatchData#values` ([#619])
 - Split an exploded value of the default, `+` and `#` operators into its members in `#match` and `#extract`: `{a*,b}` on `x,y,z` gives `{"a" => ["x", "y"], "b" => "z"}`, not `{"a" => ["x,y,"], "b" => "z"}` ([#700])
-- Keep everything after the first `=` of each pair in an exploded `;`, `?` or `&` value in `#match` and `#extract`: `{?a*}` on `?k=x=y` gives `{"a" => {"k" => "x=y"}}`, not `{"a" => {"k" => "x"}}` ([#687], [#709])
+- Keep everything after the first `=` of each pair in an exploded `;`, `?` or `&` value in `#match` and `#extract`: `{?a*}` on `?k=x=y` gives `{"a" => {"k" => "x=y"}}`, not `{"a" => {"k" => "x"}}` ([#687])
 
 ### `Addressable::IDNA`
 
@@ -100,7 +100,6 @@
 [#701]: https://github.com/sporkmonger/addressable/pull/701
 [#703]: https://github.com/sporkmonger/addressable/pull/703
 [#706]: https://github.com/sporkmonger/addressable/pull/706
-[#709]: https://github.com/sporkmonger/addressable/pull/709
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 
