@@ -3412,33 +3412,35 @@ describe Addressable::URI, "when normalizing pct-encoded reserved characters" do
   it_normalizes("http://example.com/?q%3D\u0338", "http://example.com/?q%3D%CC%B8")
   it_normalizes("http://example.com/e%CC%81%2F\u00E9", "http://example.com/%C3%A9%2F%C3%A9")
 
-  # NFC turns U+037E GREEK QUESTION MARK into ";", which stands for text
-  # here, so it's encoded.
+  # NFC would turn U+037E GREEK QUESTION MARK into ";", a delimiter, so
+  # U+037E is left as it is.
   it_normalizes(
     "http://example.com/a%CD%BEb?c=1%CD%BEd=2#e%CD%BEf",
-    "http://example.com/a%3Bb?c=1%3Bd=2#e%3Bf"
+    "http://example.com/a%CD%BEb?c=1%CD%BEd=2#e%CD%BEf"
   )
   it_normalizes(
     "http://example.com/a\u037Eb?c=1\u037Ed=2#e\u037Ef",
-    "http://example.com/a%3Bb?c=1%3Bd=2#e%3Bf"
+    "http://example.com/a%CD%BEb?c=1%CD%BEd=2#e%CD%BEf"
   )
-  it_normalizes("http://example.com/?a=%CD%BE;", "http://example.com/?a=%3B%3B",
-    "http://example.com/?a=%3B;")
-  it_normalizes("http://example.com/%CD%BE\u0301", "http://example.com/%3B%CC%81")
+  it_normalizes("http://example.com/?a=%CD%BE;", "http://example.com/?a=%CD%BE%3B",
+    "http://example.com/?a=%CD%BE;")
+  it_normalizes("http://example.com/%CD%BE\u0301", "http://example.com/%CD%BE%CC%81")
   it_normalizes("http://example.com/a%CD%BE%FF", "http://example.com/a%CD%BE%FF")
   it_normalizes("http://example.com/\u1FEF\u212A", "http://example.com/%60K")
 
-  it "encodes a \";\" made by NFC with any character class" do
-    expect(Addressable::URI.normalize_component("a%CD%BEb", "a-z;")).to eq("a%3Bb")
+  it "leaves U+037E out of NFC with any character class" do
+    expect(Addressable::URI.normalize_component("a%CD%BEb", "a-z;")).to eq(
+      "a%CD%BEb"
+    )
     expect(Addressable::URI.normalize_component("a%CD%BEb", "a-z;", "/")).to eq(
-      "a%3Bb"
+      "a%CD%BEb"
     )
     expect(Addressable::URI.normalize_component("a\u037E%41", /[^a-zA-Z;%]/, "%")).to eq(
-      "a%3BA"
+      "a%CD%BEA"
     )
   end
 
-  it "encodes every reserved character that NFC makes" do
+  it "makes no reserved character with NFC" do
     reserved = ":/?#[]@!$&'()*+,;="
     made = (0x80..0x10FFFF).reject { |c| (0xD800..0xDFFF).cover?(c) }.
       map { |c| c.chr(Encoding::UTF_8) }.
@@ -3446,7 +3448,7 @@ describe Addressable::URI, "when normalizing pct-encoded reserved characters" do
       select { |c| reserved.include?(c.unicode_normalize(:nfc)) }
     expect(made).not_to be_empty
     made.each do |c|
-      encoded = "%%%02X" % c.unicode_normalize(:nfc).ord
+      encoded = c.bytes.map { |byte| "%%%02X" % byte }.join
       uri = Addressable::URI.parse("http://example.com/a#{c}?b#{c}#c#{c}")
       expect(uri.normalize.to_s).to eq(
         "http://example.com/a#{encoded}?b#{encoded}#c#{encoded}"
@@ -3480,16 +3482,16 @@ describe Addressable::URI, "when normalizing pct-encoded reserved characters" do
     runs.map do |kind, text|
       next text if kind == :kept
       characters = if valid
-        # NFC makes ";" of U+037E, which stays encoded.
+        # NFC would make ";" of U+037E, so it's left as it is.
         text.force_encoding(Encoding::UTF_8).split(/(\u037E)/).
           each_with_index.flat_map do |part, index|
-          index.odd? ? ["%3B"] : part.unicode_normalize(:nfc).chars
+          index.odd? ? [part] : part.unicode_normalize(:nfc).chars
         end
       else
         text.bytes.map { |byte| byte.chr.b }
       end
       characters.map do |character|
-        if character == "%3B" || character =~ /\A[#{unreserved}#{allowed}]\z/
+        if character =~ /\A[#{unreserved}#{allowed}]\z/
           character
         else
           character.bytes.map { |byte| "%%%02X" % byte }.join
