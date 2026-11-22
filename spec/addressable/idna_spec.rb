@@ -207,6 +207,25 @@ shared_examples_for "converting from unicode to ASCII" do
       expect(Addressable::IDNA.to_ascii(unicode)).to eq(ascii)
     end
   end
+
+  it "should read the bytes of a binary string as UTF-8" do
+    expect(Addressable::IDNA.to_ascii("b\xC3\xBCcher.example".b)).to eq(
+      "xn--bcher-kva.example"
+    )
+  end
+
+  {
+    "binary" => Encoding::BINARY,
+    "ISO-8859-1" => Encoding::ISO_8859_1,
+    "UTF-8" => Encoding::UTF_8
+  }.each do |name, encoding|
+    it "should raise for bytes that aren't UTF-8 in a #{name} string" do
+      input = "caf\xE9.example".dup.force_encoding(encoding)
+      expect do
+        Addressable::IDNA.to_ascii(input)
+      end.to raise_error(ArgumentError)
+    end
+  end
 end
 
 shared_examples_for "converting from ASCII to unicode" do
@@ -719,6 +738,25 @@ begin
     it_should_behave_like "converting from unicode to ASCII"
     it_should_behave_like "converting from ASCII to unicode"
     it_should_behave_like "matching display-changing characters"
+
+    {
+      "binary" => Encoding::BINARY,
+      "ISO-8859-1" => Encoding::ISO_8859_1
+    }.each do |name, encoding|
+      it "should raise for bytes that aren't UTF-8 in a #{name} string " +
+          "converted to unicode" do
+        input = "caf\xE9.example".dup.force_encoding(encoding)
+        expect do
+          Addressable::IDNA.to_unicode(input)
+        end.to raise_error(ArgumentError)
+      end
+    end
+
+    it "should raise for a UTF-16 string, not read its bytes as UTF-8" do
+      input = "example.com".encode(Encoding::UTF_16LE)
+      expect { Addressable::IDNA.to_ascii(input) }.to raise_error(EncodingError)
+      expect { Addressable::IDNA.to_unicode(input) }.to raise_error(EncodingError)
+    end
   end
 rescue LoadError => error
   raise error if ENV["CI"] && TestHelper.native_supported?
