@@ -636,9 +636,10 @@ describe Addressable::Template, "#match" do
 
   context "with adversarial input" do
     # A shorter payload for these where the template commits to choices, as
-    # it does where the regular expression engine can't match in linear
-    # time, to keep slow runners within the time limit. It is still long
-    # enough for backtracking that grows exponentially to time out.
+    # it does where the regular expression engine can't match the regexp
+    # that keeps every choice open in linear time, to keep slow runners
+    # within the time limit. It is still long enough for backtracking that
+    # grows exponentially to time out.
     committed_payloads = {
       "{+d}{/d,c*}\#{+b*,c,a*}&{?c*}" => ("/a%23" * 2000) + " ",
       ",{c*,d*,a*},{+a*,d,b*}.json" => ("," * 250) + "?.json"
@@ -763,11 +764,17 @@ describe Addressable::Template, "#match" do
       long = "a long payload for #{name} in linear time"
       committed_description =
         committed_payloads.key?(name) ? "a shorter payload for #{name}" : long
+      # The template commits to choices itself where the engine can't match
+      # the regexp that keeps every choice open in linear time.
+      commits = committed_payloads.key?(name) &&
+        template.to_regexp == TemplateMatchSpec.committed(
+          Addressable::Template.new(template.pattern)
+        ).to_regexp
       payload, description =
-        if Addressable::Template.const_get(:LINEAR_TIME_CHECKED)
-          [long_payload, long]
-        else
+        if commits
           [committed_payload, committed_description]
+        else
+          [long_payload, long]
         end
 
       it "matches #{description}" do
