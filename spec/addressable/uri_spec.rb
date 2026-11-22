@@ -21,6 +21,7 @@ require "addressable/uri"
 require "uri"
 require "ipaddr"
 require "yaml"
+require "timeout"
 
 if !"".respond_to?("force_encoding")
   class String
@@ -8125,5 +8126,108 @@ describe Addressable::URI, "YAML safe loading" do
   it "doesn't serialize anonymous objects" do
     url = Addressable::URI.parse("http://example.com/")
     expect(YAML.dump(url)).to_not include("!ruby/object {}")
+  end
+end
+
+describe Addressable::URI, "when given a port" do
+  let(:largest) { Addressable::URI.send(:const_get, :LARGEST_PORT) }
+
+  it "takes the largest port from the largest integer without a bignum" do
+    require "rbconfig/sizeof"
+    if defined?(RbConfig::LIMITS)
+      expect(largest).to eq(RbConfig::LIMITS["FIXNUM_MAX"])
+    else
+      # Rubies before 2.5 don't have RbConfig::LIMITS.
+      expect(largest).to eq((1 << (0.size * 8 - 2)) - 1)
+    end
+  end
+
+  it "keeps a port up to the largest integer without a bignum" do
+    uri = Addressable::URI.parse("x://h.example:#{largest}/")
+    expect(uri.port).to eq(largest)
+  end
+
+  it "raises for a port above the largest integer without a bignum" do
+    expect do
+      Addressable::URI.parse("x://h.example:#{largest + 1}/")
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "raises for a long port without converting it" do
+    input = "x://h.example:" + ("9" * 1_000_000) + "/"
+    expect do
+      Timeout.timeout(1) { Addressable::URI.parse(input) }
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "reads a port after its leading zeros" do
+    uri = Addressable::URI.parse("x://h.example:" + ("0" * 1_000_000) + "80/")
+    expect(uri.port).to eq(80)
+    expect(Addressable::URI.parse("http://h.example:00080/").port).to eq(80)
+  end
+
+  it "still gives no port for a port of zero" do
+    expect(Addressable::URI.parse("http://h.example:0/").port).to be_nil
+    expect(Addressable::URI.parse("http://h.example:000/").port).to be_nil
+  end
+
+  it "raises for an Integer port above the largest integer without a bignum" do
+    uri = Addressable::URI.parse("x://h.example/")
+    expect { uri.port = largest + 1 }.to raise_error(
+      Addressable::URI::InvalidURIError
+    )
+    expect { uri.port = 10**1000 }.to raise_error(
+      Addressable::URI::InvalidURIError
+    )
+  end
+
+  Addressable::URI.port_mapping.each_key do |scheme|
+    it "keeps port 65535 in a #{scheme} URI" do
+      uri = Addressable::URI.parse("#{scheme}://h.example:65535/")
+      expect(uri.port).to eq(65535)
+    end
+
+    it "raises for a port above 65535 in a #{scheme} URI" do
+      expect do
+        Addressable::URI.parse("#{scheme}://h.example:65536/")
+      end.to raise_error(Addressable::URI::InvalidURIError)
+    end
+  end
+
+  it "raises for a port above 65535 in a scheme written in uppercase" do
+    expect do
+      Addressable::URI.parse("HTTP://h.example:70000/")
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "raises for a port above 65535 in an ssh+svn URI" do
+    expect do
+      Addressable::URI.parse("ssh+svn://h.example:70000/")
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "keeps a port above 65535 in a URI with another scheme" do
+    expect(Addressable::URI.parse("x://h.example:70000/").port).to eq(70000)
+    expect(Addressable::URI.parse("//h.example:70000/").port).to eq(70000)
+  end
+
+  it "raises when the scheme set later doesn't allow the port" do
+    uri = Addressable::URI.new(host: "h.example", port: 70000)
+    expect { uri.scheme = "http" }.to raise_error(
+      Addressable::URI::InvalidURIError
+    )
+    expect do
+      Addressable::URI.new(scheme: "https", host: "h.example", port: 70000)
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "raises when the port set later is above 65535" do
+    uri = Addressable::URI.parse("http://h.example/")
+    expect { uri.port = 65536 }.to raise_error(
+      Addressable::URI::InvalidURIError
+    )
+    expect { uri.port = "70000" }.to raise_error(
+      Addressable::URI::InvalidURIError
+    )
   end
 end

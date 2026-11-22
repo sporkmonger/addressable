@@ -155,6 +155,21 @@ module Addressable
       "prospero" => 1525
     }.freeze
 
+    # The largest port, the largest integer the platform stores without a
+    # bignum. A port is an Integer, and on a Ruby built without GMP,
+    # converting a long run of digits takes time quadratic in its length, so
+    # a longer one is rejected before it's converted. Rubies before 2.5
+    # don't have RbConfig::LIMITS, so it's worked out from the word size.
+    LARGEST_PORT = begin
+      require "rbconfig/sizeof"
+      RbConfig::LIMITS["FIXNUM_MAX"]
+    rescue LoadError, NameError
+      nil
+    end || (1 << (0.size * 8 - 2)) - 1
+    # The schemes of PORT_MAPPING run over TCP or UDP, whose ports are 16-bit.
+    LARGEST_TRANSPORT_PORT = 65535
+    private_constant :LARGEST_PORT, :LARGEST_TRANSPORT_PORT
+
     ##
     # Returns a URI object based on the parsed string.
     #
@@ -1502,12 +1517,24 @@ module Addressable
         raise InvalidURIError, "Invalid encoding in port"
       end
 
+      # A large Integer is rejected before it's written out as digits.
+      if new_port.is_a?(Integer) && new_port > LARGEST_PORT
+        raise InvalidURIError, "Port number too large"
+      end
+
       if new_port != nil && !(new_port.to_s =~ /\A\d+\z/)
         raise InvalidURIError,
           "Invalid port number: #{new_port.inspect}"
       end
 
-      @port = new_port.to_s.to_i
+      digits = new_port.to_s.sub(/\A0+/, EMPTY_STR)
+      largest = LARGEST_PORT.to_s
+      if digits.size > largest.size ||
+          (digits.size == largest.size && digits > largest)
+        raise InvalidURIError, "Port number too large"
+      end
+
+      @port = digits.to_i
       @port = nil if @port == 0
 
       # Reset dependent values
@@ -2594,6 +2621,12 @@ module Addressable
           (self.path == nil || self.path.empty?)
         raise InvalidURIError,
           "Absolute URI missing hierarchical segment: '#{self.to_s}'"
+      end
+      if self.port != nil && self.port > LARGEST_TRANSPORT_PORT &&
+          URI.port_mapping.key?(self.normalized_scheme)
+        raise InvalidURIError,
+          "Port number out of range for #{self.normalized_scheme}: " +
+          "#{self.port}"
       end
       if self.host == nil
         if self.port != nil ||
