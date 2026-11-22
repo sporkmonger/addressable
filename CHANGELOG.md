@@ -31,6 +31,7 @@
 - `Addressable::Template#expand` pct-encodes non-ASCII literals: `café/{var}` gives `caf%C3%A9/value`, not `café/value` ([#676])
 - `Addressable::Template#match` and `#extract` read a label value that contains `.` when the expression is set off by delimiters: `/f{.ext}` on `/f.tar.gz` gives `{"ext" => "tar.gz"}`, not `nil`, so code that tries several templates may pick a different one ([#692])
 - `Addressable::Template#match` and `#extract` keep the empty members of an exploded value: `{/segments*}` on `/a/b/` gives `{"segments" => ["a", "b", ""]}`, not `{"segments" => ["a", "b"]}`, and on `/` gives `{"segments" => [""]}`, not `{"segments" => []}` ([#700])
+- `Addressable::Template#match` and `#extract` give a value that more than one variable of a `/`, `.`, `+`, `#` or default expression could take to the first of them, leaving a later variable undefined when nothing is left for it: `{/a,b*}` on `/x/y/z` gives `{"a" => "x", "b" => ["y", "z"]}`, not `{"a" => "", "b" => ["x", "y", "z"]}` ([#715])
 - The pure-Ruby `Addressable::IDNA.to_ascii` and `.to_unicode` keep trailing empty labels, as `idn-ruby` does: `bücher.example.` gives `xn--bcher-kva.example.`, not `xn--bcher-kva.example` ([#609])
 
 ### `Addressable::URI`
@@ -57,7 +58,7 @@
 - Allow variable names that start with a digit, such as `{42}` ([#684])
 - Match non-ASCII text in a URI either as written or pct-encoded ([#680])
 - Return copies from `#variables`, `#variable_defaults` and `MatchData#values` ([#619])
-- Split an exploded value of the default, `+` and `#` operators into its members in `#match` and `#extract`: `{a*,b}` on `x,y,z` gives `{"a" => ["x", "y"], "b" => "z"}`, not `{"a" => ["x,y,"], "b" => "z"}` ([#700])
+- Split an exploded value of the default, `+` and `#` operators into its members in `#match` and `#extract`: `{a*,b}` on `x,y,z` gives `{"a" => ["x", "y", "z"], "b" => nil}`, not `{"a" => ["x,y,"], "b" => "z"}` ([#700], [#715])
 - Keep everything after the first `=` of each pair in an exploded `;`, `?` or `&` value in `#match` and `#extract`: `{?a*}` on `?k=x=y` gives `{"a" => {"k" => "x=y"}}`, not `{"a" => {"k" => "x"}}` ([#687])
 
 ### `Addressable::IDNA`
@@ -109,6 +110,7 @@
 [#711]: https://github.com/sporkmonger/addressable/pull/711
 [#712]: https://github.com/sporkmonger/addressable/pull/712
 [#714]: https://github.com/sporkmonger/addressable/pull/714
+[#715]: https://github.com/sporkmonger/addressable/pull/715
 
 ## Addressable 2.9.2 <a name="v2.9.2">
 

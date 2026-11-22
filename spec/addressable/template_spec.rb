@@ -1581,7 +1581,7 @@ describe Addressable::Template do
         ).match("http://example.com/docs/readme/edit")
       }
       its(:variables){ should == ["base", "file"] }
-      its(:captures){ should == [nil, "docs/readme"] }
+      its(:captures){ should == ["docs/readme", nil] }
     end
     context "multi-variable # expression followed by a literal" do
       subject {
@@ -1590,7 +1590,7 @@ describe Addressable::Template do
         ).match("http://example.com/#x/")
       }
       its(:variables){ should == ["a", "b", "c"] }
-      its(:captures){ should == [nil, "x", nil] }
+      its(:captures){ should == ["x", nil, nil] }
     end
     context "+ expression with a variable before an explode modifier" do
       subject {
@@ -1599,7 +1599,7 @@ describe Addressable::Template do
         ).match("http://example.com/a/b")
       }
       its(:variables){ should == ["path", "segments"] }
-      its(:captures){ should == ["a/b", []] }
+      its(:captures){ should == ["a/b", nil] }
     end
   end
 

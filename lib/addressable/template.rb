@@ -607,9 +607,13 @@ module Addressable
         return Addressable::Template::MatchData.new(uri, self, mapping)
       elsif expansions.size > 0
         index = 0
+        split = !(processor && processor.respond_to?(:match))
         expansions.each do |expansion|
           _, operator, varlist = *expansion.match(EXPRESSION)
           varspecs = varlist.split(',')
+          values = if split && varspecs.size > 1
+            split_from_left(operator, varspecs, matched, index)
+          end
           varspecs.each_with_index do |varspec, position|
             _, name, modifier = *varspec.match(VARSPEC)
             mapping[name] ||= nil
@@ -618,7 +622,9 @@ module Addressable
               unparsed_value = unparsed_values[index]
               name = varspec[VARSPEC, 1]
               value = unparsed_value
-              if value && modifier == '*'
+              if values
+                value = values[position]
+              elsif value && modifier == '*'
                 # Members of the default, + and # operators are joined with
                 # a comma. A member can be empty, but joiners at the end of
                 # the value can be the ones before the later variables with
@@ -1496,6 +1502,47 @@ module Addressable
         end
       end
       value.dup.force_encoding(Encoding::UTF_8)
+    end
+
+    ##
+    # Splits the text an expression matched among its variables, when
+    # more than one split would expand to it. RFC 6570 doesn't say which
+    # split to choose, so each variable, from the first, takes as much as it
+    # can: an exploded variable every member left, and any other variable
+    # one member, except that the last variable of a + or # expression,
+    # whose values may contain commas, takes the rest. A variable with
+    # nothing left is undefined. So {/a*,b} reads /x/y as a = ["x", "y"]
+    # and {/a,b*} reads /x/y/z as a = "x" and b = ["y", "z"].
+    #
+    # @return [Array, nil] Each variable's unparsed value, or nil for an
+    #   operator whose values aren't split by position, an expression that
+    #   repeats a name, or when the variables can't take every member.
+    def split_from_left(operator, varspecs, matched, index)
+      return nil unless [nil, '+', '#', '/', '.'].include?(operator)
+      # A name used twice must have one value; that isn't split here.
+      names = varspecs.map { |varspec| varspec[VARSPEC, 1] }
+      return nil if names.uniq.size < names.size
+      groups = ((index + 1)..(index + varspecs.size)).select do |group|
+        matched[group]
+      end
+      return nil if groups.empty?
+      joiner = JOINERS.fetch(operator, ',')
+      text = matched.string[matched.begin(groups.first)...matched.end(groups.last)]
+      members = text.split(joiner, -1)
+      members = [''] if members.empty?
+      last = varspecs.size - 1
+      values = varspecs.each_with_index.map do |varspec, position|
+        if members.empty?
+          nil
+        elsif varspec[VARSPEC, 2] == '*'
+          members.slice!(0..-1)
+        elsif position == last && (operator == '+' || operator == '#')
+          members.slice!(0..-1).join(joiner)
+        else
+          members.shift
+        end
+      end
+      members.empty? ? values : nil
     end
 
     ##
