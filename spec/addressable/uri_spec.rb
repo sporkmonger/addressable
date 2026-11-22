@@ -8202,8 +8202,11 @@ describe Addressable::URI, "when given a port" do
 
   it "raises for a long port without converting it" do
     allow_any_instance_of(String).to receive(:to_i).and_wrap_original do |to_i, *args|
-      digits = to_i.receiver
-      raise "converted a port of #{digits.size} digits" if digits.size > 100
+      string = to_i.receiver
+      if string.size > 100
+        raise "String#to_i was called on a #{string.size}-character string; " \
+          "a long port should be rejected before it is converted"
+      end
       to_i.call(*args)
     end
     input = "x://h.example:" + ("9" * 1_000_000) + "/"
