@@ -103,6 +103,41 @@ $ brew install libidn # OS X
 $ gem install idn-ruby
 ```
 
+## Supported Ruby versions
+
+Addressable supports Ruby 3.3 or later, JRuby 10 or later, and TruffleRuby
+releases compatible with Ruby 3.3 or later. Ruby 3.2 and earlier, and
+JRuby 9.4, are no longer supported. Addressable still installs on them for
+now, and a future version of Addressable will require Ruby 3.3. On these
+environments, Addressable gives a deprecation warning when it's loaded. Like
+Ruby's own deprecation warnings, it's only shown when they're turned on,
+with `-w`, `-W:deprecated` or `Warning[:deprecated] = true` (only `-w` on
+Ruby 2.6 and earlier).
+
+### Untrusted input on Ruby 3.3, JRuby and TruffleRuby
+
+Security reports for issues that only affect Ruby 3.3, JRuby or
+TruffleRuby aren't accepted (see [SECURITY.md](SECURITY.md)). If you run
+Addressable on one of them and pass it untrusted input, limit how long it
+can spend on that input.
+
+On Ruby 3.3 and JRuby, wrap calls that handle untrusted input in a timeout:
+
+```ruby
+require "timeout"
+
+uri = Timeout.timeout(1) { Addressable::URI.parse(untrusted_input) }
+```
+
+`Timeout.timeout` can interrupt the block at any point, so keep the block
+small. On Ruby 3.3, `Regexp.timeout` is an alternative, but it applies to
+every regexp in the process.
+
+On TruffleRuby, `Timeout.timeout` can't always interrupt work that's
+already in progress. Limit the length of untrusted input instead, for
+example by rejecting a URI longer than a few thousand characters before
+passing it to Addressable. A length limit works on Ruby 3.3 and JRuby too.
+
 ## Semantic Versioning
 
 This project uses [Semantic Versioning](https://semver.org/). You can (and should) specify your
