@@ -1,6 +1,6 @@
 # Changelog
 
-## Addressable 2.10.0 (unreleased) <a name="v2.10.0">
+## Addressable 2.10.0 <a name="v2.10.0">
 
 ### Breaking changes
 
