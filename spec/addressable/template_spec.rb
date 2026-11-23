@@ -1086,7 +1086,7 @@ describe "Expansion" do
     end
 
     it "builds the regexp for long templates with non-ASCII literals in " +
-        "linear time" do
+        "linear time", regexp_timing: true do
       # Compared with ASCII literals on the same runner, so that a slow or
       # busy runner doesn't fail the spec. Finding each expression by
       # character offset, which is quadratic, took over five times as long at
@@ -1108,7 +1108,7 @@ describe "Expansion" do
     end
 
     it "builds the regexp for long templates of adjacent expressions in " +
-        "linear time" do
+        "linear time", regexp_timing: true do
       # Compared with expressions separated by literals on the same runner,
       # so that a slow or busy runner doesn't fail the spec. Looking through
       # every later expression for one that could start with a comma, which
