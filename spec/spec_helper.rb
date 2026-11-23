@@ -82,9 +82,11 @@ RSpec.configure do |config|
   # TruffleRuby, and JRuby on Windows, take minutes longer than other Rubies
   # to build and match the long templates in these specs. Their results are
   # still checked by every other template spec, and JRuby runs these too on
-  # other platforms.
+  # other platforms. SKIP_REGEXP_TIMING=true leaves them out anywhere, as
+  # CI does on its slowest runner.
   if RUBY_ENGINE == "truffleruby" ||
-      (RUBY_ENGINE == "jruby" && Gem.win_platform?)
+      (RUBY_ENGINE == "jruby" && Gem.win_platform?) ||
+      ENV["SKIP_REGEXP_TIMING"] == "true"
     config.filter_run_excluding regexp_timing: true
   end
 
