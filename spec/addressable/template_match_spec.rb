@@ -804,7 +804,7 @@ describe Addressable::Template, "#match" do
           [long_payload, long]
         end
 
-      it "matches #{description}" do
+      it "matches #{description}", regexp_timing: true do
         expect do
           Timeout.timeout(10) do
             variants.call(payload).each { |variant| template.match(variant) }
@@ -812,7 +812,8 @@ describe Addressable::Template, "#match" do
         end.not_to raise_error
       end
 
-      it "matches #{committed_description} when it commits to choices" do
+      it "matches #{committed_description} when it commits to choices",
+          regexp_timing: true do
         committed = TemplateMatchSpec.committed(
           Addressable::Template.new(template.pattern)
         )
