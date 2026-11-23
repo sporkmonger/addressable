@@ -562,10 +562,16 @@ module Addressable
           "got #{return_type.inspect}"
       end
 
-      result = uri.gsub(/%[0-9a-f]{2}/i) do |sequence|
+      encoding = uri.encoding
+      # A decoded byte on its own may not be a valid character, so the
+      # result is built from the string's bytes and given its encoding once.
+      # A string that can't be searched as it is raises as it did, from
+      # gsub on the string itself.
+      source = encoding.ascii_compatible? && uri.valid_encoding? ? uri.b : uri
+      result = source.gsub(/%[0-9a-f]{2}/i) do |sequence|
         c = sequence[1..3].to_i(16).chr
-        c.force_encoding(sequence.encoding)
-        leave_encoded.include?(c) ? sequence : c
+        c.force_encoding(encoding)
+        leave_encoded.include?(c) ? sequence : c.force_encoding(source.encoding)
       end
 
       result.force_encoding(Encoding::UTF_8)
