@@ -2703,7 +2703,7 @@ module Addressable
           "Cannot have a path with two leading slashes " +
           "without an authority set: '#{self.to_s}'"
       end
-      if !self.host.nil? && self.host =~ /[<>{}\/\\\?\#\@"[[:space:]]]/
+      if !self.host.nil? && self.host =~ /[<>{}\/\\\?\#\@"`[[:space:]]]/
         raise InvalidURIError, "Invalid character in host: '#{self.host.to_s}'"
       end
       if !self.host.nil? && self.host =~ /[\[\]]/ && !ip_literal?(self.host)

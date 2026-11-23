@@ -1,5 +1,13 @@
 # Changelog
 
+## Addressable 2.11.0 (unreleased) <a name="v2.11.0">
+
+### Breaking changes
+
+- `Addressable::URI.parse`, `.new` and the host setters raise `InvalidURIError` for a backtick in the host, such as ``http://`www.example.com/``, which they accepted ([#511])
+
+[#511]: https://github.com/sporkmonger/addressable/issues/511
+
 ## Addressable 2.10.0 <a name="v2.10.0">
 
 ### Breaking changes

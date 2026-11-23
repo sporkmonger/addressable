@@ -253,6 +253,31 @@ describe Addressable::URI, "when created with an invalid host" do
   end
 end
 
+describe Addressable::URI, "when created with a backtick in the host" do
+  it "should raise an error" do
+    expect do
+      Addressable::URI.new(:host => "`invalid")
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error when parsed" do
+    expect do
+      Addressable::URI.parse("http://`www.example.com/")
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should raise an error when the host is assigned" do
+    expect do
+      Addressable::URI.parse("http://example.com/").host = "exa`mple.com"
+    end.to raise_error(Addressable::URI::InvalidURIError)
+  end
+
+  it "should accept a pct-encoded backtick" do
+    uri = Addressable::URI.parse("http://ex%60ample.com/")
+    expect(uri.normalized_host).to eq("ex%60ample.com")
+  end
+end
+
 describe Addressable::URI, "when created with a host consisting of " +
     "sub-delims characters" do
   it "should not raise an error" do
