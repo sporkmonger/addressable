@@ -147,9 +147,7 @@ jobs:
           - { os: ubuntu-22.04, ruby: ruby }
           # macOS
           - { os: macos-15, ruby: ruby } # arm64
-          # The slowest runner, so it leaves out the regexp timing specs,
-          # which the other MRI jobs run
-          - { os: macos-15-intel, ruby: ruby, skip-regexp-timing: true } # EoL August 2027 (https://github.com/actions/runner-images/issues/13046)
+          - { os: macos-15-intel, ruby: ruby } # EoL August 2027 (https://github.com/actions/runner-images/issues/13046)
           - { os: macos-26, ruby: ruby } # arm64
           # Windows
           - { os: windows-2022, ruby: ruby }
@@ -161,8 +159,10 @@ jobs:
     env:
       BUNDLE_GEMFILE: ${{ matrix.gemfile }}
       BUNDLE_WITHOUT: development:coverage
-      # Read by spec/spec_helper.rb
-      SKIP_REGEXP_TIMING: ${{ matrix.skip-regexp-timing || false }}
+      # Read by spec/spec_helper.rb. The slowest runner leaves out the regexp
+      # timing specs, which the other MRI jobs run. Set from the runner, not
+      # a matrix key, so the job keeps the name the ruleset requires.
+      SKIP_REGEXP_TIMING: ${{ matrix.os == 'macos-15-intel' }}
       # Workaround for Windows JRuby JDK issue
       # https://github.com/ruby/setup-ruby/issues/339
       # https://github.com/jruby/jruby/issues/7182#issuecomment-1112953015
