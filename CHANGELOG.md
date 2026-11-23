@@ -65,6 +65,7 @@
 - Fix `#normalized_host`, `#normalize`, `#display_uri` and `#===` raising the IDNA backend's error for a host it can't convert to a domain name; the host stays pct-encoded: with `idn-ruby`, `http://a%EF%BF%BD.example/` normalizes to itself instead of raising `IDN::Idna::IdnaError` ([#714])
 - Fix `#display_uri` showing a different name for a host whose A-label has a pct-encoded character: `http://xn--mn%3Fchen-n2a.example/` displays as itself, not as `http://mn%ã3Fchen.example/` ([#716])
 - Fix `#normalize` decoding a pct-encoded bracket in a registered name: `http://a%5Db.example/` gives `http://a%5Db.example/`, not `http://a]b.example/` ([GHSA-c7j3-jq7p-v3pr])
+- Speed up `.unencode` on TruffleRuby for a long run of pct-encoded bytes that aren't ASCII ([#720])
 
 ### `Addressable::Template`
 
@@ -137,6 +138,7 @@
 [#714]: https://github.com/sporkmonger/addressable/pull/714
 [#715]: https://github.com/sporkmonger/addressable/pull/715
 [#716]: https://github.com/sporkmonger/addressable/pull/716
+[#720]: https://github.com/sporkmonger/addressable/pull/720
 [GHSA-c7j3-jq7p-v3pr]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-c7j3-jq7p-v3pr
 [GHSA-fccw-gx6q-mh6c]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-fccw-gx6q-mh6c
 [GHSA-grhv-8jgq-r74x]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-grhv-8jgq-r74x
