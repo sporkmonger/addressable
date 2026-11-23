@@ -2583,6 +2583,16 @@ module Addressable
     #
     # @return [Array<String>]
     def literal_characters(literal)
+      build_memo([:literal, literal]) { uncached_literal_characters(literal) }
+    end
+
+    ##
+    # Works out #literal_characters.
+    #
+    # @param (see #literal_characters)
+    #
+    # @return (see #literal_characters)
+    def uncached_literal_characters(literal)
       literal.chars.flat_map do |character|
         if character =~ LITERAL_ENCODE
           hex = character.unpack('C*').map { |byte| '%02X' % byte }.join
@@ -2608,6 +2618,25 @@ module Addressable
     #
     # @return [Array] The characters, and the final literal text or nil.
     def characters_after(index, expressions, literals, first = index + 1)
+      suffixes = character_suffixes(expressions, literals)
+      # Past the last literal text, there's none to count.
+      texts = suffixes[:literals][first]
+      key = [:after, expressions.object_id, literals.object_id,
+             texts && texts.object_id,
+             suffixes[:expressions][index + 1].object_id,
+             first < literals.size]
+      build_memo(key) do
+        uncached_characters_after(index, expressions, literals, first)
+      end
+    end
+
+    ##
+    # Works out #characters_after.
+    #
+    # @param (see #characters_after)
+    #
+    # @return (see #characters_after)
+    def uncached_characters_after(index, expressions, literals, first)
       later = literals[first..-1] || []
       final = later.last
       # A "#" can also be matched as "%23", so longer literal text with one
@@ -2649,13 +2678,19 @@ module Addressable
     # @return [Hash] The suffixes, as :expressions and :literals.
     def character_suffixes(expressions, literals)
       build_cached(:suffixes, expressions, literals) do
+        # Where a set adds nothing, the one after it is kept, so that
+        # positions with the same characters share one object.
+        widen = lambda do |sets, characters|
+          wider = characters | sets.first
+          sets.unshift(wider.size == sets.first.size ? sets.first : wider)
+        end
         after = [[]]
         expressions.reverse_each do |expression|
-          after.unshift(contained_characters(expression) | after.first)
+          widen.call(after, contained_characters(expression))
         end
         texts = [[]]
         literals[0...-1].reverse_each do |text|
-          texts.unshift(literal_characters(text) | texts.first)
+          widen.call(texts, literal_characters(text))
         end
         { expressions: after, literals: texts }
       end
@@ -2687,9 +2722,21 @@ module Addressable
     #
     # @return [Object] The value.
     def build_cached(kind, expressions, literals)
+      build_memo([kind, expressions.object_id, literals.object_id]) { yield }
+    end
+
+    ##
+    # A value worked out once per key while a template is built; outside a
+    # build, it's worked out each time. Long templates repeat the same
+    # expression in the same surroundings, so the key is what the value
+    # depends on, not the expression's index.
+    #
+    # @param [Array] key What the value depends on.
+    #
+    # @return [Object] The value.
+    def build_memo(key)
       cache = Thread.current[BUILD_CACHE]
       return yield unless cache
-      key = [kind, expressions.object_id, literals.object_id]
       cache.fetch(key) { cache[key] = yield }
     end
 
@@ -2742,9 +2789,28 @@ module Addressable
       literal = literals[index + 1]
       return nil if literal.empty?
       group ||= operator == '+' || operator == '#' ? RESERVED : UNRESERVED
+      after = characters_after(index, expressions, literals, index + 2)
+      key = [:sets, expressions.object_id, literals.object_id, group,
+             after.object_id, literal]
+      build_memo(key) do
+        sets_after(group, literal, after, expressions, literals)
+      end
+    end
+
+    ##
+    # Works out #value_sets once the expression is known to have them.
+    #
+    # @param [String] group The regexp source for a character of the value.
+    # @param [String] literal The literal text after the expression.
+    # @param [Array] after What #characters_after gives for the expression.
+    # @param [Array<String>] expressions The pattern's expressions.
+    # @param [Array<String>] literals
+    #   The literal text before each expression, and after the last one.
+    #
+    # @return [Hash, nil] The sets, or nil if the value doesn't skip any.
+    def sets_after(group, literal, after, expressions, literals)
       value = group_characters(group)
-      outside, final =
-        characters_after(index, expressions, literals, index + 2)
+      outside, final = after
       # The final character can end the URI, so only taking characters up
       # front may count it as one that nothing after can contain.
       strict = outside - final_characters(final)
@@ -2846,6 +2912,30 @@ module Addressable
                       group = nil, scan = true)
       sets = value_sets(index, expressions, literals, group)
       return nil unless sets
+      following = (index + 1...expressions.size).find { |later| !empties[later] }
+      # The expression that follows directly, past any that only match
+      # nothing, if only empty literal text comes before it.
+      next_expression = following &&
+        literals[(index + 2)..following].all?(&:empty?) &&
+        expressions[following]
+      key = [:bounded, sets.object_id, scan, next_expression,
+             literal_sources[index + 1]]
+      build_memo(key) do
+        bounded_source(sets, scan, next_expression, literal_sources[index + 1])
+      end
+    end
+
+    ##
+    # Works out #bounded_value from the expression's value sets.
+    #
+    # @param [Hash] sets What #value_sets gives for the expression.
+    # @param [TrueClass, FalseClass] scan See #bounded_value.
+    # @param [String, nil] next_expression
+    #   The expression that follows directly, or nil if none does.
+    # @param [String] literal_source The regexp source of the literal text.
+    #
+    # @return [String] The source.
+    def bounded_source(sets, scan, next_expression, literal_source)
       value, final, text, last, guard, eaten, final_guard =
         sets.values_at(:value, :final, :text, :last, :guard, :eaten,
                        :final_guard)
@@ -2876,12 +2966,11 @@ module Addressable
         # text is pct-encoded after it.
         source << "(?:#{escaped}#{take_through(value - [last], eaten, final)})??"
       end
-      following = (index + 1...expressions.size).find { |later| !empties[later] }
-      if following && literals[(index + 2)..following].all?(&:empty?) &&
-          !last && (text - absorbed(expressions[following], text)).empty?
-        stops = tail - absorbed(expressions[following], tail)
+      if next_expression &&
+          !last && (text - absorbed(next_expression, text)).empty?
+        stops = tail - absorbed(next_expression, tail)
         within = value_class(tail - stops)
-        first = "(?>#{within}*?(?=#{literal_sources[index + 1]}))"
+        first = "(?>#{within}*?(?=#{literal_source}))"
         source << (stops.empty? ? first :
           "(?:(?>#{within}*+#{character_set(stops)}))*?#{first}")
       else

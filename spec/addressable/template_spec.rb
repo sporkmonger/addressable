@@ -3248,3 +3248,55 @@ describe Addressable::Template, "extracting a label value that contains a dot" d
     end.not_to raise_error
   end
 end
+
+describe Addressable::Template, "when building its regexp" do
+  # Within a build, what an expression's regexp depends on is worked out
+  # once for each set of surroundings and shared by the expressions that
+  # have them. Working it out again for every expression must give the same
+  # regexps, both where every choice is kept open and where the template
+  # commits to choices.
+  it "gives the same regexps as when each expression is worked out alone" do
+    random = Random.new(20_261_123)
+    operators = ["", "+", "#", ".", "/", ";", "?", "&"]
+    pieces = ["", "", "/", "-", ".", ",", "#", "é", "x", ";", "=",
+              "%23", ".json", "/x/"]
+    pick = lambda { |values| values[random.rand(values.size)] }
+    patterns = Array.new(300) do
+      expressions = Array.new(random.rand(1..6)) do
+        varspecs = Array.new(random.rand(1..3)) do
+          name = pick.call(%w[a b c d])
+          pick.call([name, name, "#{name}*", "#{name}:3"])
+        end
+        pick.call(pieces) + "{#{pick.call(operators)}#{varspecs.join(',')}}"
+      end
+      expressions.join + pick.call(pieces)
+    end
+    patterns += [
+      "é{a}" * 50, "{a}" * 50, "a{a}/" * 50, "{a,b}-" * 30,
+      "{+a}é/" * 30, "{/a*}." * 30, "{a}/x/{+b}" * 20,
+      # Expressions alike but for the literal text, the expressions or the
+      # literal text after them, or the characters their values can take.
+      "{+a}\#{b}\#{c}", ".{a}-{a}-{b}/x/{;b}{;a}/x/{c*,c}?",
+      "&{;a}/x/{+d,c:3}{&b,b:3,b}/{/d,d,b}x{d}x{?c}%23",
+      ",{/b,c}.{/d,b}{\#d,a}.{.b,a:3,a*}.json{d,a:3}{+b,b}."
+    ]
+    regexps = lambda do |pattern, cached|
+      [true, false].map do |linear|
+        template = Addressable::Template.new(pattern)
+        template.define_singleton_method(:linear_time?) { |_| linear }
+        unless cached
+          template.define_singleton_method(:build_memo) { |_, &block| block.call }
+        end
+        begin
+          template.to_regexp.source
+        rescue Addressable::Template::InvalidTemplateError => error
+          error.class
+        end
+      end
+    end
+    patterns.each do |pattern|
+      expect(regexps.call(pattern, false)).to eq(regexps.call(pattern, true)),
+        "different regexps for #{pattern.inspect}"
+    end
+  end
+end
