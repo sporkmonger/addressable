@@ -7615,6 +7615,42 @@ describe Addressable::URI, "when unencoding a multibyte string" do
       :path => "/path", :query => "günther"
     ))
   end
+
+  it "decodes a long run of non-ASCII bytes in linear time" do
+    # Compared with ASCII bytes on the same runner, so that a slow or busy
+    # runner doesn't fail the spec. Each of these bytes on its own isn't
+    # valid UTF-8.
+    size = 40_000
+    fastest = lambda do |byte|
+      3.times.map do
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        Addressable::URI.unencode_component("%#{byte}" * size)
+        Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+      end.min
+    end
+    expect(Addressable::URI.unencode_component("%CC%81" * 2)).to eq(
+      "́́"
+    )
+    expect(fastest.call("CC")).to be < (fastest.call("41") * 4) + 0.05
+  end
+
+end
+
+describe Addressable::URI, "when unencoding a string it can't search" do
+  it "raises ArgumentError for a string that isn't valid in its encoding" do
+    expect do
+      Addressable::URI.unencode_component(
+        "\xFF%41".dup.force_encoding(Encoding::UTF_8)
+      )
+    end.to raise_error(ArgumentError)
+  end
+
+  it "raises Encoding::CompatibilityError for an encoding that isn't " \
+      "ASCII-compatible" do
+    expect do
+      Addressable::URI.unencode_component("a%41".encode(Encoding::UTF_16LE))
+    end.to raise_error(Encoding::CompatibilityError)
+  end
 end
 
 describe Addressable::URI, "when partially unencoding a string" do
