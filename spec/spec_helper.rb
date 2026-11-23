@@ -79,6 +79,12 @@ end
 RSpec.configure do |config|
   config.warnings = true
   config.filter_run_when_matching :focus
+  # TruffleRuby builds and matches the long templates in these specs many
+  # times more slowly than other Rubies, enough to make a run take minutes
+  # longer. Its results are still checked by every other template spec.
+  if RUBY_ENGINE == "truffleruby"
+    config.filter_run_excluding regexp_timing: true
+  end
 
   config.after(:suite) do
     unless StrictWarnings.warnings.empty?

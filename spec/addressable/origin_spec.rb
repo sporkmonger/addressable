@@ -107,12 +107,12 @@ describe Addressable::URI, "when assigning an origin" do
   end
 
   it "gives back any serialized origin it is assigned" do
-    failures = OriginSpec.origins(2_000, 6454).filter_map do |origin|
+    failures = OriginSpec.origins(2_000, 6454).map do |origin|
       expected = Addressable::URI.parse(origin).origin
       uri = OriginSpec.assign(origin)
       actual = uri.is_a?(Exception) ? uri.inspect : uri.origin
       [origin, expected, actual] unless actual == expected
-    end
+    end.compact
     expect(failures).to be_empty, lambda {
       "#{failures.size} origins did not round-trip " +
       "(origin, expected, actual):\n" +
@@ -121,14 +121,14 @@ describe Addressable::URI, "when assigning an origin" do
   end
 
   it "takes the same scheme, host and port as parse, or raises" do
-    failures = OriginSpec.uris(4_000, 3986).filter_map do |input|
+    failures = OriginSpec.uris(4_000, 3986).map do |input|
       uri = OriginSpec.assign(input)
       next if uri.is_a?(Exception)
       expected = OriginSpec.components(Addressable::URI.parse(input))
       actual = OriginSpec.components(uri)
       next if actual == expected && uri.userinfo.nil?
       [input, expected, actual.merge(userinfo: uri.userinfo)]
-    end
+    end.compact
     expect(failures).to be_empty, lambda {
       "#{failures.size} assignments disagreed with parse " +
       "(input, parse, origin=):\n" +
