@@ -84,6 +84,7 @@ template.extract(uri)
 #   "segments" => ["a", "b", "c"],
 #   "one" => "1",
 #   "two" => "2",
+#   "bogus" => nil,
 #   "fragment" => "foo"
 # }
 ```
