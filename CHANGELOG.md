@@ -9,7 +9,7 @@
 - `Addressable::URI` setters, `.new` and `#merge` raise for `false` instead of treating it as `nil` ([#667])
 - `Addressable::URI#port=` and `.new` raise `InvalidURIError` for a port with a line break, such as `"8080\nx"` ([#663])
 - `Addressable::URI` setters, `.new` and `.parse` raise `InvalidURIError` for a port above 65535 in a URI whose scheme has a default port, such as `http://example.com:70000/`, and for a port above the largest integer Ruby stores without a bignum, 2**62 - 1 on 64-bit platforms, in any URI ([#711])
-- `Addressable::URI#origin=` raises `InvalidURIError` for a string with a path, query or fragment, which it dropped ([#616])
+- `Addressable::URI#origin=` raises `InvalidURIError` for a string with a path, query or fragment, which it dropped, and for one with userinfo that has a colon, from which it took the host: `https://user:pass@example.com` raises instead of setting the host to `user` ([#616], [GHSA-cwmp-x65r-27fv])
 - `Addressable::URI.parse`, `.new` and the host setters raise `InvalidURIError` for brackets in a host that don't enclose an IPv6 address or IPvFuture literal, such as `http://[127.0.0.1]/` or `http://example[.]com/`, which they accepted ([GHSA-c7j3-jq7p-v3pr])
 - `Addressable::URI#host=`, `#authority=`, `.new` and `.parse` raise `InvalidURIError` for a colon in a host outside the brackets of an IP literal, such as `example.com:8080` or `http://a:b:80/`, which they accepted ([GHSA-w5p3-7836-69vh])
 - `Addressable::URI#user=`, `#password=`, `#userinfo=`, `#authority=`, `.new` and `.parse` raise `InvalidURIError` for `/`, `?`, `#`, `[`, `]` or `\` in the user or password, or `:` in the user, which they accepted: `uri.password = "#secret"` raises, and a password with these characters has to be pct-encoded first ([GHSA-qrq6-rcpx-pmm6])
@@ -140,6 +140,7 @@
 [#716]: https://github.com/sporkmonger/addressable/pull/716
 [#720]: https://github.com/sporkmonger/addressable/pull/720
 [GHSA-c7j3-jq7p-v3pr]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-c7j3-jq7p-v3pr
+[GHSA-cwmp-x65r-27fv]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-cwmp-x65r-27fv
 [GHSA-fccw-gx6q-mh6c]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-fccw-gx6q-mh6c
 [GHSA-grhv-8jgq-r74x]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-grhv-8jgq-r74x
 [GHSA-h78h-gj97-g737]: https://github.com/sporkmonger/addressable/security/advisories/GHSA-h78h-gj97-g737
