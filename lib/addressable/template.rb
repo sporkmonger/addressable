@@ -2517,8 +2517,13 @@ module Addressable
         # only there would be tried with every choice before it.
         allowed = literals.join.chars | characters_in(expressions)
         allowed = allowed.reject { |character| character =~ LITERAL_ENCODE }
-        regexp << "(?=(?:[#{allowed.map { |c| Regexp.escape(c) }.join}]|" \
-          "%[0-9A-Fa-f]{2}|[^\\x00-\\x7F])*+\\z)"
+        units = ["%[0-9A-Fa-f]{2}", "[^\\x00-\\x7F]"]
+        # A template with no ASCII text allows no ASCII character, and an
+        # empty character class isn't a valid regexp.
+        unless allowed.empty?
+          units.unshift("[#{allowed.map { |c| Regexp.escape(c) }.join}]")
+        end
+        regexp << "(?=(?:#{units.join('|')})*+\\z)"
         # The same goes for literal text that ends the template, which the
         # URI must end with. It's checked behind the end, since a literal
         # before \z in a lookahead keeps some engines from anchoring the
