@@ -948,22 +948,29 @@ module Addressable
 
       reset_ivs
 
-      defer_validation do
-        # Bunch of crazy logic required because of the composite components
-        # like userinfo and authority.
-        self.scheme = options[:scheme] unless options[:scheme].nil?
-        self.user = options[:user] unless options[:user].nil?
-        self.password = options[:password] unless options[:password].nil?
-        self.userinfo = options[:userinfo] unless options[:userinfo].nil?
-        self.host = options[:host] unless options[:host].nil?
-        self.port = options[:port] unless options[:port].nil?
-        self.authority = options[:authority] unless options[:authority].nil?
-        self.path = options[:path] unless options[:path].nil?
-        self.query = options[:query] unless options[:query].nil?
-        unless options[:query_values].nil?
-          self.query_values = options[:query_values]
+      # A URI that can't be constructed is never returned, so its setters
+      # don't need to put anything back.
+      @constructing = true
+      begin
+        defer_validation do
+          # Bunch of crazy logic required because of the composite components
+          # like userinfo and authority.
+          self.scheme = options[:scheme] unless options[:scheme].nil?
+          self.user = options[:user] unless options[:user].nil?
+          self.password = options[:password] unless options[:password].nil?
+          self.userinfo = options[:userinfo] unless options[:userinfo].nil?
+          self.host = options[:host] unless options[:host].nil?
+          self.port = options[:port] unless options[:port].nil?
+          self.authority = options[:authority] unless options[:authority].nil?
+          self.path = options[:path] unless options[:path].nil?
+          self.query = options[:query] unless options[:query].nil?
+          unless options[:query_values].nil?
+            self.query_values = options[:query_values]
+          end
+          self.fragment = options[:fragment] unless options[:fragment].nil?
         end
-        self.fragment = options[:fragment] unless options[:fragment].nil?
+      ensure
+        remove_instance_variable(:@constructing)
       end
 
       to_s # force path validation
@@ -2914,10 +2921,13 @@ module Addressable
     # @api private
     ##
     # A setter puts the components back if it raises, so that a failed
-    # assignment doesn't leave the URI half changed. Within defer_validation
-    # the outermost block does that instead, and a frozen URI can't change.
+    # assignment doesn't leave the URI half changed, even within
+    # defer_validation, where the caller may rescue the error and carry on.
+    # The outermost defer_validation block also puts them back if an error
+    # leaves it. A frozen URI can't change, and one being constructed is
+    # discarded if a setter raises.
     def components_restored_elsewhere?
-      frozen? || (defined?(@validation_deferred) && @validation_deferred)
+      frozen? || defined?(@constructing) ? true : false
     end
 
     def save_components
