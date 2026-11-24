@@ -33,13 +33,15 @@ jobs:
       contents: read
     uses: ./.github/workflows/test.yml
 
-  release:
+  # Builds the gem from the committed gemspec without installing the bundle,
+  # so no third-party gem's code runs before the gem is packaged. This job
+  # can't publish: it has no id-token permission.
+  build:
     needs: test
     if: github.repository == 'sporkmonger/addressable'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # for trusted publishing
     steps:
       # tags are named addressable-VERSION, e.g. addressable-2.8.6
       - name: Set VERSION from git tag
@@ -47,14 +49,13 @@ jobs:
           GIT_REF: ${{ github.ref }}
         run: echo "VERSION=${GIT_REF##*addressable-}" >> "$GITHUB_ENV"
 
-      - name: Install libidn
-        run: sudo apt-get install libidn11-dev
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: ruby/setup-ruby@20eb24b0d509e2b9ed9b6d42ddfeb992915e0564 # v1.341.0
         with:
-          bundler-cache: true
+          bundler-cache: false
           ruby-version: ruby
 
       - name: Verify tag matches gemspec version
@@ -65,10 +66,52 @@ jobs:
             exit 1
           fi
 
+      # The gemspec job in CI checks that addressable.gemspec matches the
+      # Rakefile's, so this builds the same gem as rake gem:package.
+      - name: Build gem
+        run: |
+          mkdir pkg
+          gem build addressable.gemspec --output "pkg/addressable-${VERSION}.gem"
+          sha256sum "pkg/addressable-${VERSION}.gem"
+
+      # ensure the gem can be installed; its dependency isn't needed for that
+      - name: Install gem
+        run: gem install --local --ignore-dependencies --no-document "pkg/addressable-${VERSION}.gem"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gem
+          path: pkg/addressable-${{ env.VERSION }}.gem
+          if-no-files-found: error
+          retention-days: 7
+
+  # Pushes the gem the build job made. Only this job can mint the trusted
+  # publishing token, and it runs no code from the repository or its bundle.
+  publish:
+    needs: build
+    if: github.repository == 'sporkmonger/addressable'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # for trusted publishing
+    steps:
+      - name: Set VERSION from git tag
+        env:
+          GIT_REF: ${{ github.ref }}
+        run: echo "VERSION=${GIT_REF##*addressable-}" >> "$GITHUB_ENV"
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: gem
+          path: pkg
+
+      - run: sha256sum "pkg/addressable-${VERSION}.gem"
+
+      - uses: ruby/setup-ruby@20eb24b0d509e2b9ed9b6d42ddfeb992915e0564 # v1.341.0
+        with:
+          bundler-cache: false
+          ruby-version: ruby
+
       - uses: rubygems/configure-rubygems-credentials@dc5a8d8553e6ee01fc26761a49e99e733d17954a # v2.1.0
 
-      # ensure gem can be built and installed
-      - run: bundle exec rake gem:install
-
       # push gem to rubygems.org
-      - run: gem push --verbose pkg/addressable-${VERSION}.gem
+      - run: gem push --verbose "pkg/addressable-${VERSION}.gem"
