@@ -4,9 +4,9 @@
 
 ### Breaking changes
 
-- `Addressable::URI.parse`, `.new` and the host setters raise `InvalidURIError` for a backtick in the host, such as ``http://`www.example.com/``, which they accepted ([#511])
+- `Addressable::URI.parse`, `.new` and the host setters raise `InvalidURIError` for a backtick in the host, such as ``http://`www.example.com/``, which they accepted ([#726])
 
-[#511]: https://github.com/sporkmonger/addressable/issues/511
+[#726]: https://github.com/sporkmonger/addressable/pull/726
 
 ## Addressable 2.10.0 <a name="v2.10.0">
 
