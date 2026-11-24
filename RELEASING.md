@@ -24,8 +24,12 @@ Pushing a tag named `addressable-x.y.z` starts the Release workflow
    tagged commit. If any required job fails, nothing is published.
 1. It checks that the tag's version matches the version in
    `addressable.gemspec`.
-1. It builds and installs the gem, then pushes it to RubyGems.org using
-   trusted publishing, so no API key is needed locally.
+1. It builds the gem from `addressable.gemspec` and installs it, without
+   installing the bundle, in a job that can't publish.
+1. A separate job pushes that gem to RubyGems.org using trusted
+   publishing, so no API key is needed locally. Only this job can get the
+   publishing token, and it runs no code from the repository or its
+   dependencies.
 
 The workflow only publishes from `sporkmonger/addressable`. A tag pushed to
 a fork, including a security advisory fork, doesn't publish anything.
