@@ -661,6 +661,33 @@ describe Addressable::Template, "#match" do
     end
   end
 
+  context "when the template has no ASCII literal text" do
+    # The regexp that commits to choices rejects up front a URI with an
+    # ASCII character that nothing in the template can contain. Here that's
+    # every ASCII character, so only pct-encoded triplets and non-ASCII text
+    # are left.
+    {
+      "" => { matches: [""], rejects: ["x", "%41"] },
+      "é" => { matches: ["é"], rejects: ["e", "éx", ""] },
+      "中" => { matches: ["中"], rejects: ["x", "中中"] },
+      "é中" => { matches: ["é中"], rejects: ["é", "x"] }
+    }.each do |pattern, uris|
+      [:own, :committed].each do |which|
+        it "matches URIs against #{pattern.inspect} with the #{which} regexp" do
+          template = Addressable::Template.new(pattern)
+          template = TemplateMatchSpec.committed(template) if which == :committed
+          uris[:matches].each do |uri|
+            expect(template.match(uri)).not_to be_nil, "#{uri.inspect} didn't match"
+            expect(template.extract(uri)).to eq({})
+          end
+          uris[:rejects].each do |uri|
+            expect(template.match(uri)).to be_nil, "#{uri.inspect} matched"
+          end
+        end
+      end
+    end
+  end
+
   context "with adversarial input" do
     # A shorter payload for these where the template commits to choices, as
     # it does where the regular expression engine can't match the regexp

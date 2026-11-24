@@ -1,5 +1,13 @@
 # Changelog
 
+## Addressable 2.10.1 (unreleased) <a name="v2.10.1">
+
+### `Addressable::Template`
+
+- Fix `#match` and `#extract` raising `RegexpError` on MRI before 3.2 and JRuby for a template whose literal text has no ASCII character, such as `é`, or that is empty ([#728])
+
+[#728]: https://github.com/sporkmonger/addressable/pull/728
+
 ## Addressable 2.10.0 <a name="v2.10.0">
 
 ### Breaking changes
