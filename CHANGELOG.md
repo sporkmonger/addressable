@@ -1,5 +1,13 @@
 # Changelog
 
+## Addressable 2.10.1 (unreleased) <a name="v2.10.1">
+
+### `Addressable::URI`
+
+- Leave a URI unchanged when a setter raises inside `#defer_validation` and the error is rescued there: `#authority=` and `#site=` kept the host they set before the port raised ([#729])
+
+[#729]: https://github.com/sporkmonger/addressable/pull/729
+
 ## Addressable 2.10.0 <a name="v2.10.0">
 
 ### Breaking changes

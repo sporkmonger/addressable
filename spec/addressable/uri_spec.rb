@@ -2520,6 +2520,33 @@ describe Addressable::URI, "when a setter raises an error" do
     expect(snapshot(uri)).to eq(expected)
   end
 
+  [
+    [:authority=, "evil.example:99999999999999999999999"],
+    [:authority=, "evil.example:bogus"],
+    [:authority=, "user@evil.example:x1"],
+    [:site=, "http://evil.example:bogus"],
+    [:site=, "https://evil.example:99999999999999999999999"],
+    [:port=, "bogus"],
+    [:origin=, "https://u:p@evil.example"],
+    [:scheme=, "1http"]
+  ].each do |setter, value|
+    it "should leave the URI as it was before #{setter} #{value.inspect} " +
+        "when the error is rescued inside defer_validation" do
+      uri = Addressable::URI.parse("http://alice@example.com:8080/p?q=1#f")
+      expected = nil
+      uri.defer_validation do
+        uri.path = "/changed"
+        expected = snapshot(uri)
+        expect do
+          uri.send(setter, value)
+        end.to raise_error(Addressable::URI::InvalidURIError)
+        expect(snapshot(uri)).to eq(expected)
+      end
+      expect(snapshot(uri)).to eq(expected)
+      expect(uri.to_s).to eq("http://alice@example.com:8080/changed?q=1#f")
+    end
+  end
+
   it "should keep the changes of setters that succeed" do
     uri = Addressable::URI.parse("http://example.com/")
     uri.host = "other.example"
